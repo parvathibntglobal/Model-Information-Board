@@ -1,13 +1,11 @@
 """Kite Pulse outreach, Hacker News Finder. No network, no database.
 
-The last two tests guard the design rather than the behaviour:
-  * the package never sends a write request to any platform (no posting);
-  * it imports nothing from collect/ except collect.config (no evidence writes).
+The design guards (no posting, no collect/ writers) cover every outreach
+folder and live in test_kp_outreach_guards.py.
 """
 
 from __future__ import annotations
 
-import ast
 import re
 import sys
 from datetime import UTC, datetime, timedelta
@@ -17,16 +15,17 @@ import httpx
 import pytest
 
 OUTREACH = Path(__file__).resolve().parent.parent / "web" / "src" / "kitepulse" / "outreach"
-PACKAGE = OUTREACH / "hackernews"
+HN_CONFIG = OUTREACH / "hackernews" / "config"
 if str(OUTREACH) not in sys.path:
     sys.path.insert(0, str(OUTREACH))
 
-from hackernews import config  # noqa: E402
-from hackernews import thread as t  # noqa: E402
+from common import config  # noqa: E402
+from common import thread as t  # noqa: E402
+from common.config import Community, Pace, Query  # noqa: E402
+from common.text import plain_text  # noqa: E402
 from hackernews.client import HackerNewsClient, HackerNewsError  # noqa: E402
-from hackernews.config import Community, Pace, Query  # noqa: E402
 from hackernews.finder import find_hackernews  # noqa: E402
-from hackernews.parse import plain_text, thread_of  # noqa: E402
+from hackernews.parse import thread_of  # noqa: E402
 
 NOW = datetime(2026, 11, 6, 12, 0, tzinfo=UTC)
 UA = "kitepulse-outreach-test/0 (+https://example.invalid)"
@@ -182,45 +181,12 @@ def test_an_http_error_is_raised_not_read_as_no_results():
 # --- config ----------------------------------------------------------------
 
 def test_the_shipped_config_loads():
-    assert config.queries("hackernews")
-    assert config.community("hackernews").vendor_replies in config.VENDOR_REPLY_STATES
-    assert config.pace("hackernews").max_thread_age_days >= 1
+    assert config.queries("hackernews", HN_CONFIG)
+    assert config.community("hackernews", HN_CONFIG).vendor_replies in config.VENDOR_REPLY_STATES
+    assert config.pace("hackernews", HN_CONFIG).max_thread_age_days >= 1
 
 
 def test_a_missing_config_key_raises(tmp_path):
     (tmp_path / "pace.yaml").write_text("team_accounts: {hackernews: []}\n", encoding="utf-8")
     with pytest.raises(config.ConfigError):
         config.pace("hackernews", config_dir=tmp_path)
-
-
-# --- design guards ---------------------------------------------------------
-
-_WRITE_CALL = re.compile(
-    r"\.(post|put|patch|delete)\s*\(|method\s*=\s*[\"'](POST|PUT|PATCH|DELETE)",
-    re.I,
-)
-
-
-def _sources():
-    return sorted(PACKAGE.rglob("*.py"))
-
-
-def test_the_package_sends_no_write_request_to_any_platform():
-    offenders = [f"{p.relative_to(PACKAGE)}:{n}"
-                 for p in _sources()
-                 for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1)
-                 if _WRITE_CALL.search(line)]
-    assert offenders == [], f"outreach must only read from forums: {offenders}"
-
-
-def test_the_package_imports_nothing_from_collect_but_config():
-    allowed = {"collect.config"}
-    found = set()
-    for p in _sources():
-        for node in ast.walk(ast.parse(p.read_text(encoding="utf-8"))):
-            if isinstance(node, ast.ImportFrom) and node.module and (
-                    node.module == "collect" or node.module.startswith("collect.")):
-                found.add(node.module)
-            elif isinstance(node, ast.Import):
-                found |= {a.name for a in node.names if a.name.split(".")[0] == "collect"}
-    assert found <= allowed, f"unexpected collect/ imports: {found - allowed}"

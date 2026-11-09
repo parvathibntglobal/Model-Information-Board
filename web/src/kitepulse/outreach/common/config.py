@@ -1,8 +1,9 @@
-"""Load the outreach YAML files in `config/`.
+"""Load a platform's outreach YAML files (its own `config/` folder).
 
 Every value the Finder uses comes from these files and has no default in code:
 a missing key raises `ConfigError` rather than falling back to a value nobody
-chose (CLAUDE.md rule 12).
+chose (CLAUDE.md rule 12). The folder has no default either; each platform
+passes its own, so one platform can never read another's settings by accident.
 """
 
 from __future__ import annotations
@@ -12,8 +13,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
-CONFIG_DIR = Path(__file__).parent / "config"
 
 VENDOR_REPLY_STATES = ("allowed", "pending_review", "not_allowed")
 
@@ -58,7 +57,17 @@ def _require(mapping: Any, key: str, where: str) -> Any:
     return mapping[key]
 
 
-def queries(source: str, config_dir: Path = CONFIG_DIR) -> list[Query]:
+def names(filename: str, key: str, config_dir: Path) -> list[str]:
+    """A required, non-empty list of non-empty strings, e.g. dev.to's tags."""
+    values = _require(_load(filename, config_dir), key, filename)
+    if not isinstance(values, list) or not values:
+        raise ConfigError(f"{filename}: {key!r} must be a non-empty list")
+    if not all(isinstance(v, str) and v.strip() for v in values):
+        raise ConfigError(f"{filename}: every entry of {key!r} must be a non-empty string")
+    return [v.strip() for v in values]
+
+
+def queries(source: str, config_dir: Path) -> list[Query]:
     """Every (problem, phrase) pair for one source, in file order."""
     problems = _require(_load("queries.yaml", config_dir), "problems", "queries.yaml")
     out: list[Query] = []
@@ -71,11 +80,20 @@ def queries(source: str, config_dir: Path = CONFIG_DIR) -> list[Query]:
     return out
 
 
-def community(key: str, config_dir: Path = CONFIG_DIR) -> Community:
-    communities = _require(
-        _load("communities.yaml", config_dir), "communities", "communities.yaml"
-    )
-    entry = _require(communities, key, "communities.yaml")
+def _all_communities(config_dir: Path) -> dict[str, Any]:
+    entries = _require(_load("communities.yaml", config_dir), "communities", "communities.yaml")
+    if not isinstance(entries, dict) or not entries:
+        raise ConfigError("communities.yaml: 'communities' must be a non-empty mapping")
+    return entries
+
+
+def communities(config_dir: Path) -> list[Community]:
+    """Every community in the file, in file order (Discourse: one per forum)."""
+    return [community(key, config_dir) for key in _all_communities(config_dir)]
+
+
+def community(key: str, config_dir: Path) -> Community:
+    entry = _require(_all_communities(config_dir), key, "communities.yaml")
     state = _require(entry, "vendor_replies", f"communities.yaml: {key}")
     if state not in VENDOR_REPLY_STATES:
         raise ConfigError(
@@ -90,7 +108,7 @@ def community(key: str, config_dir: Path = CONFIG_DIR) -> Community:
     )
 
 
-def pace(source: str, config_dir: Path = CONFIG_DIR) -> Pace:
+def pace(source: str, config_dir: Path) -> Pace:
     data = _load("pace.yaml", config_dir)
     days = _require(data, "max_thread_age_days", "pace.yaml")
     if not isinstance(days, int) or days < 1:

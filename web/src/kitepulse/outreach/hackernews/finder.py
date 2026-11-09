@@ -10,10 +10,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from . import filters
-from . import thread as t
+from common import filters
+from common import thread as t
+from common.config import Community, Pace, Query
+
 from .client import HackerNewsClient
-from .config import Community, Pace, Query
 from .parse import thread_of
 
 

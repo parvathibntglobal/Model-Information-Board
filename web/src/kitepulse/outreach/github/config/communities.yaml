@@ -1,0 +1,26 @@
+# Whether GitHub Discussions welcome a disclosed comment from someone who works
+# on a product.
+#
+# vendor_replies is one of:
+#   allowed         a person has read the rules and they permit it
+#   pending_review  nobody has decided yet. Discussions are KEPT and FLAGGED, so
+#                   a reviewer sees them and knows the question is open.
+#   not_allowed     every discussion is dropped, with that reason
+#
+# Set it only after reading rules_url, and record who decided and when.
+#
+# One entry for all of GitHub. Each repo can add its own code of conduct, and
+# the reviewer reads that per thread; the Finder does not.
+
+communities:
+  github:
+    name: GitHub Discussions
+    vendor_replies: pending_review
+    rules_url: https://docs.github.com/en/site-policy/acceptable-use-policies/github-acceptable-use-policies
+    decided_by: null
+    decided_on: null
+    note: >-
+      Read the Acceptable Use Policies, in particular the section on spam and
+      inauthentic activity (unsolicited promotion), then decide whether a
+      disclosed, useful comment fits, and set vendor_replies, decided_by and
+      decided_on.

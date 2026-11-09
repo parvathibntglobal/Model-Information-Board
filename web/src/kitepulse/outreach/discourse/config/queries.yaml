@@ -1,0 +1,50 @@
+# What the Finder looks for on Discourse forums: problems Kite Pulse solves,
+# and the phrases people use when they have that problem.
+#
+# Written by a person, tuned by reading what each phrase finds. A phrase that
+# returns mostly noise should be removed, not kept "for recall": every topic it
+# finds is one a reviewer has to read.
+#
+# HOW A PHRASE MATCHES HERE (discourse/match.py), which is not how Hacker News
+# search matches: every word must appear as a whole word in the topic's title
+# or excerpt, in any order, ignoring case, with an optional plain ending
+# ("limit" matches "limits", "limited"; "hit" does NOT match "hitting"). So
+# phrases are short, the way people title a forum topic.
+#
+# Most forum titles are short and many forums send no excerpt, so a long phrase
+# rarely matches. Two or three words is the useful length.
+#
+# First version, 2026-11-06. Not yet tuned against real results.
+
+problems:
+  claude-limits:
+    description: People hitting Claude or Claude Code usage limits
+    phrases:
+      discourse:
+        - claude limit
+        - claude usage
+        - usage limit
+
+  ai-cost-per-developer:
+    description: Teams trying to see what AI coding tools cost, per developer or project
+    phrases:
+      discourse:
+        - cost per developer
+        - team cost
+        - team spend
+
+  agent-stuck:
+    description: Coding agents that loop, stall or get stuck
+    phrases:
+      discourse:
+        - agent stuck
+        - stuck loop
+        - agent loop
+
+  ai-usage-visibility:
+    description: Managers wanting visibility into how their team uses AI coding tools
+    phrases:
+      discourse:
+        - team usage
+        - usage dashboard
+        - usage analytics

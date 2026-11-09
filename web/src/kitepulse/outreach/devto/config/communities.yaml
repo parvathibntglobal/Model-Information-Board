@@ -1,0 +1,22 @@
+# Whether dev.to welcomes a disclosed comment from someone who works on a
+# product.
+#
+# vendor_replies is one of:
+#   allowed         a person has read the rules and they permit it
+#   pending_review  nobody has decided yet. Articles are KEPT and FLAGGED, so a
+#                   reviewer sees them and knows the question is open.
+#   not_allowed     every article is dropped, with that reason
+#
+# Set it only after reading rules_url, and record who decided and when.
+
+communities:
+  dev.to:
+    name: DEV Community
+    vendor_replies: pending_review
+    rules_url: https://dev.to/code-of-conduct
+    decided_by: null
+    decided_on: null
+    note: >-
+      Read the Code of Conduct and the Terms (https://dev.to/terms) on
+      promotional and spam content, then decide whether a disclosed, useful
+      comment fits, and set vendor_replies, decided_by and decided_on.

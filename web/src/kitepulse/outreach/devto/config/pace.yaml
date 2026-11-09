@@ -1,0 +1,13 @@
+# Limits on what the Finder keeps.
+
+# The week read per tag (sent to dev.to as top=<days>). Old articles have moved
+# on, and a late comment that links to a product reads as advertising.
+max_thread_age_days: 7
+
+# dev.to usernames of team members who comment. An article where one of them has
+# already commented is dropped (reason: already_answered).
+#
+# EMPTY MEANS THE CHECK DOES NOT RUN, and the Finder says so in its output. It
+# never reads as "nobody on the team has commented".
+team_accounts:
+  devto: []

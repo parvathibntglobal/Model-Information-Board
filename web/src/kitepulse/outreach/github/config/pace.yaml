@@ -1,0 +1,14 @@
+# Limits on what the Finder keeps.
+
+# The week searched (sent to GitHub as created:>=<date>, then checked to the
+# hour in code). Old discussions have moved on, and a late comment that links to
+# a product reads as advertising.
+max_thread_age_days: 7
+
+# GitHub logins of team members who comment. A discussion where one of them has
+# already commented or replied is dropped (reason: already_answered).
+#
+# EMPTY MEANS THE CHECK DOES NOT RUN, and the Finder says so in its output. It
+# never reads as "nobody on the team has commented".
+team_accounts:
+  github: []

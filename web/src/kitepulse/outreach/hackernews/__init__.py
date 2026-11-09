@@ -10,17 +10,17 @@ Kite Pulse solves, and filters them, for a person to read and answer by hand.
     finder.py    search -> deduplicate -> filter
     client.py    GET-only calls to the Algolia HN Search API
     parse.py     an API hit -> a Thread
-    thread.py    the Thread record, statuses, drop reasons
-    filters.py   the code filters (no model)
-    config.py    loads config/*.yaml; a missing key is an error, never a default
     config/      queries.yaml, communities.yaml, pace.yaml - edited by people
+
+The Thread record, the filters and the config loader are shared with the other
+platforms, in `../common/`.
 
 Design: `../docs/ARCHITECTURE.md`.
 
 THIS FOLDER ONLY READS FROM HACKER NEWS. It holds no posting credential and
-calls no posting endpoint; `tests/test_kp_outreach_hackernews.py` fails if a
-write request appears in it. A person posts every reply from their own account,
-with disclosure.
+calls no posting endpoint; `tests/test_kp_outreach_guards.py` fails if a write
+request appears in any outreach folder. A person posts every reply from their
+own account, with disclosure.
 
 It shares nothing with the Model Information Board's evidence pipeline: it
 never writes `document`, `claim` or `thread_context`, and imports nothing from

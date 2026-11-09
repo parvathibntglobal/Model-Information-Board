@@ -103,19 +103,42 @@ platform**, each run as a script by its path (the way
 ```
 web/src/kitepulse/outreach/
 ├── docs/                             strategy, this document
+├── common/                           shared by every platform folder
+│   ├── thread.py                     the Thread record, statuses, drop reasons, flags
+│   ├── filters.py                    the code filters (5.2a)
+│   ├── config.py                     loads a platform's config/*.yaml, no defaults in code
+│   ├── text.py                       HTML → plain text
+│   ├── match.py                      phrase matching in code (whole words), for unsearchable sources
+│   └── http.py                       GET-only, paced client that obeys robots.txt
 ├── hackernews/                       BUILT 2026-11-06 (phase 1 Finder)
 │   ├── find.py                       py -3.12 web/src/kitepulse/outreach/hackernews/find.py
 │   ├── finder.py                     search → deduplicate → filter
 │   ├── client.py                     GET-only calls to Algolia HN Search
 │   ├── parse.py                      API hit → Thread
-│   ├── thread.py                     the Thread record, statuses, drop reasons
-│   ├── filters.py                    the code filters (5.2a)
-│   ├── config.py                     loads config/*.yaml, no defaults in code
 │   └── config/
 │       ├── queries.yaml              search phrases per problem
 │       ├── communities.yaml          vendor-reply policy and a link to the rules
 │       └── pace.yaml                 max thread age, team accounts
-├── reddit/  devto/  github/  discourse/  x/      to build, same shape
+├── discourse/                        BUILT 2026-11-06 (phase 1 Finder, same shape)
+│   ├── find.py                       py -3.12 web/src/kitepulse/outreach/discourse/find.py
+│   ├── finder.py                     list this week's topics → match phrases → filter
+│   ├── client.py                     GET-only, checked against each forum's robots.txt
+│   ├── parse.py                      listing topic → Thread
+│   └── config/                       communities.yaml has one entry per forum
+├── devto/                            BUILT 2026-11-06 (phase 1 Finder, same shape)
+│   ├── find.py                       py -3.12 web/src/kitepulse/outreach/devto/find.py
+│   ├── finder.py                     each tag's week → deduplicate → match phrases → filter
+│   ├── client.py                     Forem API; fails if dev.to ignores the tag or date filter
+│   ├── parse.py                      listing article → Thread
+│   └── config/                       tags.yaml lists the tags read, with measured volumes
+├── github/                           BUILT 2026-11-06 (phase 1 Finder, same shape)
+│   ├── find.py                       py -3.12 web/src/kitepulse/outreach/github/find.py
+│   ├── finder.py                     search each phrase → confirm in code → deduplicate → filter
+│   ├── client.py                     GraphQL queries only (the one POST in outreach), KP_GITHUB_TOKEN
+│   ├── parse.py                      search node → Thread
+│   └── config/                       one community entry for all of GitHub
+├── reddit/  x/                       to build, same shape (Reddit: shared-key
+│                                     conflict with MIB, decided 2026-11-06 to skip for now)
 │
 │   to build in phase 2 and 3, location to settle then (see below):
 ├── shortlist, writer, checks         model proposal, REPLY CHECK (5.2b–5.4)
@@ -133,13 +156,11 @@ tests/test_kp_outreach_*.py                   checks, filters, no-posting guard
 **Why not `collect/`.** `collect/adapters/` already search Reddit, HN, dev.to,
 GitHub Discussions, Discourse and X, but every adapter's job ends in a
 `document` row for MIB's evidence corpus. Outreach must not write there
-(section 1). The `hackernews/` folder imports nothing from `collect/` except
-`collect.config` for the User-Agent, and a test enforces that (section 10).
+(section 1). No outreach folder imports anything from `collect/` except
+`collect.config` for the User-Agent, and `tests/test_kp_outreach_guards.py`
+enforces that, and the no-posting rule, over every folder (section 10).
 
-**What this layout defers.** When a second platform is built, the parts every
-platform shares (`thread.py`, `filters.py`, `config.py`) move to a shared
-folder (e.g. `outreach/common/`) rather than being copied. And the phase-2
-API router must be importable by `judge/app.py`, which runs from the
+**What this layout defers.** The phase-2 API router must be importable by `judge/app.py`, which runs from the
 repository root; a script folder under `web/src/` is not on that path. Decide
 how (a path entry, or moving the backend to the root) when phase 2 starts.
 
@@ -171,10 +192,11 @@ Source notes (each is an open item in section 11 until confirmed):
 |---|---|---|
 | Reddit | Data API (OAuth, read scope only) | Commercial use needs Reddit's approval. Read-only app; no `submit` scope requested. |
 | Hacker News | Algolia HN Search | Free, no key |
-| dev.to | Forem API | Free |
-| GitHub Discussions | GraphQL API | Token with read-only public scope |
-| Developer forums | Discourse `/search.json` | Per forum; listed in `communities.yaml` |
+| dev.to | Forem API `/api/articles?tag=<tag>&top=7&per_page=1000`, phrases matched in code | Free, no key. robots.txt disallows `/search?q=*` and the API has no text search, so each tag's week is listed (paged until a page is short) and title + description matched. Tags in `devto/config/tags.yaml`. Built 2026-11-06 |
+| GitHub Discussions | GraphQL `search(type: DISCUSSION)`, `"<phrase>" in:title,body created:>=<date>`, hits confirmed in code | Kite Pulse's own `KP_GITHUB_TOKEN` (fine-grained, public read-only), never MIB's `GITHUB_TOKEN`; GitHub counts a personal token's limit per account, so use a different account to keep MIB's budget separate. Quoted phrases: 73 vs 268 unquoted for `usage limit` in one week. Pages of 25 (100 with body text exceeded GitHub's resource limit). Built 2026-11-06 |
+| Developer forums | Discourse `/latest.json?order=created`, phrases matched in code | Per forum; listed in `discourse/config/communities.yaml`. **Not `/search.json`**: every forum checked disallows `/search` in robots.txt (2026-11-06), so the Finder pages through the week's newest topics and matches title + excerpt. Built 2026-11-06 |
 | X | X API v2 search | Paid tier. Leave off until the cost is agreed. |
+| Stack Overflow / Stack Exchange | API 2.3 `/search/advanced`, `/questions?tagged=` | **Measured, not built (2026-11-09).** Free, no key (300 requests/day per IP), robots.txt is a 404 (no rules). Too quiet to be worth a Finder: all of stackoverflow.com received 289 new questions in the 7 days to 2026-11-09. In that week, tags `claude`, `claude-code`, `anthropic`, `openai-api` and `cursor-ide` had 0 questions each; `claude-code` had 1 in 90 days. Phrase search over the same week: `usage limit` 2, `claude code` 1, `claude limit` 0, `token cost` 0. For comparison, GitHub Discussions had 73 for quoted `usage limit` in one week (2026-11-06). The AI-specific sites are small too: ai.stackexchange.com 6 and genai.stackexchange.com 7 questions that week, on any topic. Re-measure before building. |
 
 ### 5.2 Shortlister
 

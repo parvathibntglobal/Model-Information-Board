@@ -23,17 +23,19 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[4]  # hackernews -> outreach -> kitepulse -> src -> web -> repo
 
-# Run as a script by its path: make `hackernews` (this folder) and `collect`
-# (for the User-Agent) importable.
+# Run as a script by its path: make `hackernews` (this folder), `common` (its
+# sibling) and `collect` (for the User-Agent) importable.
 for _p in (str(HERE.parent), str(REPO_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from common import config  # noqa: E402
+
 from hackernews import SOURCE as HN  # noqa: E402
-from hackernews import config  # noqa: E402
 from hackernews.client import HackerNewsClient  # noqa: E402
 from hackernews.finder import FindResult, find_hackernews  # noqa: E402
 
+CONFIG_DIR = HERE / "config"
 DEFAULT_OUT = REPO_ROOT / "var" / "outreach"
 
 
@@ -76,7 +78,7 @@ def _print(result: FindResult, *, now: datetime, out_files: list[Path]) -> None:
 
 
 def cmd_find(args: argparse.Namespace) -> int:
-    queries = config.queries(HN)
+    queries = config.queries(HN, CONFIG_DIR)
     if args.problem:
         queries = [q for q in queries if q.problem == args.problem]
         if not queries:
@@ -89,8 +91,8 @@ def cmd_find(args: argparse.Namespace) -> int:
     result = find_hackernews(
         HackerNewsClient(_user_agent()),
         queries=queries,
-        pace=config.pace(HN),
-        community=config.community(HN),
+        pace=config.pace(HN, CONFIG_DIR),
+        community=config.community(HN, CONFIG_DIR),
         now=now,
         max_pages=args.max_pages,
     )

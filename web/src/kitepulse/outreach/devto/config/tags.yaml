@@ -1,0 +1,27 @@
+# The dev.to tags the Finder reads, a week of each. An article can carry up to
+# four tags; it is read once however many of these it has.
+#
+# Articles per week, measured 2026-11-06 with ?tag=<tag>&top=7&per_page=1000
+# (claude, claudecode, agents) or estimated from one page of 100 (the rest):
+#
+#   claude 382 · claudecode 241 · agents 1,053 · leadership ~186
+#   anthropic ~35 · cursor ~32 · vibecoding ~28 · aicoding ~21
+#   engineeringmanagement ~4
+#
+# LEFT OUT ON PURPOSE: `ai`, `productivity`, `devops` and `llm`. Each fills the
+# 1,000-article page in well under a day (`llm` ~1,200 a week; the other three
+# could not be measured from one page, as the listing ends inside a day), so a
+# week would be many pages of mostly unrelated articles. A Claude or Cursor
+# article usually carries one of the tags above as well.
+
+tags:
+  - claude
+  - claudecode
+  - anthropic
+  - cursor
+  - aicoding
+  - vibecoding
+  - githubcopilot
+  - agents
+  - engineeringmanagement
+  - leadership

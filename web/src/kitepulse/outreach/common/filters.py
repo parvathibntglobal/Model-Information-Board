@@ -19,7 +19,7 @@ def too_old(th: t.Thread, *, now: datetime, max_age_days: int) -> str | None:
 
 
 def no_text(th: t.Thread) -> str | None:
-    """A comment with no text, or a story with neither title nor text.
+    """A comment with no text, or a story or topic with neither title nor text.
 
     Hacker News blanks the text of dead and flagged comments but keeps the
     record, so this is a real state and not a parse failure.
@@ -27,6 +27,10 @@ def no_text(th: t.Thread) -> str | None:
     if th.kind == "comment":
         return None if th.body else t.NO_TEXT
     return None if (th.title or th.body) else t.NO_TEXT
+
+
+def closed(is_closed: bool) -> str | None:
+    return t.CLOSED if is_closed else None
 
 
 def community_not_allowed(c: Community) -> str | None:

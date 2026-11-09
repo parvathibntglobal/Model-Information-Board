@@ -1,0 +1,50 @@
+# What the Finder looks for on dev.to: problems Kite Pulse solves, and the
+# phrases people use when they write about them.
+#
+# Written by a person, tuned by reading what each phrase finds. A phrase that
+# returns mostly noise should be removed, not kept "for recall": every article
+# it finds is one a reviewer has to read.
+#
+# HOW A PHRASE MATCHES HERE (common/match.py), as on Discourse: every word must
+# appear as a whole word in the article's title or description, in any order,
+# ignoring case, with an optional plain ending ("limit" matches "limits"; "hit"
+# does NOT match "hitting"). Descriptions are short, so two or three words.
+#
+# dev.to is mostly people PUBLISHING ("how I cut my Claude bill"), not asking,
+# so the phrases lean to what a write-up would say.
+#
+# First version, 2026-11-06. Not yet tuned against real results.
+
+problems:
+  claude-limits:
+    description: People hitting Claude or Claude Code usage limits
+    phrases:
+      devto:
+        - claude limit
+        - usage limit
+        - rate limit claude
+
+  ai-cost-per-developer:
+    description: Teams trying to see what AI coding tools cost, per developer or project
+    phrases:
+      devto:
+        - claude cost
+        - token cost
+        - AI spend
+        - cost per developer
+
+  agent-stuck:
+    description: Coding agents that loop, stall or get stuck
+    phrases:
+      devto:
+        - agent stuck
+        - agent loop
+        - claude code stuck
+
+  ai-usage-visibility:
+    description: Managers wanting visibility into how their team uses AI coding tools
+    phrases:
+      devto:
+        - team usage
+        - measure AI productivity
+        - track AI usage

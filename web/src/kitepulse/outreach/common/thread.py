@@ -18,19 +18,32 @@ TOO_OLD = "too_old"
 NO_TEXT = "no_text"
 COMMUNITY_NOT_ALLOWED = "community_not_allowed"
 ALREADY_ANSWERED = "already_answered"
+CLOSED = "closed"                 # closed or archived: nobody can reply
 
 # Flags: the thread is kept, and the reviewer should know this.
 COMMUNITY_PENDING_REVIEW = "community_pending_review"
+# The team check read only the first posts of a long thread and found no team
+# account there. Not "nobody on the team replied".
+TEAM_CHECK_PARTIAL = "team_check_partial"
+# GitHub: the asker has marked a reply as the answer. Someone may still add
+# something useful, so this is a flag and not a drop.
+ANSWERED = "answered"
+# GitHub: the repo's owner started the discussion, which on 2026-11-06 was
+# mostly a maintainer announcing or planning a feature, not someone asking.
+# Unmeasured, so a flag and not a drop (CLAUDE.md rule 8).
+POSTED_BY_REPO_OWNER = "posted_by_repo_owner"
 
 
 @dataclass
 class Thread:
     source: str
     ext_id: str
-    kind: str                     # story | comment
-    community: str
+    kind: str                     # hackernews: story | comment; discourse: topic;
+                                  # devto: article; github: discussion
+    community: str                # hackernews, a forum's host, dev.to, or a GitHub
+                                  # repo (owner/name)
     url: str
-    root_id: str | None           # the story this item belongs to
+    root_id: str | None           # the story or topic this item belongs to
     title: str | None
     body: str | None              # plain text, for a person to read
     author: str | None

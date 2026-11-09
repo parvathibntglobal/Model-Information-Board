@@ -1,0 +1,50 @@
+# What the Finder looks for in GitHub Discussions: problems Kite Pulse solves,
+# and the phrases people use when they write about them.
+#
+# Written by a person, tuned by reading what each phrase finds. A phrase that
+# returns mostly noise should be removed, not kept "for recall": every
+# discussion it finds is one a reviewer has to read.
+#
+# HOW A PHRASE MATCHES HERE. GitHub searches the phrase QUOTED, in title and
+# body, across all of GitHub. Each hit is then confirmed in code
+# (common/match.py): every word as a whole word, any order, ignoring case,
+# optional plain ending. Search is across every repo, so a phrase must be
+# specific on its own: "limit" or "stuck" alone returned 1,452 and 357
+# discussions in one week, about everything.
+#
+# Discussions created 2026-10-30 to 2026-11-06, quoted (measured 2026-11-06):
+#   usage limit 73, token cost 74, claude limit 27, agent stuck 18,
+#   team usage 9, cost per developer 1.
+#
+# First version, 2026-11-06. Not yet tuned against real results.
+
+problems:
+  claude-limits:
+    description: People hitting Claude or Claude Code usage limits
+    phrases:
+      github:
+        - claude limit
+        - usage limit
+        - claude code rate limit
+
+  ai-cost-per-developer:
+    description: Teams trying to see what AI coding tools cost, per developer or project
+    phrases:
+      github:
+        - claude cost
+        - token cost
+        - cost per developer
+
+  agent-stuck:
+    description: Coding agents that loop, stall or get stuck
+    phrases:
+      github:
+        - agent stuck
+        - claude code stuck
+
+  ai-usage-visibility:
+    description: Managers wanting visibility into how their team uses AI coding tools
+    phrases:
+      github:
+        - team usage
+        - track AI usage
