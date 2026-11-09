@@ -7,6 +7,7 @@ import Freshness from '../components/Freshness'
 import { useHead } from '../seo/head'
 import { modelsIndex } from '../seo/pages'
 import { comparePath } from '../compare/path'
+import { kindChips, kindLabel } from '../kinds'
 
 /**
  * The registry: what each provider advertises, and what engineers have found.
@@ -147,13 +148,9 @@ function matches(models, query) {
   })
 }
 
-/** Which kind of model a tracked row is (`tracked_kind`, contract/tracked_models.yaml).
- *  Text rows carry no label - most of the list - so only the image, video and
- *  speech rows say what they are, which is also why they show no token price. */
-const KIND_LABEL = { image: 'Image model', video: 'Video model', speech: 'Speech model', transcription: 'Transcription model', decision: 'Decision model' }
-
-/** The Type filter's chips, in this order; a kind with no tracked model gets no chip. */
-const KIND_CHIPS = [['text', 'Text'], ['image', 'Image'], ['video', 'Video'], ['speech', 'Speech'], ['transcription', 'Transcription'], ['decision', 'Decision']]
+/** Which kind of model a tracked row is (`tracked_kind`, contract/tracked_models.yaml),
+ *  and the Type filter's chips: both from `web/src/kinds.js`, built from the kinds
+ *  present. Text rows carry no label - most of the list. */
 
 export default function Models() {
   useHead(modelsIndex())
@@ -383,7 +380,7 @@ export default function Models() {
                       aria-pressed={kind === 'all'} onClick={() => setKind('all')}>
                 All {roster.length}
               </button>
-              {KIND_CHIPS.filter(([k]) => kindCounts[k]).map(([k, label]) => (
+              {kindChips(kindCounts).map(([k, label]) => (
                 <button key={k} type="button" className={`chip${kind === k ? ' chip-on' : ''}`}
                         aria-pressed={kind === k} onClick={() => setKind(k)}>
                   {label} {kindCounts[k]}
@@ -495,7 +492,7 @@ function ModelRow({ m, picked, onPick, atCap }) {
           <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
             {m.provider}
-            {KIND_LABEL[m.tracked_kind] ? ` · ${KIND_LABEL[m.tracked_kind]}` : ''}
+            {kindLabel(m.tracked_kind) ? ` · ${kindLabel(m.tracked_kind)}` : ''}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
           {/* ⚠ THE CAPABILITY CHIPS ARE GONE, AND THEY NEVER RENDERED. They
@@ -553,7 +550,7 @@ function ModelRow({ m, picked, onPick, atCap }) {
           <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
             {m.provider}
-            {KIND_LABEL[m.tracked_kind] ? ` · ${KIND_LABEL[m.tracked_kind]}` : ''}
+            {kindLabel(m.tracked_kind) ? ` · ${kindLabel(m.tracked_kind)}` : ''}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
         </span>

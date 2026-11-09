@@ -387,6 +387,12 @@ def sweep_reddit(
     #: borrowed GitHub cap, unchanged.
     own_cap = block.get("max_requests")
     subject_only = bool(block.get("subject_only"))
+    # THE MEDIA BLOCK MUST STATE ITS CAP (#612 review, point 9). Missing, it
+    # fell back to harvest.yaml's daily GitHub budget - 900 - silently (rule 12).
+    if block_key == "sweep_media_subreddits" and own_cap is None:
+        raise RuntimeError(
+            "contract/sources.yaml `sweep_media_subreddits` has no `max_requests`. "
+            "The media sweep spends its own budget and refuses to borrow another's.")
     report = RedditSweepReport(
         population_per_subreddit=pages * per_page,
         pages_per_subreddit=pages,
@@ -734,8 +740,8 @@ DEFERRED = """
        AND coalesce((d.engagement->>'comments')::int, 0) > 0
        AND d.url ~* %s
        AND NOT EXISTS (SELECT 1 FROM document c WHERE c.thread_root_id = d.id)
+       AND d.fetched_at > now() - interval '30 days'
      ORDER BY d.fetched_at, d.id
-     LIMIT %s
 """
 
 #: The same, for the media search sweep: posts stored by one of its queries' runs.
@@ -746,8 +752,8 @@ DEFERRED_BY_QUERY = """
        AND coalesce((d.engagement->>'comments')::int, 0) > 0
        AND hr.query_key = ANY(%s)
        AND NOT EXISTS (SELECT 1 FROM document c WHERE c.thread_root_id = d.id)
+       AND d.fetched_at > now() - interval '30 days'
      ORDER BY d.fetched_at, d.id
-     LIMIT %s
 """
 
 
@@ -775,7 +781,15 @@ def _comments_already_read(conn, post) -> bool:
         return False
     stored_count, seen_then = row
     now = getattr(post, "num_comments", None)
-    return now is not None and seen_then is not None and now <= seen_then
+    # AGAINST WHAT WE HOLD, NOT ONLY THE FIRST COUNT (#612 review, point 6).
+    # `seen_then` never updates - `document` is append-only and a re-write
+    # conflicts away - so a thread that grew once was re-read every run. The
+    # comment documents we hold DO grow when a re-read stores the new ones, so
+    # the higher of the two is the count already covered. A thread whose count
+    # stays above what the platform ever returns (removed comments) is still
+    # re-read each run: bounded by the thread count, and said here.
+    covered = max(seen_then or 0, stored_count)
+    return now is not None and now <= covered
 
 
 def _known_model_names(conn) -> tuple[str, ...]:
@@ -818,6 +832,17 @@ def _take_deferred(conn, harvester, store, members, report, spent, *, fallback,
     reads comments only for those, so a stored post with no comments is usually
     one it chose not to read - not a deferral. Re-testing the name here keeps
     the next sweep's cap for the posts a cap really stopped.
+
+    NO LIMIT, A WINDOW (#612 review, point 4). The queries used to stop at
+    `cap - spent()` rows, oldest first, and about 71% of a search sweep's posts
+    are stored without comments on purpose - so within a week or two the oldest
+    rows were all of that kind and a real deferral was never reached. Now every
+    candidate from the last 30 days is looked at, the deliberate ones are passed
+    over BEFORE the cap is consulted, and the cap stops only real reads.
+
+    COUNTED LIKE THE MAIN LOOP (point 5): a failed or rate-limited read is a
+    failure, the quota reading is kept, and one post's error is that post's -
+    rolled back and named, never the end of the sweep.
     """
     import re
 
@@ -831,15 +856,11 @@ def _take_deferred(conn, harvester, store, members, report, spent, *, fallback,
     if by_query:
         # A search sweep's posts are in any subreddit, so its deferrals are the
         # posts its own runs stored, found by the run's query.
-        rows = conn.execute(DEFERRED_BY_QUERY,
-                            (list(members), max(report.cap - spent(), 0))).fetchall()
+        rows = conn.execute(DEFERRED_BY_QUERY, (list(members),)).fetchall()
     else:
         pattern = "reddit\\.com/r/(" + "|".join(re.escape(m) for m in members) + ")/"
-        rows = conn.execute(DEFERRED, (pattern, max(report.cap - spent(), 0))).fetchall()
+        rows = conn.execute(DEFERRED, (pattern,)).fetchall()
     for doc_id, text_ref in rows:
-        if spent() >= report.cap:
-            report.comments_deferred += 1
-            continue
         try:
             post = _post_of(json.loads(store.get_text(text_ref)))
         except Exception:  # noqa: BLE001 - its payload is not here; named
@@ -847,21 +868,46 @@ def _take_deferred(conn, harvester, store, members, report, spent, *, fallback,
             continue
         if known_names and not any(names_folded(n, post.sieve_text) for n in known_names):
             continue  # stored without comments on purpose, not deferred
-        fetch = harvester.fetch_comments(post)
-        report.comment_requests += 0 if fetch.not_a_thread else 1
-        if not fetch.comments:
+        if spent() >= report.cap:
+            report.comments_deferred += 1
             continue
-        refs = {}
-        for comment in fetch.comments:
-            blob = json.dumps(comment.raw, ensure_ascii=False, sort_keys=True).encode("utf-8")
-            stored = store.put(blob, namespace=RAW)
-            refs[comment.external_id] = (stored.ref, stored.content_hash)
-        wrote = write_documents(conn, list(fetch.comments), retrieval_provenance=fallback,
-                                refs=refs)
-        conn.commit()
+        try:
+            fetch = harvester.fetch_comments(post)
+            report.comment_requests += 0 if fetch.not_a_thread else 1
+            report.http_errors += fetch.http_errors
+            report.rate_limited += fetch.rate_limited
+            if fetch.quota_remaining is not None:
+                report.quota_remaining = fetch.quota_remaining
+            if fetch.quota_limit is not None:
+                report.quota_limit = fetch.quota_limit
+            if fetch.not_a_thread:
+                report.threads_not_a_thread += 1
+                continue
+            if (fetch.http_errors or fetch.rate_limited) and not fetch.comments:
+                report.comment_fetch_failures.append(post.external_id)
+                continue
+            if not fetch.comments:
+                report.threads_without_comments += 1
+                continue
+            refs = {}
+            for comment in fetch.comments:
+                blob = json.dumps(comment.raw, ensure_ascii=False, sort_keys=True).encode("utf-8")
+                stored = store.put(blob, namespace=RAW)
+                refs[comment.external_id] = (stored.ref, stored.content_hash)
+            # No run of its own: a deferred read belongs to no harvest_run opened
+            # this sweep, so it is written with `fallback` provenance and no id.
+            wrote = write_documents(conn, list(fetch.comments), retrieval_provenance=fallback,
+                                    harvest_run_id=None, refs=refs)
+            conn.commit()
+        except Exception as error:  # noqa: BLE001 - one post's failure is one post's
+            log.warning("deferred comments for %s failed: %s", post.external_id, error)
+            report.comment_fetch_failures.append(post.external_id)
+            with contextlib.suppress(Exception):
+                conn.rollback()
+            continue
         report.deferred_taken += 1
+        report.threads_with_comments += 1
         report.comments_stored += int(wrote.get("documents_inserted", 0) or 0)
-
 
 def _seated_term_sets(conn):
     """`{surface: (subject_terms, term_sets)}` -- grouped so subject tests once.

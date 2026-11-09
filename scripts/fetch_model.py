@@ -1160,12 +1160,17 @@ def _tracked_hf_repos(conn, model_version_id: str, canonical_id: str) -> tuple[s
     return next((t.hf_repos for t in tracked_models() if t.registry in ids), ())
 
 
-def _tracked_kind(conn, model_version_id: str, canonical_id: str) -> str:
-    """The tracked kind of the model being fetched; `text` when it is not tracked."""
+def _tracked_kind(conn, model_version_id: str, canonical_id: str) -> str | None:
+    """The tracked kind of the model being fetched, or None when it is not tracked.
+
+    NOT DEFAULTED TO TEXT (#612 review, point 11). A registry-only seat such as
+    Seedance 2.0 Fast, fetched by hand, was recorded as `model_kind="text"`; the
+    caller now says the kind is unknown and which path it took instead.
+    """
     from judge.tracked import all_tracked
 
     ids = {model_version_id, canonical_id}
-    return next((t.kind for t in all_tracked(conn) if t.registry in ids), "text")
+    return next((t.kind for t in all_tracked(conn) if t.registry in ids), None)
 
 
 def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int,
@@ -1216,8 +1221,14 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int,
         max_pages=1, max_fetch_per_query=15,
     )
     _ensure_github_source(conn)
+    # ISSUES ALREADY STORED ARE NOT FETCHED AGAIN (agreed on #602, 2026-11-09).
+    # A re-write conflicts away, so a second fetch adds nothing and spends the
+    # cap that new issues needed.
+    harvester.already_stored = lambda ids: {r[0] for r in conn.execute(
+        "SELECT external_id FROM document WHERE source = 'github' AND external_id = ANY(%s)",
+        (list(ids),)).fetchall()}
 
-    fetched = inserted = kept = candidates = 0
+    fetched = inserted = kept = candidates = already = 0
     refused_repos: list[str] = []
     for req in plan.requests:
         if fetched >= fetch_cap:
@@ -1250,6 +1261,7 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int,
         wrote = harvester.write_documents(conn, run)
         conn.commit()
         fetched += run.rest_calls
+        already += getattr(run, "already_stored", 0)
         inserted += wrote["inserted"]
         kept += run.sieve_yield.kept
         candidates += run.sieve_yield.candidates
@@ -1267,6 +1279,8 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int,
     parts = [f"{inserted} new document(s) appended",
              f"{kept} of {candidates} passed the sieve",
              f"{searches} search + {fetched} fetch call(s)"]
+    if already:
+        parts.append(f"{already} issue(s) already stored, not fetched again")
     if errors:
         parts.append(f"{errors} HTTP error(s)")
     for repo in sorted(set(refused_repos)):
@@ -1282,6 +1296,7 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int,
         parts.append(THROTTLED_NOTE)
     prog.stage("E2", "Harvest", status,
                requests_spent=fetched, search_calls=searches, http_errors=errors,
+               issues_already_stored=already,
                rate_limited_queries=throttled,
                sieve_kept=kept, sieve_candidates=candidates,
                documents_inserted=inserted,
@@ -2323,6 +2338,38 @@ def extraction_window_days() -> int:
     return policy().extraction_window_days
 
 
+#: THE FIRST FETCH READS ITS BACKLOG ONCE (agreed on #602, 2026-11-09). A model
+#: with no earlier completed fetch has only old threads to read - an ElevenLabs
+#: v3 fetch appended 121 documents and read 7 threads, the rest being older than
+#: the window. Its first fetch takes older threads too, under the usual thread
+#: cap and budget; every later fetch keeps the window. Set once per run in main.
+FIRST_FETCH = {"window_off": False}
+
+#: The span a first fetch searches in place of the window: no thread is older.
+FIRST_FETCH_WINDOW_DAYS = 36500
+
+
+def window_for_this_run() -> int:
+    """The freshness window this run applies, in days."""
+    return FIRST_FETCH_WINDOW_DAYS if FIRST_FETCH["window_off"] else extraction_window_days()
+
+
+def _is_first_fetch(conn, model_version_id: str) -> bool | None:
+    """True when no earlier fetch of this model ended ok; None when unknowable."""
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM fetch_log r "
+            "JOIN fetch_log e ON e.run_id = r.run_id AND e.kind = 'end' "
+            "WHERE r.kind = 'run' AND r.model_version_id = %s "
+            "  AND (e.payload->>'status') = 'ok' LIMIT 1",
+            (model_version_id,),
+        ).fetchone()
+    except Exception:  # noqa: BLE001 - no fetch_log here: keep the window, say so
+        _safe_rollback(conn)
+        return None
+    return row is None
+
+
 def threads_naming_the_model(
     conn, store, surfaces, *, longer=(), counts: dict | None = None
 ) -> tuple[set[str], int]:
@@ -2390,7 +2437,7 @@ def threads_naming_the_model(
     if own is None:
         return set(), 0
     longer_rx = _compile_surfaces(longer)
-    window = extraction_window_days()
+    window = window_for_this_run()
     unread = (
         "FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
@@ -2466,7 +2513,11 @@ def _known_model_finder(conn):
     from collect.adapters.queries.sieve import name_forms
 
     named = [(r[0], form) for r in rows if r[1] for form in name_forms(r[1])]
-    return RegistrySurfaceFinder(build_population(named)), why
+    # COUNTED, NOT SILENT (#612 review, point 13): models whose every name form
+    # was dropped (too short, or one word with no digit: "o3", "Sonar") are
+    # unknown to this ordering, and the E4b line says how many.
+    without = len({r[0] for r in rows if r[1]} - {cid for cid, _ in named})
+    return RegistrySurfaceFinder(build_population(named)), why, without
 
 
 def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
@@ -2636,7 +2687,7 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
         # `since` absent means nothing to scope on - every row scores 0 on the
         # first key and the ordering degrades to the within-tier one, rather
         # than the query refusing or silently scoping to "since the epoch".
-        (PIPELINE_VERSION, extraction_window_days(), list(naming) or [""],
+        (PIPELINE_VERSION, window_for_this_run(), list(naming) or [""],
          since or datetime.max.replace(tzinfo=UTC),
          max(limit * 8, 200)),
     ).fetchall()
@@ -2669,7 +2720,7 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
     #: threads are waiting, and nothing scheduled reads them (#304).
     oversized: list[str] = []
     naming_set = set(naming)
-    known_model, known_scope = _known_model_finder(conn)
+    known_model, known_scope, models_without_a_name = _known_model_finder(conn)
     #: Threads naming no known model, held until every naming thread is placed.
     last: list[tuple] = []
     #: Threads whose flattened payload this machine could not read (#303).
@@ -2831,7 +2882,11 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
             thread_context_id=tc_id, flattened_text=flattened,
             offset_map=offset_map, raw_text_of=raw_text_of,
         )
-        if not known_model(flattened):
+        # A THREAD ABOUT THE FETCHED MODEL IS NEVER ORDERED LAST (#612 review,
+        # point 3). It is in `naming_set` because its text names this model by a
+        # search variant; the known-name test can still miss it when every form
+        # of the model's name is dropped as too short or too ordinary.
+        if tc_id not in naming_set and not known_model(flattened):
             last.append((thread, members))
             continue
         inputs.append(thread)
@@ -2848,7 +2903,8 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
         read_last += 1
     if report is not None:
         report.update(no_known_model=len(last), no_known_model_read=read_last,
-                      known_model_scope=known_scope)
+                      known_model_scope=known_scope,
+                      models_without_a_name=models_without_a_name)
     named = sum(1 for t in inputs if t.thread_context_id in naming_set)
     from_own_harvest = sum(
         1 for t in inputs
@@ -3185,15 +3241,25 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # to read (rule 4). Counts over every unread thread, not this model's.
     prog.record_summary(threads_outside_window=scan.get("outside_window"),
                         threads_undated=scan.get("undated"))
-    prog.stage("E5", "Extract", "running",
-               window_days=scan.get("window_days"),
-               threads_outside_window=scan.get("outside_window"),
-               threads_undated=scan.get("undated"),
-               detail=f"fresh evidence only: threads with a post in the last "
-                      f"{scan.get('window_days')} days are candidates; "
-                      f"{scan.get('outside_window', 0):,} older and "
-                      f"{scan.get('undated', 0):,} undated unread thread(s) are left, "
-                      f"stored and unread (contract/scheduler.yaml)")
+    if FIRST_FETCH["window_off"]:
+        # SAID ON THE LINE, so a big first run is not read as a jump in volume.
+        prog.stage("E5", "Extract", "running",
+                   window_days=None, first_fetch=True,
+                   threads_undated=scan.get("undated"),
+                   detail="first fetch: window not applied - older threads are "
+                          "candidates this once, under the usual thread cap and "
+                          f"budget; later fetches keep the {extraction_window_days()}-day "
+                          "window (contract/scheduler.yaml)")
+    else:
+        prog.stage("E5", "Extract", "running",
+                   window_days=scan.get("window_days"),
+                   threads_outside_window=scan.get("outside_window"),
+                   threads_undated=scan.get("undated"),
+                   detail=f"fresh evidence only: threads with a post in the last "
+                          f"{scan.get('window_days')} days are candidates; "
+                          f"{scan.get('outside_window', 0):,} older and "
+                          f"{scan.get('undated', 0):,} undated unread thread(s) are left, "
+                          f"stored and unread (contract/scheduler.yaml)")
     weight: dict = {}
     threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming,
@@ -3335,7 +3401,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                    detail=f"{n} thread(s) named no known model; ordered last - "
                           f"{got} still read (the cap had room), {n - got} not reached"
                           + (f" ({weight['known_model_scope']})"
-                             if weight.get("known_model_scope") else ""))
+                             if weight.get("known_model_scope") else "")
+                          + (f"; {weight['models_without_a_name']} model(s) have no name "
+                             f"long or specific enough to look for (\"o3\", \"Sonar\")"
+                             if weight.get("models_without_a_name") else ""))
     if dropped:
         by_trigger = Counter(trig for _, trig in dropped)
         summary = ", ".join(f"{n} {trig}" for trig, n in by_trigger.most_common())
@@ -3730,10 +3799,14 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # name the model" read differently (rule 4).
     unresolved = Counter(s for r in results for s in r.unresolved_surfaces)
     held = sum(r.unresolved_held for r in results)
+    held_unavailable = next((r.unresolved_held_unavailable for r in results
+                             if getattr(r, "unresolved_held_unavailable", None)), None)
     if unresolved:
         detail += (f"; {sum(unresolved.values())} verified claim(s) name a model the "
                    f"registry does not hold - {held} entr(ies) held for when it is "
                    f"seated: " + ", ".join(f"{s!r} x{n}" for s, n in unresolved.most_common(8)))
+        if held_unavailable:
+            detail += f" - NOT HELD: {held_unavailable}; the board rows above were written"
     # THE DIFFERENCE BETWEEN WRITES AND ROWS, ON THE LINE THAT REPORTS THE
     # ROWS (#444). Said only when it happened.
     if merged:
@@ -4212,8 +4285,18 @@ def main(argv: list[str] | None = None) -> int:
         # THE MODEL'S KIND, ON THE RUN'S RECORD (#602 item 8). The nightly cap
         # is shared, so media's share of a night is summed from these records:
         # `model_kind` beside the run's own `cost_usd` and `threads_read`.
-        model_kind = _tracked_kind(conn, args.model_version_id, canonical_id)
-        prog.record_summary(model_kind=model_kind)
+        tracked_kind = _tracked_kind(conn, args.model_version_id, canonical_id)
+        # The search path needs a kind; an untracked model takes the text path,
+        # SAID on the log and recorded as unknown rather than as text (rule 12).
+        model_kind = tracked_kind or "text"
+        prog.record_summary(model_kind=tracked_kind or "unknown")
+        if tracked_kind is None:
+            _say("  kind    unknown - not on the tracked list, so the text search path is used")
+        first = _is_first_fetch(conn, args.model_version_id)
+        FIRST_FETCH["window_off"] = bool(first)
+        prog.record_summary(first_fetch=first)
+        if first is None:
+            _say("  window  fetch history unreadable here, so the freshness window applies")
 
         # ── THE FIXTURE-EXPOSURE CHECK, on any shared target or under the flag ─
         # BEFORE E2, because a harvest already run is a harvest already paid
@@ -4429,6 +4512,8 @@ def main(argv: list[str] | None = None) -> int:
         # test suite that blocked the next test's schema reset forever.
         if db is not None:
             db.close()
+        # One run's first-fetch decision never outlives the run.
+        FIRST_FETCH["window_off"] = False
 
 
 if __name__ == "__main__":

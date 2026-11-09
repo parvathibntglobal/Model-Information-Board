@@ -342,7 +342,10 @@ function MediaSources({ media }) {
         <div className="stack stack-1">
           <span className="dim" style={{ fontSize: 11 }}>Price fallback</span>
           <span style={{ fontSize: 11 }}>
-            {price.source} · {price.models_mapped} model(s) mapped · {price.rule}
+            {price.source_url
+              ? <a href={price.source_url} target="_blank" rel="noreferrer">{price.source}</a>
+              : price.source}
+            {' '}· {price.models_mapped} model(s) mapped · {price.rule}
           </span>
           {Object.entries(price.excluded || {}).map(([id, why]) => (
             <span key={id} className="dim" style={{ fontSize: 11 }}>

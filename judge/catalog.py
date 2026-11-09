@@ -21,10 +21,13 @@ this way", not free. So a model whose published prices are all zero is shown as
 
 from __future__ import annotations
 
+import logging
 from collections import Counter
 from typing import Any
 
 from judge import model_about
+
+log = logging.getLogger(__name__)
 
 #: The types the page offers, in its order - OpenRouter's own output modalities
 #: (https://openrouter.ai/models?output_modalities=...). `embeddings` and
@@ -119,13 +122,17 @@ def unit_prices(conn) -> tuple[dict[str, dict[str, Any]], str | None]:
         rows = conn.execute(_UNIT_PRICES).fetchall()
     except Exception as e:  # noqa: BLE001 - an unmigrated database is a state
         conn.rollback()
-        return {}, f"unit prices could not be read ({type(e).__name__})"
+        # A FIXED SENTENCE ON A PUBLIC PAGE (#612 review, point 19): the
+        # exception's class name (`UndefinedTable`) is an internal detail, logged
+        # here rather than published.
+        log.warning("unit_price could not be read: %s", type(e).__name__)
+        return {}, "unit prices could not be read on this database"
     out: dict[str, dict[str, Any]] = {}
     for cid, source, unit, direction, variant, usd, key, url, at in rows:
         entry = out.setdefault(cid, {
-            "source": source,
+            # `source` and `host` are not emitted: no page reads them (#612
+            # review, rule 9). The label and the full key carry both.
             "source_label": UNIT_SOURCE_LABELS.get(source, source),
-            "host": key.split("/", 1)[0],
             "source_key": key,
             "source_url": url,
             "retrieved_at": at.date().isoformat(),
@@ -493,5 +500,4 @@ def catalog_view(conn) -> dict[str, Any]:
             r[0] for r in conn.execute("SELECT max(last_seen_at) FROM model_catalog")
         ).isoformat(),
         "source": "https://openrouter.ai/api/v1/models?output_modalities=all",
-        "unit_price_reason": fallback_reason,
     }

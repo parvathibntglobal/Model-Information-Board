@@ -131,3 +131,25 @@ def test_a_contract_missing_a_key_raises(tmp_path):
 def test_tiers_sort_default_first_then_by_size():
     tiers = ["4k", "1080p", "default", "480p", "2k", "720p"]
     assert sorted(tiers, key=_variant_order) == ["default", "480p", "720p", "1080p", "2k", "4k"]
+
+
+def test_two_fields_for_one_price_are_refused_and_named():
+    """#612 review, point 21: two cost keys mapping to the same (unit,
+    direction, variant) would give two rows for one price. Neither is stored."""
+    contract = LitellmContract(
+        source_url="https://example.invalid/prices.json",
+        fields={"output_cost_per_second": ("second_of_video", "output"),
+                "output_cost_per_video_per_second": ("second_of_video", "output")},
+        modes=frozenset({"video_generation"}),
+        models={"google/veo-3.1": "gemini/veo-3.1-generate-001"},
+        excluded={},
+    )
+    prices = {"gemini/veo-3.1-generate-001": {"mode": "video_generation",
+                                              "output_cost_per_second": 0.4,
+                                              "output_cost_per_video_per_second": 0.5}}
+    report = rows_from(prices, contract, unpriced={"google/veo-3.1"}, priced=set(),
+                       retrieved_at=AT)
+    assert report.rows == []
+    assert report.collisions == {"google/veo-3.1": ["output_cost_per_second",
+                                                    "output_cost_per_video_per_second"]}
+    assert "TWO FIELDS FOR ONE PRICE" in report.summary()

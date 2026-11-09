@@ -911,5 +911,13 @@ def folded_pattern(name: str):
         return None
     # NOR INTO A LONGER VERSION: "seedance 2" must not match "Seedance 2.5",
     # so a match may not be followed by a separator and a digit either.
-    return re.compile(r"(?<![0-9a-z])" + _SEPARATORS.join(re.escape(t) for t in tokens)
-                      + r"(?![0-9a-z]|[._-][0-9])")
+    #
+    # BETWEEN TWO NUMBERS A SEPARATOR IS REQUIRED (#612 review, point 13). With
+    # every separator optional, "Seedance 2.0" also matched "Seedance 20" - a
+    # different number. Elsewhere it stays optional, so "seedance2.0" still
+    # matches; the written-together "seedance20" is its own seated alias.
+    body = re.escape(tokens[0])
+    for prev, tok in zip(tokens, tokens[1:], strict=False):
+        sep = r"[\s\-_.]+" if prev.isdigit() and tok.isdigit() else _SEPARATORS
+        body += sep + re.escape(tok)
+    return re.compile(r"(?<![0-9a-z])" + body + r"(?![0-9a-z]|[._-][0-9])")

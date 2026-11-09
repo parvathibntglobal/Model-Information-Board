@@ -373,3 +373,105 @@ def test_a_search_offers_what_it_returned():
     report.subreddits = [mod.SubredditSweep(name="kling"), mod.SubredditSweep(name="veo")]
     report.candidates = 44
     assert report.offered == 44
+
+
+class _DeferStore(Store):
+    """Payloads for the deferral candidates, by ref."""
+
+    def __init__(self, payloads):
+        super().__init__()
+        self._payloads = payloads
+
+    def get_text(self, ref):
+        return self._payloads[ref]
+
+
+class _DeferConn(MediaConn):
+    def __init__(self, rows):
+        self._rows = rows
+
+    def execute(self, sql, params=()):
+        if "engagement->>'comments'" in sql:
+            assert "LIMIT" not in sql, "a LIMIT lets deliberate rows starve real deferrals"
+            return _Rows(self._rows)
+        return super().execute(sql, params)
+
+
+def _payload(post_id, title):
+    import json
+    return json.dumps({"kind": "t3", "data": {"name": post_id, "title": title, "selftext": "",
+                       "permalink": f"/r/x/comments/{post_id[3:]}/p/", "subreddit": "x",
+                       "num_comments": 3}})
+
+
+def _defer_report(cap):
+    report = mod.RedditSweepReport(cap=cap)
+    report.comments_counted_in_cap = True
+    return report
+
+
+def test_a_real_deferral_is_reached_behind_many_posts_stored_on_purpose(writes):
+    """#612 review, point 4: 60 posts stored without comments on purpose sit in
+    front of the one real deferral. With the old LIMIT the deferral was never
+    reached; now the deliberate ones are passed over before the cap is asked."""
+    rows = [(f"reddit:t3_u{i}", f"ref{i}") for i in range(60)] + [("reddit:t3_named", "refN")]
+    payloads = {f"ref{i}": _payload(f"t3_u{i}", "my cat") for i in range(60)}
+    payloads["refN"] = _payload("t3_named", "Kling 3.0 test")
+    store = _DeferStore(payloads)
+    harvester = Harvester([], {"t3_named": _fetch(comments=(Comment("t1_n"),))})
+    report = _defer_report(cap=5)
+    mod._take_deferred(_DeferConn(rows), harvester, store, ["kling"], report, lambda: 0,
+                       fallback="x", known_names=("Kling 3.0",), by_query=True)
+    assert harvester.asked == ["t3_named"]
+    assert report.deferred_taken == 1 and report.comments_deferred == 0
+
+
+def test_a_failed_deferred_read_is_counted_and_the_next_one_still_runs(writes):
+    """Point 5: a read that raises is that post's failure, rolled back and named,
+    and the sweep carries on to the next deferral."""
+    rows = [("reddit:t3_a", "refA"), ("reddit:t3_b", "refB")]
+    store = _DeferStore({"refA": _payload("t3_a", "Kling 3.0 one"),
+                         "refB": _payload("t3_b", "Kling 3.0 two")})
+
+    class Flaky(Harvester):
+        def fetch_comments(self, post):
+            self.asked.append(post.external_id)
+            if post.external_id == "t3_a":
+                raise RuntimeError("connection reset")
+            return self._fetches[post.external_id]
+
+    harvester = Flaky([], {"t3_b": _fetch(comments=(Comment("t1_b"),))})
+    report = _defer_report(cap=5)
+    mod._take_deferred(_DeferConn(rows), harvester, store, ["kling"], report, lambda: 0,
+                       fallback="x", known_names=("Kling 3.0",), by_query=True)
+    assert harvester.asked == ["t3_a", "t3_b"]
+    assert "t3_a" in report.comment_fetch_failures and report.deferred_taken == 1
+
+
+@pytest.mark.parametrize(("stored", "seen_then", "now", "skip"), [
+    (2, 2, 2, True),    # nothing new since the first read
+    (2, 2, 5, False),   # it grew: read it
+    (5, 2, 5, True),    # grew once, the re-read stored all 5: not read again (point 6)
+    (0, 2, 2, False),   # never read: read it
+])
+def test_a_thread_is_re_read_only_when_it_holds_more_than_we_do(stored, seen_then, now, skip):
+    class C:
+        def execute(self, sql, params=()):
+            return _One((stored, seen_then) if stored else None)
+
+    from types import SimpleNamespace
+
+    post = SimpleNamespace(external_id="t3_x", num_comments=now)
+    assert mod._comments_already_read(C(), post) is skip
+
+
+def test_the_media_block_refuses_to_borrow_a_cap(writes):
+    """#612 review, point 9: without `max_requests` the media sweep silently ran
+    on harvest.yaml's 900-request GitHub budget."""
+    class NoCap:
+        sweep_media_subreddits = {k: v for k, v in SearchContract.sweep_media_subreddits.items()
+                                  if k != "max_requests"}
+
+    with pytest.raises(RuntimeError, match="max_requests"):
+        mod.sweep_reddit(MediaConn(), SearchHarvester([], {}), contract=NoCap,
+                         block_key="sweep_media_subreddits")

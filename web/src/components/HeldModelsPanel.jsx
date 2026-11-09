@@ -33,6 +33,7 @@ export default function HeldModelsPanel() {
   const shown = all ? held : held.slice(0, 12)
   const bar = data?.seating_bar || {}
   const meeting = held.filter((h) => h.meets_bar).length
+  const barKnown = data && !data.bar_reason
 
   return (
     <section className="card card-flush">
@@ -43,7 +44,7 @@ export default function HeldModelsPanel() {
         </div>
         {data && !data.reason && (
           <span className="dim tnum" style={{ fontSize: 11 }}>
-            {held.length} name(s) · {meeting} meet the bar · {data.filed ?? 0} entries filed after seating
+            {data.names_total ?? held.length} name(s) · {barKnown ? `${meeting} meet the bar` : 'bar unknown'} · {data.filed ?? 0} entries filed after seating
           </span>
         )}
       </div>
@@ -53,8 +54,18 @@ export default function HeldModelsPanel() {
           written. A name with at least {bar.held_entries ?? '—'} entries from{' '}
           {bar.distinct_authors ?? '—'} distinct authors is put to a person to seat;
           nothing is seated automatically. The counts are a lower bound: an unseated
-          model is not searched for.
+          model is not searched for. Held entries are on no board section and no
+          public page until the model is seated.
         </p>
+        {data?.bar_reason && (
+          <Notice icon={<IconAlert />}>Seating bar unknown: {data.bar_reason}. No name is
+            marked as meeting it.</Notice>
+        )}
+        {data?.truncated && (
+          <span className="dim" style={{ fontSize: 11 }}>
+            Showing the {held.length} most-held of {data.names_total} names.
+          </span>
+        )}
         {err && <Notice icon={<IconAlert />}>Held models could not be loaded: {err}</Notice>}
         {data?.reason && <Notice icon={<IconAlert />}>{data.reason}</Notice>}
         {data && !data.reason && held.length === 0 && (
@@ -68,14 +79,21 @@ export default function HeldModelsPanel() {
             <tbody>
               {shown.map((h) => (
                 <tr key={h.surface}>
-                  <td className="mono" style={{ fontSize: 11 }}>{h.surface}</td>
+                  <td className="mono" style={{ fontSize: 11 }}
+                      title={h.spellings?.length > 1 ? `written as: ${h.spellings.join(', ')}` : undefined}>
+                    {h.surface}
+                    {h.spellings?.length > 1 && <span className="dim"> +{h.spellings.length - 1} spelling(s)</span>}
+                  </td>
                   <td className="tnum">{h.entries}</td>
                   <td className="tnum">{h.authors}</td>
                   <td className="tnum">{h.documents}</td>
                   <td className="dim tnum" style={{ fontSize: 11 }}>
                     {h.first_held === h.last_held ? h.first_held : `${h.first_held} – ${h.last_held}`}
                   </td>
-                  <td>{h.meets_bar && <Badge tone="warn">meets bar</Badge>}</td>
+                  <td>
+                    {h.meets_bar === true && <Badge tone="warn">meets bar</Badge>}
+                    {h.meets_bar === null && <Badge tone="mute">bar unknown</Badge>}
+                  </td>
                 </tr>
               ))}
             </tbody>

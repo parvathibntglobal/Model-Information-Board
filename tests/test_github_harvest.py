@@ -307,3 +307,23 @@ def test_the_search_interval_leaves_headroom_below_the_ceiling():
     per_minute = 60.0 / SEARCH_INTERVAL
     assert per_minute < SEARCH_LIMIT_PER_MINUTE
     assert per_minute >= SEARCH_LIMIT_PER_MINUTE * 0.85, "headroom, not a crawl"
+
+
+def test_an_issue_already_stored_is_not_fetched_again(tmp_path, monkeypatch):
+    """Agreed on #602 (2026-11-09): an ElevenLabs v3 fetch spent all 20 issue
+    fetches on issues already stored and added none. A survivor the database
+    already holds is skipped and counted, and the budget goes to the rest."""
+    from types import SimpleNamespace
+
+    h, _ = harvester(Recorder([ok([hit(1), hit(2), hit(3)])]), tmp_path)
+    found = h.search(request(), QueryRun(request=request()))
+    monkeypatch.setattr(h, "search", lambda _request, _run: list(found))
+    fetched: list[str] = []
+    monkeypatch.setattr(h, "fetch_issue", lambda hit_, _run: fetched.append(hit_.external_id))
+    h.already_stored = lambda ids: {i for i in ids if i.endswith("#1")}
+    passing = SimpleNamespace(sieve=lambda _text: SimpleNamespace(passed=True, missing=()))
+
+    run = h.harvest(passing)
+
+    assert fetched == ["o/r#2", "o/r#3"]
+    assert run.already_stored == 1

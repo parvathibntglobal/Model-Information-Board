@@ -103,6 +103,14 @@ from collect.triage.entity import (
 )
 
 
+def _released_over_preview(owners) -> str | None:
+    """The released id when `owners` is exactly {id, id + "-preview"}, else None."""
+    if len(owners) != 2:
+        return None
+    a, b = sorted(owners, key=len)
+    return a if b == a + "-preview" else None
+
+
 @dataclass
 class ResolutionReport:
     """Every surface this resolver was asked about, and what happened.
@@ -118,6 +126,10 @@ class ResolutionReport:
     unmatched: list[str] = field(default_factory=list)
     #: Matched a surface owned by more than one model. Refused, not guessed.
     ambiguous: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    #: Matched a surface owned by a released model AND its `-preview` row, and
+    #: resolved to the released one (ruled on #602, 2026-11-09). Counted apart
+    #: from `resolved` so the rule's reach is visible.
+    by_preview_rule: dict[str, str] = field(default_factory=dict)
     #: Matched a surface the population holds with NO owner at all - a declared
     #: surface from `seed_models.yaml` that no registry id derives. There are 23
     #: of them and they are common: 1,103 occurrences over the 1,297-post
@@ -201,7 +213,18 @@ class RegistrySurfaceResolver:
         rows = conn.execute(
             "SELECT canonical_id, display_name, id FROM model_version"
         ).fetchall()
-        population = build_population([(r[0], r[1]) for r in rows])
+        # BOTH HALVES OF A BRACKETED NAME (ruled on #602, 2026-11-09). "Google:
+        # Nano Banana 2 (Gemini 3.1 Flash Image)" is written as either half,
+        # never with the brackets, so "Nano Banana 2" resolved to nothing and its
+        # claims were held. Each half is a name of the same row; a longer half
+        # ("Nano Banana 2 Lite") still wins the longest match for its own row.
+        from collect.adapters.queries.sieve import name_forms
+
+        named = [(r[0], r[1]) for r in rows]
+        for cid, display, _id in rows:
+            for form in name_forms(display or "")[1:]:
+                named.append((cid, form))
+        population = build_population(named)
         return cls(population, {r[0]: r[2] for r in rows})
 
     def __call__(self, surface: str) -> str | None:
@@ -286,6 +309,14 @@ class RegistrySurfaceResolver:
             # (rule 6). NOT the same fact as ambiguity, and counted separately.
             self.report.no_owner.append(cleaned)
             return None
+        released = _released_over_preview(owners)
+        if released is not None:
+            # THE RELEASED MODEL WINS OVER ITS PREVIEW ROW, AND ONLY THAT PAIR
+            # (ruled on #602, 2026-11-09): the two ids differ by exactly the
+            # suffix `-preview`. A rule about one known suffix, not a judgement
+            # about which of two models someone meant (rule 10).
+            self.report.by_preview_rule[cleaned] = released
+            owners = (released,)
         if len(owners) != 1:
             # Several models answer to this spelling. An arbitrary pick would
             # attach a real quote to the wrong model, which is worse than

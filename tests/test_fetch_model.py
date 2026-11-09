@@ -590,7 +590,10 @@ def test_the_window_is_contract_and_scopes_both_selections():
     assert policy().extraction_window_days == 14
     src = inspect.getsource(fetch_model.build_thread_inputs)
     assert "+ FRESH_THREAD_SQL +" in src
-    assert "extraction_window_days()" in src
+    # ONE window function in both selections (since 2026-11-09: a first fetch
+    # widens it, agreed on #602). It is the contract's window on every other run.
+    assert "window_for_this_run()" in src
+    assert "extraction_window_days()" in inspect.getsource(fetch_model.window_for_this_run)
 
 
 class _FactsConn:
@@ -699,12 +702,19 @@ def test_a_thread_naming_no_known_model_is_ordered_last_not_dropped(monkeypatch)
     report: dict = {}
     inputs, *_ = fetch_model.build_thread_inputs(conn(), seen=set(), limit=1, report=report)
     assert [t.thread_context_id for t in inputs] == ["tcModel"]
-    assert report == {"no_known_model": 1, "no_known_model_read": 0, "known_model_scope": None}
+    assert report == {"no_known_model": 1, "no_known_model_read": 0, "known_model_scope": None,
+                      "models_without_a_name": 0}
 
     report = {}
     inputs, *_ = fetch_model.build_thread_inputs(conn(), seen=set(), limit=5, report=report)
     assert [t.thread_context_id for t in inputs] == ["tcModel", "tcChart"]
     assert report["no_known_model_read"] == 1
+
+    # #612 review, point 3: a thread that names the FETCHED model is never put
+    # last, even when the known-name test misses it.
+    inputs, *_ = fetch_model.build_thread_inputs(conn(), seen=set(), limit=1,
+                                                 naming=("tcChart",), report={})
+    assert [t.thread_context_id for t in inputs] == ["tcChart"]
 
 
 @pytest.mark.parametrize("title, named", [
@@ -719,3 +729,32 @@ def test_a_reddit_hit_is_fetched_only_when_its_post_names_the_model(title, named
     the first three shapes, and each cost a metered comment request."""
     variants = ["mai voice 2.1", "microsoft mai voice 2.1", "mai-voice-2.1", "maivoice21"]
     assert fetch_model._names_a_variant(title, variants) is named
+
+
+class _FirstFetchConn:
+    def __init__(self, row=None, fail=False):
+        self._row, self._fail = row, fail
+
+    def execute(self, sql, params=None):
+        if self._fail:
+            raise RuntimeError("no fetch_log here")
+        assert "fetch_log" in sql
+        return SimpleNamespace(fetchone=lambda: self._row)
+
+    def rollback(self):
+        pass
+
+
+def test_a_first_fetch_reads_its_backlog_once(monkeypatch):
+    """Agreed on #602 (2026-11-09): a model with no earlier completed fetch
+    reads older threads too; every later fetch keeps the window."""
+    monkeypatch.setattr(fetch_model, "extraction_window_days", lambda: 14)
+    assert fetch_model._is_first_fetch(_FirstFetchConn(row=None), "mv") is True
+    assert fetch_model._is_first_fetch(_FirstFetchConn(row=(1,)), "mv") is False
+    # Unknowable history keeps the window: never a silent widening.
+    assert fetch_model._is_first_fetch(_FirstFetchConn(fail=True), "mv") is None
+
+    monkeypatch.setitem(fetch_model.FIRST_FETCH, "window_off", True)
+    assert fetch_model.window_for_this_run() == fetch_model.FIRST_FETCH_WINDOW_DAYS
+    monkeypatch.setitem(fetch_model.FIRST_FETCH, "window_off", False)
+    assert fetch_model.window_for_this_run() == 14
