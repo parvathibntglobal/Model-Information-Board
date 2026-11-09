@@ -21,7 +21,7 @@
 #
 # NO COUNTS (rule 11). How many reports each holds is the board's to compute.
 # Named from the slug - no rows on the database this was generated from:
-#   metric/mmmu
+#   best_for/transcription, metric/word-error-rate, metric/mmmu
 
 best_for:
   agentic-automation:
