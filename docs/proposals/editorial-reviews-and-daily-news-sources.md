@@ -3,6 +3,21 @@
 *anooj · 2026-11-09 · PROPOSAL. Nothing under `contract/` changes in this PR. Each part below
 becomes its own change after review.*
 
+## Decisions (reviewed by Parvathi on #614, 2026-11-09)
+
+| Question | Decision |
+|---|---|
+| **1. Every as an evidence source** | **Not yet.** It's press: #611 left open whether journalists' reviews count as "voices", and seating Every as a blog row would decide that by default. `blog-class-a-self-hosted` doesn't fit either, because Every is a paid publication and taking only the free opening needs its own terms ruling. Every waits for the press decision and that ruling. Before seating, extraction is run locally on the 10 sampled free openings and the first-hand evaluative claims it keeps are counted. The 9 evaluative-cue sentences suggest the verdict often sits behind the paywall. |
+| **2. The news lane** | **Agreed as proposed**, Every's headlines included, since a headline isn't a voice. Each source's terms are read when its row is written, The Verge and MIT Technology Review especially. |
+| **3. The sponsored badge** | **Agreed:** a printed-label match, never a default filter. VentureBeat's row carries it from its first run. |
+| **4. Tools and products next** | **Agreed, scoped once test B reports.** The word-safety rule also covers product names that contain model-family words ("Codex", "Claude Code" against Claude, "Gemini CLI"): longest match decides, pinned by a test as the Meta Muse case was on #610. |
+
+The "61 of 326" tool count below is a **ceiling** wherever it's quoted, because `Cursor`, `Dots`,
+`Muse` and `Duet` are also English words.
+
+Next: the news-lane sources and the sponsored badge go in one `contract/news_sources.yaml` PR,
+with a second review. That file is itself still `status: proposed`.
+
 ## Why now
 
 The scope is wider than model versions. anooj, 2026-11-09: *"we have to go broader than LLM
@@ -129,8 +144,9 @@ names", and `news_sources.yaml`'s story rule matches only names that carry a ver
 "Kiro", "Duet", "Claude Code" and "MCP" are never linked. Behind that, the resolver knows only
 `model_version` rows, so the board can't hold evidence about them either.
 
-How much that leaves out, on this one day: **61 of 326 items** across the 14 readable feeds named
-a tool from the probe's list, 38 of 276 without Every. The AWS Kiro launch alone appeared on
+How much that leaves out, on this one day: **at most 61 of 326 items** (a ceiling: `Cursor`,
+`Dots`, `Muse` and `Duet` are also words) across the 14 readable feeds named a tool from the
+probe's list, at most 38 of 276 without Every. The AWS Kiro launch alone appeared on
 InfoWorld, The Register, VentureBeat and SD Times, and nothing on our site can connect to it.
 
 The path, in order:
