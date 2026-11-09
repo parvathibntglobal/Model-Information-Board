@@ -109,7 +109,7 @@ models:
       surface: 'jev 1.13'
       variants: ['jev-1.13', 'jev1.13', 'jev113']
 
-  # ── three media models, added 2026-11-05 at Parvathi's request ───────────
+  # ── media models, added 2026-11-05 and 2026-11-06 at Parvathi's request ──
   # UNPOLLED IN THE SAME SENSE AS THE THREE ABOVE: the registry poll reads
   # OpenRouter's default (text) model list, and these are not on it. They ARE
   # in `model_catalog`, which reads the same API with `output_modalities=all`
@@ -119,16 +119,14 @@ models:
   # bring them. If the poll is ever widened to all modalities, DELETE THESE -
   # `_refuse_provenance_downgrade` will refuse this whole file once it owns them.
   #
-  # NO PRICE, as above. The catalogue's own figures show why: MAI-Voice-2.1 is
-  # 0.000022 per "prompt" unit (a character, not a token) and Hailuo 3 Max has
-  # no published price at all.
+  # NO PRICE, as above: a media model is priced per image, second or character,
+  # not per token, and those rates live in `unit_price`, not here.
   #
   # ALIASES. Each carries one DISTINCT surface besides the three renderings, so
   # the harvest's first queries are not one phrase spelled three ways (the
   # Qwen3.5 Omni Flash failure, see contract/tracked_models.yaml). Bare short
   # forms were left out on purpose, because they name something else as often
-  # as the model: `sunburst` is a word, `gpt image 2.5` is also 2.5 Flare,
-  # `h3 max` is not only MiniMax's, and `hailuo` alone is the whole family.
+  # as the model: `sunburst` is a word, and `gpt image 2.5` is also 2.5 Flare.
 
   # Asked for as "GPT Image 2.6 Sunburst" and seated as 2.5 Sunburst (listed
   # 2026-09-09): the catalogue polled on 2026-11-04 had no 2.6. OpenAI released
@@ -148,25 +146,15 @@ models:
       variants: ['gpt-image-2.5-sunburst', 'gptimage2.5sunburst', 'gptimage25sunburst',
                  'image 2.5 sunburst']
 
-  # MAI-Voice-2.1 was seated here on 2026-11-05 and removed on 2026-11-06,
-  # with its tracked entry (see contract/tracked_models.yaml), before it was
-  # ever loaded on the shared database.
-
   # Seedance 2.0 (ByteDance), listed 2026-04-15, seated 2026-11-06 for the
-  # video slot (Parvathi). It replaced Kling v3.0 Pro, which replaced Hailuo 3
-  # Max the same day; neither was ever loaded on the shared database, so both
-  # seats are removed rather than kept for models nobody tracks.
+  # video slot (Parvathi). Measured on Hacker News, exact phrase, twelve months
+  # to 2026-11-06: "seedance 2.0" 123 hits.
   #
-  # WHY SEEDANCE 2.0, MEASURED (Hacker News, exact phrase, twelve months to
-  # 2026-11-06): "seedance 2.0" 123 hits, against 1 for "kling 3.0 pro".
-  #
-  # WHY "SEEDANCE 2.0" IS SAFE WHERE "KLING 3.0" WAS NOT. This catalogue row
-  # IS the plain version; its variants are separate rows people name when they
-  # mean them (`seedance-2.0-fast`, `seedance-2.0-mini`: "seedance 2.0 mini" 4
-  # hits, "seedance 2.0 pro" 3, "seedance 2.0 fast" 0). Kling's catalogue row
-  # was a premium TIER people rarely wrote, which put two tiers' prices on one
-  # row. A bare "seedance 2" is LEFT OUT: it also names Seedance 2.5, a
-  # separate model (43 hits).
+  # THIS CATALOGUE ROW IS THE PLAIN VERSION. Its variants are separate rows
+  # people name when they mean them (`seedance-2.0-fast`, `seedance-2.0-mini`:
+  # "seedance 2.0 mini" 4 hits, "seedance 2.0 pro" 3, "seedance 2.0 fast" 0),
+  # so one row never carries two tiers' prices. A bare "seedance 2" is LEFT
+  # OUT: it also names Seedance 2.5, a separate model (43 hits).
   - canonical_id: 'bytedance/seedance-2.0'
     provider: 'bytedance'
     family: 'seedance'
@@ -179,7 +167,7 @@ models:
   # The claim resolver reads extra words after a name it holds as a qualifier
   # ("Opus 4.8 (xhigh)" -> Opus 4.8), so with only 2.0 seated, "Seedance 2.0
   # Fast+ | $0.20" was filed as Seedance 2.0 - a separately priced model's
-  # price on 2.0's row, the Kling mistake again (first local run, 2026-11-06).
+  # price on 2.0's row (first local run, 2026-11-06).
   # Seated, they win the longest match and their claims land on their own rows.
   # Neither is in contract/tracked_models.yaml: they have a registry identity
   # so the board files them correctly, and no fetch of their own.

@@ -1425,6 +1425,11 @@ th.r,td.r{text-align:right}
 .adm-nav button[aria-current="page"]{background:var(--surface);color:var(--text);
   border-color:var(--border);box-shadow:inset 3px 0 0 0 var(--text)}
 .adm-nav button[aria-current="page"] .d{color:var(--text-2)}
+/* ONE DESCRIPTION AT A TIME (2026-11-09). Eighteen two-line descriptions made
+   the menu taller than the screen; the selected item keeps its line, the rest
+   show their title only. */
+.adm-nav button .d{display:none}
+.adm-nav button[aria-current="page"] .d{display:block}
 
 .adm-body{min-width:0}
 /* THE FULL SCREEN WIDTH, as the Benchmarks page has (2026-11-06). Inside the

@@ -828,6 +828,22 @@ proposals:
     variants:
       - gemini-3.1-flash-image        # mechanical, 0 documents
       - gemini3.1flashimage           # mechanical, 0 documents
+      # THE RULING ABOVE IS REVERSED, 2026-11-09 (Parvathi, #602). Declining the
+      # one name people use left this model with almost no evidence: a fetch of
+      # it that day stored 0 board entries about it from 155 verified claims,
+      # and 57 of 66 Reddit hits were kept without comments for not containing
+      # "gemini 3.1 flash image". The two risks named above, and how each is
+      # now held:
+      #   - Nano Banana 2 Lite: "nano banana 2 lite" is a longer name, and the
+      #     claim resolver takes the LONGEST match, so a Lite claim files under
+      #     Lite. The search and the Reddit comment check may still bring Lite
+      #     threads, which costs a read, not an attribution.
+      #   - the preview row (`-preview`) carries no alias, so there is no
+      #     collision; its display name also reads "Nano Banana 2", which is the
+      #     resolver question raised on #602.
+      - nano banana 2                 # hand-added 2026-11-09, the name people use
+      - nano-banana-2
+      - nanobanana2
     incomplete: [family_surface]
 
   - canonical_id: minimax/minimax-m3

@@ -1238,6 +1238,10 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int,
                               f"{spent_searches} search(es) — stopping before GitHub "
                               f"throttles and the platform reads as empty")
             break
+        # NEVER PAST THE CAP (2026-11-09). The cap was checked only BETWEEN
+        # searches and each may fetch up to 15 issues, so a Nano Banana 2 fetch
+        # spent 27 against a cap of 20. Each search now takes at most what is left.
+        harvester._max_fetch = min(15, fetch_cap - fetched)  # noqa: SLF001
         run = harvester.harvest(req)
         if getattr(run, "search_failed_status", None) == 422 and req.scope:
             # NAMED, NOT COUNTED (#602): a 422 on a `repo:` query is a renamed
