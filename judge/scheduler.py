@@ -138,6 +138,9 @@ _SAFE_FIELDS = (
     "status", "documents_appended", "harvest_arms_errored", "harvest_http_errors",
     "threads_read", "claims_verified", "claims_stored", "threads_unreadable_here",
     "extract_skipped",
+    # E6, counted (#608 review): counts only, no host. Without them a run that
+    # sent every document back to `unvetted` looks like any other night.
+    "e6_rejected", "e6_unvetted",
 )
 
 
@@ -153,8 +156,9 @@ def summarise_runs(records: list[dict]) -> str:
     lines = [f"**Scheduled fetch: {len(records)} model(s).** "
              "Counts only; no quotes, authors or hosts.", "",
              "| Model | Outcome | Docs appended | Threads read "
-             "| Quotes verified (count) | Unreadable here | Harvest errors |",
-             "|---|---|---|---|---|---|---|"]
+             "| Quotes verified (count) | Unreadable here | Harvest errors "
+             "| E6 rejected | E6 unvetted |",
+             "|---|---|---|---|---|---|---|---|---|"]
 
     def cell(rec, key):
         v = rec.get(key)
@@ -179,7 +183,9 @@ def summarise_runs(records: list[dict]) -> str:
             # Threads this run could not read because their payloads are on
             # another machine: a reason for a low count, not a count of zero.
             f"| {cell(rec, 'threads_unreadable_here')} "
-            f"| {', '.join(errored) if errored else '-'} |"
+            f"| {', '.join(errored) if errored else '-'} "
+            # E6 LAST, so a summary posted before these columns still parses.
+            f"| {cell(rec, 'e6_rejected')} | {cell(rec, 'e6_unvetted')} |"
         )
     ok = sum(1 for r in records if r.get("status") == "ok")
     lines += ["", f"{ok} of {len(records)} ended ok. "

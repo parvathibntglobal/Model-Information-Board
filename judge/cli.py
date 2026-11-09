@@ -277,10 +277,19 @@ def _assert_model_is_registered(conn: Any, model: str) -> None:
     print(f"  extractor {model} is in the registry ({total} polled models)")
 
 
+def _links_for(doc_id, text_of, links_of, links_in) -> tuple[str, ...]:
+    """The URLs E6's affiliate rule checks for one document: the payload's where
+    a caller supplied them, plus every URL in the text, de-duplicated in order."""
+    text = (text_of or {}).get(doc_id)
+    found = list((links_of or {}).get(doc_id) or []) + (links_in(text) if text else [])
+    return tuple(dict.fromkeys(found))
+
+
 def _document_facts(
     conn: Any,
     document_ids: set[str],
     text_of: dict[str, str] | None = None,
+    links_of: dict[str, list[str]] | None = None,
 ) -> tuple[dict[str, Any], set[str]]:
     """`DocumentFacts` for the documents an export refers to, read from the DB.
 
@@ -305,8 +314,15 @@ def _document_facts(
     against because it is the thing everything else is checked against - and the
     database cannot supply it anyway, since `document.text_ref` is a store
     location and this lane may not read the store.
+
+    `links` IS SET BESIDE THE TEXT (#608 review). E6's affiliate-link rule reads
+    only `links`, and `DocumentFacts.links` defaulted to `()` on every path, so
+    that one rule could never fire. They come from `links_of` where a caller
+    read them from the payload (a source whose prose drops or shortens URLs),
+    else from the text, as E4b's screen takes them.
     """
     from judge.pipeline import DocumentFacts
+    from judge.screen import links_in
 
     if not document_ids:
         return {}, set()
@@ -394,6 +410,7 @@ def _document_facts(
             # E6'S INPUT. None keeps the honest `unvetted` branch for a document
             # the export did not carry; it no longer means "every document".
             text=(text_of or {}).get(doc_id),
+            links=_links_for(doc_id, text_of, links_of, links_in),
         )
     if undatable:
         # NAMED SEPARATELY from documents the database does not have. "Not in

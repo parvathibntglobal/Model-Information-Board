@@ -584,17 +584,86 @@ def test_the_window_is_contract_and_scopes_both_selections():
     assert "extraction_window_days()" in src
 
 
-def test_the_fetch_path_gives_e6_the_document_text():
-    """`_document_facts(conn, doc_ids)` was called without `text_of`, so E6's
-    hard rejection found no text for ANY document and recorded every one
-    `unvetted` - promotional, affiliate and pre-release claims reached the board
-    unchecked while the E6 line said it had run. The other two extraction paths
-    (judge/cli.py, scripts/run_extraction_batched.py) always passed the text."""
-    import ast
+class _FactsConn:
+    """Answers the two reads `_vet_facts` makes: the payload-links lookup
+    (`execute`) and `_document_facts`' document row (`cursor`)."""
 
-    src = inspect.getsource(fetch_model.extract_and_curate)
-    calls = [n for n in ast.walk(ast.parse(src.lstrip()))
-             if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "_document_facts"]
-    assert calls, "extract_and_curate no longer builds document facts here"
-    assert all(len(c.args) >= 3 or any(k.arg == "text_of" for k in c.keywords) for c in calls), (
-        "every _document_facts call must pass the document text, or E6 cannot run")
+    def __init__(self, rows, payload_rows=()):
+        self._rows, self._payload_rows = rows, list(payload_rows)
+
+    def execute(self, sql, params=None):
+        return SimpleNamespace(fetchall=lambda: self._payload_rows)
+
+    def cursor(self):
+        conn = self
+
+        class _Cur:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def execute(self, sql, params=None):
+                pass
+
+            def fetchall(self):
+                return conn._rows
+        return _Cur()
+
+
+def _doc_row(doc_id, source="reddit"):
+    from datetime import datetime
+    return (doc_id, source, datetime(2026, 11, 1), "a1", True, False, None, None)
+
+
+def test_the_fetch_path_gives_e6_the_document_text():
+    """BEHAVIOUR, NOT THE CALL'S SHAPE (#608 review). `_document_facts(conn,
+    doc_ids)` was called without the text, so E6 recorded every document
+    `unvetted`; a shape check would also pass `{}`, which is the same bug. One
+    thread's text must arrive on that document's facts."""
+    thread = SimpleNamespace(raw_text_of={"d1": "Tried it today and it held up."})
+    facts, _ = fetch_model._vet_facts(_FactsConn([_doc_row("d1")]), [thread], {"d1"})
+    assert facts["d1"].text == "Tried it today and it held up."
+
+
+def test_an_affiliate_link_in_the_text_now_reaches_e6():
+    """E6's affiliate rule reads only `links`, which no path ever set, so it
+    could never fire (#608 review). A markdown body keeps its URL whole."""
+    from judge.vet.reject import RejectionTrigger, check
+
+    text = "Sign up [here](https://openrouter.ai/?ref=deal42) and get going."
+    thread = SimpleNamespace(raw_text_of={"d1": text})
+    facts, _ = fetch_model._vet_facts(_FactsConn([_doc_row("d1")]), [thread], {"d1"})
+    assert "https://openrouter.ai/?ref=deal42" in " ".join(facts["d1"].links)
+    verdict = check(text=text, links=list(facts["d1"].links), published_at=None,
+                    model_release_dates={}, mentioned_models=[])
+    assert verdict.rejected and verdict.trigger is RejectionTrigger.AFFILIATE_LINK
+
+
+@pytest.mark.parametrize(("source", "payload", "url"), [
+    # Hacker News: the prose strips the tag and keeps only the link text.
+    ("hackernews", {"text": 'see <a href="https:&#x2F;&#x2F;openrouter.ai&#x2F;?ref=x">this</a>'},
+     "https://openrouter.ai/?ref=x"),
+    # Bluesky: the text shows a shortened form; the facet holds the URL.
+    ("bluesky", {"record": {"text": "deal openrouter.ai/...", "facets": [
+        {"features": [{"$type": "app.bsky.richtext.facet#link",
+                       "uri": "https://openrouter.ai/?ref=y"}]}]}},
+     "https://openrouter.ai/?ref=y"),
+    # X: t.co in the text; the expanded URL is in the entities.
+    ("x", {"legacy": {"entities": {"urls": [{"expanded_url": "https://openrouter.ai/?ref=z"}]}}},
+     "https://openrouter.ai/?ref=z"),
+])
+def test_links_the_prose_loses_are_read_from_the_payload(source, payload, url):
+    assert url in fetch_model.payload_links(source, payload)
+
+
+def test_payload_links_reach_the_facts(monkeypatch):
+    """A Hacker News document's affiliate link, which its prose drops, still
+    reaches E6 through the payload."""
+    monkeypatch.setattr(fetch_model, "_payload_links",
+                        lambda conn, ids: {"d1": ["https://openrouter.ai/?ref=x"]})
+    thread = SimpleNamespace(raw_text_of={"d1": "see this"})
+    facts, _ = fetch_model._vet_facts(
+        _FactsConn([_doc_row("d1", "hackernews")]), [thread], {"d1"})
+    assert facts["d1"].links == ("https://openrouter.ai/?ref=x",)
