@@ -5424,15 +5424,15 @@ def _contract_limits() -> list[dict]:
 
     out: list[dict] = []
     sweep = (load("contract/sources.yaml") or {}).get("sweep_media_subreddits") or {}
-    pages, per = sweep.get("pages_per_subreddit"), sweep.get("posts_per_page")
-    out.append({"name": "media subreddit sweep: requests per run",
+    pages, per = sweep.get("pages_per_query"), sweep.get("posts_per_page")
+    out.append({"name": "media search sweep (weekly): requests per run",
                 "value": sweep.get("max_requests"),
                 "file": "contract/sources.yaml (sweep_media_subreddits.max_requests)",
-                "why": "pages and comment reads together; the rest wait for the next run"})
-    out.append({"name": "media subreddit sweep: posts per subreddit",
+                "why": "search pages and comment reads together; the rest wait for the next run"})
+    out.append({"name": "media search sweep (weekly): posts per query",
                 "value": (pages * per) if pages and per else None,
-                "file": "contract/sources.yaml (pages_per_subreddit x posts_per_page)",
-                "why": "newest posts listed per subreddit per run"})
+                "file": "contract/sources.yaml (pages_per_query x posts_per_page)",
+                "why": f"newest posts per search, {len(sweep.get('queries') or [])} queries"})
     media = load("contract/media_github_repos.yaml") or {}
     out.append({"name": "media GitHub searches per fetch",
                 "value": media.get("max_requests_per_fetch"),
@@ -5709,10 +5709,14 @@ def _media_sources(doc: dict) -> dict:
         b = doc.get(key) or {}
         if not b:
             return None
-        pages, per = b.get("pages_per_subreddit"), b.get("posts_per_page")
+        queries = [str(q.get("query")) for q in b.get("queries") or [] if isinstance(q, dict)]
+        pages = b.get("pages_per_query" if queries else "pages_per_subreddit")
+        per = b.get("posts_per_page")
         return {
             "block": key, "label": label, "runs": runs,
-            "subreddits": [str(m) for m in b.get("members") or []],
+            # A SEARCH SWEEP NAMES QUERIES, A LISTING NAMES SUBREDDITS (2026-11-09).
+            "queries": queries,
+            "subreddits": [] if queries else [str(m) for m in b.get("members") or []],
             "posts_per_subreddit": (pages * per) if pages and per else None,
             "sort": b.get("sort"),
             "max_requests": b.get("max_requests"),
@@ -5725,11 +5729,11 @@ def _media_sources(doc: dict) -> dict:
         }
 
     out["listing_sweeps"] = [s for s in (
-        block("sweep_media_subreddits", "Media subreddits",
-              "nightly, before the model fetches (step `Sweep the media subreddits` "
-              "in scheduled-fetches.yml)"),
-        block("sweep_subreddits", "Text subreddits",
-              "not scheduled: no workflow runs it; by hand with `collect ops sweep-reddit`"),
+        # Only the media sweep: the text block's listing is run by no workflow,
+        # so the page does not show it as a source (2026-11-09).
+        block("sweep_media_subreddits", "Media search (weekly)",
+              "weekly, Mondays UTC, before the model fetches (step `Search Reddit "
+              "for media models (weekly)` in scheduled-fetches.yml)"),
     ) if s]
     out["search_excluded"] = [
         {"id": str(e.get("id")), "reason": str(e.get("reason") or "").strip()}

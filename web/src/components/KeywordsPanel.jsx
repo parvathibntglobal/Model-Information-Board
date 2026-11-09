@@ -143,10 +143,24 @@ export default function KeywordsPanel() {
           <details key={s.block} className="disc">
             <summary>
               {s.label} sweep · {s.schedule}
-              <span className="n">{s.subreddits.length} subreddits · {s.posts_per_subreddit ?? '—'} posts each · cap {s.max_requests ?? '—'} requests</span>
+              <span className="n">
+                {s.queries?.length ? `${s.queries.length} searches` : `${s.subreddits.length} subreddits`}
+                {' '}· {s.posts_per_subreddit ?? '—'} posts each · cap {s.max_requests ?? '—'} requests
+              </span>
             </summary>
             <div className="disc-body stack stack-2">
-              <span className="dim mono" style={chip}>{s.subreddits.map((m) => `r/${m}`).join('  ')}</span>
+              {s.queries?.length ? (
+                <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  {s.queries.map((q) => (
+                    <span key={q.query} className="row" style={{ gap: 4, alignItems: 'baseline' }}>
+                      <span className="mono" style={chip}>&quot;{q.query}&quot;</span>
+                      {q.kind && <Badge tone="mute">{q.kind}</Badge>}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="dim mono" style={chip}>{s.subreddits.map((m) => `r/${m}`).join('  ')}</span>
+              )}
               <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{s.rule}</span>
               {s.names.map((n) => (
                 <div key={n.model} className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>

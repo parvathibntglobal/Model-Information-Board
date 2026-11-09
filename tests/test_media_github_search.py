@@ -81,3 +81,22 @@ def test_every_excluded_search_subreddit_carries_its_reason():
     excluded = load_sources().sweep_subreddits.get("search_excluded") or []
     assert excluded, "the crack subreddit from the 2026-11-06 run is listed"
     assert all(e.get("id") and str(e.get("reason", "")).strip() for e in excluded)
+
+
+@pytest.mark.parametrize(("name", "forms"), [
+    # A second name in brackets is split off, so "Nano Banana 2" is known.
+    ("Google: Nano Banana 2 (Gemini 3.1 Flash Image)",
+     ("Nano Banana 2 (Gemini 3.1 Flash Image)", "Nano Banana 2", "Gemini 3.1 Flash Image")),
+    # A one-word QUALIFIER is not: "(free)" made 18 of 403 media posts "name a model".
+    ("Inception: Mercury Decide (free)", ("Mercury Decide (free)", "Mercury Decide")),
+    # Too short to name anything in prose: "H3" matched 17 of 403 titles.
+    ("MiniMax: H3", ()),
+    # One ordinary word with no version: "Sonar" matched an ordinary sentence.
+    ("Perplexity: Sonar", ()),
+    ("Kwaivgi: Kling3", ("Kling3",)),
+    ("Seedance 2.0", ("Seedance 2.0",)),
+])
+def test_name_forms_splits_a_second_name_but_not_a_qualifier(name, forms):
+    from collect.adapters.queries.sieve import name_forms
+
+    assert name_forms(name) == forms

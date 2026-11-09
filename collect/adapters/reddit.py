@@ -755,15 +755,19 @@ class RedditHarvester:
             return None
         return response
 
-    def search(self, query: str, *, sort: str = "RELEVANCE") -> RedditRun:
-        """Page the search, storing each page before anything is sieved."""
+    def search(self, query: str, *, sort: str = "RELEVANCE",
+               pages: int | None = None) -> RedditRun:
+        """Page the search, storing each page before anything is sieved.
+
+        `pages` overrides the harvester's `max_pages` for this one call: the
+        media search sweep sets its own (`pages_per_query`)."""
         if sort not in SEARCH_SORTS:
             raise ValueError(f"sort must be one of {sorted(SEARCH_SORTS)}, got {sort!r}")
 
         run = RedditRun(query=query, sort=sort, started_at=self._clock())
         cursor: str | None = None
 
-        for page in range(1, self._max_pages + 1):
+        for page in range(1, (self._max_pages if pages is None else pages) + 1):
             params = {"query": query, "sort": sort}
             if cursor:
                 params["cursor"] = cursor

@@ -184,22 +184,34 @@ jobs:
         timeout-minutes: 15
         run: python scripts/harvest_forums.py --max-new-topics 150
 
-      # THE MEDIA SUBREDDITS, ONCE A NIGHT, BEFORE THE MODELS (#602, 2026-11-06).
-      # A listing, not a search: the newest posts of each subreddit in
-      # contract/sources.yaml `sweep_media_subreddits` (r/StableDiffusion,
-      # r/aivideo, r/ElevenLabs, r/TextToSpeech). Every post is stored; comments
-      # are read only for posts naming a model the registry or the catalogue
-      # knows. At most `max_requests` (100) Reddit requests a night, pages and
-      # comments together, on the Reddit RapidAPI key. Each media model's fetch
-      # below then reads the threads that name it. No key: skipped, said so.
-      - name: Sweep the media subreddits
+      # THE MEDIA SEARCH SWEEP, ONCE A WEEK, BEFORE THE MODELS (#602, 2026-11-09).
+      # Six Reddit searches from contract/sources.yaml `sweep_media_subreddits`
+      # (seedance, kling, google veo, nano banana, gpt image, elevenlabs),
+      # newest first. Every post found is stored; comments are
+      # read only for posts naming a model the registry or the catalogue knows.
+      # At most `max_requests` (100) Reddit requests a run, pages and comments
+      # together, on the Reddit RapidAPI key. Each media model's fetch below then
+      # reads the threads that name it. WEEKLY: on Mondays (UTC), or whenever the
+      # workflow is started by hand. No key: skipped, said so.
+      - name: Search Reddit for media models (weekly)
         if: >-
           !cancelled() && steps.gate.outputs.enabled == 'true'
           && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'reddit'))
         timeout-minutes: 10
         run: |
+          if [ "$(date -u +%u)" != "1" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "::notice::the media search sweep runs weekly, on Mondays (UTC): not today."
+            exit 0
+          fi
           if [ -z "$RAPIDAPI_KEY" ]; then
-            echo "::notice::RAPIDAPI_KEY is not set - the media subreddit sweep is skipped."
+            echo "::notice::RAPIDAPI_KEY is not set - the media search sweep is skipped."
+            exit 0
+          fi
+          # NO REDDIT HOST, NO RUN: without one the sweep refuses with a
+          # configuration error, which would turn the night red for a missing
+          # variable. The per-model Reddit arm skips itself the same way.
+          if [ -z "$REDDIT_PROVIDER" ] && [ -z "$RAPIDAPI_HOST" ]; then
+            echo "::notice::REDDIT_PROVIDER is not set - the media search sweep is skipped."
             exit 0
           fi
           python -m collect.cli ops sweep-reddit --media --store raw_store

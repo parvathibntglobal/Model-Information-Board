@@ -282,21 +282,26 @@ function MediaSources({ media }) {
   const price = media.price_fallback
   return (
     <div className="stack stack-3">
-      <span className="label">Subreddit sweeps — listings, not part of any model&apos;s fetch</span>
+      <span className="label">Weekly Reddit search — not part of any model&apos;s fetch</span>
       {sweeps.length > 0 && (
         <div className="stack stack-1">
           <span className="dim" style={{ fontSize: 11 }}>
-            Each lists the newest posts of its subreddits; no per-model fetch runs it.
+            Brand searches, newest first, once a week. Posts naming a known model have
+            their comments read; each model&apos;s fetch then reads the threads that name it.
           </span>
           <table>
             <thead>
-              <tr><th>Sweep</th><th>Subreddits</th><th>Posts / sub</th><th>Request cap</th><th>Kept when</th><th>Runs</th></tr>
+              <tr><th>Sweep</th><th>Searches or subreddits</th><th>Posts each</th><th>Request cap</th><th>Kept when</th><th>Runs</th></tr>
             </thead>
             <tbody>
               {sweeps.map((s) => (
                 <tr key={s.block}>
                   <td>{s.label}</td>
-                  <td className="mono" style={{ fontSize: 11 }}>{s.subreddits.map((m) => `r/${m}`).join(', ')}</td>
+                  <td className="mono" style={{ fontSize: 11 }}>
+                    {s.queries?.length
+                      ? s.queries.map((q) => `"${q}"`).join(', ')
+                      : s.subreddits.map((m) => `r/${m}`).join(', ')}
+                  </td>
                   <td className="tnum">{s.posts_per_subreddit ?? '—'}</td>
                   <td className="tnum">{s.max_requests ?? '—'}</td>
                   <td className="dim" style={{ fontSize: 11 }}>{s.filter}</td>

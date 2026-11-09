@@ -247,19 +247,23 @@ def _subreddit_sweeps(conn, models: list[dict]) -> list[dict]:
     known = _known_model_names(conn)
     out = []
     for key, label, schedule in (
-        ("sweep_media_subreddits", "Media subreddits",
-         "nightly, before the model fetches (scheduled-fetches.yml)"),
-        ("sweep_subreddits", "Text subreddits",
-         "not scheduled - by hand with `collect ops sweep-reddit`"),
+        # Only the media sweep: no workflow runs the text block's listing.
+        ("sweep_media_subreddits", "Media search",
+         "weekly, Mondays UTC, before the model fetches (scheduled-fetches.yml)"),
     ):
         block = getattr(src, key, None) or {}
         if not block:
             continue
         media = bool(block.get("subject_only"))
-        pages, per = block.get("pages_per_subreddit"), block.get("posts_per_page")
+        queries = [{"query": str(q.get("query")), "kind": q.get("kind")}
+                   for q in block.get("queries") or [] if isinstance(q, dict)]
+        pages = block.get("pages_per_query" if queries else "pages_per_subreddit")
+        per = block.get("posts_per_page")
         out.append({
             "block": key, "label": label, "schedule": schedule,
-            "subreddits": [str(m) for m in block.get("members") or []],
+            # The media block searches (2026-11-09); the text block lists.
+            "queries": queries,
+            "subreddits": [] if queries else [str(m) for m in block.get("members") or []],
             "posts_per_subreddit": (pages * per) if pages and per else None,
             "max_requests": block.get("max_requests"),
             "rule": ("every post stored; comments read only for posts naming a "

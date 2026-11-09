@@ -5729,55 +5729,69 @@ sweep_subreddits:
         public board should draw on.
 
 # ============================================================================
-#  THE MEDIA LISTING SWEEP (#602 item 1, 2026-11-05)
+#  THE MEDIA SEARCH SWEEP (#602; queries chosen 2026-11-09, Parvathi)
 #
-#  Image, video and speech venues, swept on their own so their rates are never
-#  mixed with `sweep_subreddits` (Anooj's condition on #602). Run by hand -
-#  `python -m collect.cli ops sweep-reddit --media` - until two or three runs
-#  have given numbers; moving it to nightly is a later PR that carries them.
+#  Six Reddit searches, newest first, ONCE A WEEK. The block keeps its
+#  first key, `sweep_media_subreddits`, but it no longer lists subreddits: from
+#  2026-11-05 to 2026-11-09 it listed r/StableDiffusion, r/aivideo, r/ElevenLabs
+#  and r/TextToSpeech, and a listing returns each post's TITLE only, never its
+#  body - 0 of 403 listed posts carried one - and 1 of the 403 named a tracked
+#  model. A search result carries the body, and finds a post in whichever
+#  subreddit it was written (Seedance 2.0's posts were in r/generativeAI,
+#  r/KlingAI_Videos, r/Seedance_AI and r/HiggsfieldAI, none of the four).
 #
-#  THE POPULATION, stated as the text block states its own: the newest 100
-#  posts per subreddit (4 pages x 25, sort new) ON THE DAY IT RAN. A RECENCY
-#  CUT, not a ranking cut. The bias is the CHOICE OF SUBREDDITS below - one
-#  image, one video and two speech venues, picked 2026-11-05 because a
-#  read-only check found 694 documents already stored from exactly these four
-#  - so a rate over them describes these communities, not media discussion in
-#  general.
+#  THE QUERIES ARE BRAND FAMILIES, not versions and not topics. Every post
+#  found is stored; its comments are read only when it names a model the
+#  registry, its aliases or the catalogue knows (`subject_only`), so a version
+#  nobody has seated yet is held, not lost.
 #
-#  THE FILTER IS THE MODEL NAME ALONE (`subject_only`). Every post in these
-#  venues is on topic, so a post passes when it names a tracked model; the
-#  text block's topic and signal phrases ("tool call", ...) would keep almost
-#  nothing from "made with Hailuo 3 Max". Comments under a kept post are read
-#  through the triage thread rule (`SUBJECT_FROM_UNAMBIGUOUS_ROOT`).
+#  MEASURED, NOT ASSUMED: one run of twelve broader queries, 2026-11-09, one
+#  page each (22 posts), counting posts that name a known media model:
+#      seedance 15, nano banana 13, kling 6   <- kept: all 8 tracked-model posts
+#      veo 0        Spanish "veo" ("I see")     sora 0   Kingdom Hearts' Sora
+#      gpt image 0, text to video 0, image to video 0, upscale 0
+#      elevenlabs 3 (text models only), text to speech 3, ai voice 1 (false matches)
+#  A second run, 2026-11-09, of forms that name the product: google veo 3,
+#  eleven v3 7, openai sora 1 (on topic, but no Sora model is seated), veo 3 0
+#  (still Spanish), sora 2 0 (games), gpt image 2 0.
 #
-#  ITS OWN BUDGET (item 7): `max_requests` covers the listing pages AND the
-#  comment requests. A comment request the cap stops is DEFERRED - counted in
-#  the sweep summary and taken first by the next run - never dropped. The
-#  `over_18` skip applies and is counted (item 9).
+#  THE SIX KEPT (Parvathi, 2026-11-09): seedance, kling, nano banana, google
+#  veo, gpt image and elevenlabs. The last two measured weakly - gpt image 0,
+#  elevenlabs 3 (text models only, against 7 for "eleven v3") - and stay on
+#  her call; watch their weekly counts before changing them.
 #
-#  TERMS (item 13). Every member is a Reddit community, so the platform ruling
-#  `reddit-via-rapidapi` governs it exactly as it governs the text block; a
-#  subreddit's own posting rules are not terms of service and grant nothing
-#  further. Recorded per block, not per member, for that reason.
+#  THE POPULATION: the newest `pages_per_query` x 25 posts matching each query,
+#  on the day it ran - a recency cut within each query's matches. Subreddits in
+#  `sweep_subreddits.search_excluded` are skipped and counted, as in the
+#  per-model search.
+#
+#  ITS OWN BUDGET: `max_requests` covers the search pages AND the comment
+#  requests. A comment request the cap stops is DEFERRED and taken first by the
+#  next run, never dropped. The `over_18` skip applies and is counted.
+#
+#  TERMS: Reddit search under the platform ruling `reddit-via-rapidapi`, the
+#  same endpoint and ruling as the per-model search.
 # ============================================================================
 sweep_media_subreddits:
-  version: "1.0"
-  chosen_on: 2026-11-05
-  draw: equal
-  sort: new
-  pages_per_subreddit: 4
-  posts_per_page: 25
-  #: 4 x 25 x 4 = 400 posts offered. The DENOMINATOR of every rate.
-  population_per_subreddit: 100
+  version: "2.0"
+  chosen_on: 2026-11-09
+  #: Run by the weekly step in .github/workflows/scheduled-fetches.yml.
+  schedule: weekly
+  sort: NEW
+  pages_per_query: 1
+  #: MEASURED: a search page returns 22 posts (21 of 21 searches, 2026-11-09).
+  posts_per_page: 22
   max_requests: 100
   subject_only: true
   terms_ruling: reddit-via-rapidapi
   terms_evidence:
-    checked_on: 2026-11-05
+    checked_on: 2026-11-09
     governed_by_platform_ruling: true
     full_text_republished: false
-  members:
-    - StableDiffusion    # image
-    - aivideo            # video
-    - ElevenLabs         # speech
-    - TextToSpeech       # speech
+  queries:
+    - {query: "seedance", kind: video}
+    - {query: "kling", kind: video}
+    - {query: "google veo", kind: video}
+    - {query: "nano banana", kind: image}
+    - {query: "gpt image", kind: image}
+    - {query: "elevenlabs", kind: speech}

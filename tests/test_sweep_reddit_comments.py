@@ -24,6 +24,7 @@ class Post:
     external_id: str
     sieve_text: str = "a post about a model"
     raw: dict = field(default_factory=dict)
+    subreddit: str = ""
 
 
 @dataclass
@@ -287,3 +288,88 @@ def test_text_block_is_unchanged_by_the_media_options(writes):
     report = mod.sweep_reddit(Conn(), harvester, contract=Contract)
     assert not report.comments_counted_in_cap and report.comments_deferred == 0
     assert harvester.asked == ["t3_a", "t3_b"]
+
+
+class SearchHarvester(Harvester):
+    """Records each search the media search sweep makes (2026-11-09)."""
+
+    def __init__(self, posts, fetches) -> None:
+        super().__init__(posts, fetches)
+        self.searched: list[tuple] = []
+
+    def search(self, query, *, sort, pages):
+        self.searched.append((query, sort, pages))
+        return Run(posts=list(self._posts), query=query)
+
+    def list_subreddit(self, name, *, pages, sort):
+        raise AssertionError("a search block must not list subreddits")
+
+
+class SearchContract:
+    sweep_subreddits = {"search_excluded": [{"id": "AIcrack", "reason": "cracked software"}]}
+    sweep_media_subreddits = {
+        "queries": [{"query": "kling", "kind": "video"}, {"query": "veo", "kind": "video"}],
+        "pages_per_query": 1,
+        "posts_per_page": 25,
+        "sort": "NEW",
+        "max_requests": 10,
+        "subject_only": True,
+    }
+
+
+def test_the_media_sweep_searches_each_query_and_skips_excluded_subreddits(writes):
+    """THE MEDIA SWEEP SEARCHES (2026-11-09): one newest-first search per query,
+    in place of a subreddit listing that returned titles only. A hit in a
+    subreddit the per-model search excludes is skipped and counted, never stored."""
+    posts = [Post("t3_a", "Kling 3.0 test", subreddit="KlingAI_Videos"),
+             Post("t3_b", "Veo 3.1 cracked", subreddit="AIcrack")]
+    harvester = SearchHarvester(posts, {"t3_a": _fetch(comments=(Comment("t1_a"),))})
+    report = mod.sweep_reddit(MediaConn(), harvester, contract=SearchContract,
+                              block_key="sweep_media_subreddits")
+    assert harvester.searched == [("kling", "NEW", 1), ("veo", "NEW", 1)]
+    assert report.unit == "query" and report.search_excluded_skipped == 2
+    assert "t3_b" not in harvester.asked
+    assert "2 query(s) searched" in report.summary()
+
+
+class ReadConn(MediaConn):
+    """t3_a's comments are already stored (2 of them, 2 seen when stored)."""
+
+    def execute(self, sql, params=()):
+        if "FROM document d WHERE d.id" in sql:
+            return _One((2, 2) if params[0] == "reddit:t3_a" else None)
+        return super().execute(sql, params)
+
+
+class _One:
+    def __init__(self, row):
+        self._row = row
+
+    def fetchone(self):
+        return self._row
+
+
+def test_a_thread_already_read_is_not_read_again(writes):
+    """A weekly brand search returns posts an earlier run already read; run 2 of
+    2026-11-09 re-read 29 such threads for nothing. Its count has not grown, so
+    no request is spent; a post seen for the first time is still read."""
+    posts = [Post("t3_a", "Kling 3.0 again", subreddit="KlingAI_Videos"),
+             Post("t3_b", "Kling 3.0 new one", subreddit="KlingAI_Videos")]
+    for p, n in zip(posts, (2, 5), strict=True):
+        p.num_comments = n
+    harvester = SearchHarvester(posts, {"t3_b": _fetch(comments=(Comment("t1_b"),))})
+    report = mod.sweep_reddit(ReadConn(), harvester, contract=SearchContract,
+                              block_key="sweep_media_subreddits")
+    assert "t3_a" not in harvester.asked and "t3_b" in harvester.asked
+    assert report.comments_already_stored == 2  # t3_a, once per query
+    assert "already stored and had not grown" in report.summary()
+
+
+def test_a_search_offers_what_it_returned():
+    """A search page holds 22 posts, not the 25 a listing holds: the denominator
+    is what came back, never pages x an assumed page size."""
+    report = mod.RedditSweepReport(unit="query", population_per_subreddit=25,
+                                   pages_per_subreddit=1)
+    report.subreddits = [mod.SubredditSweep(name="kling"), mod.SubredditSweep(name="veo")]
+    report.candidates = 44
+    assert report.offered == 44

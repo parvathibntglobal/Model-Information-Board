@@ -1423,7 +1423,7 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                detail=f"RapidAPI search for {len(queries)} variant(s), then comments "
                       f"for up to {max_threads} thread(s)")
 
-    inserted = hits = threads = errors = adult = unnamed = excluded = 0
+    inserted = hits = threads = errors = adult = unnamed = excluded = already = 0
     failures: list[str] = []
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     # NOT RUN IS NOT AN ERROR, which is what X already does (#327). A missing
@@ -1495,6 +1495,14 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                     )
                     conn.commit()
                     inserted += int(wrote.get("documents_inserted", 0) or 0)
+                    continue
+                # ALREADY READ, NOTHING NEW (2026-11-09). Relevance ranks the same
+                # top posts first on every fetch, so a model fetched every third
+                # night re-read the same threads. Skipped without spending a
+                # request, and the loop moves on to a thread it has not read.
+                from collect.ops.sweep_reddit import _comments_already_read
+                if _comments_already_read(conn, post):
+                    already += 1
                     continue
                 try:
                     fetch = searcher.fetch_comments(post)
@@ -1582,11 +1590,14 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     if excluded:
         detail += (f" — {excluded} hit(s) from excluded subreddits not stored "
                    f"(contract/sources.yaml search_excluded)")
+    if already:
+        detail += (f" — {already} thread(s) already read and not grown since, "
+                   f"skipped without a request")
     if errors:
         detail += f" — {errors} request(s) failed: " + "; ".join(failures[:3])
     prog.stage("E2R", "Harvest · Reddit", _harvest_verdict(errors, hits),
                search_hits=hits, search_hits_unnamed=unnamed,
-               search_hits_excluded=excluded,
+               search_hits_excluded=excluded, threads_already_read=already,
                threads_fetched=threads, documents_inserted=inserted,
                http_errors=errors, adult_skipped=adult,
                quota_remaining=q_remaining, quota_limit=q_limit,

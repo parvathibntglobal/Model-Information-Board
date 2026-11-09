@@ -861,9 +861,23 @@ def name_forms(name: str) -> tuple[str, ...]:
     if not bare:
         return ()
     m = _PAREN_NAME.match(bare)
-    if not m:
-        return (bare,)
-    return tuple(dict.fromkeys(f for f in (bare, m["outer"].strip(), m["inner"].strip()) if f))
+    forms = [bare]
+    if m:
+        forms.append(m["outer"].strip())
+        # ONLY A SECOND NAME IS SPLIT OFF, NEVER A QUALIFIER (2026-11-09). The
+        # first version split "Mercury Decide (free)" into "free", and 18 of 403
+        # media posts then "named a known model" by saying the word free. A
+        # second name has two or more words ("Gemini 3.1 Flash Image").
+        if len(m["inner"].split()) >= 2:
+            forms.append(m["inner"].strip())
+    # TOO SHORT, OR TOO ORDINARY, TO NAME ANYTHING IN PROSE. "H3" (MiniMax's)
+    # matched 17 of 403 post titles; one-word catalogue names with no version,
+    # "Sonar" and "Extract", matched ordinary sentences (2026-11-09). So a form
+    # needs three characters, and a one-word form needs a digit. These tests
+    # decide comment reads and ordering, never attribution.
+    return tuple(dict.fromkeys(
+        f for f in forms
+        if len(f) >= 3 and (len(f.split()) > 1 or any(ch.isdigit() for ch in f))))
 
 
 def names_folded(name: str, text: str) -> bool:
