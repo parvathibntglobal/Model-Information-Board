@@ -1,0 +1,377 @@
+{
+ "measured_on": "2026-11-09",
+ "stored_threads": {
+  "population": "thread_context rows whose flattened text is in the shared raw store (raw_blob); 15,405 thread contexts, 10,578 of them readable there",
+  "scanned": 10578,
+  "unreadable": 0,
+  "agents": {
+   "Muse": {
+    "maker": "Meta",
+    "precise_threads": 54,
+    "since_2026_08_01": 53,
+    "bare_threads": 204,
+    "by_source": {
+     "github": 2,
+     "devto": 23,
+     "blog": 16,
+     "bluesky": 4,
+     "x": 4,
+     "reddit": 2,
+     "hackernews": 3
+    }
+   },
+   "Dots": {
+    "maker": "OpenAI",
+    "precise_threads": 11,
+    "since_2026_08_01": 11,
+    "bare_threads": 32,
+    "by_source": {
+     "blog": 1,
+     "devto": 7,
+     "x": 3
+    }
+   },
+   "Claude Duet": {
+    "maker": "Anthropic",
+    "precise_threads": 38,
+    "since_2026_08_01": 38,
+    "bare_threads": 43,
+    "by_source": {
+     "blog": 6,
+     "bluesky": 5,
+     "github": 3,
+     "devto": 18,
+     "x": 4,
+     "hackernews": 2
+    }
+   },
+   "Grok Bot": {
+    "maker": "xAI / SpaceXAI",
+    "precise_threads": 93,
+    "since_2026_08_01": 93,
+    "bare_threads": null,
+    "by_source": {
+     "devto": 36,
+     "blog": 18,
+     "bluesky": 3,
+     "github": 4,
+     "x": 25,
+     "reddit": 4,
+     "hackernews": 2,
+     "forum": 1
+    }
+   },
+   "Gemini Spark": {
+    "maker": "Google",
+    "precise_threads": 4,
+    "since_2026_08_01": 3,
+    "bare_threads": null,
+    "by_source": {
+     "x": 1,
+     "devto": 2,
+     "blog": 1
+    }
+   },
+   "Claude Cowork": {
+    "maker": "Anthropic",
+    "precise_threads": 51,
+    "since_2026_08_01": 44,
+    "bare_threads": null,
+    "by_source": {
+     "blog": 12,
+     "devto": 17,
+     "x": 4,
+     "bluesky": 10,
+     "reddit": 7,
+     "arxiv": 1
+    }
+   },
+   "ChatGPT Agent": {
+    "maker": "OpenAI",
+    "precise_threads": 4,
+    "since_2026_08_01": 4,
+    "bare_threads": null,
+    "by_source": {
+     "x": 2,
+     "devto": 2
+    }
+   },
+   "ChatGPT Work": {
+    "maker": "OpenAI",
+    "precise_threads": 61,
+    "since_2026_08_01": 60,
+    "bare_threads": null,
+    "by_source": {
+     "devto": 30,
+     "x": 7,
+     "blog": 10,
+     "github": 3,
+     "bluesky": 6,
+     "reddit": 5
+    }
+   },
+   "Perplexity Comet": {
+    "maker": "Perplexity",
+    "precise_threads": 2,
+    "since_2026_08_01": 2,
+    "bare_threads": 6,
+    "by_source": {
+     "devto": 1,
+     "x": 1
+    }
+   },
+   "Manus": {
+    "maker": "Manus",
+    "precise_threads": 6,
+    "since_2026_08_01": 5,
+    "bare_threads": null,
+    "by_source": {
+     "blog": 4,
+     "devto": 1,
+     "x": 1
+    }
+   },
+   "OpenClaw": {
+    "maker": "open source",
+    "precise_threads": 82,
+    "since_2026_08_01": 66,
+    "bare_threads": null,
+    "by_source": {
+     "blog": 18,
+     "hackernews": 3,
+     "github": 5,
+     "forum": 6,
+     "bluesky": 14,
+     "x": 7,
+     "devto": 24,
+     "huggingface": 2,
+     "reddit": 2,
+     "arxiv": 1
+    }
+   },
+   "NanoClaw / ZeroClaw": {
+    "maker": "open source",
+    "precise_threads": 5,
+    "since_2026_08_01": 5,
+    "bare_threads": null,
+    "by_source": {
+     "devto": 4,
+     "x": 1
+    }
+   },
+   "Hermes Agent": {
+    "maker": "Nous Research",
+    "precise_threads": 128,
+    "since_2026_08_01": 128,
+    "bare_threads": null,
+    "by_source": {
+     "blog": 2,
+     "github": 3,
+     "devto": 97,
+     "x": 8,
+     "reddit": 10,
+     "bluesky": 2,
+     "hackernews": 1,
+     "forum": 5
+    }
+   },
+   "Lindy": {
+    "maker": "Lindy",
+    "precise_threads": 4,
+    "since_2026_08_01": 1,
+    "bare_threads": null,
+    "by_source": {
+     "blog": 3,
+     "x": 1
+    }
+   },
+   "Letta": {
+    "maker": "Letta",
+    "precise_threads": 7,
+    "since_2026_08_01": 6,
+    "bare_threads": null,
+    "by_source": {
+     "devto": 5,
+     "bluesky": 1,
+     "x": 1
+    }
+   },
+   "Doubao": {
+    "maker": "ByteDance",
+    "precise_threads": 19,
+    "since_2026_08_01": 17,
+    "bare_threads": null,
+    "by_source": {
+     "blog": 5,
+     "devto": 9,
+     "github": 4,
+     "bluesky": 1
+    }
+   },
+   "Vellum": {
+    "maker": "Vellum",
+    "precise_threads": 1,
+    "since_2026_08_01": 1,
+    "bare_threads": null,
+    "by_source": {
+     "x": 1
+    }
+   },
+   "Poke": {
+    "maker": "The Interaction Company",
+    "precise_threads": 0,
+    "since_2026_08_01": 0,
+    "bare_threads": null,
+    "by_source": {}
+   },
+   "Siri AI": {
+    "maker": "Apple",
+    "precise_threads": 5,
+    "since_2026_08_01": 5,
+    "bare_threads": null,
+    "by_source": {
+     "blog": 3,
+     "github": 1,
+     "hackernews": 1
+    }
+   },
+   "Hark": {
+    "maker": "",
+    "precise_threads": 0,
+    "since_2026_08_01": 0,
+    "bare_threads": null,
+    "by_source": {}
+   },
+   "Instinct": {
+    "maker": "",
+    "precise_threads": 0,
+    "since_2026_08_01": 0,
+    "bare_threads": null,
+    "by_source": {}
+   },
+   "Tomo": {
+    "maker": "",
+    "precise_threads": 0,
+    "since_2026_08_01": 0,
+    "bare_threads": null,
+    "by_source": {}
+   },
+   "Pally": {
+    "maker": "",
+    "precise_threads": 0,
+    "since_2026_08_01": 0,
+    "bare_threads": null,
+    "by_source": {}
+   },
+   "Zapia": {
+    "maker": "",
+    "precise_threads": 0,
+    "since_2026_08_01": 0,
+    "bare_threads": null,
+    "by_source": {}
+   },
+   "Joshu": {
+    "maker": "",
+    "precise_threads": 0,
+    "since_2026_08_01": 0,
+    "bare_threads": null,
+    "by_source": {}
+   }
+  }
+ },
+ "live": {
+  "population": "Hacker News via Algolia, exact phrase, stories and comments created since 2026-08-01; GitHub issue search totals (all time) kept for the record but NOT used: the totals look like separate-word matches, not phrase matches",
+  "phrases": {
+   "meta muse": {
+    "hn_storys": 82,
+    "hn_comments": 82,
+    "github_issues": 31560
+   },
+   "openai dots": {
+    "hn_storys": 10,
+    "hn_comments": 14,
+    "github_issues": 2306
+   },
+   "chatgpt dots": {
+    "hn_storys": 2,
+    "hn_comments": 3,
+    "github_issues": 1276
+   },
+   "claude duet": {
+    "hn_storys": 8,
+    "hn_comments": 19,
+    "github_issues": 1757
+   },
+   "grok bot": {
+    "hn_storys": 81,
+    "hn_comments": 178,
+    "github_issues": 52867
+   },
+   "gemini spark": {
+    "hn_storys": 1,
+    "hn_comments": 6,
+    "github_issues": 4954
+   },
+   "claude cowork": {
+    "hn_storys": 12,
+    "hn_comments": 64,
+    "github_issues": 31649
+   },
+   "chatgpt agent": {
+    "hn_storys": 0,
+    "hn_comments": 2,
+    "github_issues": 68145
+   },
+   "chatgpt work": {
+    "hn_storys": 18,
+    "hn_comments": 89,
+    "github_issues": 42117
+   },
+   "perplexity comet": {
+    "hn_storys": 0,
+    "hn_comments": 3,
+    "github_issues": 1043
+   },
+   "manus agent": {
+    "hn_storys": 0,
+    "hn_comments": 0,
+    "github_issues": 3397
+   },
+   "openclaw": {
+    "hn_storys": 84,
+    "hn_comments": 571,
+    "github_issues": 680908
+   },
+   "hermes agent": {
+    "hn_storys": 27,
+    "hn_comments": 96,
+    "github_issues": 259726
+   },
+   "lindy ai": {
+    "hn_storys": 0,
+    "hn_comments": 0,
+    "github_issues": 371
+   },
+   "letta": {
+    "hn_storys": 4,
+    "hn_comments": 5,
+    "github_issues": 29861
+   },
+   "doubao": {
+    "hn_storys": 6,
+    "hn_comments": 9,
+    "github_issues": 16656
+   },
+   "poke ai": {
+    "hn_storys": 0,
+    "hn_comments": 0,
+    "github_issues": 1773
+   },
+   "siri ai": {
+    "hn_storys": 29,
+    "hn_comments": 137,
+    "github_issues": 3179
+   }
+  }
+ }
+}
