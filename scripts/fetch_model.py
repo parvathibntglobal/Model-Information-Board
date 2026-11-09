@@ -2819,6 +2819,73 @@ def _subject_ids(conn, given: str) -> frozenset[str]:
     return frozenset(ids)
 
 
+#: Sources whose prose drops or shortens a post's links, so E6's affiliate rule
+#: needs them from the payload: Hacker News strips the `<a>` tags (only the link
+#: text stays), Bluesky and X show a shortened display form. Every other source's
+#: prose is markdown, which keeps `[text](url)` whole.
+LINKS_FROM_PAYLOAD = ("hackernews", "bluesky", "x")
+
+
+def payload_links(source: str, payload: dict) -> list[str]:
+    """The full URLs a post links to, read from its stored payload."""
+    import html as html_module
+
+    if source == "hackernews":
+        body = html_module.unescape(payload.get("text") or "")
+        return re.findall(r'href="([^"]+)"', body)
+    if source == "bluesky":
+        record = payload.get("record") or {}
+        urls = [f.get("uri") for facet in record.get("facets") or []
+                for f in facet.get("features") or []
+                if str(f.get("$type", "")).endswith("#link")]
+        for embed in (record.get("embed"), payload.get("embed")):
+            urls.append(((embed or {}).get("external") or {}).get("uri"))
+        return [u for u in urls if u]
+    if source == "x":
+        legacy = payload.get("legacy") or {}
+        return [u.get("expanded_url") for u in (legacy.get("entities") or {}).get("urls") or []
+                if u.get("expanded_url")]
+    return []
+
+
+def _payload_links(conn, doc_ids) -> dict[str, list[str]]:
+    """{document_id: links} for the documents whose prose loses their links.
+    A payload not on this machine, or one that will not parse, contributes none:
+    its text links still reach E6."""
+    if not doc_ids:
+        return {}
+    rows = conn.execute(
+        "SELECT id, source, text_ref FROM document WHERE id = ANY(%s) AND source = ANY(%s)",
+        (list(doc_ids), list(LINKS_FROM_PAYLOAD)),
+    ).fetchall()
+    store = RawStore(Path(settings().raw_store_path))
+    out: dict[str, list[str]] = {}
+    for doc_id, source, text_ref in rows:
+        if not text_ref:
+            continue
+        try:
+            links = payload_links(source, json.loads(store.get_text(text_ref)))
+        except Exception:  # noqa: BLE001 - not on this machine, or not JSON
+            continue
+        if links:
+            out[doc_id] = links
+    return out
+
+
+def _vet_facts(conn, threads, doc_ids):
+    """`DocumentFacts` with what E6 reads: each document's text, from the threads
+    (the substrate every quote was verified against), and its links - from the
+    text, and from the stored payload where the prose loses them (#608 review)."""
+    from judge.cli import _document_facts
+
+    doc_text = {
+        doc_id: text
+        for thread in threads
+        for doc_id, text in thread.raw_text_of.items()
+    }
+    return _document_facts(conn, doc_ids, doc_text, _payload_links(conn, doc_ids))
+
+
 def extract_and_curate(conn, prog: Progress, *, release_date=None,
                        surfaces=(), model_version_id=None) -> None:
     """E5–E7 — extract claims from this fetch's threads, vet, and curate cells.
@@ -2836,7 +2903,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     """
     from collect.surface_resolver import RegistrySurfaceResolver
     from judge import spend_ledger
-    from judge.cli import _document_facts, _model_version_map
+    from judge.cli import _model_version_map
     from judge.config import capabilities
     from judge.curate.labels import Driver
     from judge.extract.budget import Budget
@@ -3050,7 +3117,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # 2026-10-08 (X's date format was never parsed), so X produced 0 board
     # entries from 233 threads read while this stage said nothing. Kept now and
     # counted on the E5 line below (rule 4: an absence this run caused).
-    facts, undatable = _document_facts(conn, doc_ids)
+    # E6 NEEDS THE TEXT, AND THIS PATH NEVER PASSED IT (2026-11-06, #602).
+    # `_document_facts` takes the document text as `text_of` - the substrate
+    # every quote was verified against, which the database cannot supply - and
+    # `run_extraction_batched.py` and `judge/cli.py` pass it. The Fetch path did
+    # not, so `pipeline._vet` found `text is None` for EVERY document and
+    # recorded them all `unvetted`: promotional, affiliate and pre-release
+    # claims reached the board unchecked while the E6 line said "hard rejection
+    # ran over every document". The threads already hold the text.
+    facts, undatable = _vet_facts(conn, threads, doc_ids)
     mvo = _model_version_map(conn)
     resolver = RegistrySurfaceResolver.from_connection(conn)
 
@@ -3642,14 +3717,31 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             detail=("no section named on any of the three surfaces - the quotes "
                     "that verified described no job, no behaviour and no figure"),
         )
+    # WHAT E6 ACTUALLY DID, COUNTED. The E6 line was a fixed sentence, "hard
+    # rejection ran over every document", printed whether or not a single
+    # document had reached the check - which it had not, on this path.
+    _rejected = {d: v for r in results for d, v in r.rejected_documents.items()}
+    _unvetted = sorted({d for r in results for d in r.unvetted_documents})
+    _vetted = {q.document_id for r in results for _c, q in r.extraction.verified}
+    _by = Counter(trigger for trigger, _detail in _rejected.values())
+    e6_line = dict(
+        # `{}` when E6 ran and rejected nothing: a definite zero (rule 6).
+        rejected=len(_rejected), unvetted=len(_unvetted), rejected_by=dict(_by),
+        detail=(f"hard rejection ran over {len(_vetted) - len(_unvetted)} of "
+                f"{len(_vetted)} document(s) with verified claims: "
+                f"{len(_rejected)} rejected"
+                + (f" ({', '.join(f'{k} x{n}' for k, n in _by.most_common())})"
+                   if _by else "")
+                + (f"; {len(_unvetted)} UNVETTED - no text reached the check, "
+                   f"so those claims were not vetted" if _unvetted else "")))
+    # ON THE END RECORD TOO (#608 review), so the nightly summary shows E6: the
+    # stage line alone is how "every document unvetted" stayed hidden for weeks.
+    prog.record_summary(e6_rejected=len(_rejected), e6_unvetted=len(_unvetted))
     if not legacy_on:
         # The capability-card stages (E5b proposals, E7 cells) print nothing
         # with the legacy path off: they did not run, and `judge/legacy.py` is
         # where that is said. E6's hard rejection still runs for the board.
-        prog.stage("E6", "Vet", "ok",
-                   detail="hard rejection ran over every document: promotional, affiliate "
-                          "and pre-release claims dropped, and their board entries with "
-                          "them")
+        prog.stage("E6", "Vet", "ok", **e6_line)
         return
     # ⚠ NOTHING IS STORED HERE ANY MORE (#434). `capability_candidate` was the
     #   queue behind the Capability candidates admin panel, and that panel was
@@ -3695,11 +3787,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                        f"The board's own sections, discovered above without a "
                        f"list, are unaffected"))
 
-    prog.stage("E6", "Vet", "ok",
-               detail="hard rejection ran over every document: promotional, affiliate and "
-                      "pre-release claims dropped, and their board entries with them. The "
-                      "WEIGHTING half (tier, n_eff) prices cells only - the board counts "
-                      "reports instead of scoring them")
+    prog.stage("E6", "Vet", "ok", **{
+        **e6_line,
+        "detail": e6_line["detail"] + ". The WEIGHTING half (tier, n_eff) prices "
+                  "cells only - the board counts reports instead of scoring them"})
     prog.stage("E7", "Curate", "ok",
                detail=f"{cells} cell(s) computed for the legacy capability cards. The board "
                       f"is NOT curated here: its sections render from board_entry as soon as "

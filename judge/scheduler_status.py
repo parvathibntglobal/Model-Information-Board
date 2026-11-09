@@ -256,7 +256,10 @@ def switch(slug: str, *, variable: str = "SCHEDULER_ENABLED") -> dict:
 #: The runner's summary comment (judge/scheduler.summarise_runs) starts with this.
 SUMMARY_HEAD = "**Scheduled fetch:"
 SUMMARY_COLUMNS = ("model", "outcome", "documents_appended", "threads_read",
-                   "quotes_verified", "unreadable_here", "harvest_errors")
+                   "quotes_verified", "unreadable_here", "harvest_errors",
+                   "e6_rejected", "e6_unvetted")
+#: Summaries posted before the two E6 columns (#608) have the first seven only.
+_E6_COLUMNS = 2
 
 
 def parse_summary(body: str) -> list[dict]:
@@ -265,8 +268,11 @@ def parse_summary(body: str) -> list[dict]:
     rows = []
     for line in (body or "").splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if not line.startswith("|") or len(cells) != len(SUMMARY_COLUMNS):
+        if not line.startswith("|") or len(cells) not in (
+                len(SUMMARY_COLUMNS), len(SUMMARY_COLUMNS) - _E6_COLUMNS):
             continue
+        # An older summary has no E6 cells: unreported, which is not zero.
+        cells += ["-"] * (len(SUMMARY_COLUMNS) - len(cells))
         if cells[0] in ("Model", "") or set(cells[0]) <= {"-"}:
             continue
         row = {}

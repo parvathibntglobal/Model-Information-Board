@@ -58,6 +58,22 @@ def test_a_summary_parses_and_a_dash_is_not_zero():
     assert rows[1]["documents_appended"] is None and rows[1]["harvest_errors"] == "reddit"
 
 
+def test_the_summary_carries_e6_and_an_older_one_still_parses():
+    """E6's counts reach the public summary (#608 review); a summary posted
+    before those columns reads them as unreported, never as zero."""
+    from judge import scheduler
+    from judge import scheduler_status as s
+
+    body = scheduler.summarise_runs([scheduler.safe_record({
+        "model": "Seedance 2.0", "status": "ok", "e6_rejected": 2, "e6_unvetted": 0,
+        "detail": "the database is 203.0.113.5"})])
+    assert "| E6 rejected | E6 unvetted |" in body and "203.0.113.5" not in body
+    new_row = s.parse_summary(body)[0]
+    assert new_row["e6_rejected"] == 2 and new_row["e6_unvetted"] == 0
+    old_row = s.parse_summary(SUMMARY)[0]
+    assert old_row["e6_rejected"] is None and old_row["e6_unvetted"] is None
+
+
 def test_a_run_gets_the_summary_posted_while_it_ran_and_none_otherwise():
     from judge import scheduler_status as s
 
