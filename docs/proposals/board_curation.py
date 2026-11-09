@@ -55,8 +55,9 @@ SECTION_ORDER = ("best_for", "capability", "metric")
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 VOCABULARY_HEADER = """\
-# THE VOCABULARY THE EXTRACTOR IS SHOWN, per board section. Generated 2026-10-14
-# by `docs/proposals/board_curation.py write-contract` from the curation
+# THE VOCABULARY THE EXTRACTOR IS SHOWN, per board section. First generated
+# 2026-10-14, last regenerated {regenerated}, by
+# `docs/proposals/board_curation.py write-contract` from the curation
 # proposals beside it: every slug a proposal KEEPS and files under a heading,
 # with its name. Names merged into one of these are not listed - offering them
 # would invite the duplicates the merge removes. Edit a proposal and
@@ -192,7 +193,9 @@ def write_contract(dsn: str, proposals: list) -> None:
                 to_read.append(f"  {section}/{target}: {before!r} -> {name!r} ({source})")
             vocab[section][heading].append({"slug": target, "name": name})
         vocab[section] = {h: items for h, items in vocab[section].items() if items}
-    out = VOCABULARY_HEADER
+    # The date is written by the run that writes the file, so it cannot go stale
+    # the way a typed one did (rule 11).
+    out = VOCABULARY_HEADER.replace("{regenerated}", datetime.now(UTC).date().isoformat())
     if unnamed:
         out += (
             "# Named from the slug - no rows on the database this was generated from:\n#   "

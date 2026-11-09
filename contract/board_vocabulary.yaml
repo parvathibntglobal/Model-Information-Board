@@ -1,5 +1,6 @@
-# THE VOCABULARY THE EXTRACTOR IS SHOWN, per board section. Generated 2026-10-14
-# by `docs/proposals/board_curation.py write-contract` from the curation
+# THE VOCABULARY THE EXTRACTOR IS SHOWN, per board section. First generated
+# 2026-10-14, last regenerated 2026-11-09, by
+# `docs/proposals/board_curation.py write-contract` from the curation
 # proposals beside it: every slug a proposal KEEPS and files under a heading,
 # with its name. Names merged into one of these are not listed - offering them
 # would invite the duplicates the merge removes. Edit a proposal and
@@ -20,7 +21,7 @@
 #
 # NO COUNTS (rule 11). How many reports each holds is the board's to compute.
 # Named from the slug - no rows on the database this was generated from:
-#   metric/aime-2025, metric/mmmu
+#   metric/mmmu
 
 best_for:
   agentic-automation:
@@ -738,7 +739,7 @@ metric:
   - slug: swe-bench-pro
     name: SWE-bench Pro
   - slug: swe-bench
-    name: SWE-bench Verified
+    name: SWE-bench
   - slug: terminal-bench
     name: Terminal-Bench
   - slug: terminal-bench-2-1
@@ -764,7 +765,7 @@ metric:
   - slug: humaneval
     name: HumanEval
   - slug: kernelbench-hard
-    name: SWE-bench
+    name: KernelBench (hard)
   - slug: livecodebench
     name: LiveCodeBench
   - slug: livecodebench-v6
@@ -776,13 +777,13 @@ metric:
   - slug: scicode
     name: SciCode
   - slug: swe-bench-verified-with-advisor-mode
-    name: SWE-Bench Verified
+    name: SWE-bench Verified (advisor mode)
   - slug: swe-fficiency
-    name: SWE-bench
+    name: SWE-fficiency
   - slug: swe-pro
     name: SWE-Pro benchmark
   - slug: swebench-pro-public
-    name: SWE-bench Pro
+    name: SWE-bench Pro (public)
   - slug: terminal-bench-2-0
     name: Terminal-Bench 2.0
   - slug: terminal-bench-2-1-best-harness
@@ -790,7 +791,7 @@ metric:
   - slug: terminal-bench-3-0
     name: Terminal-Bench 3.0
   - slug: terminal-bench-science
-    name: Terminal-Bench
+    name: Terminal-Bench-Science
   - slug: compiler-performance
     name: Compiler performance
   agent-benchmarks:
@@ -827,7 +828,7 @@ metric:
   - slug: agentic-index
     name: Agentic Index
   - slug: browsecomp-w-ctx
-    name: BrowseComp
+    name: BrowseComp (with context)
   - slug: claweval-1-1
     name: ClawEval 1.1
   - slug: finance-agent-v2

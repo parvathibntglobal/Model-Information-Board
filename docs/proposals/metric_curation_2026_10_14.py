@@ -575,6 +575,15 @@ UNFILED = {t: "no heading matched" for t, h in HEADING.items() if h is None}
 NAMES = {
     # coding-benchmarks
     "swe-bench-pro": "SWE-bench Pro",  # quote: "62.1% on SWE-bench Pro"; 7 rows
+    # #607 review: no two slugs may share a name - the extractor would pick at random.
+    # rule 10; the slug carries "public"
+    "swebench-pro-public": "SWE-bench Pro (public)",
+    "kernelbench-hard": "KernelBench (hard)",  # rule 10; its row was named "SWE-bench"
+    "swe-fficiency": "SWE-fficiency",  # rule 10; its row was named "SWE-bench"
+    "terminal-bench-science": "Terminal-Bench-Science",  # rule 10; was "Terminal-Bench"
+    "swe-bench": "SWE-bench",  # rule 10; was "SWE-bench Verified", shared with swe-bench-verified
+    # rule 10; shared "SWE-bench Verified" with swe-bench-verified too
+    "swe-bench-verified-with-advisor-mode": "SWE-bench Verified (advisor mode)",
     "terminal-bench-2-0": "Terminal-Bench 2.0",  # rule 10
     "terminal-bench-2-1": "Terminal-Bench 2.1",  # quote: "73.0 on Terminal-Bench 2.1"; 8 rows
     "terminal-bench-2-1-best-harness": "Terminal-Bench 2.1 (best harness)",  # rule 10
@@ -584,6 +593,7 @@ NAMES = {
     "frontiercode-1-1-main-max": "FrontierCode 1.1 (main, max)",  # rule 10; no quote names it
     # agent-benchmarks
     "browsecomp": "BrowseComp",  # 3 rows are named so; was "Benchmark score"
+    "browsecomp-w-ctx": "BrowseComp (with context)",  # rule 10; the slug carries "w/ ctx"
     "gdpval-aa-v2": "GDPval-AA v2",  # rule 10; quote: "GDPVal-AA v2 score was 1233"
     "gdpval-aa-v2-1": "GDPval-AA v2.1",  # rule 10; was "Benchmark score"
     "aa-briefcase-v1-1": "AA-Briefcase v1.1",  # rule 10; was "Benchmark score"
