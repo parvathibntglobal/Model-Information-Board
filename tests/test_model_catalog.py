@@ -244,6 +244,14 @@ class TestTheEvidencePipelineNeverReadsIt:
             # benchmarks module, not the evidence pipeline: nothing there
             # extracts, counts or weights.
             "collect/benchmarks/host_adapter.py",
+            # #602, 2026-11-06. None of the three extracts, counts or weights:
+            # the tracked list reads `output_modalities` to give an auto-admitted
+            # model its kind (text, image, video, speech); the media subreddit
+            # sweep reads names only, to decide whose comments to fetch; the
+            # LiteLLM loader checks a mapped id is in the catalogue's listing.
+            "judge/tracked.py",
+            "collect/ops/sweep_reddit.py",
+            "collect/registry/litellm.py",
         }
 
     def test_the_nightly_chain_polls_it_without_depending_on_it(self):

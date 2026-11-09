@@ -15,6 +15,13 @@
 # file replaces the constant with config, which is rule 5: configuration lives in
 # versioned YAML where a change is reviewable.
 #
+# ⚠ A MEDIA MODEL'S SEPARATELY PRICED VARIANTS ARE SEATED WITH IT (#602).
+#   The claim resolver reads extra words after a name it holds as a qualifier,
+#   so with only the base model seated, "Seedance 2.0 Fast | $0.20" filed as
+#   Seedance 2.0 - another model's price on its row. Each separately priced
+#   variant gets a registry-only seat in contract/unpolled_models.yaml (Seedance
+#   2.0 Fast and Mini, Eleven v3 Conversational), not an entry here.
+#
 # ⚠ A PRICE IS NEVER WRITTEN HERE.
 #
 #   `registry` names a row in `model_version` and every figure — price, context,
@@ -411,16 +418,15 @@ models:
   # ── added 2026-10-18 ─────────────────────────────────────────────────────
   # Seated from contract/unpolled_models.yaml: OpenRouter serves it but its
   # model list does not carry it, so the poll never will (see that entry).
-  # `kind: decision` since 2026-11-05 (Parvathi), for the Models page's Type
-  # filter: its output is a typed decision rather than prose, and OpenRouter
-  # lists its output modality as `decisions`. It was `text` for the billing
-  # unit - it is priced per token - which the kind no longer stands for. One
-  # consequence, intended: the benchmarks seed only `text` rows, so Jev now
-  # gets a benchmark row the way any registry model does, when a source lists
-  # it, rather than an empty seeded one.
+  # `kind: text` FOR NOW (2026-11-09, Parvathi). Its output is a typed decision
+  # (OpenRouter lists `decisions`), and #602 first moved it to `kind: decision`.
+  # Moved back because seo/keyword_plan.json, generated 2026-10-19 while Jev was
+  # text, pairs it with text models in 507 text-only keywords, and that file can
+  # only be regenerated from the SEO workbook. Once it is regenerated, `decision`
+  # can return: the generator already keeps non-text models out of those pairs.
   - name: Jev 1.13
     registry: typesafe/jev-1.13
-    kind: decision
+    kind: text
 
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is
@@ -435,9 +441,9 @@ models:
   # ⚠ REMOVED BEFORE IT WAS READ, NOT BECAUSE IT WAS READ - see the top of this
   #   file. That distinction is the whole reason this comment exists.
 
-  # Added 2026-11-05 at Parvathi's request, with MAI-Voice-2.1 and Hailuo 3 Max
-  # below. All three are seated from contract/unpolled_models.yaml (see the
-  # notes there: no price, and why each name is spelled the way it is). Asked
+  # Added 2026-11-05 at Parvathi's request. Seated from
+  # contract/unpolled_models.yaml (see the note there: no price, and why the
+  # name is spelled the way it is). Asked
   # for as "GPT Image 2.6 Sunburst"; seated as 2.5, which has the discussion -
   # 2.6 was released 2026-11-04 and is held until it meets `seating_bar`.
   - name: GPT Image 2.5 Sunburst
@@ -445,15 +451,8 @@ models:
     kind: image
 
   # ── video ────────────────────────────────────────────────────────────────
-  # Hailuo 3 Max was here from 2026-11-05 to 2026-11-06 (Parvathi). Removed
-  # because it is barely discussed: 0 Hacker News hits for "hailuo 3 max" in
-  # twelve months. Kling v3.0 Pro replaces it - see its seat in
+  # Added 2026-11-06 at Parvathi's request. See its seat in
   # contract/unpolled_models.yaml for the measurement and the aliases.
-  # Kling v3.0 Pro was here on 2026-11-06, replacing Hailuo 3 Max, and was
-  # replaced the same day by Seedance 2.0 (Parvathi): "Kling 3.0 Pro" is a tier
-  # people rarely name (1 Hacker News hit in twelve months), and filing the
-  # tier-less "Kling 3.0" against it mixed two tiers' prices on one row. See
-  # Seedance 2.0's seat in contract/unpolled_models.yaml for the measurement.
   - name: Seedance 2.0
     registry: bytedance/seedance-2.0
     kind: video
@@ -463,10 +462,5 @@ models:
   - name: ElevenLabs v3
     registry: elevenlabs/eleven-v3
     kind: speech
-  # MAI-Voice-2.1 was here from 2026-11-05 to 2026-11-06. Removed at Parvathi's
-  # request, with no replacement: ElevenLabs v3 covers speech for now. Its one
-  # local fetch found no thread naming it - 4 Hacker News hits and 0 board
-  # quotes in twelve months - and Reddit's search returned only threads about
-  # other things called "Mai". Never loaded on the shared database.
   # Qwen3.5 Omni Flash was here until 2026-09-15, one day after it was seated.
   # Dropped at Parvathi's request. See the note at the top of this file.

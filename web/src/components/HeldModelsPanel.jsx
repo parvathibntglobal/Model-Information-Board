@@ -61,7 +61,7 @@ export default function HeldModelsPanel() {
           <span className="dim" style={{ fontSize: 11 }}>No held entries.</span>
         )}
         {shown.length > 0 && (
-          <table className="table">
+          <table>
             <thead>
               <tr><th>Name as written</th><th>Entries</th><th>Authors</th><th>Documents</th><th>Held</th><th /></tr>
             </thead>

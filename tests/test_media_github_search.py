@@ -61,6 +61,12 @@ def test_a_repo_without_an_owner_refuses(tmp_path):
     ("seedance 2", "Seedance 2.5 is out", False),                    # not into a longer version
     ("seedance 2.0", "tried Seedance-2.0 today.", True),            # a full stop ends it
     ("mai voice 2", "MAI-Voice-2.1 sounds", False),
+    # A VERSION WRITTEN WITHOUT A SEPARATOR (#602 review, rule 10: a prefix is a
+    # different identifier). Folding drops separators, so these must still refuse.
+    ("seedance 2", "Seedance 20 is out", False),
+    ("mai voice 2", "MAI-Voice-21", False),
+    ("seedance 2.0", "Seedance 2.05", False),
+    ("seedance 2.0", "seedance20 test", True),                       # the same name, folded
 ])
 def test_names_folded_reads_a_name_in_any_spelling_and_nothing_else(name, text, named):
     """#602: "mai voice 2.1" missed "MAI-Voice-2.1" before separators were folded."""

@@ -1526,8 +1526,8 @@ def build_parser() -> argparse.ArgumentParser:
     ops_sweep_reddit.add_argument(
         "--media", action="store_true",
         help="sweep `sweep_media_subreddits` (image, video and speech venues) "
-             "instead of the text block; by hand until two or three runs give "
-             "numbers (#602)")
+             "instead of the text block (#602). Runs nightly in "
+             "scheduled-fetches.yml; by hand for a local run")
     ops_sweep_reddit.add_argument("--dry-run", action="store_true")
     ops_sweep_reddit.set_defaults(func=_cmd_ops_sweep_reddit)
 

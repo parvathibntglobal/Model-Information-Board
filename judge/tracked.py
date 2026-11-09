@@ -149,8 +149,13 @@ def auto_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]
         try:
             kind = kind_from_modalities(canonical_id, modalities)
         except UnknownOutputModality as exc:
+            # THE MESSAGE, NOT THE EXCEPTION. A logged exception object keeps its
+            # traceback, and so this frame and the caller's connection, for as
+            # long as a handler holds the record. Under pytest's log capture
+            # that left a connection idle in a transaction, and the next test's
+            # schema reset waited on it forever (the full suite hung at 4%).
             log.warning("auto_track: %s left off - %s (outputs %s)",
-                        canonical_id, exc, list(modalities))
+                        canonical_id, str(exc), list(modalities))
             continue
         out.append(TrackedModel(name=_label(display, canonical_id),
                                 registry=canonical_id, kind=kind, auto=True))

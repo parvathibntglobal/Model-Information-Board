@@ -288,7 +288,7 @@ function MediaSources({ media }) {
           <span className="dim" style={{ fontSize: 11 }}>
             Each lists the newest posts of its subreddits; no per-model fetch runs it.
           </span>
-          <table className="table">
+          <table>
             <thead>
               <tr><th>Sweep</th><th>Subreddits</th><th>Posts / sub</th><th>Request cap</th><th>Kept when</th><th>Runs</th></tr>
             </thead>

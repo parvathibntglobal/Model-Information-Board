@@ -987,6 +987,11 @@ class _Db:
         """The connection as-is, unchecked. For use right after opening."""
         return self._conn
 
+    def close(self) -> None:
+        """Close the connection, whichever one a reconnect left in place."""
+        with contextlib.suppress(Exception):
+            self._conn.close()
+
     def live(self, prog: Progress | None = None):
         """The connection, proven live this instant.
 
@@ -1142,7 +1147,7 @@ def _ensure_github_source(conn) -> None:
 
 
 #: The tracked kinds that are MEDIA (#602): searched and filtered by name, not by
-#: text-model capability phrases. `decision` (Jev 1.13) is not one - it is
+#: text-model capability phrases. `decision` is not one - a decision model is
 #: priced and discussed like a text model, so it keeps the text arms.
 MEDIA_KINDS = frozenset({"image", "video", "speech", "transcription"})
 
@@ -4174,6 +4179,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"fixture gate: the seeded-model check runs - {fixture_reason}",
               file=sys.stderr)
 
+    db = None
     try:
         db = _Db(dsn)  # NO drop, NO disposability wipe — append-only
         conn = db.raw
@@ -4400,6 +4406,14 @@ def main(argv: list[str] | None = None) -> int:
         prog.stage("?", "fetch", "error", detail=str(exc).splitlines()[0][:200])
         prog.done("error", traceback.format_exc().splitlines()[-1][:200])
         return 1
+    finally:
+        # CLOSED HERE, NOT LEFT TO THE GARBAGE COLLECTOR (2026-11-06). A query
+        # with list parameters (`ANY(%s)`) makes psycopg's adapters point back
+        # at the connection, so it is freed only by the cycle collector, and
+        # until then it sits idle in a transaction holding its locks. In the
+        # test suite that blocked the next test's schema reset forever.
+        if db is not None:
+            db.close()
 
 
 if __name__ == "__main__":

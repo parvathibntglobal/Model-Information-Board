@@ -18,7 +18,7 @@ over `registry_population` - the population triage itself resolves against -
 so the re-triage can never call a document "names the model" that triage
 would then read as naming nothing.
 
-⚠ WHAT (b) MISSES, NAMED AS ANOOJ ASKED. It runs when a model is SEATED. Two
+⚠ WHAT (b) MISSES, NAMED AS THE #602 REVIEW ASKED. It runs when a model is SEATED. Two
   other changes also make an old verdict stale and do not trigger it:
     - a display-name change on an existing `model_version` row, which changes
       the surfaces derived from it;

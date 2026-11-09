@@ -168,6 +168,11 @@ fields:
     routes:
     - /ask/recommend
     state: no_consumer
+  contract_limits:
+    reviewed: false
+    routes:
+    - /admin/settings
+    state: consumed
   contract_unreadable:
     reviewed: false
     routes:
@@ -269,6 +274,11 @@ fields:
     routes:
     - /blog-posts/generate/log
     state: consumed
+  filed:
+    reviewed: false
+    routes:
+    - /admin/held-models
+    state: consumed
   files_reason:
     reviewed: false
     routes:
@@ -314,6 +324,11 @@ fields:
     routes:
     - /admin/runs
     state: no_consumer
+  held:
+    reviewed: false
+    routes:
+    - /admin/held-models
+    state: consumed
   hourly:
     reviewed: false
     routes:
@@ -379,6 +394,11 @@ fields:
     routes:
     - /coverage
     state: no_consumer
+  media:
+    reviewed: false
+    routes:
+    - /admin/sources
+    state: consumed
   metrics_withheld:
     reviewed: false
     routes:
@@ -664,6 +684,11 @@ fields:
     reviewed: false
     routes:
     - /admin/board-entries/unrule
+    state: consumed
+  seating_bar:
+    reviewed: false
+    routes:
+    - /admin/held-models
     state: consumed
   section:
     reviewed: false

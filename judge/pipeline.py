@@ -897,21 +897,21 @@ class Pipeline:
                 # 47 of 50 verified claims here, most about a model released the
                 # day before and not yet in the registry.
                 if claim.model_ref.surface:
-                    for _entry in claim.board_entries:
+                    for _held in claim.board_entries:
                         held_rows.append({
                             "surface": claim.model_ref.surface,
                             "document_id": quote.document_id,
                             "thread_context_id": thread.thread_context_id,
-                            "section": _entry.section,
-                            "slug": _entry.slug,
-                            "name": _entry.name,
-                            "definition": _entry.definition,
-                            "unit": _entry.unit,
-                            "value_verbatim": _entry.value_verbatim,
-                            "basis": _entry.basis,
-                            "parent_proposed": _entry.parent,
-                            "axis_verbatim": _entry.axis_verbatim,
-                            "subject_verbatim": _entry.subject_verbatim,
+                            "section": _held.section,
+                            "slug": _held.slug,
+                            "name": _held.name,
+                            "definition": _held.definition,
+                            "unit": _held.unit,
+                            "value_verbatim": _held.value_verbatim,
+                            "basis": _held.basis,
+                            "parent_proposed": _held.parent,
+                            "axis_verbatim": _held.axis_verbatim,
+                            "subject_verbatim": _held.subject_verbatim,
                             "polarity": claim.polarity,
                             "quote": quote.display_text,
                         })
