@@ -11,8 +11,11 @@ and its measurement.
    `kind: agent`, hand-entered through `contract/unpolled_models.yaml` as
    ElevenLabs v3 is, so the existing pipeline collects, extracts and counts
    reports about it with no new adapter.
-2. **Agree the first batch and the naming rule** below: compound aliases only
-   for every agent whose name is an ordinary word.
+2. **Agree the first batch and the naming rule** below. Where an agent's name
+   is an ordinary word, it gets compound aliases only ("Meta Muse", never
+   "Muse"). The short name is used only where the thread says which agent is
+   meant: a search pairs it with a giveaway word, and a quote may file under
+   the agent only if its thread names the agent unambiguously.
 3. **Agree the order:** after #602's PR A, which changes the same tracked list
    and the kind logic. The seating comes as its own `contract/` PR, then one
    fetch per agent run by hand, measured before anything goes nightly.
@@ -74,11 +77,12 @@ incidental.
   muse": 31,560), so they don't measure the phrase. They're recorded in the
   output for completeness.
 
-## Naming: compound forms only (rule 10's ordinary-word case)
+## Naming: compound aliases, short names only in context
 
 Muse, Dots, Duet and Spark are English words. Bare "Muse" matched 204 stored
-threads against 54 for the compound forms. An ordinary-word slug gets no bare
-alias, ever.
+threads against 54 for the compound forms. An ordinary-word name never gets a
+bare alias (rule 10's ordinary-word case). But people do use the short name,
+so it is handled in context: see "Short names" below.
 
 | Agent | Proposed aliases | Collision checked (shared `model_alias` and `model_version`, 2026-11-09) |
 |---|---|---|
@@ -96,6 +100,56 @@ alias, ever.
 **The first batch, by volume:** Grok Bot, OpenClaw, Hermes Agent, Muse,
 ChatGPT Work, Claude Cowork, Claude Duet and Dots. Then Siri AI and Gemini
 Spark: low volume, but from major vendors.
+
+### Short names: the compound rule alone would miss about half of Muse and Dots
+
+People name the agent once ("Meta launched Muse") and then write "Muse".
+`docs/measurements/agent-short-names-2026-11-09.py` sorts every stored thread
+that uses the bare word (the same 10,578, read-only) into four groups:
+
+| | Caught by a compound form | Bare only, giveaway within 200 characters (probably the agent) | Bare only, all a **model** name (Muse Spark, Wonder, Glimmer; dots models) | Bare only, no giveaway |
+|---|---|---|---|---|
+| Muse | 51 | **45** | 73 | 35 |
+| Dots | 10 | **15** | 0 | 7 |
+| Duet | 38 | **3** | n/a | 2 |
+
+The giveaways are words like Meta, WhatsApp or "agent" for Muse; OpenAI,
+ChatGPT or Altman for Dots; Claude or Anthropic for Duet. **The test is rough,
+so the middle column is an estimate, not a count.** Even so:
+
+- compound-only would miss about 45 of roughly 96 Muse threads, and about 15
+  of 25 Dots threads;
+- it misses almost nothing for Duet, which people write as "Claude Duet";
+- a bare alias would be worse: 73 bare-only Muse threads are about Meta's
+  Muse **models**, and 35 more look like other senses of the word.
+
+**So the short name is used in context, at two stages:**
+
+1. **Finding threads.** Search the bare name with a giveaway word, not the
+   compound phrase: `muse meta`, `muse whatsapp`, `dots openai`, `dots
+   chatgpt`. Reddit and Hacker News search match all the words anywhere in a
+   post, so this finds "Meta launched Muse… Muse booked my flight". Later, if
+   the first runs justify it, a sweep of agent-specific subreddits, where the
+   short name is the natural one.
+2. **Filing a quote.** A quote that says only "Muse" files under the agent
+   only when **its thread** names the agent unambiguously ("Meta Muse", "Muse
+   by Meta", or Meta together with agent wording), **and** the quote doesn't
+   name a Muse model. Otherwise it is held in `unresolved_entry` (#602), never
+   guessed. A missed mention costs a count; a wrong one files an agent's
+   complaint under Meta's model (rules 6 and 10).
+
+**The second stage is a new, narrow mechanism:** a short name valid only inside
+a thread that has already named its owner. It decides attribution, so it ships
+as a weight first (rule 8). On the first hand runs, read every quote it filed
+by the bare name and count the wrong ones, over that denominator, before it's
+trusted.
+
+**And it stays agent-only for now.** Models have the same habit: people write
+"Opus" or "Sonnet", and the board loses those today, because family-level
+short names aren't used for attribution. `collect/triage/entity.py` says that
+ruling is pending, and not to touch `FAMILY_WORDS` until it exists. If the
+agent version measures well, it's evidence for that ruling. It is not a way
+around it.
 
 ## How it would collect
 
@@ -158,6 +212,10 @@ runs before anything goes nightly.
    carry.
 3. **Siri AI:** keep it in the first batch, or wait until "new Siri" can be
    told apart from the agent?
+4. **The in-thread short name:** is the two-condition rule above (the thread
+   names the agent unambiguously, and the quote names no Muse model) enough? Or
+   should the first runs file nothing by the short name, and only count what
+   the rule would have filed?
 
 ## Order, and who does what
 
