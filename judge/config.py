@@ -682,6 +682,91 @@ def auto_track_rule() -> AutoTrackRule:
     )
 
 
+# ── the AGENT fetch's list (contract/tracked_agents.yaml, #609-#611) ─────────
+# A SEPARATE LIST from `tracked_models()`, read only by the agent fetch and by
+# `scripts/fetch_model.py` (for an agent's kind, search terms and subreddits).
+# Nothing that reads `tracked_models()` - the model fetch, the models page,
+# `auto_track` - can see an agent.
+
+class AgentConfigError(RuntimeError):
+    """`contract/tracked_agents.yaml` is missing a key or carries a wrong value."""
+
+
+@dataclass(frozen=True)
+class TrackedAgent:
+    name: str
+    registry: str
+    #: Extra SEARCH queries only - never aliases, so they decide nothing about
+    #: what a claim is filed under.
+    search_terms: tuple[str, ...]
+    #: The agent's own subreddits, lower-cased: a post there counts as naming it
+    #: for the comment-reading check. Empty means none known.
+    subreddits: frozenset[str]
+    kind: str = "agent"
+
+
+@dataclass(frozen=True)
+class AgentRunRule:
+    enabled: bool
+    run_spend_ceiling_usd: float
+
+
+@lru_cache(maxsize=1)
+def _agents_raw() -> dict:
+    raw = _read("tracked_agents.yaml")
+    if not isinstance(raw, dict):
+        raise AgentConfigError("contract/tracked_agents.yaml is not a mapping")
+    return raw
+
+
+@lru_cache(maxsize=1)
+def agent_run_rule() -> AgentRunRule:
+    """The agent run's settings. Every key required, nothing defaulted (rule 12)."""
+    run = _agents_raw().get("run")
+    if not isinstance(run, dict):
+        raise AgentConfigError("contract/tracked_agents.yaml has no `run` block")
+    enabled, ceiling = run.get("enabled"), run.get("run_spend_ceiling_usd")
+    if not isinstance(enabled, bool):
+        raise AgentConfigError(f"`run.enabled` must be true or false, not {enabled!r}")
+    if isinstance(ceiling, bool) or not isinstance(ceiling, (int, float)) or ceiling <= 0:
+        raise AgentConfigError(
+            f"`run.run_spend_ceiling_usd` must be a positive number, not {ceiling!r}")
+    return AgentRunRule(enabled=enabled, run_spend_ceiling_usd=float(ceiling))
+
+
+@lru_cache(maxsize=1)
+def tracked_agents() -> tuple[TrackedAgent, ...]:
+    """The agents the agent fetch searches for, in the file's order."""
+    agents = _agents_raw().get("agents")
+    if not isinstance(agents, list) or not agents:
+        raise AgentConfigError("contract/tracked_agents.yaml `agents` must be a non-empty list")
+    out, seen = [], set()
+    for i, e in enumerate(agents):
+        where = f"agents[{i}]"
+        for key in ("name", "registry", "search_terms", "subreddits"):
+            if key not in e:
+                raise AgentConfigError(f"{where}: `{key}` is required ([] for none)")
+        if not isinstance(e["name"], str) or not e["name"].strip():
+            raise AgentConfigError(f"{where}: `name` must be a non-empty string")
+        if not isinstance(e["registry"], str) or "/" not in e["registry"]:
+            raise AgentConfigError(
+                f"{where}: `registry` must be a canonical id like 'meta/meta-muse'")
+        for key in ("search_terms", "subreddits"):
+            values = e[key]
+            if not isinstance(values, list) or not all(isinstance(v, str) and v.strip()
+                                                       for v in values):
+                raise AgentConfigError(f"{where}: `{key}` must be a list of non-empty strings")
+        if e["registry"] in seen:
+            raise AgentConfigError(f"{where}: `{e['registry']}` is listed twice")
+        seen.add(e["registry"])
+        out.append(TrackedAgent(
+            name=e["name"].strip(), registry=e["registry"],
+            search_terms=tuple(t.strip().lower() for t in e["search_terms"]),
+            subreddits=frozenset(s.strip().lower() for s in e["subreddits"]),
+        ))
+    return tuple(out)
+
+
 #: The ceiling on headings per board section (2026-10-14). Kept in code, not the
 #: contract, because it is a limit ON the contract: a file that could raise its
 #: own ceiling would not have one.
