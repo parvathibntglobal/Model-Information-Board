@@ -314,12 +314,21 @@ class Budget:
         also the case worth watching, because a provider that stops reporting
         usage silently disables this cap. `unmetered_calls` counts them so the
         condition is visible instead of inferred from a suspiciously low total.
+
+        THE BILLED FIGURE FIRST (#381 step 2). When the completion carries
+        `reported_cost_usd` - OpenRouter's own charge - that is the cost. The
+        token price is the fallback for a call that reported none. Measured
+        2026-11-09: priced from tokens, 95 calls came to $0.0521 against $0.0646
+        billed, because the cache discount the rate assumes mostly did not land.
         """
-        cost = self.cost_of(
-            completion.input_tokens,
-            completion.output_tokens,
-            completion.cached_input_tokens,
-        )
+        if completion.reported_cost_usd is not None:
+            cost = float(completion.reported_cost_usd)
+        else:
+            cost = self.cost_of(
+                completion.input_tokens,
+                completion.output_tokens,
+                completion.cached_input_tokens,
+            )
         self.spent_usd += cost
         self.input_tokens += completion.input_tokens
         self.output_tokens += completion.output_tokens

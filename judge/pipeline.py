@@ -1512,6 +1512,19 @@ class Pipeline:
             #     retries included, which is exactly what `charge` is handed
             #     below - so there is nothing to difference and no order to get
             #     right.
+            #
+            # ⚠ ONE COST PER THREAD, USED BY THE LINE AND THE CHARGE (#381 step 2).
+            #   What OpenRouter billed for this thread's calls, when every call
+            #   reported a figure; None sends both to the token price, discount
+            #   included. Before 2026-11-09 the line priced tokens WITHOUT the
+            #   cache discount and the charge priced them WITH it, and the billed
+            #   figure was neither: 95 calls read $0.0670 / $0.0521 / $0.0646.
+            billed_each = result.extraction.reported_costs
+            billed = (
+                sum(billed_each)
+                if billed_each and all(c is not None for c in billed_each)
+                else None
+            )
             if on_result is not None:
                 thread_in = result.extraction.input_tokens
                 thread_out = result.extraction.output_tokens
@@ -1523,8 +1536,11 @@ class Pipeline:
                     # moves nothing. Without a Budget there is no pricing, so
                     # the cost is UNKNOWN rather than zero (rule 6).
                     usd=(
-                        budget.cost_of(thread_in or 0, thread_out or 0)
-                        if budget is not None else None
+                        billed if billed is not None
+                        else budget.cost_of(
+                            thread_in or 0, thread_out or 0,
+                            result.extraction.cached_input_tokens or 0,
+                        ) if budget is not None else None
                     ),
                     posts=len(thread.raw_text_of),
                     index=len(results) + 1,
@@ -1555,6 +1571,7 @@ class Pipeline:
                         output_tokens=result.extraction.output_tokens,
                         cached_input_tokens=result.extraction.cached_input_tokens,
                         model=self._extractor_model,
+                        reported_cost_usd=billed,
                     )
                 )
             # ⚠ NO SHARED-LEDGER WRITE HERE. `judge/extract/client.py` records

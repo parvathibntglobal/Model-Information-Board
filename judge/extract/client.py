@@ -383,10 +383,14 @@ class Completion:
     #:   can express that; the reported figure already does (#381).
     #:
     #:   None when the provider did not report one - never 0, which would read
-    #:   as free (rule 6). RECORDED, NOT YET USED FOR THE LEDGER OR THE CAP:
-    #:   moving the spend ledger onto it is #381's fix, alongside choosing the
-    #:   single record site. Consumer named, per rule 9: `ExtractionRun.
-    #:   reported_costs`, printed on the per-thread line.
+    #:   as free (rule 6). USED FOR THE LEDGER AND THE CAP (#381 step 2):
+    #:   `_record_spend` writes it as the ledger row's usd, and `Budget.charge`
+    #:   charges it. Token pricing is the fallback only when it is None.
+    #:   Measured 2026-11-09 (GPT Image 2.5 Sunburst fetch, 95 calls): tokens x
+    #:   rate with the cache discount gave $0.0521, billed was $0.0646 - the
+    #:   cap was counting about 19% under what was spent. Consumers named, per
+    #:   rule 9: those two, and `ExtractionRun.reported_costs` on the per-thread
+    #:   line.
     reported_cost_usd: float | None = None
 
     @property
@@ -966,6 +970,10 @@ def _record_spend(usage: dict, *, served: str | None, asked: str) -> None:
     from judge import spend_ledger
     from judge.extract.budget import pricing_for
 
+    # THE BILLED FIGURE WHEN THE PROVIDER SENT ONE (#381 step 2). Tokens times
+    # our rate only when it did not - a call with no reported cost is still
+    # priced, never recorded as free (rule 6).
+    billed = usage.get("cost")
     spend_ledger.record(
         stage=spend_ledger.STAGE_EXTRACT,
         model=served or "",
@@ -973,6 +981,7 @@ def _record_spend(usage: dict, *, served: str | None, asked: str) -> None:
         input_tokens=usage.get("prompt_tokens", 0),
         output_tokens=usage.get("completion_tokens", 0),
         cached_input_tokens=_cached_tokens(usage),
+        **({"reported": True, "reported_usd": float(billed)} if billed is not None else {}),
     )
 
 
