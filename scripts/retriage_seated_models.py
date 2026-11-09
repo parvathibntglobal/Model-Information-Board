@@ -39,7 +39,7 @@ import psycopg  # noqa: E402
 
 from collect.config import settings  # noqa: E402
 from collect.rawstore import RawStore  # noqa: E402
-from collect.triage.retriage import apply, plan  # noqa: E402
+from collect.triage.retriage import apply, candidate_count, plan  # noqa: E402
 
 MEASUREMENTS = ROOT / "docs" / "measurements"
 
@@ -51,14 +51,40 @@ def main() -> int:
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")
+    ap.add_argument(
+        "--development-write", action="store_true",
+        help="with --apply on ENVIRONMENT=development: write to a shared database, "
+             "refusing if any target model is a seeded (build-fixture) row (#383)")
     args = ap.parse_args()
     models = [m.strip() for m in args.models.split(",") if m.strip()]
+    dsn = os.environ.get("DATABASE_URL")
 
-    from judge.writeguard import check as writeguard_check
-    writeguard_check(os.environ.get("DATABASE_URL"), command="retriage_seated_models.py")
+    # THE WRITE GATE GUARDS WRITES ONLY (#613 review, point 4). It ran before the
+    # mode was read, so a read-only --dry-run against the shared database was
+    # refused on a development machine. --apply passes it the way fetch_model.py
+    # and run_extraction_batched.py do: ENVIRONMENT, or --development-write with
+    # the one fixture check this write needs - no target may be a `seed` row.
+    if args.apply and not args.development_write:
+        from judge.writeguard import check as writeguard_check
+
+        writeguard_check(dsn, command="retriage_seated_models.py --apply")
 
     store = RawStore(pathlib.Path(settings().raw_store_path))
     conn = psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=15)
+    if args.development_write:
+        seeded = [r[0] for r in conn.execute(
+            "SELECT canonical_id FROM model_version WHERE (id = ANY(%s) OR canonical_id = "
+            "ANY(%s)) AND provenance = 'seed'", (models, models)).fetchall()]
+        if seeded:
+            conn.close()
+            print(f"refusing --development-write: {seeded} are seeded (build-fixture) "
+                  f"rows, and a re-triage for them would write against fixtures.")
+            return 1
+    # SAID BEFORE IT READS (point 5): each candidate is a payload read, often a
+    # remote one. One run for a batch of seatings (--models takes a list) reads
+    # the population once.
+    print(f"candidates: {candidate_count(conn, models)} dropped no-resolvable-entity "
+          f"document(s) fetched before these models were seated - reading each one now")
     p = plan(conn, store, models=models)
     print(p.summary())
     if p.by_subreddit:
@@ -77,6 +103,11 @@ def main() -> int:
         "population_fingerprint": p.population_fingerprint,
         "candidates": p.candidates,
         "adult_left_dropped": p.adult_left_dropped,
+        "adult_unknown": p.adult_unknown,
+        "adult_field_absent": p.adult_field_absent,
+        "own_text": p.own_text,
+        "root_only": p.root_only,
+        "no_prose": p.no_prose,
         "unreadable": p.unreadable,
         "by_source": dict(p.by_source),
         "by_subreddit": dict(p.by_subreddit),

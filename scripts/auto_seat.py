@@ -113,6 +113,14 @@ def report(records: list[dict], *, applied: bool) -> str:
             lines.append(f"- `{r['canonical_id']}`: {r['outcome']}")
     if not records:
         lines.append("- nothing new: no arrival matched the rule.")
+    # THE RE-TRIAGE STEP, WRITTEN WHERE SEATINGS ARE ANNOUNCED (#613 review,
+    # point 6). Documents triage dropped as naming no model before these were
+    # seated keep that verdict; nothing else prompts the step for polled models.
+    if applied and seated:
+        lines += ["", "Documents dropped as naming no model before these were seated keep "
+                  "that verdict. To re-judge them, dry run first:", "",
+                  "    python scripts/retriage_seated_models.py --dry-run --models "
+                  + ",".join(r["canonical_id"] for r in seated)]
     return "\n".join(lines) + "\n"
 
 

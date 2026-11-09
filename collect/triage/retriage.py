@@ -52,7 +52,17 @@ CANDIDATES = """
       LEFT JOIN document r ON r.id = d.thread_root_id AND d.thread_root_id <> d.id
      WHERE d.triage_verdict = 'dropped'
        AND %s = ANY(coalesce(d.filter_reasons, '{}'))
+       AND d.fetched_at < %s
      ORDER BY d.id
+"""
+
+#: How many `plan` would read, said BEFORE it reads them (#613 review, point 5):
+#: on the shared database each is a payload read, often a remote one.
+CANDIDATE_COUNT = """
+    SELECT count(*) FROM document d
+     WHERE d.triage_verdict = 'dropped'
+       AND %s = ANY(coalesce(d.filter_reasons, '{}'))
+       AND d.fetched_at < %s
 """
 
 
@@ -65,14 +75,33 @@ class RetriagePlan:
     by_source: Counter = field(default_factory=Counter)
     by_subreddit: Counter = field(default_factory=Counter)
     adult_left_dropped: int = 0
+    #: A Reddit document whose thread's `over_18` cannot be read: its root is
+    #: not stored, its payload is unreadable, or the payload carries no flag.
+    #: LEFT DROPPED, never read as "not adult" (#613 review, point 1, rule 6).
+    adult_unknown: int = 0
+    #: Of those, roots whose payload is readable but carries no `over_18` at
+    #: all - mostly older subreddit-listing payloads. Counted apart so the
+    #: rule's cost is visible.
+    adult_field_absent: int = 0
     unreadable: int = 0
+    #: A payload read, but its extractor returned no prose (point 3).
+    no_prose: int = 0
+    #: Of `ids`: the document's OWN text names a target, or only its thread
+    #: root does (point 2). Triage may still drop a root-only match, so the
+    #: dry run's count is an upper bound and says which part is which.
+    own_text: int = 0
+    root_only: int = 0
 
     def summary(self) -> str:
         return (
             f"re-triage plan for {', '.join(self.models)}: {len(self.ids)} of "
             f"{self.candidates} dropped no-resolvable-entity document(s) now name one "
-            f"of them ({dict(self.by_source)}); {self.adult_left_dropped} in adult "
-            f"threads left dropped; {self.unreadable} unreadable here"
+            f"of them ({dict(self.by_source)}) - {self.own_text} by their own text, "
+            f"{self.root_only} only through their thread root (triage may still "
+            f"drop those); {self.adult_left_dropped} in adult threads and "
+            f"{self.adult_unknown} whose thread's adult flag is unknown left dropped "
+            f"({self.adult_field_absent} of them because the stored post carries no "
+            f"flag); {self.unreadable} unreadable here; {self.no_prose} with no prose"
         )
 
 
@@ -81,14 +110,40 @@ def subreddit_of(url: str | None) -> str | None:
     return m.group(1) if m else None
 
 
-def _is_adult(payload: str | bytes | None) -> bool:
-    """Reddit's own `over_18` on a stored post payload. Unreadable is not adult."""
+def _adult_state(payload: str | bytes | None) -> bool | None:
+    """Reddit's own `over_18` on a stored post payload: True, False, or None.
+
+    THREE STATES, NOT TWO (#613 review, point 1). No payload, one that will not
+    parse, and one with no `over_18` field are all "unknown" - never "not
+    adult", which would let the re-triage promote exactly what the harvest's
+    `over_18` skip exists to keep out (rule 6).
+    """
+    if not payload:
+        return None
     try:
-        data = json.loads(payload) if payload else {}
+        data = json.loads(payload)
     except (TypeError, ValueError):
-        return False
-    data = data.get("data", data) if isinstance(data, dict) else {}
-    return isinstance(data, dict) and data.get("over_18") is True
+        return None
+    data = data.get("data", data) if isinstance(data, dict) else None
+    if not isinstance(data, dict) or "over_18" not in data:
+        return None
+    return data["over_18"] is True
+
+
+def seated_since(conn, models: list[str]):
+    """The earliest `first_seen_at` among `models`: a document fetched after it
+    was triaged with the model already in the registry, so it cannot hold a
+    stale verdict for it (#613 review, point 5)."""
+    row = conn.execute(
+        "SELECT min(first_seen_at) FROM model_version "
+        "WHERE id = ANY(%s) OR canonical_id = ANY(%s)", (models, models)).fetchone()
+    return row[0] if row else None
+
+
+def candidate_count(conn, models: list[str]) -> int:
+    """How many documents `plan` would read for `models`. Reads no payload."""
+    return int(conn.execute(CANDIDATE_COUNT, (NO_ENTITY, seated_since(conn, models)))
+               .fetchone()[0])
 
 
 def _target_ids(conn, models: list[str]) -> set[str]:
@@ -131,7 +186,8 @@ def plan(conn, store, *, models: list[str]) -> RetriagePlan:
         owners = {o for s in find(text) for o in owners_by_key.get(normalize(s), ())}
         return bool(owners & targets)
 
-    root_cache: dict[str, tuple[str | None, bool]] = {}
+    #: root id -> (its prose, its raw payload); read once per thread.
+    root_cache: dict[str, tuple[str | None, bytes | str | None]] = {}
 
     def read(ref: str | None, source: str) -> tuple[str | None, bytes | str | None]:
         if not ref or source not in extractors:
@@ -143,27 +199,43 @@ def plan(conn, store, *, models: list[str]) -> RetriagePlan:
         except Exception:  # noqa: BLE001 - counted, never read as "names nothing"
             return None, None
 
-    rows = conn.execute(CANDIDATES, (NO_ENTITY,)).fetchall()
+    rows = conn.execute(CANDIDATES, (NO_ENTITY, seated_since(conn, models))).fetchall()
     out.candidates = len(rows)
     for doc_id, source, ref, root_id, url, root_ref in rows:
         text, blob = read(ref, source)
         if blob is None:
             out.unreadable += 1
             continue
+        if text is None:
+            out.no_prose += 1
+        is_comment = bool(root_id) and root_id != doc_id
         root_names = False
-        root_adult = False
-        if root_id and root_ref:
+        root_blob = None
+        if is_comment and root_ref:
             if root_id not in root_cache:
-                rtext, rblob = read(root_ref, source)
-                root_cache[root_id] = (rtext, source == "reddit" and _is_adult(rblob))
-            rtext, root_adult = root_cache[root_id]
+                root_cache[root_id] = read(root_ref, source)
+            rtext, root_blob = root_cache[root_id]
             root_names = names_target(rtext)
-        if not (names_target(text) or root_names):
+        own_names = names_target(text)
+        if not (own_names or root_names):
             continue
-        if source == "reddit" and (root_adult or _is_adult(blob)):
-            out.adult_left_dropped += 1
-            continue
+        if source == "reddit":
+            # A comment's flag is its thread's; a post's is its own.
+            flag_payload = root_blob if is_comment else blob
+            adult = _adult_state(flag_payload)
+            if adult is True:
+                out.adult_left_dropped += 1
+                continue
+            if adult is None:
+                out.adult_unknown += 1
+                if flag_payload is not None:
+                    out.adult_field_absent += 1
+                continue
         out.ids.append(doc_id)
+        if own_names:
+            out.own_text += 1
+        else:
+            out.root_only += 1
         out.by_source[source] += 1
         sub = subreddit_of(url)
         if sub:
