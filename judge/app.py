@@ -5419,7 +5419,9 @@ def _contract_limits() -> list[dict]:
     def load(rel: str) -> dict | None:
         try:
             return yaml.safe_load((_REPO_ROOT / rel).read_text(encoding="utf-8")) or {}
-        except (OSError, ValueError):
+        except (OSError, ValueError, yaml.YAMLError):
+            # A malformed file is a state of this page, not its failure (#612
+            # review, point 20): the limits it holds read as unknown ("-").
             return None
 
     out: list[dict] = []
@@ -5718,14 +5720,12 @@ def _media_sources(doc: dict) -> dict:
             "queries": queries,
             "subreddits": [] if queries else [str(m) for m in b.get("members") or []],
             "posts_per_subreddit": (pages * per) if pages and per else None,
-            "sort": b.get("sort"),
             "max_requests": b.get("max_requests"),
             "filter": ("names a model the registry or the catalogue knows; every post "
                        "is stored, comments read only for those"
                        if b.get("subject_only") else
                        "names a seated model AND matches a topic or signal phrase "
                        "from contract/queries.yaml"),
-            "terms_ruling": b.get("terms_ruling"),
         }
 
     out["listing_sweeps"] = [s for s in (
@@ -5741,17 +5741,17 @@ def _media_sources(doc: dict) -> dict:
     ]
     try:
         media = yaml.safe_load(
-            (_REPO_ROOT / "contract" / "media_github_repos.yaml").read_text(encoding="utf-8"))
+            (_REPO_ROOT / "contract" / "media_github_repos.yaml").read_text(encoding="utf-8")) or {}
         out["media_github_repos"] = {
             "kinds": {str(k): list(v or []) for k, v in (media.get("kinds") or {}).items()},
             "max_requests_per_fetch": media.get("max_requests_per_fetch"),
         }
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, AttributeError, yaml.YAMLError) as exc:
         out["media_github_repos"] = None
         out["unreadable"].append(f"contract/media_github_repos.yaml: {exc}")
     try:
         lite = yaml.safe_load(
-            (_REPO_ROOT / "contract" / "litellm_prices.yaml").read_text(encoding="utf-8"))
+            (_REPO_ROOT / "contract" / "litellm_prices.yaml").read_text(encoding="utf-8")) or {}
         out["price_fallback"] = {
             "source": "LiteLLM's community price list",
             "source_url": lite.get("source_url"),
@@ -5759,7 +5759,7 @@ def _media_sources(doc: dict) -> dict:
             "excluded": {str(k): str(v) for k, v in (lite.get("excluded") or {}).items()},
             "rule": "used only where OpenRouter publishes no price; never the maker's price",
         }
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, AttributeError, yaml.YAMLError) as exc:
         out["price_fallback"] = None
         out["unreadable"].append(f"contract/litellm_prices.yaml: {exc}")
     return out
@@ -5994,6 +5994,10 @@ def admin_sources() -> dict:
 
 
 
+#: How many held names `/admin/held-models` returns; the rest are counted.
+HELD_MODELS_SHOWN = 200
+
+
 @app.get("/admin/held-models")
 def admin_held_models() -> dict:
     """Models the board holds evidence about but has not seated (#602).
@@ -6008,38 +6012,65 @@ def admin_held_models() -> dict:
     """
     import yaml
 
-    bar = {}
+    # THE BAR IS KNOWN OR SAID TO BE UNKNOWN (#612 review, points 17 and 20). An
+    # unreadable file used to leave `bar = {}` with no reason, so every row read
+    # `meets_bar: false` and the panel said "0 meet the bar" (rule 6).
+    bar: dict = {}
+    bar_reason = None
     try:
         raw = yaml.safe_load(
-            (_REPO_ROOT / "contract" / "tracked_models.yaml").read_text(encoding="utf-8"))
+            (_REPO_ROOT / "contract" / "tracked_models.yaml").read_text(encoding="utf-8")) or {}
         bar = raw.get("seating_bar") or {}
-    except (OSError, ValueError):
-        bar = {}
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        bar_reason = f"contract/tracked_models.yaml could not be read ({type(exc).__name__})"
     need_entries, need_authors = bar.get("held_entries"), bar.get("distinct_authors")
+    if bar_reason is None and not (isinstance(need_entries, int) and isinstance(need_authors, int)):
+        bar_reason = "contract/tracked_models.yaml has no complete `seating_bar`"
     try:
         with _conn() as conn:
+            # ONE NAME, ITS SPELLINGS TOGETHER (#612 review, point 18):
+            # "GPT Image 2.6 Sunburst" and "gpt-image-2.6 sunburst" each stayed
+            # under the bar when counted apart. And a quote held again after a
+            # `pipeline_version` change is ONE entry, not two: the bar counts
+            # what people said, not how many times we re-read it.
             rows = conn.execute(
-                "SELECT u.surface, count(*), count(DISTINCT d.author_id), "
-                "       count(DISTINCT u.document_id), min(u.created_at), max(u.created_at) "
-                "FROM unresolved_entry u JOIN document d ON d.id = u.document_id "
-                "WHERE u.attributed_at IS NULL "
-                "GROUP BY u.surface ORDER BY count(*) DESC, u.surface LIMIT 200"
+                "WITH h AS ("
+                "  SELECT lower(regexp_replace(u.surface, '[^0-9A-Za-z]+', '', 'g')) AS k, "
+                "         u.surface, u.document_id, u.section, u.slug, u.quote, "
+                "         u.created_at, d.author_id "
+                "  FROM unresolved_entry u JOIN document d ON d.id = u.document_id "
+                "  WHERE u.attributed_at IS NULL) "
+                "SELECT mode() WITHIN GROUP (ORDER BY surface), "
+                "       count(DISTINCT (document_id, section, slug, quote)), "
+                "       count(DISTINCT author_id), count(DISTINCT document_id), "
+                "       min(created_at), max(created_at), array_agg(DISTINCT surface), "
+                "       count(*) OVER () "
+                "FROM h GROUP BY k "
+                "ORDER BY 2 DESC, 1 LIMIT %s",
+                (HELD_MODELS_SHOWN,),
             ).fetchall()
             filed = conn.execute(
                 "SELECT count(*) FROM unresolved_entry WHERE attributed_at IS NOT NULL"
             ).fetchone()[0]
     except Exception as exc:  # noqa: BLE001 - an unmigrated database is a state
-        return {"held": [], "filed": None, "seating_bar": bar,
+        return {"held": [], "filed": None, "seating_bar": bar, "bar_reason": bar_reason,
+                "names_total": None, "truncated": False,
                 "reason": f"held entries could not be read ({_safe_detail(exc)})"}
     held = []
-    for surface, n, authors, docs, first, last in rows:
-        meets = (isinstance(need_entries, int) and isinstance(need_authors, int)
-                 and n >= need_entries and authors >= need_authors)
-        held.append({"surface": surface, "entries": int(n), "authors": int(authors),
-                     "documents": int(docs), "meets_bar": bool(meets),
+    for surface, n, authors, docs, first, last, spellings, _total in rows:
+        # None, not False, when the bar is unknown: "does not meet" would be a
+        # definite answer to a question this page cannot ask.
+        meets = (None if bar_reason else
+                 bool(n >= need_entries and authors >= need_authors))
+        held.append({"surface": surface, "spellings": sorted(spellings or []),
+                     "entries": int(n), "authors": int(authors),
+                     "documents": int(docs), "meets_bar": meets,
                      "first_held": first.date().isoformat() if first else None,
                      "last_held": last.date().isoformat() if last else None})
-    return {"held": held, "filed": int(filed), "seating_bar": bar, "reason": None}
+    names_total = int(rows[0][7]) if rows else 0
+    return {"held": held, "filed": int(filed), "seating_bar": bar, "bar_reason": bar_reason,
+            "names_total": names_total, "truncated": names_total > len(held),
+            "reason": None}
 
 
 @app.get("/admin/keywords")

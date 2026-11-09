@@ -66,7 +66,11 @@ def test_a_repo_without_an_owner_refuses(tmp_path):
     ("seedance 2", "Seedance 20 is out", False),
     ("mai voice 2", "MAI-Voice-21", False),
     ("seedance 2.0", "Seedance 2.05", False),
-    ("seedance 2.0", "seedance20 test", True),                       # the same name, folded
+    # Between two numbers a separator is required (#612 review): "2.0" is not
+    # "20". The written-together form is Seedance 2.0's own `seedance20` alias.
+    ("seedance 2.0", "seedance20 test", False),
+    ("seedance20", "seedance20 test", True),
+    ("seedance 2.0", "seedance2.0 test", True),
 ])
 def test_names_folded_reads_a_name_in_any_spelling_and_nothing_else(name, text, named):
     """#602: "mai voice 2.1" missed "MAI-Voice-2.1" before separators were folded."""
@@ -100,3 +104,13 @@ def test_name_forms_splits_a_second_name_but_not_a_qualifier(name, forms):
     from collect.adapters.queries.sieve import name_forms
 
     assert name_forms(name) == forms
+
+
+def test_every_media_kind_has_its_github_repos():
+    """#612 review, point 13: a media kind with no repo list would take the text
+    path on GitHub alone, crossing its name with text-model phrases."""
+    import scripts.fetch_model as fetch_model
+    from collect.adapters.queries.github import load_media_repos
+
+    repos, _cap = load_media_repos()
+    assert set(repos) == set(fetch_model.MEDIA_KINDS)

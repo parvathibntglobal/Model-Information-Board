@@ -53,9 +53,10 @@
 #   is the UNIT, not the plumbing: wiring an ElevenLabs or Ideogram adapter would
 #   not help, because what it returned could not be expressed in per-million
 #   tokens without becoming a different quantity wearing that label. Pricing
-#   these needs its own unit-carrying shape, the way `board_entry` carries
-#   `unit` beside `value_verbatim`. Recorded here so the next reader knows it was
-#   decided rather than missed.
+#   these needed its own unit-carrying shape, the way `board_entry` carries
+#   `unit` beside `value_verbatim` - and since #602 that shape exists: the
+#   `unit_price` table holds a rate with its unit (per image, second or
+#   character), apart from `price_in`/`price_out`.
 #
 #   ⚠ AND IT IS NOT "THE REGISTRY HAS NO IMAGE MODELS", which is what an earlier
 #     draft of this note said. `google/gemini-3.1-flash-image` is in the poll and
@@ -431,9 +432,10 @@ models:
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is
   # worded the way it is. OpenRouter lists image GENERATION from the big LLM
-  # providers - this one is priced per million tokens like its text siblings -
-  # while the standalone image, video and speech vendors are absent entirely.
-  # So "the registry does not carry image models" would have been too strong.
+  # providers - this one is priced per million tokens like its text siblings.
+  # The standalone image, video and speech vendors are not in the POLL; they
+  # are in `model_catalog` (all modalities), and the ones tracked here are
+  # seated by hand from contract/unpolled_models.yaml.
   - name: Nano Banana 2
     registry: google/gemini-3.1-flash-image
     kind: image

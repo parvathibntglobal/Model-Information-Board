@@ -26,6 +26,7 @@ import { KITE_PULSE_OPEN } from '../kitepulse/status'
 import { IconAlert, IconArrow, IconClock, IconFilter, IconGrid, IconHeart, IconSearch } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
+import { kindChips } from '../kinds'
 
 /**
  * Operations. `/health` needs nothing; the database-backed surfaces are each
@@ -66,9 +67,8 @@ function agoShort(iso) {
   return days <= 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`
 }
 
-/** The Type filter's chips (`tracked_kind`, contract/tracked_models.yaml), as on
- *  the Models page; a kind with no tracked model gets no chip. */
-const KIND_CHIPS = [['text', 'Text'], ['image', 'Image'], ['video', 'Video'], ['speech', 'Speech'], ['transcription', 'Transcription'], ['decision', 'Decision']]
+/* The Type filter's chips come from `web/src/kinds.js`, as on the Models page:
+ * built from the kinds present, so a new kind gets a chip (#612 review). */
 
 function CollectEvidence() {
   const [models, setModels] = useState(null)
@@ -150,7 +150,7 @@ function CollectEvidence() {
                     aria-pressed={kind === 'all'} onClick={() => setKind('all')}>
               All {models.length}
             </button>
-            {KIND_CHIPS.filter(([k]) => counts[k]).map(([k, label]) => (
+            {kindChips(counts).map(([k, label]) => (
               <button key={k} type="button" className={`chip${kind === k ? ' chip-on' : ''}`}
                       aria-pressed={kind === k} onClick={() => setKind(k)}>
                 {label} {counts[k]}

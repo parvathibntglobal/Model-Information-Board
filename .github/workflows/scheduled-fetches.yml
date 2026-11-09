@@ -203,29 +203,41 @@ jobs:
             echo "::notice::the media search sweep runs weekly, on Mondays (UTC): not today."
             exit 0
           fi
+          # A WARNING, NOT A NOTICE (#612 review, point 8). This runs once a week,
+          # so a missing setting skipped quietly costs a week nobody sees. The run
+          # stays green - the per-model arms skip themselves the same way - but
+          # the warning is on the run's summary page.
           if [ -z "$RAPIDAPI_KEY" ]; then
-            echo "::notice::RAPIDAPI_KEY is not set - the media search sweep is skipped."
+            echo "::warning::RAPIDAPI_KEY is not set - this week's media search sweep was skipped."
+            echo "Media search sweep SKIPPED: RAPIDAPI_KEY is not set." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           # NO REDDIT HOST, NO RUN: without one the sweep refuses with a
-          # configuration error, which would turn the night red for a missing
-          # variable. The per-model Reddit arm skips itself the same way.
-          if [ -z "$REDDIT_PROVIDER" ] && [ -z "$RAPIDAPI_HOST" ]; then
-            echo "::notice::REDDIT_PROVIDER is not set - the media search sweep is skipped."
+          # configuration error. REDDIT_PROVIDER is the only host setting this
+          # job's env carries.
+          if [ -z "$REDDIT_PROVIDER" ]; then
+            echo "::warning::REDDIT_PROVIDER is not set - this week's media search sweep was skipped."
+            echo "Media search sweep SKIPPED: REDDIT_PROVIDER is not set." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           python -m collect.cli ops sweep-reddit --media --store raw_store
 
       - name: Fetch the due models
         if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
-        # --job-limit-minutes 310 is timeout-minutes (355) less the feed step's
-        # 20, the forum step's 15 and the media sweep's 10: a fetch still
-        # running at 310 min of THIS step is stopped by the runner, which then
-        # posts the summary. Each thread commits as it finishes, so that loses
-        # one thread at most and the model stays due. That makes a late launch
-        # cheap, so --deadline-minutes 290 starts models until minute 290.
+        # --job-limit-minutes 320 is timeout-minutes (355) less the feed step's
+        # 20 and the forum step's 15: a fetch still running at 320 min of THIS
+        # step is stopped by the runner, which then posts the summary. Each
+        # thread commits as it finishes, so that loses one thread at most and
+        # the model stays due. That makes a late launch cheap, so
+        # --deadline-minutes 300 starts models until minute 300.
+        # ON A SWEEP NIGHT ONLY (Mondays, or a run started by hand) the media
+        # search sweep's 10 minutes come off both (#612 review, point 10): the
+        # other six nights keep their full time.
         run: |
-          args="--job-limit-minutes 310 --deadline-minutes 290"
+          args="--job-limit-minutes 320 --deadline-minutes 300"
+          if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            args="--job-limit-minutes 310 --deadline-minutes 290"
+          fi
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

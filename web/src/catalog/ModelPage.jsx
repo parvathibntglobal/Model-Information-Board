@@ -8,7 +8,7 @@ import { catalogModelHead } from '../seo/pages'
 import { DAYS_PER_MONTH, fmtUsd as fmtCost, workloadCost } from '../tokens/cost'
 import PersonaPicker from '../tokens/PersonaPicker'
 import { PERSONAS } from '../tokens/personas'
-import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
+import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUnitUsd, fmtUsd, modelPagePath, reportsPath } from './format'
 import FeedLink from '../components/FeedLink'
 import FollowButton from '../follow/FollowButton'
 import ModelPulse from '../follow/ModelPulse'
@@ -241,7 +241,7 @@ function UnitPrice({ up, reason }) {
         {up.figures.map((f) => (
           <div key={`${f.unit}-${f.direction}-${f.variant}`}>
             <dt>{f.label[0].toUpperCase() + f.label.slice(1)}{f.variant === 'default' ? '' : `, ${f.variant}`}</dt>
-            <dd>{fmtUsd(f.usd)}</dd>
+            <dd>{fmtUnitUsd(f.usd)}</dd>
           </div>
         ))}
       </dl>

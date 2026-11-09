@@ -84,3 +84,27 @@ def test_held_by_name_counts_entries_and_distinct_authors(conn):
                  proposer_model="m")
     assert held_by_name(conn) == {"gpt-image-2.6 sunburst": (2, 0)}, (
         "the test document has no author: entries count, authors do not")
+
+
+def test_a_refused_filing_stays_held_and_is_retried(conn, monkeypatch):
+    """#612 review, point 2: a refusal marked the row filed, so a refusal later
+    fixed could never retry it. Now it stays held until it reaches the board."""
+    import judge.store.board_entries as board_store
+
+    hold_entries(conn, [_row("gpt-image-2.6 sunburst")], proposer_model="m")
+    conn.execute(
+        "INSERT INTO model_version (id, canonical_id, provider, display_name, sources, "
+        "provenance) VALUES ('mv_26', 'openai/gpt-image-2.6-sunburst', 'openai', "
+        "'GPT Image 2.6 Sunburst', '{}'::jsonb, 'unpolled')")
+    resolve = {"gpt-image-2.6 sunburst": "mv_26"}.get
+    real = board_store.store_entries
+    monkeypatch.setattr(board_store, "store_entries", lambda *a, **k: {
+        "proposed": 1, "stored": 0, "skipped_unverified": 0, "refused_by": {"axis rule": 1}})
+
+    out = attribute_held(conn, resolve, dry_run=False)
+    assert out["filed"] == 0 and out["not_filed"] == {"refused: axis rule": 1}
+    assert held_surfaces(conn) == {"gpt-image-2.6 sunburst": 1}
+
+    monkeypatch.setattr(board_store, "store_entries", real)  # the rule is fixed
+    assert attribute_held(conn, resolve, dry_run=False)["filed"] == 1
+    assert held_surfaces(conn) == {}

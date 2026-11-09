@@ -142,6 +142,13 @@ def attribute_held(conn: Any, resolve_surface, *, dry_run: bool = True) -> dict[
                 not_filed["skipped: no slug or unverified"] += outcome["skipped_unverified"]
             if not outcome.get("refused_by") and not outcome.get("skipped_unverified"):
                 not_filed["already on the board (same document, section, slug, quote)"] += 1
+        # A REFUSAL STAYS HELD (#612 review, point 2). Marking it filed consumed
+        # the row: a refusal later fixed (a slug or axis rule) could never retry
+        # it, and it vanished from the held counts. Only a row now on the board,
+        # stored here or already present, is marked filed.
+        if not outcome["stored"] and (outcome.get("refused_by")
+                                      or outcome.get("skipped_unverified")):
+            continue
         board_id = entry_id(
             document_id=r["document_id"], section=r["section"],
             slug=normalise_slug(r["slug"]), quote=r["quote"],

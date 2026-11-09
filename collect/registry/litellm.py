@@ -96,6 +96,9 @@ class LoadReport:
     zero_fields: dict[str, list[str]] = field(default_factory=dict)
     unmapped: list[str] = field(default_factory=list)
     excluded: dict[str, str] = field(default_factory=dict)
+    #: Cost fields of one entry that map to the SAME (unit, direction, variant):
+    #: two figures for one price. Neither is stored; both are named (#612 review).
+    collisions: dict[str, list[str]] = field(default_factory=dict)
 
     @property
     def priced_models(self) -> list[str]:
@@ -114,6 +117,7 @@ class LoadReport:
             ("WRONG MODE, NOT READ", self.wrong_mode),
             ("cost fields with no unit, not stored", self.unread_fields),
             ("zero figures, not stored", self.zero_fields),
+            ("TWO FIELDS FOR ONE PRICE, neither stored", self.collisions),
         ):
             if part:
                 lines.append(f"           {label}: "
@@ -165,7 +169,20 @@ def rows_from(
         if mode not in contract.modes:
             report.wrong_mode[cid] = f"{key} has mode {mode!r}"
             continue
+        # ONE FIGURE PER (unit, direction, variant). Two cost fields mapping to
+        # the same slot would give two rows for one price, and picking either
+        # would be a guess, so both are refused and named.
+        slots: dict[tuple[str, str, str], list[str]] = {}
+        for name in entry:
+            spec = _field_unit(name, contract.fields) if "cost" in name else None
+            if spec is not None:
+                slots.setdefault(spec, []).append(name)
+        clashing = {n for names in slots.values() if len(names) > 1 for n in names}
+        if clashing:
+            report.collisions[cid] = sorted(clashing)
         for name, value in sorted(entry.items()):
+            if name in clashing:
+                continue
             if "cost" not in name:
                 continue
             spec = _field_unit(name, contract.fields)

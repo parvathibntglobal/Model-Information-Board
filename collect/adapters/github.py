@@ -333,6 +333,10 @@ class QueryRun:
     #: repo was renamed or removed (search does not follow a rename, #602).
     #: None when the search answered, or was throttled.
     search_failed_status: int | None = None
+    #: Survivors not fetched because the issue is already stored: an ElevenLabs
+    #: v3 fetch on 2026-11-09 spent all 20 issue fetches re-reading known issues
+    #: and stored none, so new issues behind them were never reached.
+    already_stored: int = 0
     started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     finished_at: datetime | None = None
 
@@ -371,6 +375,10 @@ class GitHubHarvester:
         )
         self._max_pages = max_pages
         self._max_fetch = max_fetch_per_query
+        #: Optional `(external_ids) -> set of those already stored`. When set,
+        #: a survivor already in the database is not fetched again, so the fetch
+        #: budget goes to issues the board has not seen. None: fetch them all.
+        self.already_stored = None
         self.pipeline_version = pipeline_version or settings().pipeline_version
         self._sleep = sleeper
         self._epoch = epoch
@@ -585,6 +593,12 @@ class GitHubHarvester:
                 survivors.append(hit)
             else:
                 run.rejected.append((hit.html_url, hit.title, verdict.missing))
+
+        if self.already_stored is not None and survivors:
+            known = self.already_stored([hit.external_id for hit in survivors])
+            if known:
+                run.already_stored = sum(1 for hit in survivors if hit.external_id in known)
+                survivors = [hit for hit in survivors if hit.external_id not in known]
 
         if self._max_fetch is not None and len(survivors) > self._max_fetch:
             log.warning(

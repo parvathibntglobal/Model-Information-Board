@@ -2,6 +2,12 @@
 
 /** A list price per 1M tokens. A published zero is "$0", never "$0.000". */
 export const fmtUsd = (n) => (n === 0 ? '$0' : n >= 100 ? `$${n.toFixed(0)}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(3)}`)
+
+/** A per-unit price (per image, second or character) KEEPING its precision
+ *  (#612 review, point 21): `fmtUsd`'s three decimals showed $0.0045 per image
+ *  as $0.005. Below $1 it keeps four significant figures, trailing zeros off. */
+export const fmtUnitUsd = (n) => (n == null ? '' : n === 0 ? '$0' : n >= 1 ? fmtUsd(n)
+  : '$' + Number(n.toPrecision(4)).toString())
 export const fmtCtx = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n))
 export const fmtDate = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 

@@ -193,7 +193,8 @@ def summarise_runs(records: list[dict]) -> str:
               "not reported by that run, which is not the same as zero."]
     # MEDIA'S SHARE OF THE NIGHT (#602 item 8), in counts only - no spend on a
     # public issue; each run's `cost_usd` stays in its own fetch log.
-    media = [r for r in records if r.get("model_kind") not in (None, "text")]
+    # "unknown" is an untracked model fetched by hand, searched as text (#612).
+    media = [r for r in records if r.get("model_kind") not in (None, "text", "unknown")]
     if media:
         read = sum(int(r.get("threads_read") or 0) for r in media)
         total = sum(int(r.get("threads_read") or 0) for r in records)
