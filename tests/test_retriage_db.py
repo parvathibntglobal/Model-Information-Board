@@ -124,16 +124,32 @@ def test_a_comment_whose_root_is_not_stored_stays_dropped(conn):
     store = _Store({"c/orphan": json.dumps({"body": "Hailuo 3 Max did this well" + LONG})})
     p = plan(conn, store, models=["minimax/hailuo-3-max"])
     assert p.ids == [] and p.adult_unknown == 1 and p.adult_field_absent == 0
+    assert "cannot be seen left dropped" in p.summary()
 
 
-def test_a_post_without_the_flag_is_unknown_not_safe(conn):
-    """A stored post with no `over_18` field (older listing payloads) is unknown."""
+def test_a_post_without_the_flag_follows_the_harvest(conn):
+    """#613 re-read: the harvest keeps a post with no `over_18` field (only an
+    explicit `true` is skipped), so the re-triage re-judges it - and counts it,
+    so the group stays visible in the dry run."""
     _seat(conn)
     _doc(conn, "reddit:t3_noflag", "p/noflag")
     conn.commit()
     store = _Store({"p/noflag": json.dumps({"title": "Hailuo 3 Max", "selftext": "x" + LONG})})
     p = plan(conn, store, models=["minimax/hailuo-3-max"])
-    assert p.ids == [] and p.adult_unknown == 1 and p.adult_field_absent == 1
+    assert p.ids == ["reddit:t3_noflag"]
+    assert p.adult_field_absent == 1 and p.adult_unknown == 0
+
+
+def test_an_unparseable_root_stays_dropped(conn):
+    """The other side: a root whose payload will not parse cannot be seen."""
+    _seat(conn)
+    _doc(conn, "reddit:t3_broken", "p/broken")
+    _doc(conn, "reddit:t1_under", "c/under", root="reddit:t3_broken", parent="reddit:t3_broken")
+    conn.commit()
+    store = _Store({"p/broken": "{not json",
+                    "c/under": json.dumps({"body": "Hailuo 3 Max did this well" + LONG})})
+    p = plan(conn, store, models=["minimax/hailuo-3-max"])
+    assert "reddit:t1_under" not in p.ids and p.adult_unknown >= 1
 
 
 def test_a_root_only_match_is_counted_apart_from_own_text(conn):

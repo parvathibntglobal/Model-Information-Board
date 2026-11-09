@@ -75,13 +75,14 @@ class RetriagePlan:
     by_source: Counter = field(default_factory=Counter)
     by_subreddit: Counter = field(default_factory=Counter)
     adult_left_dropped: int = 0
-    #: A Reddit document whose thread's `over_18` cannot be read: its root is
-    #: not stored, its payload is unreadable, or the payload carries no flag.
-    #: LEFT DROPPED, never read as "not adult" (#613 review, point 1, rule 6).
+    #: A Reddit document whose thread cannot be SEEN: its root is not stored,
+    #: or its payload is missing or will not parse. LEFT DROPPED, never read as
+    #: "not adult" (#613 review, point 1, rule 6).
     adult_unknown: int = 0
-    #: Of those, roots whose payload is readable but carries no `over_18` at
-    #: all - mostly older subreddit-listing payloads. Counted apart so the
-    #: rule's cost is visible.
+    #: A readable payload with no `over_18` field at all - mostly older
+    #: subreddit-listing payloads. RE-TRIAGED, as the harvest keeps such a post
+    #: (collect/adapters/reddit.py `_admit`: only an explicit `true` is
+    #: skipped), and counted so the group stays visible (#613 re-read).
     adult_field_absent: int = 0
     unreadable: int = 0
     #: A payload read, but its extractor returned no prose (point 3).
@@ -99,9 +100,10 @@ class RetriagePlan:
             f"of them ({dict(self.by_source)}) - {self.own_text} by their own text, "
             f"{self.root_only} only through their thread root (triage may still "
             f"drop those); {self.adult_left_dropped} in adult threads and "
-            f"{self.adult_unknown} whose thread's adult flag is unknown left dropped "
-            f"({self.adult_field_absent} of them because the stored post carries no "
-            f"flag); {self.unreadable} unreadable here; {self.no_prose} with no prose"
+            f"{self.adult_unknown} whose thread cannot be seen left dropped; "
+            f"{self.adult_field_absent} whose stored post carries no adult flag "
+            f"re-triaged, as the harvest keeps them; {self.unreadable} unreadable here; "
+            f"{self.no_prose} with no prose"
         )
 
 
@@ -110,24 +112,31 @@ def subreddit_of(url: str | None) -> str | None:
     return m.group(1) if m else None
 
 
-def _adult_state(payload: str | bytes | None) -> bool | None:
-    """Reddit's own `over_18` on a stored post payload: True, False, or None.
+#: `_adult_state`'s answers. ABSENT is a readable post with no flag at all.
+ADULT, NOT_ADULT, ABSENT, UNKNOWN = "adult", "not_adult", "absent", "unknown"
 
-    THREE STATES, NOT TWO (#613 review, point 1). No payload, one that will not
-    parse, and one with no `over_18` field are all "unknown" - never "not
-    adult", which would let the re-triage promote exactly what the harvest's
-    `over_18` skip exists to keep out (rule 6).
+
+def _adult_state(payload: str | bytes | None) -> str:
+    """Reddit's own `over_18` on a stored post payload, as the harvest reads it.
+
+    FOLLOWS THE HARVEST (#613 re-read). `_admit` skips only an explicit
+    `over_18: true` and keeps a post with no flag, so the re-triage does the
+    same: ADULT stays dropped, ABSENT and NOT_ADULT are re-triaged. UNKNOWN -
+    no payload, or one that will not parse - stays dropped: the thread cannot
+    be seen at all, and the harvest reads a root before its comments (rule 6).
     """
     if not payload:
-        return None
+        return UNKNOWN
     try:
         data = json.loads(payload)
     except (TypeError, ValueError):
-        return None
+        return UNKNOWN
     data = data.get("data", data) if isinstance(data, dict) else None
-    if not isinstance(data, dict) or "over_18" not in data:
-        return None
-    return data["over_18"] is True
+    if not isinstance(data, dict):
+        return UNKNOWN
+    if "over_18" not in data:
+        return ABSENT
+    return ADULT if data["over_18"] is True else NOT_ADULT
 
 
 def seated_since(conn, models: list[str]):
@@ -223,14 +232,14 @@ def plan(conn, store, *, models: list[str]) -> RetriagePlan:
             # A comment's flag is its thread's; a post's is its own.
             flag_payload = root_blob if is_comment else blob
             adult = _adult_state(flag_payload)
-            if adult is True:
+            if adult == ADULT:
                 out.adult_left_dropped += 1
                 continue
-            if adult is None:
+            if adult == UNKNOWN:
                 out.adult_unknown += 1
-                if flag_payload is not None:
-                    out.adult_field_absent += 1
                 continue
+            if adult == ABSENT:
+                out.adult_field_absent += 1  # re-triaged, as the harvest keeps it
         out.ids.append(doc_id)
         if own_names:
             out.own_text += 1
