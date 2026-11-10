@@ -5,6 +5,7 @@ No database: the contract is read from disk, and the runner's query is faked.
 from __future__ import annotations
 
 import pathlib
+from datetime import UTC, datetime
 
 import pytest
 import yaml
@@ -13,7 +14,7 @@ import scripts.fetch_model as fetch_model
 import scripts.run_scheduled_fetches as runner
 from collect.registry.aliases import classify_specificity
 from collect.registry.load import load_seed_file
-from judge import config
+from judge import config, scheduler
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -160,3 +161,82 @@ def test_the_workflow_runs_agents_on_their_own_schedule_and_issue():
     assert any("--list agents" in (s.get("run") or "") for s in job["steps"])
     model_wf = (workflows / "scheduled-fetches.yml").read_text(encoding="utf-8")
     assert "--list agents" not in model_wf
+
+
+# ── the ceiling holds inside a fetch (#618 review follow-up) ─────────────────
+
+def _night(monkeypatch, *, which_rows, spent=0.30, cap="2.00", ceiling=0.40):
+    """A batch of three with a fake ledger at `spent`; returns each launch's kwargs."""
+    import types
+
+    import judge.spend_ledger as ledger
+
+    monkeypatch.setenv("SCHEDULER_ENABLED", "1")
+    monkeypatch.setenv("EXTRACTION_DAILY_BUDGET_USD", cap)
+    monkeypatch.delenv("FETCH_EXTRACT", raising=False)
+    monkeypatch.setattr(runner, "_read_only_dsn", lambda: "postgresql://x@h/db")
+
+    class _Conn:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    monkeypatch.setattr("psycopg.connect", lambda *a, **k: _Conn())
+    rows = [{"model_version_id": m, "display_name": m.upper(), "tracked": True,
+             "in_window": True, "last_success": None} for m in ("a", "b", "c")]
+    monkeypatch.setattr(runner, "due_rows", lambda conn, which="models": (
+        which_rows.append(which) or rows))
+    def rule():
+        return types.SimpleNamespace(enabled=True, run_spend_ceiling_usd=ceiling)
+    rule.cache_clear = lambda: None  # the autouse fixture clears the real one's cache
+    monkeypatch.setattr(config, "agent_run_rule", rule)
+    monkeypatch.setattr(ledger, "spent_today", lambda *a, **k: spent)
+    launches = []
+    monkeypatch.setattr(runner, "run_one", lambda d, **k: launches.append(k)
+                        or {"_end": {"kind": "end", "status": "ok"}})
+    monkeypatch.setattr(runner, "post_summary", lambda recs: None)
+    monkeypatch.setattr(runner, "in_progress", lambda conn, now: set())
+    return launches
+
+
+def test_each_agent_fetch_is_launched_with_the_run_ceiling_as_its_budget(monkeypatch):
+    """Spent $0.30 today when the run starts, ceiling $0.40: each agent fetch's own
+    cap is $0.70 on the team-wide ledger, so a first fetch cannot run on to $2."""
+    which = []
+    launches = _night(monkeypatch, which_rows=which)
+    assert runner.main(["--list", "agents"]) == 0
+    assert which == ["agents"]
+    assert [round(k["budget_usd"], 6) for k in launches] == [0.70, 0.70, 0.70]
+
+
+def test_the_agent_budget_never_exceeds_the_daily_cap(monkeypatch):
+    launches = _night(monkeypatch, which_rows=[], spent=1.80, cap="2.00")
+    runner.main(["--list", "agents"])
+    assert launches and all(k["budget_usd"] == 2.00 for k in launches)
+
+
+def test_the_model_run_keeps_the_daily_cap(monkeypatch):
+    launches = _night(monkeypatch, which_rows=[])
+    runner.main([])
+    assert launches and all(k.get("budget_usd") is None for k in launches)
+
+
+def test_run_one_lowers_only_the_child_budget(monkeypatch):
+    """The lowered figure reaches the child's env and nowhere else."""
+    import os
+
+    monkeypatch.setenv("EXTRACTION_DAILY_BUDGET_USD", "2.00")
+    seen = []
+
+    class _Proc:
+        returncode = 0
+
+    monkeypatch.setattr(runner.subprocess, "run",
+                        lambda cmd, **kw: seen.append(kw["env"]) or _Proc())
+    monkeypatch.setattr(runner, "_end_record", lambda rid: None)
+    due = scheduler.rank_due([{"model_version_id": "a", "display_name": "A", "tracked": True,
+                               "in_window": True, "last_success": None}],
+                             datetime.now(UTC))[0]
+    runner.run_one(due, sources=None, development_write=False, budget_usd=0.7)
+    runner.run_one(due, sources=None, development_write=False)
+    assert seen[0]["EXTRACTION_DAILY_BUDGET_USD"] == "0.700000"
+    assert seen[1]["EXTRACTION_DAILY_BUDGET_USD"] == "2.00"
+    assert os.environ["EXTRACTION_DAILY_BUDGET_USD"] == "2.00"
