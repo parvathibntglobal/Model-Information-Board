@@ -419,15 +419,16 @@ models:
   # ── added 2026-10-18 ─────────────────────────────────────────────────────
   # Seated from contract/unpolled_models.yaml: OpenRouter serves it but its
   # model list does not carry it, so the poll never will (see that entry).
-  # `kind: text` FOR NOW (2026-11-09, Parvathi). Its output is a typed decision
-  # (OpenRouter lists `decisions`), and #602 first moved it to `kind: decision`.
-  # Moved back because seo/keyword_plan.json, generated 2026-10-19 while Jev was
-  # text, pairs it with text models in 507 text-only keywords, and that file can
-  # only be regenerated from the SEO workbook. Once it is regenerated, `decision`
-  # can return: the generator already keeps non-text models out of those pairs.
+  # `kind: decision` (#602; back from a temporary `text`, 2026-11-10). Its output is
+  # a typed decision (OpenRouter lists `decisions`). It sat at `text` from
+  # 2026-11-09 because seo/keyword_plan.json, generated 2026-10-19 while Jev was
+  # text, paired it with text models in text-only keywords. The plan is
+  # regenerated from the SEO workbook in the same PR as this line, and the
+  # generator keeps non-text models out of those pairs (scripts/build_keyword_plan.py).
+  # A decision model keeps the text fetch arms (scripts/fetch_model.py MEDIA_KINDS).
   - name: Jev 1.13
     registry: typesafe/jev-1.13
-    kind: text
+    kind: decision
 
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is
