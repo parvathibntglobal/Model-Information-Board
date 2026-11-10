@@ -103,9 +103,17 @@ def read_planner(path: Path) -> dict[str, dict]:
 
 
 def _get(api: str, path: str):
-    from urllib.request import urlopen
+    """GET from our own API. The board is gated (judge/gate.py), so `API_TOKEN` from
+    the environment is sent as a bearer when set; without it a gated API answers 401
+    and this raises, rather than building a plan from nothing."""
+    import os
+    from urllib.request import Request, urlopen
 
-    with urlopen(api + path, timeout=120) as r:  # noqa: S310 - our own API
+    headers = {}
+    token = (os.getenv("API_TOKEN") or "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    with urlopen(Request(api + path, headers=headers), timeout=120) as r:  # noqa: S310
         return json.load(r)
 
 
@@ -412,6 +420,11 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     plan = yaml.safe_load(PLAN.read_text(encoding="utf-8"))
     api = args.api.rstrip("/") if args.api else None
+    if not api:
+        # Without the API every model link is the bare /catalog/model and every
+        # concept reads "to write", with nothing in the file saying why (rule 12).
+        print("WARNING: no --api: model links carry no catalog id and no post counts as "
+              "written. Do not commit a plan built this way.", file=sys.stderr)
     concepts, written = blog_concepts(api)
     data = build(plan, read_planner(args.board), tracked_models(api), concepts, written)
     data["source"] = f"{args.board.name} + {PLAN.relative_to(ROOT).as_posix()}"
