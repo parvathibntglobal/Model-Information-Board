@@ -1149,7 +1149,33 @@ def _ensure_github_source(conn) -> None:
 #: The tracked kinds that are MEDIA (#602): searched and filtered by name, not by
 #: text-model capability phrases. `decision` is not one - a decision model is
 #: priced and discussed like a text model, so it keeps the text arms.
-MEDIA_KINDS = frozenset({"image", "video", "speech", "transcription"})
+#: `agent` (#609-#611) takes the same name-only path: an agent post rarely carries
+#: a text-model capability phrase, as test B measured on a local database.
+MEDIA_KINDS = frozenset({"image", "video", "speech", "transcription", "agent"})
+
+#: The fetched agent's own subreddits (contract/tracked_agents.yaml), set in `main`
+#: for an agent and empty otherwise. Read by `harvest_reddit`'s name check.
+AGENT_SUBREDDITS: set[str] = set()
+
+
+def _tracked_agent(model_version_id: str, canonical_id: str):
+    """The `TrackedAgent` being fetched, or None when this is not an agent."""
+    from judge.config import tracked_agents
+
+    ids = {model_version_id, canonical_id}
+    return next((a for a in tracked_agents() if a.registry in ids), None)
+
+
+def _with_search_terms(variants: list[str], terms: tuple[str, ...]) -> list[str]:
+    """An agent's extra search terms, placed right after its primary spelling.
+
+    SEARCH ONLY: they widen what is searched, and the resolver never sees them,
+    so a hit naming just a bare short name is held, not filed (#610 decision 4).
+    Second in line because each arm searches only its first few variants, and the
+    concatenated and hyphenated spellings below them find the least.
+    """
+    extra = [t for t in terms if t and t not in variants]
+    return variants[:1] + extra + variants[1:] if variants else variants
 
 
 def _tracked_hf_repos(conn, model_version_id: str, canonical_id: str) -> tuple[str, ...]:
@@ -1170,7 +1196,10 @@ def _tracked_kind(conn, model_version_id: str, canonical_id: str) -> str | None:
     from judge.tracked import all_tracked
 
     ids = {model_version_id, canonical_id}
-    return next((t.kind for t in all_tracked(conn) if t.registry in ids), None)
+    found = next((t.kind for t in all_tracked(conn) if t.registry in ids), None)
+    if found is None and _tracked_agent(model_version_id, canonical_id) is not None:
+        return "agent"  # contract/tracked_agents.yaml: the agent fetch's own list
+    return found
 
 
 def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int,
@@ -1500,7 +1529,12 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 if str(getattr(post, "subreddit", "")).casefold() in excluded_subs:
                     excluded += 1
                     continue
-                if not _names_a_variant(post.sieve_text, variants):
+                # AN AGENT'S OWN SUBREDDIT NAMES IT (#611): a post in r/openclaw is
+                # about OpenClaw though it may never say so. Only for the agent
+                # being fetched, and only its listed subreddits (tracked_agents.yaml).
+                in_own_sub = (str(getattr(post, "subreddit", "")).casefold()
+                              in AGENT_SUBREDDITS)
+                if not in_own_sub and not _names_a_variant(post.sieve_text, variants):
                     # THE POST IS KEPT, ITS COMMENTS ARE NOT FETCHED (Anooj's
                     # condition on #602): a recorded skip of a cost, never a
                     # drop of evidence (rule 8). One payload, no request.
@@ -4334,6 +4368,15 @@ def main(argv: list[str] | None = None) -> int:
             print(detail, file=sys.stderr)
             return 1
         variants = _variants_for(conn, args.model_version_id, canonical_id)
+        # AN AGENT'S EXTRA SEARCH TERMS AND OWN SUBREDDITS (contract/tracked_agents.yaml).
+        # Search-only: they widen the harvest and never reach the resolver.
+        agent = _tracked_agent(args.model_version_id, canonical_id)
+        AGENT_SUBREDDITS.clear()
+        if agent is not None:
+            variants = _with_search_terms(variants, agent.search_terms)
+            AGENT_SUBREDDITS.update(agent.subreddits)
+            _say(f"  agent   {agent.name}: {len(agent.search_terms)} extra search term(s), "
+                 f"{len(agent.subreddits)} own subreddit(s)")
         prog.stage("E1", "Registry", "ok",
                    model=display_name or canonical_id, variants=len(variants),
                    detail=f"resolved {display_name or canonical_id} — "

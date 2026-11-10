@@ -1,0 +1,107 @@
+# The AGENT fetch, nightly (#609-#611; anooj 2026-11-09: "do this separately, not
+# with model fetch").
+#
+# Fetches the agents in contract/tracked_agents.yaml (Muse, Dots, Duet, ...) with
+# scripts/run_scheduled_fetches.py --list agents. The model fetch
+# (scheduled-fetches.yml, 20:30 UTC) never reads that list, and this never reads
+# tracked_models.yaml, so the two cannot mix.
+#
+# WHEN: 15:00 UTC, a free slot. Test B (local database, 2026-11-09) took 6 to 21
+# minutes per agent on a first fetch, so ten agents fit well before the 17:23 job
+# and long before the 20:30 model fetch. Its own concurrency group: neither
+# workflow queues behind or cancels the other.
+#
+# SPEND: the extraction cap (EXTRACTION_DAILY_BUDGET_USD) is ONE team-wide daily
+# figure, shared with the model fetch later the same UTC day. The run therefore
+# also stops launching once IT has spent `run.run_spend_ceiling_usd`
+# (contract/tracked_agents.yaml). Test B's nine first fetches cost $0.12 in all.
+#
+# SWITCHES: the same SCHEDULER_ENABLED as the model fetch, plus `run.enabled` in
+# the contract (false stops agents only). The summary posts to the issue in the
+# repo variable AGENT_SCHEDULER_ISSUE - required, never defaulted to the model
+# fetch's issue, so the two summaries stay apart.
+name: Agent fetches
+
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+    inputs:
+      max_models:
+        description: "Run at most this many due agents (empty = all that fit)"
+        required: false
+        default: ""
+      sources:
+        description: "Comma-separated harvest sources (empty = all), e.g. reddit"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: agent-fetches
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+      X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
+      REDDIT_PROVIDER: ${{ vars.REDDIT_PROVIDER }}
+      SCRAPER_PROVIDER: ${{ vars.SCRAPER_PROVIDER }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+      USER_AGENT: ${{ vars.USER_AGENT }}
+      EXTRACTION_DAILY_BUDGET_USD: ${{ vars.EXTRACTION_DAILY_BUDGET_USD }}
+      SCHEDULER_ENABLED: ${{ vars.SCHEDULER_ENABLED }}
+      SCHEDULER_ISSUE: ${{ vars.AGENT_SCHEDULER_ISSUE }}
+      RAW_STORE_PATH: raw_store
+      RAW_STORE_REMOTE: postgres
+      MAX_MODELS: ${{ inputs.max_models }}
+      SOURCES: ${{ inputs.sources }}
+      FETCH_EXTRACT: "on"
+    steps:
+      - name: Is the scheduler switched on, and is the agent fetch configured?
+        id: gate
+        run: |
+          if [ "$SCHEDULER_ENABLED" != "1" ]; then
+            echo "::notice::SCHEDULER_ENABLED is not 1 - nothing harvested. This is the switch, not a failure."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=""
+          [ -n "$DATABASE_URL" ]                || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$USER_AGENT" ]                  || missing="$missing USER_AGENT"
+          [ -n "$SCHEDULER_ISSUE" ]             || missing="$missing AGENT_SCHEDULER_ISSUE"
+          [ -n "$OPENROUTER_API_KEY" ]          || missing="$missing OPENROUTER_API_KEY"
+          [ -n "$EXTRACTION_DAILY_BUDGET_USD" ] || missing="$missing EXTRACTION_DAILY_BUDGET_USD"
+          if [ -n "$missing" ]; then
+            echo "::error::agent fetch switched on but not configured:$missing"
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v5
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - if: steps.gate.outputs.enabled == 'true'
+        run: pip install -e .
+
+      - name: Fetch the due agents
+        if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
+        run: |
+          args="--list agents --job-limit-minutes 185 --deadline-minutes 165"
+          [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
+          [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
+          python -m scripts.run_scheduled_fetches $args

@@ -1,0 +1,173 @@
+# Personal agents the registry must hold so their reports can be filed (#609-#611).
+#
+#   python scripts/load_unpolled_models.py --apply --path contract/agent_models.yaml
+#
+# SAME LOADER AND SHAPE AS `unpolled_models.yaml`, A DIFFERENT CLAIM. These rows
+# are hand-entered (`provenance: unpolled` once loaded; the `provenance: seed`
+# below is the file format's header, which the loader overrides). They are NOT
+# models: an agent is a product that runs models, so it gets its own file, its
+# own tracked list (`tracked_agents.yaml`) and its own nightly fetch
+# (`.github/workflows/agent-fetches.yml`), and never appears in
+# `tracked_models.yaml` - so the model fetch, the models page and `auto_track`
+# cannot pick one up (anooj, 2026-11-09: "do this separately, not with model
+# fetch").
+#
+# WHAT TEST B TAUGHT (local database, 2026-11-09, results on #610):
+#
+# 1. THE CANONICAL ID'S LOCAL PART IS THE AGENT'S NAME. An agent name has no
+#    digit, so `classify_specificity` (collect/registry/aliases.py) files it as
+#    `snapshot` only when it equals the id's local part; anything else is a
+#    `family` row, never searched and resolving at family specificity (a pending
+#    ruling, CLAUDE.md). `xai/grok-bot` makes "grok bot" a snapshot.
+# 2. ONE NORMALISED KEY PER AGENT, in the three renderings the loader requires
+#    (spaced, hyphenated, concatenated - `normalize` folds them to one key).
+#    Plurals and bare short names ("grok bots", "muse", "cowork") are NOT
+#    aliases: as aliases they would be family rows. Plurals are SEARCH terms in
+#    `tracked_agents.yaml`; bare short names are held (#610, decision 4).
+#
+# NO FAMILY (#618 review, point 6). `family` is left absent on every agent row.
+# A maker's family ('claude', 'gemini', 'grok', ...) would make an agent part of
+# that model family, so a family-level "Claude" claim could count toward Claude
+# Duet or Claude Code once the family-claims ruling lands. Absent, it is no
+# family claim at all (rule 6), and nothing reads it today.
+#
+# NO FIGURES. An agent is sold as a subscription, not per token; `price_in` is
+# USD per 1M tokens. Every field but identity and aliases stays absent (FR-2).
+
+version: "1.0"
+provenance: seed
+
+models:
+  - canonical_id: 'meta/meta-muse'
+    provider: 'meta'
+    display_name: 'Meta Muse'
+    aliases:
+      surface: 'meta muse'
+      variants: ['meta-muse', 'metamuse']
+
+  - canonical_id: 'openai/openai-dots'
+    provider: 'openai'
+    display_name: 'OpenAI Dots'
+    aliases:
+      surface: 'openai dots'
+      variants: ['openai-dots', 'openaidots']
+
+  - canonical_id: 'anthropic/claude-duet'
+    provider: 'anthropic'
+    display_name: 'Claude Duet'
+    aliases:
+      surface: 'claude duet'
+      variants: ['claude-duet', 'claudeduet']
+
+  # Bare "cowork" is not an alias: Reddit's search stems it to "coworkers" (2 of
+  # 41 results contained it, probe on #611).
+  - canonical_id: 'anthropic/claude-cowork'
+    provider: 'anthropic'
+    display_name: 'Claude Cowork'
+    aliases:
+      surface: 'claude cowork'
+      variants: ['claude-cowork', 'claudecowork']
+
+  - canonical_id: 'xai/grok-bot'
+    provider: 'xai'
+    display_name: 'Grok Bot'
+    aliases:
+      surface: 'grok bot'
+      variants: ['grokbot', 'grok-bot']
+
+  - canonical_id: 'openai/chatgpt-work'
+    provider: 'openai'
+    display_name: 'ChatGPT Work'
+    aliases:
+      surface: 'chatgpt work'
+      variants: ['chatgpt-work', 'chatgptwork']
+
+  - canonical_id: 'google/gemini-spark'
+    provider: 'google'
+    display_name: 'Gemini Spark'
+    aliases:
+      surface: 'gemini spark'
+      variants: ['gemini-spark', 'geminispark']
+
+  - canonical_id: 'openclaw/openclaw'
+    provider: 'openclaw'
+    display_name: 'OpenClaw'
+    aliases:
+      surface: 'openclaw'
+      variants: ['open claw', 'open-claw']
+
+  - canonical_id: 'nousresearch/hermes-agent'
+    provider: 'nousresearch'
+    display_name: 'Hermes Agent'
+    aliases:
+      surface: 'hermes agent'
+      variants: ['hermes-agent', 'hermesagent']
+
+  # ── CODING AGENTS (anooj, 2026-11-10: "make sure there are agents like claude
+  # code, codex ... included"). Counted before choosing, 2026-11-10, since
+  # 2026-08-01: board quotes naming the agent (of 18,484 entries by 3,177 people,
+  # every source) and Hacker News stories via Algolia:
+  #
+  #   Claude Code         71 people on the board   1,208 HN stories
+  #   Google Antigravity  11                          69  (phrase "antigravity")
+  #   GitHub Copilot       8                          50
+  #   OpenAI Codex         2 ("openai codex"/"codex cli")  28
+  #   Gemini CLI           0                           9
+  #
+  # No key below was owned by any live alias or registry display name on the
+  # shared database (checked 2026-11-10).
+  #
+  # BARE "CODEX" IS NOT AN ALIAS, though 63 board people wrote it: the registry
+  # holds five GPT Codex MODELS (openai/gpt-5.1-codex ... gpt-5.3-codex), and a
+  # bare "Codex" can mean either. It is held, as every bare short name is (#610,
+  # decision 4). Same for bare "Copilot" (Microsoft's assistant) and bare
+  # "Antigravity" (an English word, rule 10).
+
+  - canonical_id: 'anthropic/claude-code'
+    provider: 'anthropic'
+    display_name: 'Claude Code'
+    aliases:
+      surface: 'claude code'
+      variants: ['claude-code', 'claudecode']
+
+  - canonical_id: 'openai/openai-codex'
+    provider: 'openai'
+    display_name: 'OpenAI Codex'
+    aliases:
+      surface: 'openai codex'
+      variants: ['openai-codex', 'openaicodex']
+
+  - canonical_id: 'google/gemini-cli'
+    provider: 'google'
+    display_name: 'Gemini CLI'
+    aliases:
+      surface: 'gemini cli'
+      variants: ['gemini-cli', 'geminicli']
+
+  - canonical_id: 'github/github-copilot'
+    provider: 'github'
+    display_name: 'GitHub Copilot'
+    aliases:
+      surface: 'github copilot'
+      variants: ['github-copilot', 'githubcopilot']
+
+  - canonical_id: 'google/google-antigravity'
+    provider: 'google'
+    display_name: 'Google Antigravity'
+    aliases:
+      surface: 'google antigravity'
+      variants: ['google-antigravity', 'googleantigravity']
+
+  # CURSOR AND OPENCODE WERE CONSIDERED AND LEFT OUT FOR NOW (2026-11-10), for
+  # their NAMES, not their reach. "Cursor" is an ordinary English word, and its
+  # users write it bare (10 board people under a narrowed pattern, "Cursor
+  # agent/IDE/..."); a bare-word alias is what rule 10 refuses. "OpenCode" (18
+  # board people, 193 HN stories) needs the spaced rendering "open code", an
+  # ordinary phrase, as a required alias. Both need a person's ruling on the name
+  # form first. Kiro (4 people), Aider (2), Devin, Windsurf, Cline and Amp (0 on
+  # the board) were too thin.
+
+  # SIRI AI WAS CONSIDERED AND LEFT OUT (anooj, 2026-11-10): it reaches only Apple
+  # users, a section of the audience. It had the most discussion of the untested
+  # agents (29 HN stories, 137 comments since 2026-08-01), recorded here so the
+  # choice is not re-made from the counts alone.
