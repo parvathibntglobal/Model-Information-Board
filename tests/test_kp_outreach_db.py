@@ -98,6 +98,26 @@ def test_an_applied_file_that_is_gone_stops_everything():
         pending([B], {A.filename: "aaa"})
 
 
+def test_the_hash_ignores_line_endings_but_not_content(tmp_path):
+    # A Windows checkout (core.autocrlf=true) writes CRLF; git stores LF. Both
+    # are the same migration and must hash alike, or every applied file reads
+    # as edited after a branch switch.
+    lf = tmp_path / "lf"
+    crlf = tmp_path / "crlf"
+    lf.mkdir()
+    crlf.mkdir()
+    git_bytes = b"CREATE TABLE kp_outreach_a (\n  id int\n);\n"
+    (lf / "20260101T0000_a.sql").write_bytes(git_bytes)
+    (crlf / "20260101T0000_a.sql").write_bytes(git_bytes.replace(b"\n", b"\r\n"))
+    [m_lf], [m_crlf] = migrations(lf), migrations(crlf)
+    assert m_lf.sha256 == m_crlf.sha256
+    assert m_lf.sha256 == setup_db.hashlib.sha256(git_bytes).hexdigest()
+    edited = git_bytes.replace(b"_a", b"_b").replace(b"\n", b"\r\n")
+    (crlf / "20260101T0000_a.sql").write_bytes(edited)
+    [m_edit] = migrations(crlf)
+    assert m_edit.sha256 != m_lf.sha256
+
+
 def test_a_missing_database_is_created_only_on_a_local_host():
     with pytest.raises(db.OutreachDbError, match="not local"):
         setup_db._create_database("postgresql://u:p@db.example.com:5432/kite_pulse_outreach")

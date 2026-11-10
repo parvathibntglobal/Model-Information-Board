@@ -65,12 +65,29 @@ class Migration:
     sql: str
 
 
+def file_hash(sql: str) -> str:
+    """SHA-256 of a migration's text with LF line endings.
+
+    Hashing the raw bytes made the hash depend on the checkout: git stores
+    these files with LF, and Windows with core.autocrlf=true writes them out
+    with CRLF, so every applied migration read as "changed" after a branch
+    switch on Windows (2026-11-10, all four files, contents identical to git).
+    `read_text` already turns CRLF into LF, which is also what
+    collect/migrate.py hashes, so the hash is the one of the file as git
+    stores it, and existing ledger rows written from LF files stay valid.
+    """
+    return hashlib.sha256(sql.replace("\r\n", "\n").encode("utf-8")).hexdigest()
+
+
 def migrations(directory: Path = MIGRATIONS_DIR) -> list[Migration]:
     files = sorted(directory.glob("*.sql"))
     if not files:
         raise db.OutreachDbError(f"no migrations in {directory}")
-    return [Migration(f.name, hashlib.sha256(f.read_bytes()).hexdigest(),
-                      f.read_text(encoding="utf-8")) for f in files]
+    out = []
+    for f in files:
+        sql = f.read_text(encoding="utf-8")
+        out.append(Migration(f.name, file_hash(sql), sql))
+    return out
 
 
 def pending(files: list[Migration], ledger: dict[str, str]) -> list[Migration]:
