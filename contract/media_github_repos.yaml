@@ -75,3 +75,11 @@ kinds:
     - openai/whisper
     - ggml-org/whisper.cpp
     - SYSTRAN/faster-whisper
+  # PERSONAL AGENTS (#609-#611, 2026-11-10): EMPTY ON PURPOSE, so an agent's GitHub
+  # arm plans 0 requests instead of falling into the text path (name x capability
+  # phrase in text-agent repos), which is what this file exists to prevent. Most
+  # agents are closed products with no public tracker (Muse, Dots, Duet, Cowork,
+  # ChatGPT Work, Gemini Spark, Grok Bot, Siri AI). The open-source ones (OpenClaw,
+  # Hermes Agent) are added here once each repo's name is checked, as above - a
+  # renamed repo answers 422 on every fetch.
+  agent: []

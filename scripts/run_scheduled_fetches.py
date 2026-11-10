@@ -292,7 +292,9 @@ def main(argv: list[str] | None = None) -> int:
     from judge import scheduler
 
     with psycopg.connect(_read_only_dsn(), connect_timeout=20) as conn:
-        rows = due_rows(conn, args.list)
+        # The model path calls `due_rows(conn)` exactly as before, so nothing that
+        # reads or stands in for it changes; only the agent run names its list.
+        rows = due_rows(conn) if args.list == "models" else due_rows(conn, "agents")
     # A TRACKED MODEL WITH NO REGISTRY ROW IS NAMED, NOT DROPPED (rule 4). It
     # used to vanish here, so a model stopped being fetched and nothing said so.
     missing = [r for r in rows if r.get("registry_row_missing")]
