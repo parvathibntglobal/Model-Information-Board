@@ -1,0 +1,413 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>AI Agent Virtual Office for Coding Teams | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="An AI agent virtual office for coding teams: a desk per person, who is online, markers for stuck work and Claude plan limits, and agents in parallel.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"The Office: an AI agent virtual office for your coding team","url":"/ai-agent-office","about":"AI agent virtual office","description":"An AI agent virtual office for coding teams: a desk per person, who is online, markers for stuck work and Claude plan limits, and agents in parallel.","isPartOf":{"@type":"WebSite","name":"Kite Pulse"}},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Product","item":"/features"},{"@type":"ListItem","position":3,"name":"The Office","item":"/ai-agent-office"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How can I see what my team's AI agents are doing right now?","acceptedAnswer":{"@type":"Answer","text":"Open The Office, the home page of the Kite Pulse console. It shows a desk per person grouped by team, with online, away or offline status and markers for stuck work or plan limits. Everyone sees presence; detail shows only for people in your scope."}},
+{"@type":"Question","name":"How many AI agents is my team running right now?","acceptedAnswer":{"@type":"Answer","text":"Agents in parallel, on each developer's page, counts the AI agents and sub-agents working now and gives each one's state: working, waiting for the developer or waiting for permission. Admins can open it for anyone; managers see it for themselves."}},
+{"@type":"Question","name":"Which Claude Code features (sub-agents, plan mode, MCP tools) does my team use?","acceptedAnswer":{"@type":"Answer","text":"The Agent features tab of Team AI Usage shows which Claude Code agent features sessions used, including sub-agents, background commands, plan mode, worktrees and MCP tools, by session and by developer. Managers see their own reporting line; admins see everyone."}},
+{"@type":"Question","name":"Can developers see each other's desks?","acceptedAnswer":{"@type":"Answer","text":"Developers see The Office like everyone else, but for colleagues outside their scope they see presence only: name, AI tool and whether the person is online or away. Stuck work and plan-limit detail show only for yourself, the people you manage, and admins. Admins can restrict this further per role on Roles & Permissions."}},
+{"@type":"Question","name":"Do the plan-limit markers cover every AI tool?","acceptedAnswer":{"@type":"Answer","text":"No. Plan limits come from Claude Code only. Desks of people on other tools show presence and stuck work, but no plan-limit marker."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.num,td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.08rem}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.feat{display:grid;gap:16px}
+.feat ul{font-size:.98rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.note{font-size:.86rem;color:var(--muted)}
+.ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:6px}
+.tabs span{font-size:.82rem;padding:4px 10px;border-radius:8px;color:var(--muted)}
+.tabs span.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;max-width:100%;flex-wrap:wrap}
+.seg button{border:0;background:var(--bg);padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem;white-space:nowrap}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{border-radius:12px;padding:12px 14px;background:var(--sunk);display:grid;gap:2px}
+.tile b{font-family:var(--mono);font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{font-size:.82rem;color:var(--muted)}
+.tile.good b{color:var(--good)} .tile.warn b{color:var(--cost)} .tile.bad b{color:var(--bad)}
+
+/* office */
+.rooms{display:grid;gap:12px}
+.room{border:1px dashed var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;background:var(--bg)}
+.room h3{font-size:.92rem;font-family:var(--mono);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.desks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.desk{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:4px;min-height:96px;align-content:start}
+.desk.dim{opacity:.62}
+.desk .who{display:flex;align-items:center;gap:8px;font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}
+.dot.online{background:var(--good)} .dot.away{background:var(--cost)} .dot.offline{background:transparent;border:1.5px solid var(--muted)}
+.desk .tool{font-size:.8rem;color:var(--muted)}
+.desk .scope{font-size:.74rem;color:var(--muted);font-style:italic}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap;justify-self:start}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+/* lanes */
+.lanes{display:grid;gap:6px;min-width:520px}
+.lane{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;font-size:.8rem}
+.lane .lbl{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{position:relative;height:16px;background:var(--sunk);border-radius:4px}
+.track i{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--accent)}
+.track i.wait{background:var(--cost)} .track i.perm{background:var(--bad)}
+.axis{display:grid;grid-template-columns:150px 1fr;gap:10px;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.axis .ticks{position:relative;height:14px}
+.axis .ticks span{position:absolute;transform:translateX(-50%)}
+.sw{width:12px;height:10px;border-radius:2px;display:inline-block}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.lanes-wrap{overflow-x:auto;padding-bottom:4px}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;max-width:none}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:14px} .lane,.axis{grid-template-columns:110px 1fr} .lanes{min-width:440px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Product · See</div>
+    <h1>The Office: an AI agent virtual office for your coding team</h1>
+    <p class="lede">Who is at work, whose agent needs a person, and who is close to a Claude limit, on one page.</p>
+    <div class="answer">
+      <p>The Office is Kite Pulse's AI agent virtual office: a desk per person, grouped by team, showing whether they are online, away or offline, with a marker when work is stuck or a plan limit is near. It is the console's home page for every role, and detail shows only for people in your scope.</p>
+      <p>It is built from the session history ten AI coding tools already keep, so nobody types anything in. For how many agents one person is running, Agents in parallel goes a level deeper.</p>
+    </div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#office">See a sample office</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "ai agent virtual office" in the title tag, H1, meta description and the first sentence of the answer box; URL /ai-agent-office. The sheet's main keyword "3d virtual office for ai agents" and "ai agents office 3d" are dropped: the 3D view is not in MSoT Section 1, so the page describes desks, status and markers only. Intent: commercial. Sources: MSoT 1.4 (The Office, Needs attention, Team Overview, Agents in parallel, Who sees what, Work-pattern facts), 1.2 (Agent features tab, Plan headroom), product summary ("ten AI coding tools").</div>
+  </header>
+
+  <!-- 1 The Office -->
+  <section class="block" id="office">
+    <div class="feat">
+      <h2>Who is at work, and whose agent needs a look?</h2>
+      <p>An AI agents office answers a lead's first question: is the work moving? The Office is the first page anyone sees after signing in.</p>
+      <ul>
+        <li>A desk per person, grouped by team, each with the AI tool they use.</li>
+        <li>Online, away or offline. Online means the desktop program checked in within the last 10 minutes.</li>
+        <li>A marker when work is stuck, or when someone is near or at a Claude plan limit.</li>
+        <li>Presence is shared with everyone. Stuck and plan-limit detail shows only for yourself, the people you manage, and admins.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Home › The Office <span class="sample">Sample data</span></div>
+      <div class="ctrl">Viewing as
+        <div class="seg" role="group" aria-label="Whose view of The Office"><button type="button" data-v="admin" aria-pressed="true">Admin</button><button type="button" data-v="manager" aria-pressed="false">Manager (Lena)</button><button type="button" data-v="dev" aria-pressed="false">Developer (Sam)</button></div>
+      </div>
+      <div class="rooms" id="rooms"></div>
+      <div class="legend"><span><i class="dot online"></i>Online</span><span><i class="dot away"></i>Away</span><span><i class="dot offline"></i>Offline</span></div>
+      <p class="note" id="scopeNote"></p>
+    </div>
+    <p>Every desk reflects real session records, so it shows real work, not an AI agent office simulator. The Office is as fresh as each computer's latest upload. Plan markers come from Claude Code only; desks of people on other tools show presence and stuck work.</p>
+    <div class="seo"><b>SEO</b>Keywords: "ai agents office" (intro), "ai agent office simulator" (stated honestly as not what it is), "ai agents office visualization" via the sample. Product Overview 5.2 details used, each detailing MSoT 1.4 The Office: "first page everyone sees after signing in", "online = checked in within the last 10 minutes", "as fresh as each computer's latest upload", and presence (name, AI tool, online or away) shared while stuck and plan-limit detail is scoped. Left out: 3D view, Map view, full screen, postures and animations, the waiting, syncing and Update markers, the Activity / Tasks / Office tabs, the Headroom board, the desk side panel's today figures, and the "AI agent stuck" notice. None is in MSoT Section 1.</div>
+  </section>
+
+  <!-- 2 Agents in parallel -->
+  <section class="block" id="agents-in-parallel">
+    <div class="feat">
+      <h2>How many Claude Code parallel agents is one person running?</h2>
+      <p>Developers who run parallel agents keep several Claude Code sessions going, and each main session can start sub-agents of its own. Agents in parallel, on a developer's page, is where you monitor parallel AI agents for one person.</p>
+      <ul>
+        <li>How many AI agents and sub-agents are working right now.</li>
+        <li>The state of each: working, waiting for the developer, or waiting for permission.</li>
+        <li>A lane chart for any past day: one lane per agent, and the most that ran at once.</li>
+        <li>Admins can open it for anyone. Managers see it for themselves.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">All Developers › Priya › Agents in parallel <span class="sample">Sample data</span></div>
+      <div class="tiles" id="nowTiles"></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Agent</th><th>State now</th></tr></thead>
+        <tbody id="nowBody"></tbody>
+      </table></div>
+      <h3>Lane chart for a past day</h3>
+      <div class="lanes-wrap"><div class="lanes" id="lanes" role="img" aria-label="Sample lane chart: one row per agent from 09:00 to 18:00, showing when each ran"></div></div>
+      <p class="note" id="laneNote"></p>
+      <p class="note">Viewed as an admin. A manager opens this view for themselves only.</p>
+    </div>
+    <p>Claude Code multiple sessions are easy to lose track of from one terminal, and Claude Code waiting for permission is the quietest stall. For Claude Code max parallel agents in practice, the lane chart gives the day's peak, and work-pattern facts include the most sessions running at once.</p>
+    <div class="seo"><b>SEO</b>Folded in from /parallel-ai-agents. Keywords: "claude code parallel agents" (H2), "claude code run parallel agents", "monitor parallel ai agents", "claude code multiple sessions", "claude code concurrent sessions" via "sessions running at once" in the sample tiles, "claude code waiting for permission", "claude code max parallel agents", "track claude code subagents" via the sub-agent rows. Facts: MSoT 1.4 Agents in parallel (scope exactly as Section 1: admins for anyone, managers for themselves; the Field Guide's "the person themselves" is not used) and Work-pattern facts ("most sessions running at once"). "One lane per agent, with the most at once" is from the Field Guide (Developers › Agents right now · Agents in parallel), detailing the lane chart. The sample lanes show only when each agent ran: Section 1 does not say the lane chart shows state over time, so states appear only in the "now" table. "Claude code subagents token usage" left out: Section 1 gives no per-sub-agent token figure.</div>
+  </section>
+
+  <!-- 3 Agent features -->
+  <section class="block" id="features-used">
+    <div class="feat">
+      <h2>Which Claude Code agent features does the team use?</h2>
+      <p>The Agent features tab of Team AI Usage shows Claude Code agent features usage by session and by developer: sub-agents, background commands, plan mode, worktrees, MCP tools and others. It shows whether a team runs parallel agents in worktrees, and who uses MCP tools.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Team AI Usage › Agent features <span class="sample">Sample data</span></div>
+      <div class="tabs" aria-hidden="true"><span>Overview</span><span>Consumption</span><span>Models</span><span>Projects</span><span>Tools &amp; accounts</span><span class="on">Agent features</span><span>Plan headroom</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Developer</th><th class="r">Sub-agents</th><th class="r">Background commands</th><th class="r">Plan mode</th><th class="r">Worktrees</th><th class="r">MCP tools</th></tr></thead>
+        <tbody id="featBody"></tbody>
+      </table></div>
+      <p class="note">Claude Code sessions that used each feature in one month, for a fictional team. People on other tools do not appear on this tab.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Keywords: "claude code agent features usage", "mcp tool usage analytics" (as "MCP tool usage"), "claude code parallel agents worktree". Facts: MSoT 1.2 Agent features tab and Team AI Usage scope. Column headers are descriptive; Section 1 does not list the console's column labels.</div>
+  </section>
+
+  <!-- 4 Needs attention + Team Overview -->
+  <section class="block" id="attention">
+    <div class="feat">
+      <h2>What needs a person today?</h2>
+      <ul>
+        <li><b>Needs attention</b> is one inbox, opened from the top bar, for everything waiting on you. A developer sees their own data collection; managers and admins see more groups.</li>
+        <li><b>Team Overview</b> is the AI agent dashboard for managers and admins: who is online and who is coding right now, active time and sessions today against a typical day, who needs attention (failing uploads, backlog, old app version) and each person's current project. It refreshes every 30 seconds, and past days can be picked.</li>
+        <li><b><a href="/plan-headroom">Plan headroom</a></b> lists who is close to a Claude limit, worst first, when a desk marker is not enough.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Team Overview <span class="sample">Sample data</span></div>
+      <div class="tiles" id="teamTiles"></div>
+      <p class="note" id="teamNote"></p>
+    </div>
+    <div class="seo"><b>SEO</b>Keyword "ai agent dashboard". Facts: MSoT 1.4 Needs attention, Team Overview. "A developer sees their own data collection; managers and admins see more groups" is from the Field Guide (Developers › Needs attention), detailing the Needs attention inbox. The Field Guide's group list includes unchecked leaked credentials, left out: the Leaked Credentials page fills only after an operator's command-line scan (MSoT 2.1).</div>
+  </section>
+
+  <!-- limits -->
+  <section class="block" id="limits">
+    <h2>What The Office does not do</h2>
+    <ul>
+      <li>It does not start, stop or steer agents. It reads what the tools recorded.</li>
+      <li>It does not say whether the code is good. A desk describes what happened.</li>
+      <li>It is not a notification hook, and it does not promise a push alert when Claude Code is waiting for input or finishes. Agents in parallel shows which agents are waiting when you look.</li>
+      <li>Plan markers cover Claude Code only. Other tools show "Not reported by this tool" on Plan headroom.</li>
+    </ul>
+    <div class="seo"><b>SEO</b>Honest scope (R9). Covers "claude code waiting for input" and the intent behind "claude code notification when waiting for input", "claude code notification when done", "claude code notification hook" without claiming them: Claude Code's "waiting for you" signals are unreleased (MSoT 2.3), and the Product Overview's notices are not in Section 1. The page names no specific Claude Code feature, so no outside fact needs a source.</div>
+  </section>
+
+  <!-- who -->
+  <section class="block" id="who">
+    <h2>Who uses it and when</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Who</th><th>What they get</th><th>When they look</th></tr></thead>
+      <tbody>
+        <tr><td><b>Team leads and managers</b></td><td>Live team activity, stuck work and plan-limit pressure for their reporting line.</td><td>First thing, and before a stand-up.</td></tr>
+        <tr><td><b>Individual developers</b></td><td>Their own desk and markers, colleagues' presence, and their own Needs attention inbox.</td><td>When they sign in.</td></tr>
+        <tr><td><b>Administrators and IT</b></td><td>Every desk, Agents in parallel for anyone, and who has failing uploads or an old app.</td><td>Daily, and when a machine goes quiet.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="kp"><div class="mark">Kite Pulse</div><p>For how to read an agent's state, see <a href="/blog/visualize-ai-agents-working">how to visualize AI agents working</a>. For a morning where one desk is marked stuck, read <a href="/blog/stuck-ai-agent">the stuck agent caught before lunch</a>.</p></div>
+    <div class="seo"><b>SEO</b>Rows adapted from the MSoT "Who it is for" table (team leads: "live team activity", "plan-limit pressure"; administrators: machine status). Executives and finance row omitted: this page has no cost content. "visualize ai agents", "visualize ai agents working", "claude code visualize agents", "claude code agent visualization", "claude code visualizer", "claude code visualization tool", "claude code subagent visualizer" are left to /blog/visualize-ai-agents-working, linked here, so the two pages do not compete; "see what ai agents are doing right now" is the stuck-agent post's keyword and appears here only in the FAQ. "claude code multiple session management" and "claude code multiple parallel sessions" are covered by the Agents in parallel section without the exact phrase.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about The Office</h2>
+    <div>
+      <details open><summary>How can I see what my team's AI agents are doing right now?</summary><p>Open The Office, the home page of the Kite Pulse console. It shows a desk per person grouped by team, with online, away or offline status and markers for stuck work or plan limits. Everyone sees presence; detail shows only for people in your scope.</p></details>
+      <details><summary>How many AI agents is my team running right now?</summary><p>Agents in parallel, on each developer's page, counts the AI agents and sub-agents working now and gives each one's state: working, waiting for the developer or waiting for permission. Admins can open it for anyone; managers see it for themselves.</p></details>
+      <details><summary>Which Claude Code features (sub-agents, plan mode, MCP tools) does my team use?</summary><p>The Agent features tab of Team AI Usage shows which Claude Code agent features sessions used, including sub-agents, background commands, plan mode, worktrees and MCP tools, by session and by developer. Managers see their own reporting line; admins see everyone.</p></details>
+      <details><summary>Can developers see each other's desks?</summary><p>Developers see The Office like everyone else, but for colleagues outside their scope they see presence only: name, AI tool and whether the person is online or away. Stuck work and plan-limit detail show only for yourself, the people you manage, and admins. Admins can restrict this further per role on Roles &amp; Permissions.</p></details>
+      <details><summary>Do the plan-limit markers cover every AI tool?</summary><p>No. Plan limits come from Claude Code only. Desks of people on other tools show presence and stuck work, but no plan-limit marker.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Five FAQ items, identical text in FAQPage JSON-LD. The brief's three questions are the first three. The second is answered per developer, since Section 1 gives no team-wide agent count. Two written for scope and tool coverage. "Restrict further per role" is from Product Overview 5.2, detailing MSoT 1.4 Roles &amp; Permissions.</div>
+  </section>
+
+  <section class="block">
+    <ul class="related">
+      <li><a href="/features">All features</a></li>
+      <li><a href="/plan-headroom">Plan headroom</a></li>
+      <li><a href="/integrations">Integrations</a></li>
+      <li><a href="/privacy">Privacy</a></li>
+    </ul>
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See the whole team's agents on one page</h3>
+      <p>Kite Pulse runs on your own server and reads the session history your AI coding tools already keep. We can show you The Office.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /ai-agent-office page. Team names, people, AI tools, presence, markers, agent states, lane times, feature counts and Team Overview figures are sample data for a fictional team.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE DATA: a fictional team. Not a customer, not real figures. */
+  const SAMPLE_OFFICE=[
+    {team:'Payments',people:[
+      {name:'Lena',tool:'Cursor',presence:'online',marker:null,line:'self'},
+      {name:'Priya',tool:'Claude Code',presence:'online',marker:'stuck',line:'Lena'},
+      {name:'Marco',tool:'Codex',presence:'away',marker:null,line:'Lena'},
+      {name:'Sam',tool:'Claude Code',presence:'online',marker:'near',line:'Lena'}]},
+    {team:'Platform',people:[
+      {name:'Aiko',tool:'Claude Code',presence:'online',marker:'at',line:'Ravi'},
+      {name:'Tomás',tool:'Gemini CLI',presence:'offline',marker:null,line:'Ravi'},
+      {name:'Ravi',tool:'Cline',presence:'online',marker:'stuck',line:'self'}]}
+  ];
+  const SAMPLE_AGENTS_NOW=[
+    {agent:'Session A (main)',state:'working'},
+    {agent:'Session A › sub-agent 1',state:'working'},
+    {agent:'Session A › sub-agent 2',state:'working'},
+    {agent:'Session B (main)',state:'perm'},
+    {agent:'Session C (main)',state:'wait'}
+  ];
+  /* lanes for a past day: when each agent ran, hours as decimals */
+  const SAMPLE_LANES=[
+    {agent:'Session A (main)',segs:[[9.2,13.0],[14.0,16.8]]},
+    {agent:'Session A › sub-agent 1',segs:[[9.8,10.9],[14.5,15.6]]},
+    {agent:'Session A › sub-agent 2',segs:[[10.1,10.7],[14.6,15.2]]},
+    {agent:'Session B (main)',segs:[[10.0,12.4],[15.0,17.5]]},
+    {agent:'Session C (main)',segs:[[13.2,16.0]]}
+  ];
+  const SAMPLE_FEATURES=[
+    {dev:'Priya',sub:41,bg:22,plan:18,wt:12,mcp:30},
+    {dev:'Sam',sub:17,bg:9,plan:25,wt:0,mcp:4},
+    {dev:'Aiko',sub:26,bg:31,plan:6,wt:8,mcp:19}
+  ];
+  const SAMPLE_TEAM_TODAY={coding:4,online:5,inScope:7,attention:[{name:'Tomás',why:'failing uploads'},{name:'Ravi',why:'old app version'}]};
+
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  const MARK={stuck:'<span class="pill bad">Stuck</span>',near:'<span class="pill warn">Near plan limit</span>',at:'<span class="pill bad">At plan limit</span>'};
+  const PRES={online:'Online',away:'Away',offline:'Offline'};
+  let view='admin';
+  function inScope(p){
+    if(view==='admin') return true;
+    if(view==='manager') return p.name==='Lena'||p.line==='Lena';
+    return p.name==='Sam';
+  }
+  function renderOffice(){
+    $('rooms').innerHTML=SAMPLE_OFFICE.map(r=>`<div class="room"><h3>${r.team}</h3><div class="desks">${r.people.map(p=>{
+      const s=inScope(p);
+      const m=s&&p.marker?MARK[p.marker]:'';
+      return `<div class="desk${s?'':' dim'}"><div class="who"><i class="dot ${p.presence}"></i>${p.name}</div><div class="tool">${p.tool} · ${PRES[p.presence]}</div>${m}${s?'':'<div class="scope">Presence only</div>'}</div>`;}).join('')}</div></div>`).join('');
+    $('scopeNote').textContent={
+      admin:'Admins see detail on every desk.',
+      manager:'Lena manages Priya, Marco and Sam, so she sees their markers. Platform desks show presence only.',
+      dev:'Sam sees his own marker. Every other desk shows presence only.'}[view];
+  }
+  document.querySelector('[aria-label="Whose view of The Office"]').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b)return;view=b.dataset.v;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderOffice();});
+
+  const STATE={working:'<span class="pill acc">Working</span>',wait:'<span class="pill warn">Waiting for the developer</span>',perm:'<span class="pill bad">Waiting for permission</span>'};
+  function renderNow(){
+    const c=k=>SAMPLE_AGENTS_NOW.filter(a=>a.state===k).length;
+    const subs=SAMPLE_AGENTS_NOW.filter(a=>a.agent.includes('sub-agent')).length;
+    $('nowTiles').innerHTML=`<div class="tile"><b>${SAMPLE_AGENTS_NOW.length}</b><span>agents now (${subs} sub-agents)</span></div><div class="tile good"><b>${c('working')}</b><span>working</span></div><div class="tile warn"><b>${c('wait')}</b><span>waiting for the developer</span></div><div class="tile bad"><b>${c('perm')}</b><span>waiting for permission</span></div>`;
+    $('nowBody').innerHTML=SAMPLE_AGENTS_NOW.map(a=>`<tr><td>${a.agent}</td><td>${STATE[a.state]}</td></tr>`).join('');
+  }
+
+  function renderLanes(){
+    const H0=9,H1=18,pct=h=>((h-H0)/(H1-H0)*100).toFixed(2);
+    const rows=SAMPLE_LANES.map(l=>`<div class="lane"><div class="lbl" title="${l.agent}">${l.agent}</div><div class="track">${l.segs.map(s=>`<i style="left:${pct(s[0])}%;width:${(pct(s[1])-pct(s[0])).toFixed(2)}%"></i>`).join('')}</div></div>`).join('');
+    let ticks='';for(let h=H0;h<=H1;h+=3)ticks+=`<span style="left:${pct(h)}%">${String(h).padStart(2,'0')}:00</span>`;
+    $('lanes').innerHTML=rows+`<div class="axis"><div></div><div class="ticks">${ticks}</div></div>`;
+    /* most at once: sweep every 5 minutes across all lanes */
+    let peak=0,at=H0;
+    for(let t=H0;t<=H1;t+=1/12){const n=SAMPLE_LANES.filter(l=>l.segs.some(s=>t>=s[0]&&t<s[1])).length;if(n>peak){peak=n;at=t;}}
+    const hh=Math.floor(at),mm=Math.round((at-hh)*60);
+    $('laneNote').textContent=`Most at once on this sample day: ${peak} agents, first reached at ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}. Sample day, 09:00 to 18:00.`;
+  }
+
+  function renderFeatures(){
+    $('featBody').innerHTML=SAMPLE_FEATURES.map(d=>`<tr><td><b>${d.dev}</b>${d.note?` <span class="pill">uses ${d.note}</span>`:''}</td><td class="r n">${d.sub}</td><td class="r n">${d.bg}</td><td class="r n">${d.plan}</td><td class="r n">${d.wt}</td><td class="r n">${d.mcp}</td></tr>`).join('');
+  }
+
+  function renderTeam(){
+    const t=SAMPLE_TEAM_TODAY;
+    $('teamTiles').innerHTML=`<div class="tile good"><b>${t.coding}</b><span>coding now</span></div><div class="tile"><b>${t.online}</b><span>online now, of ${t.inScope}</span></div><div class="tile warn"><b>${t.attention.length}</b><span>need attention</span></div>`;
+    $('teamNote').textContent='Needs attention: '+t.attention.map(a=>`${a.name}, ${a.why}`).join('; ')+'. Refreshes every 30 seconds.';
+  }
+
+  renderOffice();renderNow();renderLanes();renderFeatures();renderTeam();
+})();
+</script>
+
+</body></html>

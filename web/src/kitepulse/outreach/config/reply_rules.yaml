@@ -1,0 +1,39 @@
+# The REPLY CHECK's per-site settings (reply_check.py). The product facts it
+# checks against are in claims.yaml; this file holds only the link and length
+# rules. Every key is required: reply_check.py has no default for any of them.
+#
+# First version 2026-11-09 (aloysiuspellissery). The lengths are what a
+# focused, helpful reply needs, NOT a platform limit; tune them from what the
+# reviewers actually write.
+
+# Links a reply may carry, by exact host (a subdomain is a different host and
+# must be listed). Vendor documentation for the problems the Finders search for,
+# so a reply can point at the official answer.
+allowed_link_domains:
+  - github.com
+  - docs.github.com
+  - docs.anthropic.com
+  - docs.claude.com
+  - support.anthropic.com
+  - docs.cursor.com
+  - platform.openai.com
+  - help.openai.com
+  - ai.google.dev
+
+# A link back into the thread's own site (another HN item, another forum
+# topic) is also allowed when this is true.
+also_allow_thread_host: true
+
+# Kite Pulse's own public pages. EMPTY ON PURPOSE: the public site is not live
+# (SEO phase 3), so there is nothing to link to and any Kite Pulse link is
+# refused. When the site is live, list its host here; a reply may carry at
+# most one link to it.
+kite_pulse_link_domains: []
+
+# Longest reply, in characters, per source (the thread's `source`).
+max_reply_chars:
+  hackernews: 1500
+  devto: 2000
+  discourse: 2000
+  github: 2500
+  reddit: 2000            # added 2026-11-10 with the Reddit Finder; Reddit itself allows 10,000

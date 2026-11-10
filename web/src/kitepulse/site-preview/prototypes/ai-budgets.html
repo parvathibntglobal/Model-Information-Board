@@ -1,0 +1,342 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>AI Budget per Team and Project, with Alerts | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Set an AI budget per team or project in tokens or estimated dollars, with alerts at 80% and 100%, beside seat prices and shared tool accounts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"AI Budgets: an AI budget per team or project, with alerts","url":"/ai-budgets","about":"Monthly AI coding budgets per team or project","isPartOf":{"@type":"WebSite","name":"Kite Pulse"}},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Product","item":"/features"},{"@type":"ListItem","position":3,"name":"AI Budgets","item":"/ai-budgets"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is an AI budget per team?","acceptedAnswer":{"@type":"Answer","text":"It is a monthly limit on how much AI coding a team uses, counted in tokens or in estimated US dollars. In Kite Pulse an admin sets it on AI Budgets, and alerts are raised when the team reaches 80% and 100% of it. Budgets belong to a team or a project, not to a single person."}},
+{"@type":"Question","name":"Can I set a monthly AI budget per project?","acceptedAnswer":{"@type":"Answer","text":"Yes. A budget is set for a team or for a project and works the same way for both: a monthly amount, used month to date, with alerts at 80% and 100%."}},
+{"@type":"Question","name":"Why does a dollar budget list unpriced tokens separately?","acceptedAnswer":{"@type":"Answer","text":"A dollar budget can only add up tools that have a price. Claude and Gemini models are priced from list prices, and Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost. Codex, Cursor and Copilot usually have no price, so their tokens are reported beside the budget instead of being counted as $0."}},
+{"@type":"Question","name":"Does a budget stop developers at 100%?","acceptedAnswer":{"@type":"Answer","text":"No. An AI budget raises alerts; it does not switch off an AI tool. Kite Pulse reads the session history the tools keep, so the decision about what happens next stays with people."}},
+{"@type":"Question","name":"Is the dollar figure what we are billed?","acceptedAnswer":{"@type":"Answer","text":"No. It is an estimate from published list prices, labelled not billed spend. Many developers are on flat subscriptions, which is why seat prices are entered and shown separately."}},
+{"@type":"Question","name":"Does AI Budgets read our OpenRouter budget?","acceptedAnswer":{"@type":"Answer","text":"No. AI Budgets counts tokens from the coding tools' own session history. Kite Pulse uses an OpenRouter key only if an admin turns on AI labelling, which is off by default and has its own monthly spending cap with an alert at 80%."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.08rem}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.feat{display:grid;gap:16px}
+.feat ul{font-size:.98rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.crumb{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.note{font-size:.86rem;color:var(--muted)}
+
+.controls{display:flex;gap:10px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--bg);padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem;white-space:nowrap}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{border-radius:12px;padding:12px 14px;background:var(--sunk);display:grid;gap:2px}
+.tile b{font-family:var(--mono);font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{font-size:.82rem;color:var(--muted)}
+.tile.bad b{color:var(--bad)} .tile.warn b{color:var(--cost)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.acct{font-family:var(--mono);font-size:.78rem;color:var(--muted);white-space:nowrap}
+.kind{font-size:.74rem;color:var(--muted);display:block}
+.mtr{display:grid;grid-template-columns:70px 44px;gap:6px;align-items:center;white-space:nowrap}
+.mtr .bar{height:7px;border-radius:4px;background:var(--sunk);overflow:hidden}
+.mtr .bar i{display:block;height:100%;background:var(--good)}
+.mtr.near .bar i{background:var(--cost)} .mtr.at .bar i{background:var(--bad)}
+.mtr span{font-family:var(--mono);font-size:.8rem;font-variant-numeric:tabular-nums;text-align:right}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.dim{color:var(--muted);font-size:.85rem}
+
+.alerts{list-style:none;padding:0;display:grid;gap:8px;max-width:none}
+.alerts li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--sunk);border-radius:10px;padding:10px 12px;font-size:.93rem}
+.alerts time{font-family:var(--mono);font-size:.75rem;color:var(--muted);white-space:nowrap}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;max-width:none}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:14px} .alerts li{grid-template-columns:auto 1fr} .alerts time{grid-column:1/-1} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Product · Spend &amp; limits</div>
+    <h1>AI Budgets: set an AI budget per team or project, with alerts</h1>
+    <p class="lede">A monthly figure for each team or project, and a warning while there is still time to talk about it.</p>
+    <div class="answer">
+      <p>AI Budgets lets an admin set a monthly AI budget per team or per project, counted in tokens or in estimated US dollars, and raises an alert at 80% and again at 100%. A dollar budget adds up only the tools that have a price and lists unpriced tokens beside it, so nothing is counted as $0.</p>
+      <p>Seat prices and shared tool accounts sit next to it. For the method behind the figures, read <a href="/ai-cost-tracking">how to track AI coding costs</a>.</p>
+    </div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#budgets">See sample budgets</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "ai budget per team" in the title tag, H1 (as "AI budget per team or project"), meta description and the first sentence of the answer box; URL is /ai-budgets. Changed from the sheet's "ai token budget", which is informational; this page is a commercial product page, and "ai token budget" is used as a secondary keyword in an H2. The how-to stays on /ai-cost-tracking. Sources: MSoT 1.2 (AI Budgets, Hourly Rates &amp; Seat Prices, Team AI Usage, Estimated cost per tool, Cost per developer, Tool Accounts), 1.4 (Teams), 1.6 (Alerts and notifications), 1.7 (Tool accounts pseudonymised), Website corrections ("Teams feed ... AI Budgets").</div>
+  </header>
+
+  <!-- 1 -->
+  <section class="block" id="budgets">
+    <div class="feat">
+      <h2>How much of each team's monthly AI budget is used?</h2>
+      <p>AI Budgets is the LLM budget tracker for your coding tools: one list of every budget, what was used this month, a bar and a status. Admins set them under Settings.</p>
+      <ul>
+        <li>One monthly budget per team or per project. Budgets belong to a team or project, never to one person.</li>
+        <li>Team budgets follow the membership on Teams, which keeps start and end dates, so a move between teams does not rewrite history.</li>
+        <li>Tokens or estimated US dollars, chosen per budget.</li>
+        <li>Alerts at 80% and at 100% of the month's budget.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Settings › AI Budgets <span class="sample">Sample data</span></div>
+      <div class="crumb">Month to date: November 2026 (sample)</div>
+      <div class="tiles" id="bTiles"></div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Budgets to show"><button type="button" data-k="all" aria-pressed="true">All</button><button type="button" data-k="team" aria-pressed="false">Teams</button><button type="button" data-k="project" aria-pressed="false">Projects</button></div>
+        <div class="seg" role="group" aria-label="Alert filter"><button type="button" data-a="all" aria-pressed="true">Any status</button><button type="button" data-a="alert" aria-pressed="false">80% or more</button></div>
+      </div>
+      <div class="scroll"><table>
+        <thead><tr><th>Budget for</th><th>Unit</th><th class="r">Monthly budget</th><th class="r">Used</th><th>Share used</th><th class="r">Unpriced tokens</th><th>Status</th></tr></thead>
+        <tbody id="bBody"></tbody>
+      </table></div>
+      <p class="note">Example teams, projects and figures. Column headers are descriptive.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords: "llm budget tracker" (intro), "monthly ai budget per project" (next section's text). "Never to one person", "Settings", "what was used this month, a bar and a status" and the panel label are Field Guide details (AI Budgets, AI Budgets alerts) of MSoT 1.2 AI Budgets. Teams membership dates: MSoT 1.4 Teams plus Website corrections "Teams feed ... AI Budgets". The status wording in the table is ours: the sources do not give the console's status labels.</div>
+  </section>
+
+  <!-- 2 -->
+  <section class="block" id="unit">
+    <div class="feat">
+      <h2>Should an AI token budget count tokens or dollars?</h2>
+      <p>A token budget counts use from every tool you collect. A dollar budget reads closer to how finance thinks, but it can only add up what has a price, and that price is an estimate from published list prices, labelled "not billed spend".</p>
+      <p>That matters most for a monthly AI budget per project that mixes tools:</p>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>Tool</th><th>In a dollar budget</th></tr></thead>
+      <tbody>
+        <tr><td>Claude Code, Gemini CLI</td><td>Estimated from list prices for Claude and Gemini models</td></tr>
+        <tr><td>Aider, Cline, Roo Code, Kilo Code, OpenCode</td><td>The cost the tool reports itself</td></tr>
+        <tr><td>Codex, Cursor, GitHub Copilot Chat in VS Code</td><td>Usually no price; tokens listed separately as unpriced</td></tr>
+      </tbody>
+    </table></div>
+    <p>A price change is added as a new dated entry, so earlier sessions keep the price they ran at. Outside AI Budgets, Team AI Usage shows estimated cost per tool and never adds it up across tools; cost per developer is shown to admins only.</p>
+    <div class="seo"><b>SEO</b>"ai token budget" in the H2. Pricing coverage: MSoT 1.1 "What each tool provides" and 1.2 Estimated cost per tool; dated price entries: 1.2. Kept short: the full cost method is on /ai-cost-tracking.</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="block" id="alerts">
+    <div class="feat">
+      <h2>When do token budget alerts fire, and who sees them?</h2>
+      <ul>
+        <li>At 80% of a budget, then at 100%, for token and dollar budgets alike.</li>
+        <li>Budgets are checked every hour, and alerts appear with Kite Pulse's other alerts: the in-app bell and email.</li>
+        <li>Email needs a mail server set up on your Kite Pulse server.</li>
+        <li>An alert is a notice. Kite Pulse reads the history the AI tools keep; it does not switch a tool off.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Alerts <span class="sample">Sample data</span></div>
+      <ul class="alerts" id="aList"></ul>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords "token budget alerts" (H2), "ai spend alerts" and "ai coding budget alerts" (paragraph below). Hourly check and bell/email delivery are Field Guide details (work_notices job "budgets hourly"; Alert notifier "Bell, email ... budgets at 80% and 100%") of MSoT 1.2 AI Budgets and 1.6 Alerts and notifications. Slack delivery appears only in the Field Guide and is left out, so "ai budget slack alerts" is not used. "Not a cap" follows from MSoT "How it works": Kite Pulse reads history and has no control over the tools.</div>
+    <p>Setting up AI spend alerts for the first time on a small team? The playbook on <a href="/blog/control-claude-code-spend-small-team">controlling Claude Code spend on a small team</a> shows where a first monthly budget and its AI coding budget alerts fit beside plan headroom.</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="block" id="seats">
+    <div class="feat">
+      <h2>What do the seats cost, and which accounts are shared?</h2>
+      <p>Token estimates miss the flat part of the bill, since many developers are on subscriptions. Two admin pages cover it.</p>
+      <ul>
+        <li><b>Seat prices.</b> Admins enter what each tool's seats cost on Hourly Rates &amp; Seat Prices. Each change is a new dated entry, and seat prices then appear on the Team AI Usage Overview for admins.</li>
+        <li><b>Tool Accounts.</b> How many separate signed-in accounts each tool runs under, with accounts used by more than one person marked "Shared". Shows plan tier, machines, last seen and email domain, for Claude Code, Codex, Cursor, OpenCode and GitHub Copilot. Admin by default.</li>
+        <li>Accounts arrive as a keyed hash, the email domain and the plan name, never the address. For GitHub Copilot, only a hashed account number.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Tool Accounts <span class="sample">Sample data</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Tool</th><th>Account</th><th>Plan tier</th><th class="r">People</th><th class="r">Machines</th><th>Email domain</th><th>Last seen</th></tr></thead>
+        <tbody id="tBody"></tbody>
+      </table></div>
+      <p class="note">Example accounts; column headers are descriptive. Shared accounts and email domains are also the two signals behind <a href="/shadow-ai">shadow AI checks</a>.</p>
+    </div>
+    <div class="seo"><b>SEO</b>MSoT 1.2 Hourly Rates &amp; Seat Prices (seat prices only; hourly rates feed a hidden page and are not promoted), 1.2 Tool Accounts, 1.7 pseudonymised accounts. "Each change is a new dated entry" and "many developers are on flat subscriptions" are Product Overview 5.6 / Field Guide details of those items. No seat price figures are shown: vendor prices are outside facts.</div>
+  </section>
+
+  <!-- who -->
+  <section class="block" id="who">
+    <h2>Who uses it and when</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Who</th><th>What they get</th><th>When they look</th></tr></thead>
+      <tbody>
+        <tr><td><b>Executives and finance</b></td><td>Token use and estimated list-price cost per tool, seat prices, shared accounts and monthly budgets per team or project.</td><td>Monthly, and when an 80% alert arrives.</td></tr>
+        <tr><td><b>Administrators and IT</b></td><td>Set budgets, enter seat prices and review Tool Accounts.</td><td>When a team forms, a tool is added or a seat is bought.</td></tr>
+        <tr><td><b>Team leads and managers</b></td><td>Token use for their own reporting line on Team AI Usage, and plan-limit pressure on <a href="/plan-headroom">Plan headroom</a>.</td><td>When an admin has routed budget alerts to them on Notifications.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="kp"><div class="mark">Kite Pulse</div><p>Budgets tell you when to talk; a report tells finance what happened. The <a href="/blog/engineering-ai-spend-report">engineering AI spend report</a> article covers what that report should hold and where its limits are.</p></div>
+    <div class="seo"><b>SEO</b>Rows adapted from the MSoT "Who it is for" table (Executives and finance row quoted; Administrators and IT row limited to budgets and accounts). AI Budgets, seat prices and Tool Accounts are admin pages (Product Overview page table). The spend-report and small-team articles are linked, not repeated.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about AI budgets for teams</h2>
+    <div>
+      <details open><summary>What is an AI budget per team?</summary><p>It is a monthly limit on how much AI coding a team uses, counted in tokens or in estimated US dollars. In Kite Pulse an admin sets it on AI Budgets, and alerts are raised when the team reaches 80% and 100% of it. Budgets belong to a team or a project, not to a single person.</p></details>
+      <details><summary>Can I set a monthly AI budget per project?</summary><p>Yes. A budget is set for a team or for a project and works the same way for both: a monthly amount, used month to date, with alerts at 80% and 100%.</p></details>
+      <details><summary>Why does a dollar budget list unpriced tokens separately?</summary><p>A dollar budget can only add up tools that have a price. Claude and Gemini models are priced from list prices, and Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost. Codex, Cursor and Copilot usually have no price, so their tokens are reported beside the budget instead of being counted as $0.</p></details>
+      <details><summary>Does a budget stop developers at 100%?</summary><p>No. An AI budget raises alerts; it does not switch off an AI tool. Kite Pulse reads the session history the tools keep, so the decision about what happens next stays with people.</p></details>
+      <details><summary>Is the dollar figure what we are billed?</summary><p>No. It is an estimate from published list prices, labelled not billed spend. Many developers are on flat subscriptions, which is why seat prices are entered and shown separately.</p></details>
+      <details><summary>Does AI Budgets read our OpenRouter budget?</summary><p>No. AI Budgets counts tokens from the coding tools' own session history. Kite Pulse uses an OpenRouter key only if an admin turns on AI labelling, which is off by default and has its own monthly spending cap with an alert at 80%.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief has no FAQ questions; these six are written for the page, with identical text in FAQPage JSON-LD. The last covers "openrouter budget alert" truthfully (MSoT 1.5: OpenRouter key, monthly spending cap, alert at 80%). Not used: "uber ai token budget" and "microsoft ai tokens budget" (news about other companies; would need outside facts), "ai budget slack alerts" (Slack delivery is not in MSoT Section 1).</div>
+  </section>
+
+  <section class="block">
+    <ul class="related">
+      <li><a href="/features">All features</a></li>
+      <li><a href="/plan-headroom">Plan headroom</a></li>
+      <li><a href="/integrations">Integrations</a></li>
+      <li><a href="/self-hosted">Self-hosted</a></li>
+    </ul>
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Hear about a team's AI budget at 80%, not at month end</h3>
+      <p>Kite Pulse runs on your own server and reads the session history your AI coding tools already keep. We can show AI Budgets on a sample team.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /ai-budgets page. Team and project names, budgets, usage figures, unpriced token counts, alert times and tool accounts are sample data for a fictional company.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE DATA: a fictional company. Not a customer, not real figures, not vendor prices. */
+  const SAMPLE_BUDGETS=[
+    {name:'Mobile',kind:'team',unit:'usd',limit:1200,used:1236,unpriced:18.4},
+    {name:'billing-api',kind:'project',unit:'usd',limit:600,used:498,unpriced:3.1},
+    {name:'Platform',kind:'team',unit:'tok',limit:400,used:336,unpriced:null},
+    {name:'checkout-service',kind:'project',unit:'tok',limit:120,used:61,unpriced:null},
+    {name:'Data',kind:'team',unit:'usd',limit:900,used:410,unpriced:52.0},
+    {name:'docs-site',kind:'project',unit:'tok',limit:40,used:9,unpriced:null}
+  ];
+  const SAMPLE_ALERTS=[
+    {t:'Nov 18, 09:00',lvl:100,text:'Mobile team reached 100% of its monthly dollar budget.'},
+    {t:'Nov 14, 11:00',lvl:80,text:'billing-api project reached 80% of its monthly dollar budget.'},
+    {t:'Nov 12, 16:00',lvl:80,text:'Platform team reached 80% of its monthly token budget.'}
+  ];
+  const SAMPLE_ACCOUNTS=[
+    {tool:'Cursor',acct:'acct 21c9',plan:'Business',people:2,machines:3,domain:'example.com',seen:'today'},
+    {tool:'Claude Code',acct:'acct 7f3a',plan:'Team',people:1,machines:1,domain:'example.com',seen:'today'},
+    {tool:'Codex',acct:'acct 9be0',plan:'Plus',people:1,machines:1,domain:'personal-mail.example',seen:'yesterday'},
+    {tool:'OpenCode',acct:'acct 4d17',plan:'not shown',people:3,machines:3,domain:'example.com',seen:'3 days ago'},
+    {tool:'GitHub Copilot',acct:'hashed id 5a88',plan:'not shown',people:1,machines:2,domain:'not sent',seen:'today'}
+  ];
+
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+  const pct=b=>Math.round(b.used/b.limit*100);
+  const fmt=(b,v)=>b.unit==='usd'?'$'+v.toLocaleString('en-US'):v+'M tokens';
+  const cls=v=>v>=100?'at':v>=80?'near':'';
+  const status=v=>v>=100?'<span class="pill bad">100% alert</span>':v>=80?'<span class="pill warn">80% alert</span>':'<span class="pill good">Under 80%</span>';
+
+  let kind='all', alertOnly=false;
+  function renderBudgets(){
+    const rows=[...SAMPLE_BUDGETS].sort((a,b)=>pct(b)-pct(a)).filter(b=>(kind==='all'||b.kind===kind)&&(!alertOnly||pct(b)>=80));
+    $('bBody').innerHTML=rows.map(b=>{const p=pct(b);return `<tr><td><b>${b.name}</b><span class="kind">${b.kind==='team'?'Team':'Project'}</span></td><td>${b.unit==='usd'?'Estimated USD':'Tokens'}</td><td class="r n">${fmt(b,b.limit)}</td><td class="r n">${fmt(b,b.used)}</td><td><div class="mtr ${cls(p)}"><div class="bar"><i style="width:${Math.min(100,p)}%"></i></div><span>${p}%</span></div></td><td class="r n">${b.unpriced===null?'<span class="dim">n/a</span>':b.unpriced.toFixed(1)+'M'}</td><td>${status(p)}</td></tr>`;}).join('')||'<tr><td colspan="7" class="dim">No budgets match.</td></tr>';
+    const at=SAMPLE_BUDGETS.filter(b=>pct(b)>=100).length, near=SAMPLE_BUDGETS.filter(b=>pct(b)>=80&&pct(b)<100).length;
+    $('bTiles').innerHTML=`<div class="tile"><b>${SAMPLE_BUDGETS.length}</b><span>budgets this month</span></div><div class="tile warn"><b>${near}</b><span>at 80% or more</span></div><div class="tile bad"><b>${at}</b><span>at 100% or more</span></div>`;
+  }
+  document.querySelector('[aria-label="Budgets to show"]').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;kind=b.dataset.k;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderBudgets();});
+  document.querySelector('[aria-label="Alert filter"]').addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(!b)return;alertOnly=b.dataset.a==='alert';
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderBudgets();});
+
+  $('aList').innerHTML=SAMPLE_ALERTS.map(a=>`<li><span class="pill ${a.lvl>=100?'bad':'warn'}">${a.lvl}%</span><span>${a.text}</span><time>${a.t}</time></li>`).join('');
+
+  $('tBody').innerHTML=SAMPLE_ACCOUNTS.map(a=>`<tr><td><b>${a.tool}</b></td><td class="acct">${a.acct}</td><td>${a.plan}</td><td class="r n">${a.people} ${a.people>1?'<span class="pill warn">Shared</span>':''}</td><td class="r n">${a.machines}</td><td class="acct">${a.domain}</td><td class="dim">${a.seen}</td></tr>`).join('');
+
+  renderBudgets();
+})();
+</script>
+
+</body></html>

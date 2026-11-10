@@ -1,0 +1,124 @@
+{
+  "_about": "The home page's charts read only this file (HomeCharts.jsx). While \"sample\" is true every chart carries a 'Sample data' badge: the figures below are placeholders made up to show the design, not Kite Pulse measurements. Replace them with real figures, say where they came from in \"source\", then set \"sample\" to false. A cost of null is a tool with no price and shows as a dash, never $0 (Master Source of Truth, 1.2).",
+  "sample": true,
+  "source": "",
+  "asOf": "2026-10-28",
+
+  "kpis": [
+    { "label": "Active developers", "value": 24, "format": "int", "note": "this week" },
+    { "label": "AI sessions", "value": 1186, "format": "int", "note": "this week" },
+    { "label": "Active time", "value": 412, "format": "hours", "note": "this week" },
+    { "label": "Tokens", "value": 1840000000, "format": "tokens", "note": "this week, all tools" }
+  ],
+
+  "costPerTool": [
+    { "tool": "Claude Code", "usd": 1712, "basis": "list price" },
+    { "tool": "Gemini CLI", "usd": 214, "basis": "list price" },
+    { "tool": "Cline", "usd": 96, "basis": "tool-reported" },
+    { "tool": "Codex", "usd": null },
+    { "tool": "Cursor", "usd": null }
+  ],
+
+  "sessionsByTool": {
+    "tools": ["Claude Code", "Cursor", "Codex"],
+    "other": "Other tools",
+    "days": [
+      { "date": "2026-10-15", "values": [62, 31, 14, 9] },
+      { "date": "2026-10-16", "values": [58, 28, 13, 8] },
+      { "date": "2026-10-17", "values": [12, 6, 2, 1] },
+      { "date": "2026-10-18", "values": [8, 4, 1, 1] },
+      { "date": "2026-10-19", "values": [78, 33, 19, 10] },
+      { "date": "2026-10-20", "values": [84, 38, 18, 12] },
+      { "date": "2026-10-21", "values": [80, 36, 22, 13] },
+      { "date": "2026-10-22", "values": [71, 35, 16, 11] },
+      { "date": "2026-10-23", "values": [66, 30, 17, 9] },
+      { "date": "2026-10-24", "values": [14, 5, 3, 2] },
+      { "date": "2026-10-25", "values": [9, 4, 2, 1] },
+      { "date": "2026-10-26", "values": [90, 41, 24, 14] },
+      { "date": "2026-10-27", "values": [94, 39, 26, 15] },
+      { "date": "2026-10-28", "values": [88, 42, 25, 13] }
+    ]
+  },
+
+  "aiBudgets": [
+    { "name": "payments-api", "scope": "Project", "unit": "usd", "budget": 3000, "used": 2610, "unpricedTokens": 4200000 },
+    { "name": "Platform team", "scope": "Team", "unit": "tokens", "budget": 500000000, "used": 512000000 },
+    { "name": "web-app", "scope": "Project", "unit": "usd", "budget": 2500, "used": 1180, "unpricedTokens": 9800000 },
+    { "name": "Mobile team", "scope": "Team", "unit": "tokens", "budget": 300000000, "used": 96000000 }
+  ],
+
+  "headroomBands": { "near": 80, "limit": 100 },
+  "planHeadroom": [
+    { "person": "Developer A", "plan": "Claude Max", "window": "Weekly", "usedPct": 100 },
+    { "person": "Developer B", "plan": "Claude Max", "window": "Weekly, Opus", "usedPct": 91 },
+    { "person": "Developer C", "plan": "Claude Pro", "window": "5-hour", "usedPct": 83 },
+    { "person": "Developer D", "plan": "Claude Pro", "window": "Weekly", "usedPct": 52 },
+    { "person": "Developer E", "plan": "Claude Max", "window": "Weekly", "usedPct": 31, "stale": true }
+  ],
+
+  "teamToday": {
+    "now": "15:30",
+    "activeHours": { "today": 61, "typical": 68 },
+    "sessions": { "today": 142, "typical": 131 },
+    "people": [
+      { "person": "Developer A", "status": "coding", "project": "payments-api", "attention": null },
+      { "person": "Developer B", "status": "coding", "project": "web-app", "attention": null },
+      { "person": "Developer C", "status": "online", "project": "billing-service", "attention": "Uploads failing" },
+      { "person": "Developer D", "status": "coding", "project": "web-app", "attention": "Old app version" },
+      { "person": "Developer E", "status": "offline", "project": "data-pipeline", "attention": null }
+    ]
+  },
+
+  "projects": [
+    { "project": "payments-api", "health": "active", "sessions": 312, "contributors": 6, "lastActivity": "today", "weekly": [41, 48, 52, 50, 61, 66, 72, 78] },
+    { "project": "web-app", "health": "active", "sessions": 274, "contributors": 8, "lastActivity": "today", "weekly": [55, 52, 49, 58, 60, 57, 63, 68] },
+    { "project": "billing-service", "health": "stable", "sessions": 121, "contributors": 3, "lastActivity": "yesterday", "weekly": [38, 35, 30, 33, 29, 31, 28, 30] },
+    { "project": "mobile-client", "health": "stable", "sessions": 96, "contributors": 4, "lastActivity": "2 days ago", "weekly": [20, 26, 24, 22, 25, 23, 24, 22] },
+    { "project": "legacy-reports", "health": "dormant", "sessions": 4, "contributors": 1, "lastActivity": "5 weeks ago", "weekly": [14, 9, 6, 3, 1, 0, 0, 0] }
+  ],
+
+  "personal": {
+    "workingStyle": "Builder",
+    "facts": [
+      { "label": "Peak hour", "value": "10:00" },
+      { "label": "Busiest day", "value": "Tuesday" },
+      { "label": "Longest streak", "value": "9 days" },
+      { "label": "Deep sessions (60 min+)", "value": "14" }
+    ],
+    "activeHoursByDay": [
+      { "day": "Mon", "hours": 5.5 },
+      { "day": "Tue", "hours": 6.8 },
+      { "day": "Wed", "hours": 6.1 },
+      { "day": "Thu", "hours": 5.9 },
+      { "day": "Fri", "hours": 4.2 },
+      { "day": "Sat", "hours": 0.6 },
+      { "day": "Sun", "hours": 0 }
+    ]
+  },
+
+  "_picker": "The 'What would you see?' picker. Per tool: the share of developers who use it, and what one of them does in a week. usd is null for a tool Kite Pulse has no price for. All of it is example data; the tool facts beside it (what each tool provides) are product facts and live in KitePulseSite.jsx.",
+  "picker": {
+    "teamSizes": [10, 50, 200],
+    "defaultSize": 50,
+    "defaultTools": ["Claude Code", "Cursor", "GitHub Copilot Chat", "Codex"],
+    "claudeNearLimitShare": 0.2,
+    "perDeveloperWeek": {
+      "Claude Code": { "share": 0.7, "sessions": 18, "tokens": 38000000, "usd": 46 },
+      "Codex": { "share": 0.3, "sessions": 12, "tokens": 21000000, "usd": null },
+      "Gemini CLI": { "share": 0.2, "sessions": 8, "tokens": 9000000, "usd": 11 },
+      "Cursor": { "share": 0.5, "sessions": 15, "tokens": 6000000, "usd": null },
+      "GitHub Copilot Chat": { "share": 0.45, "sessions": 20, "tokens": 3000000, "usd": null },
+      "Cline": { "share": 0.15, "sessions": 9, "tokens": 12000000, "usd": 14 },
+      "Roo Code": { "share": 0.1, "sessions": 7, "tokens": 8000000, "usd": 9 },
+      "Kilo Code": { "share": 0.08, "sessions": 6, "tokens": 7000000, "usd": 8 },
+      "OpenCode": { "share": 0.12, "sessions": 8, "tokens": 10000000, "usd": 7 },
+      "Aider": { "share": 0.06, "sessions": 5, "tokens": 4000000, "usd": 5 }
+    }
+  },
+
+  "screenshots": [
+    { "id": "team-overview", "title": "Team Overview", "caption": "Who is online and who is coding right now, today against a typical day, and who needs attention.", "file": "" },
+    { "id": "team-ai-usage", "title": "Team AI Usage", "caption": "Token use per developer, tool, model, project and day, with an estimated list-price cost per tool.", "file": "" },
+    { "id": "scorecard", "title": "My Scorecard & Insights", "caption": "Your own report, led by \"Top 3 to act on\": a verdict, why it matters, what to try and the evidence.", "file": "" }
+  ]
+}

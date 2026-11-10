@@ -1,0 +1,328 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Self-Hosted Developer Analytics | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Self-hosted developer analytics for AI coding tools: where Kite Pulse runs, what it reads, what reaches your server and what your team operates.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"Self-hosted developer analytics for AI coding teams","url":"/self-hosted","description":"Where Kite Pulse runs, what it reads, what reaches your server and what your team operates.","about":"self-hosted developer analytics"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Product","item":"/features"},{"@type":"ListItem","position":3,"name":"Self-hosted","item":"/self-hosted"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is there a self-hosted tool to monitor AI coding tool usage?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kite Pulse reads the session history ten AI coding tools, including Claude Code and Cursor, keep on each developer's computer, masks secrets, and sends it to a server your team runs. There is no vendor cloud in between."}},
+{"@type":"Question","name":"Can AI coding analytics be self-hosted on our own infrastructure?","acceptedAnswer":{"@type":"Answer","text":"Yes, and that is the only way it runs: on one computer, on a local network, on an Ubuntu 22.04 or 24.04 server, or in your own AWS account, each set up by one command or script. You can also run the server alone."}},
+{"@type":"Question","name":"What infrastructure does a self-hosted AI coding analytics server need?","acceptedAnswer":{"@type":"Answer","text":"A machine you run, PostgreSQL, and local disk or Amazon S3 for stored data. Email features need a mail server configured on the server. Kite Pulse does not publish CPU, memory or disk sizes; ask for them in a demo."}},
+{"@type":"Question","name":"Can a self-hosted AI usage tracker scale to thousands of developers?","acceptedAnswer":{"@type":"Answer","text":"Kite Pulse has no published, tested figure for a number of developers. What it gives you is the means to watch the server as you grow: Infrastructure checks for memory, backlog, disk and the database, Server Storage by person and project, and stored data in Amazon S3 if you choose."}},
+{"@type":"Question","name":"Does any session data leave our network?","acceptedAnswer":{"@type":"Answer","text":"Session data goes only to the server you run. If an admin sets up AI labelling, which is off by default, scrubbed text is sent to the AI provider through OpenRouter (default policy: zero data retention)."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.topnav{display:flex;gap:14px;font-size:.9rem;flex-wrap:wrap}
+.topnav a{color:var(--muted);text-decoration:none}
+.topnav a:hover{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:56px 36px;display:grid;gap:20px}
+.hero .lede{font-size:1.2rem;color:var(--muted)}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.head{display:grid;gap:10px}
+.head p{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:16px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:600;font-size:.92rem}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.opt{display:grid;gap:12px}
+.opt dl{margin:0;display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:8px 16px;font-size:.95rem}
+.opt dt{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+.opt dd{margin:0}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.checks div{background:var(--sunk);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:.92rem}
+
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.cols > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start;background:var(--surface);border:1px solid var(--line)}
+.cols ul,.nots{margin:0;padding-left:1.2em;display:grid;gap:6px;font-size:.95rem;max-width:68ch}
+.nots{background:var(--sunk);border-radius:12px;padding:16px 18px 16px 36px}
+
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .panel{padding:16px}
+  .topnav{display:none}
+  .opt dl{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<body>
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <nav class="topnav" aria-label="Sections"><a href="#where">Where it runs</a><a href="#reads">What it reads</a><a href="#developers">Developers</a><a href="#admins">Admins</a><a href="#not">What it does not do</a><a href="#faq">FAQ</a></nav>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Product · Trust</div>
+    <h1>Self-hosted developer analytics for AI coding teams</h1>
+    <p class="lede">Kite Pulse runs on a machine you choose, and your AI coding data stays there.</p>
+    <div class="answer">
+      <p><b>Kite Pulse is self-hosted developer analytics: it reads the session history ten AI coding tools keep on each developer's computer, masks secrets, and sends it only to a Kite Pulse server your team runs.</b> There is no vendor cloud in between. You choose where the server lives: one computer, your local network, an Ubuntu server or your own AWS account.</p>
+    </div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#reads">See what it reads</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "self-hosted developer analytics" in the title tag (44 characters), H1, URL slug and the bolded first sentence of the answer box. Meta description 144 characters. Trust page: plain statements, no marketing tone. Sources: MSoT 1.8 (all), 1.1 (Windows and macOS program, updates from your own server, no built-in server address), 1.6 (Retention, Machines, Infrastructure checks, Tools), 1.7, product summary "Where it runs". Detail from the Field Guide ("Three programs, all required", "Run it": quickstart starts the database in Docker, a verify script checks the install) used only to describe the 1.8 one-computer option.</div>
+  </header>
+
+  <section class="block" id="where">
+    <div class="head">
+      <h2>Where self-hosted AI usage tracking can run</h2>
+      <p>Every option is self-hosted. Pick an option to see what it sets up, and who can reach it.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Deployment options</div>
+      <div class="seg" role="group" aria-label="Deployment option" id="optButtons">
+        <button type="button" data-opt="one" aria-pressed="true">One computer</button>
+        <button type="button" data-opt="pilot" aria-pressed="false">Team pilot</button>
+        <button type="button" data-opt="ubuntu" aria-pressed="false">Ubuntu server</button>
+        <button type="button" data-opt="aws" aria-pressed="false">Your AWS account</button>
+        <button type="button" data-opt="server" aria-pressed="false">Server only</button>
+      </div>
+      <div class="opt" data-opt="one">
+        <h3>Local AI coding analytics for a single user</h3>
+        <dl><dt>Sets up</dt><dd>One command installs the server, background worker, desktop program and database (in Docker) on one computer. A verify script confirms that data has flowed.</dd>
+        <dt>Reachable from</dt><dd>That computer only.</dd></dl>
+      </div>
+      <div class="opt" data-opt="pilot">
+        <h3>On prem analytics for a team pilot</h3>
+        <dl><dt>Sets up</dt><dd>The same installer, on an address the team chooses on its local network.</dd>
+        <dt>Reachable from</dt><dd>Computers on that network.</dd></dl>
+      </div>
+      <div class="opt" data-opt="ubuntu">
+        <h3>Self-hosted developer analytics on Ubuntu</h3>
+        <dl><dt>Sets up</dt><dd>One script on Ubuntu 22.04 or 24.04 installs PostgreSQL, the web server, firewall and services, with optional free HTTPS certificates that renew themselves. Services restart automatically if they stop.</dd>
+        <dt>Reachable from</dt><dd>Where you expose it.</dd></dl>
+      </div>
+      <div class="opt" data-opt="aws">
+        <h3>Deploy developer analytics in your own AWS account</h3>
+        <dl><dt>Sets up</dt><dd>One script creates the server in your AWS account. It shows a plan first and asks before creating anything. Private S3 storage is optional.</dd>
+        <dt>Reachable from</dt><dd>Where you expose it.</dd></dl>
+      </div>
+      <div class="opt" data-opt="server">
+        <h3>Server only</h3>
+        <dl><dt>Sets up</dt><dd>The server alone, with the desktop program installed on each developer's computer.</dd>
+        <dt>Reachable from</dt><dd>Your choice.</dd></dl>
+      </div>
+      <p style="font-size:.9rem;color:var(--muted)">On every option: PostgreSQL is the database, stored data goes on local disk or Amazon S3, and HTTPS can be required on any install. The desktop program runs on Windows and macOS (Apple Silicon and Intel). The automated server install is for Ubuntu; there is no Windows server installer.</p>
+    </div>
+  </section>
+
+  <section class="block" id="reads">
+    <div class="head">
+      <h2>What it reads, why, and what reaches your server</h2>
+      <p>The program does not open project source files, log keystrokes, take screenshots or track websites. Session records can include excerpts of code the AI read or wrote, with secrets masked (<a href="/privacy">privacy details</a>).</p>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>What it reads</th><th>Why</th><th>What is sent to your server</th></tr></thead>
+      <tbody>
+        <tr><td>Session history of the ten <a href="/integrations">supported AI coding tools</a></td><td>Sessions, usage and work pages</td><td>New activity only, secrets masked, encrypted on the computer before upload</td></tr>
+        <tr><td>Token counts and Claude Code plan figures</td><td>Team AI Usage and Plan headroom</td><td>The numbers, over HTTPS. With counts-only mode, never the conversation</td></tr>
+        <tr><td>Project folders and repository addresses</td><td>Linking each session to its project</td><td>The detected folder list first, so the Onboarding Wizard can show it</td></tr>
+        <tr><td>Tool sign-in account</td><td>Tool Accounts</td><td>A keyed hash of the account, the email domain and the plan name, never the address</td></tr>
+        <tr><td>Optional reads such as branch name or project notes</td><td>Extra context</td><td>Nothing until an admin turns each one on</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:.95rem">That covers self-hosted Claude Code analytics and self hosted Cursor analytics alike: every tool's data goes to the same server you run. More in <a href="/blog/developer-analytics-without-source-code">developer analytics without source code</a>.</p>
+  </section>
+
+  <section class="block" id="developers">
+    <div class="head">
+      <h2>Safeguards for developers</h2>
+    </div>
+    <div class="cols">
+      <div><h3>Before anything is sent</h3><ul>
+        <li>No server address is built in. The program will not run until it is given your team's own server.</li>
+        <li>No session content uploads until the developer confirms their projects, and an approver signs off where required.</li>
+      </ul></div>
+      <div><h3>While it runs</h3><ul>
+        <li>Secrets are masked on the computer and again on the server. For Cursor and OpenCode chat text, on the server only.</li>
+        <li>Each person sees every data point collected about them on <b>Privacy</b>, whether it is on, and who can see it.</li>
+        <li>Updates come only from your own server, checked for size and integrity before install.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="block" id="admins">
+    <div class="head">
+      <h2>What your team operates</h2>
+      <p>An on-premise developer tool means your team keeps it running. All console pages are on <a href="/features">features</a>.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Machines <span class="sample">Sample data</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Computer</th><th>Version</th><th>Update status</th><th>Log</th></tr></thead>
+        <tbody id="machineBody"></tbody>
+      </table></div>
+      <div class="panel-label">Infrastructure checks <span class="sample">Sample data</span></div>
+      <div class="checks" id="checkGrid"></div>
+      <p style="font-size:.88rem;color:var(--muted)">Example computers and results for a fictional team.</p>
+    </div>
+    <div class="cols">
+      <div><h3>Run the server</h3><ul>
+        <li><b>Machines</b>: every computer running the program, with version, update status and log.</li>
+        <li><b>Infrastructure checks</b>, on by default: memory, disk, database, backlog, stalled processing, silent collectors and more.</li>
+        <li><b>Tools</b>: switch each AI tool on or off, choose counts-only collection, and publish a desktop update once the operator places a new build on the server.</li>
+      </ul></div>
+      <div><h3>Set the rules</h3><ul>
+        <li><b>Retention</b>: set how long each kind of data is kept. Deletion runs once the server operator enables it.</li>
+        <li><b>Server Storage</b>: storage used, by person and project.</li>
+        <li><b>Configuration</b> (read only install settings) and the <b>Setup checklist</b>. Sign-in rules are on the <a href="/security">security page</a>.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="block" id="not">
+    <div class="head">
+      <h2>What Kite Pulse does not do</h2>
+    </div>
+    <ul class="nots">
+      <li>There is no hosted version run by the vendor, and no vendor cloud between your developers and your server.</li>
+      <li>The desktop program has installers for Windows and macOS only.</li>
+      <li>The app does not encrypt stored sessions itself; use your own disk encryption, or S3 on AWS.</li>
+      <li>It does not delete old data until the server operator enables deletion.</li>
+      <li>Sign-in is email and password; there is no sign-in through a company identity provider.</li>
+      <li>It does not need an AI service. AI labelling stays off until an admin sets it up.</li>
+      <li>Licence: proprietary (NTGLOBAL SOLUTIONS).</li>
+    </ul>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Self-hosted questions</h2>
+    <div>
+      <details open><summary>Is there a self-hosted tool to monitor AI coding tool usage?</summary><p>Yes. Kite Pulse reads the session history ten AI coding tools, including Claude Code and Cursor, keep on each developer's computer, masks secrets, and sends it to a server your team runs. There is no vendor cloud in between.</p></details>
+      <details><summary>Can AI coding analytics be self-hosted on our own infrastructure?</summary><p>Yes, and that is the only way it runs: on one computer, on a local network, on an Ubuntu 22.04 or 24.04 server, or in your own AWS account, each set up by one command or script. You can also run the server alone.</p></details>
+      <details><summary>What infrastructure does a self-hosted AI coding analytics server need?</summary><p>A machine you run, PostgreSQL, and local disk or Amazon S3 for stored data. Email features need a mail server configured on the server. Kite Pulse does not publish CPU, memory or disk sizes; ask for them in a demo.</p></details>
+      <details><summary>Can a self-hosted AI usage tracker scale to thousands of developers?</summary><p>Kite Pulse has no published, tested figure for a number of developers. What it gives you is the means to watch the server as you grow: Infrastructure checks for memory, backlog, disk and the database, Server Storage by person and project, and stored data in Amazon S3 if you choose.</p></details>
+      <details><summary>Does any session data leave our network?</summary><p>Session data goes only to the server you run. If an admin sets up AI labelling, which is off by default, scrubbed text is sent to the AI provider through OpenRouter (default policy: zero data retention).</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The four FAQ questions come from the brief; the fifth is our own. Each is in FAQPage JSON-LD with identical text. The scale answer is honest on purpose: the sources hold no tested developer count or hardware sizing, so none is given (R2).</div>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See Kite Pulse on a server you control</h3>
+      <p>Walk through the install options and admin pages with us.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords placed: "self-hosted ai usage tracking" (H2), "deploy developer analytics in your own aws account" (H3), "self-hosted developer analytics ubuntu" (H3, as "on Ubuntu"), "local ai coding analytics single user" (H3, as "for a single user"), "on prem analytics" (H3), "on-premise developer productivity tool" (body, as "on-premise developer tool": "productivity" framing avoided), "self-hosted claude code analytics" and "self hosted cursor analytics" (body under the reads table). "on premise analytics tools" covered by the on prem H3 rather than repeated. Left out on purpose (checker word list and MSoT 2.3/2.4): the words for the missing desktop platform and vendor-hosted software; the page states the same facts as "installers for Windows and macOS only" and "no hosted version run by the vendor". Also left out: Docker, Python and port details beyond the one-computer note, Slack delivery, SCIM user sync, signed updates, any sizing figure.</div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /self-hosted page. Computer names, versions and check results in the Machines and Infrastructure checks panels are example data.</div></footer>
+
+<script>
+(function(){
+  /* Example data only: fictional computers and check results. */
+  const SAMPLE_MACHINES=[
+    {computer:'priya-mbp',version:'0.4.2',status:'Up to date',tone:'good'},
+    {computer:'marco-win11',version:'0.4.1',status:'Update available',tone:'warn'},
+    {computer:'lena-mbp-intel',version:'0.4.2',status:'Up to date',tone:'good'},
+    {computer:'build-laptop-07',version:'0.4.0',status:'Old version',tone:'bad'}
+  ];
+  const SAMPLE_CHECKS=[
+    ['Stalled processing','OK','good'],['Memory','OK','good'],['Backlog','Alert','warn'],
+    ['Disk','OK','good'],['Database','OK','good'],['Email relay','OK','good'],
+    ['Silent collectors','OK','good'],['Old collector versions','Alert','warn']
+  ];
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  $('machineBody').innerHTML=SAMPLE_MACHINES.map(m=>`<tr><td><b>${m.computer}</b></td><td class="num">${m.version}</td><td><span class="pill ${m.tone}">${m.status}</span></td><td><a href="#admins">View log</a></td></tr>`).join('');
+  $('checkGrid').innerHTML=SAMPLE_CHECKS.map(c=>`<div><span>${c[0]}</span><span class="pill ${c[2]}">${c[1]}</span></div>`).join('');
+
+  const btns=[...document.querySelectorAll('#optButtons button')];
+  const opts=[...document.querySelectorAll('.opt')];
+  opts.forEach((o,i)=>{o.hidden=i>0;});
+  btns.forEach(b=>b.addEventListener('click',()=>{
+    btns.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    opts.forEach(o=>{o.hidden=o.dataset.opt!==b.dataset.opt;});
+  }));
+})();
+</script>
+</body>
+
+</body></html>

@@ -1,0 +1,232 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>AI Cost per Project for Agencies | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="AI cost per project for software agencies: what Kite Pulse shows per client project, how monthly budgets work, and where its estimates stop.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"AI Cost per Project: How Software Agencies and Consultancies Could Use Kite Pulse","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"AI cost per project"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"AI Cost per Project for Agencies","item":"/blog/ai-cost-per-project-agencies"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can we track AI spend per project for client billing?","acceptedAnswer":{"@type":"Answer","text":"Not for billing. Kite Pulse does not produce invoices or billable figures. It shows token use per project for any period, and an estimated dollar figure per project only through an AI Budget, month to date, at list prices and for priced tools only. Use it to understand effort per engagement, and use your AI vendors' invoices for what you actually paid."}},
+{"@type":"Question","name":"Can I track AI coding costs by developer, team, department, and project?","acceptedAnswer":{"@type":"Answer","text":"Partly. Token use is shown per developer, tool, model, project and day. Estimated cost is shown per tool, cost per developer is visible to admins only on that developer's AI Usage tab, and cost per team or per project appears only in AI Budgets, month to date. There is no separate department level: budgets are set per team or per project."}},
+{"@type":"Question","name":"How do I find out which projects my team uses AI on the most?","acceptedAnswer":{"@type":"Answer","text":"Open Team AI Usage, pick the period, and use the Projects tab: it shows token use per project, and the Models tab shows which models each project relies on. All Projects adds sessions, contributors and last activity for each project. Managers see their own reporting line; admins see everyone."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} th{white-space:normal} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Industry use</div>
+    <h1>AI Cost per Project: How Software Agencies and Consultancies Could Use Kite Pulse</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>7 min read</span></div>
+    <div class="answer">
+      <p><b>For an agency, AI cost per project is the share of AI coding effort and estimated spend that went into one client engagement.</b> Kite Pulse links every AI coding session to its project, shows token use per project for any period, and lets admins set a monthly AI budget per project with alerts at 80% and 100%. It gives delivery leads clarity per engagement. It does not produce invoices or billable figures.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "ai cost per project" (Commercial intent) in the title tag, H1, meta description and the bolded first sentence. Title "AI Cost per Project for Agencies | Kite Pulse" is 45 characters. The planner note asks that billing-flavoured searches be answered as clarity per engagement, not invoicing, so the answer box says so in its last two sentences.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why agencies ask about AI cost per project</h2>
+    <p>An agency sells time and outcomes per client. When most of a developer's day runs through an AI coding assistant, a large part of the effort on each engagement now happens inside those conversations. The vendor bills arrive per tool or per seat, though, and they say nothing about which client the work was for.</p>
+    <p>Delivery leads end up asking questions the bills cannot answer. Which engagements lean hardest on AI? Is a fixed-price project using far more AI effort than the team scoped? Are people working on client code with a personal AI account? This article walks through what Kite Pulse can show for each of those, and where it stops.</p>
+  </section>
+
+  <section class="block" id="by-project">
+    <h2>AI coding spend by project starts with tokens</h2>
+    <p>Kite Pulse's desktop program reads the session history that <a href="/integrations">ten AI coding tools already keep on each developer's computer</a>. It finds project folders and reads each repository's address, so one client repository cloned on several laptops counts as one project, and every session is linked to its project. Nobody fills in a timesheet or tags a session by hand.</p>
+    <p>On <b>Team AI Usage</b>, token use is shown per developer, tool, model, project and day, for any period you pick. The Projects tab is the per-engagement view: which client projects used the most AI effort this month or this quarter. The Models tab shows models by project, which is useful when one client's work runs on a more expensive model than another's.</p>
+    <p>Cost sits one step further back. Kite Pulse estimates cost by multiplying tokens by each vendor's published list price, and labels it "not billed spend". Claude and Gemini models are priced, and Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost. Codex, Cursor and Copilot sessions usually show a dash, never $0. On Team AI Usage, cost is shown per tool and never added up across tools. Our <a href="/ai-cost-tracking">guide to tracking AI coding cost</a> explains why list-price estimates and subscription bills differ.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Question</th><th>Where to look</th><th>What you get</th></tr></thead>
+        <tbody>
+          <tr><td>Which client projects use AI the most?</td><td>Team AI Usage, Projects tab</td><td>Token use per project for any period</td></tr>
+          <tr><td>What did a project cost this month?</td><td>AI Budgets</td><td>Estimated spend month to date, priced tools only, unpriced tokens reported separately</td></tr>
+          <tr><td>What did a tool cost?</td><td>Team AI Usage</td><td>Estimated cost per tool, never totalled across tools</td></tr>
+          <tr><td>What did one developer cost?</td><td>That developer's AI Usage tab</td><td>Estimated cost, admins only</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai coding spend by project" in this H2. Cost wording follows MSoT 1.2 and 2.3 ("Cost per person and per project"): per tool, never totalled, not billed spend; per project only through AI Budgets, month to date. Link to /integrations on the ten tools, /ai-cost-tracking on list prices.</div>
+  </section>
+
+  <section class="block" id="budgets">
+    <h2>A monthly AI budget per project</h2>
+    <p>The only place Kite Pulse puts a dollar figure against a project is <b>AI Budgets</b>. An admin sets a monthly budget for a project, or for a team, in tokens or in estimated US dollars. Each budget shows what was used this month, a bar and a status, and raises an alert at 80% and again at 100%.</p>
+    <p>A dollar budget adds up the priced tools only. Tokens from tools with no known price are reported separately, never counted as $0, so a project where most work runs on Codex or Cursor shows that gap openly. For those projects a token budget is usually the more honest choice.</p>
+    <p>For an agency, a monthly AI budget per project works well as an early warning on fixed-price work. If a client engagement crosses 80% halfway through the month, the alert arrives while there is still time to talk about scope. See <a href="/ai-budgets">how AI budgets work</a> for the setup.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "monthly ai budget per project" in this H2. "What was used this month, a bar and a status" is detail from the Field Guide (AI Budgets, admin settings) about the MSoT 1.2 AI Budgets feature. Budgets are month to date only; no per-project figure for an arbitrary period is claimed.</div>
+  </section>
+
+  <section class="block" id="billing">
+    <h2>Billable AI usage for clients: what Kite Pulse does not do</h2>
+    <p>Many agencies search for a way to show billable AI usage for clients. Kite Pulse is not that tool, and it is worth being plain about why.</p>
+    <ul>
+      <li><b>The figures are estimates.</b> Cost comes from list prices, while many developers are on flat subscriptions. The estimate can sit far from what the agency actually paid.</li>
+      <li><b>Coverage is partial.</b> Several tools usually show no price, so any dollar figure leaves part of the work out.</li>
+      <li><b>There is no invoice view.</b> Nothing in the console produces a client invoice or a billable figure.</li>
+    </ul>
+    <p>If you bill clients for AI usage or for hours, your vendors' invoices and your time-tracking or billing system remain the source of record. What Kite Pulse adds is the picture behind them: which engagement the AI effort went into, which tools and models it used, and how that compares with last month. That is useful in a scoping conversation or a project review, and it is not a line on an invoice.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "billable ai usage for clients" in this H2, answered honestly per the planner note (R9). The hidden billable view is not named or described (R3). "Flat subscriptions" is from the Product Overview 5.6, detail on MSoT 1.2 Estimated cost per tool.</div>
+  </section>
+
+  <section class="block" id="accounts">
+    <h2>Personal AI accounts used for client work</h2>
+    <p>Client contracts often say where client code may go. A developer who signs in to an AI tool with a personal account on a client project is a question a delivery lead wants to see early.</p>
+    <p><b>Tool Accounts</b> counts how many separate signed-in accounts each tool runs under and marks any account used by more than one person as "Shared". It shows plan tier, machines, last seen and email domain, so an account on a personal email domain stands out next to company ones. It covers Claude Code, Codex, Cursor, OpenCode and GitHub Copilot, and is admin by default. Accounts are pseudonymised: Kite Pulse receives a keyed hash of the account, the email domain and the plan name, never the address.</p>
+    <p>Kite Pulse's <a href="/shadow-ai">view of unapproved AI use</a> rests on two partial signals only. The first is Tool Accounts: the "Shared" flag for five tools and email domains for four (not Copilot). The second is an optional read, off by default, that lists which of six known AI tools are installed on each machine. Neither finds AI tools outside that list or tools the organisation has not switched on.</p>
+    <div class="seo"><b>SEO</b>/shadow-ai is described with only the two partial signals MSoT 2.3 and the "Website corrections" table allow: Tool Accounts (Shared flag, five tools; email domains, four, not Copilot) and the optional installed-tools read (six known tools). No claim of finding tools the organisation has not switched on (R8).</div>
+  </section>
+
+  <section class="block" id="jira">
+    <h2>Jira issues linked to AI coding sessions: a project-level link</h2>
+    <p>Many agencies run each client in its own Jira project, and often track the client relationship in HubSpot. On the <b>Connectors</b> page an admin can connect Jira, HubSpot, Slack, GitHub, Confluence, Google Drive and Notion and map each one to a Kite Pulse project. Connector credentials are stored encrypted.</p>
+    <p>Keep expectations at the project level. Sessions belong to a project, and the client's Jira project or HubSpot company can be mapped to that same project. Kite Pulse does not give you AI cost per ticket. If you need time per issue, your ticket tracker or a time-tracking tool is the better source, and Kite Pulse can sit beside it as the record of how the AI part of the work went.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "jira issues linked to ai coding sessions" in this H2, answered at project level only. MSoT 1.6 says what each connector's data feeds in the console was not checked, so the Field Guide line about Jira issues showing on the project page is left out.</div>
+  </section>
+
+  <section class="block" id="routine">
+    <h2>A monthly routine for delivery leads</h2>
+    <p>A simple loop that fits most agencies, using only what is described above:</p>
+    <ol class="steps">
+      <li><p><b>Check the project list.</b> On All Projects, make sure each client repository is one project, with its health, sessions, contributors and last activity. Duplicate Detection offers to merge folders that are the same repository.</p></li>
+      <li><p><b>Set budgets for fixed-price work.</b> Give each fixed-price engagement a monthly AI budget, in tokens where most of its work runs on unpriced tools.</p></li>
+      <li><p><b>Review usage per engagement.</b> At month end, open Team AI Usage for the month and compare token use per project with the month before.</p></li>
+      <li><p><b>Check accounts.</b> Look at Tool Accounts for shared logins and personal email domains on client work.</p></li>
+      <li><p><b>Share the picture.</b> Download the Company report for the period as CSV or PDF, or schedule it by email daily, weekly or monthly.</p></li>
+    </ol>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Client code stays on infrastructure the agency controls. Kite Pulse runs on your own computer, local network, Ubuntu server or AWS account, with no vendor cloud in between. It does not open project source files, and secrets in session records are masked on the computer and again on the server.</p></div>
+    <div class="seo"><b>SEO</b>Routine uses only MSoT Section 1 features: All Projects and Duplicate Detection (1.4), AI Budgets and Team AI Usage (1.2), Tool Accounts (1.2), Company report and Scheduled reports (1.3). The single product callout covers 1.7 and 1.8. Per-developer CSV exports from the Product Overview are left out because MSoT Section 1 does not list them.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions agencies ask</h2>
+    <div>
+      <details open><summary>Can we track AI spend per project for client billing?</summary><p>Not for billing. Kite Pulse does not produce invoices or billable figures. It shows token use per project for any period, and an estimated dollar figure per project only through an AI Budget, month to date, at list prices and for priced tools only. Use it to understand effort per engagement, and use your AI vendors' invoices for what you actually paid.</p></details>
+      <details><summary>Can I track AI coding costs by developer, team, department, and project?</summary><p>Partly. Token use is shown per developer, tool, model, project and day. Estimated cost is shown per tool, cost per developer is visible to admins only on that developer's AI Usage tab, and cost per team or per project appears only in AI Budgets, month to date. There is no separate department level: budgets are set per team or per project.</p></details>
+      <details><summary>How do I find out which projects my team uses AI on the most?</summary><p>Open Team AI Usage, pick the period, and use the Projects tab: it shows token use per project, and the Models tab shows which models each project relies on. All Projects adds sessions, contributors and last activity for each project. Managers see their own reporting line; admins see everyone.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The three FAQ questions from the brief, marked up as FAQPage JSON-LD with the same text. The first two get honest partial answers: no billing, no department level (MSoT 2.3 "Cost per person and per project").</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-cost-tracking">AI cost tracking guide<span>Estimate and track AI coding spend</span></a></li>
+      <li><a href="/ai-budgets">AI budgets<span>Monthly limits per team or project</span></a></li>
+      <li><a href="/integrations">The ten integrations<span>What each AI tool provides</span></a></li>
+      <li><a href="/shadow-ai">Shadow AI<span>Shared and personal tool accounts</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See AI effort per client engagement</h3>
+      <p>Run Kite Pulse on your own server and see which projects your AI coding tools are working on.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/ai-cost-per-project-agencies article. No example data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

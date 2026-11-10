@@ -1,0 +1,438 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Team Activity Dashboard for AI Coding Teams | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A team activity dashboard built from AI coding sessions: who works on what, project health, work problems, personal scorecards and scheduled reports.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"Team Activity Dashboard for AI Coding Teams","url":"/features","about":"team activity dashboard","description":"A team activity dashboard built from AI coding sessions: who works on what, project health, work problems, personal scorecards and scheduled reports."},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Product","item":"/features"},{"@type":"ListItem","position":3,"name":"Features","item":"/features"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I create a weekly AI usage report for my team?","acceptedAnswer":{"@type":"Answer","text":"In Kite Pulse an admin sets up a scheduled report: the Company report, or one developer's report, emailed daily, weekly or monthly as a PDF or CSV. The Company report compares the period with the one before. Email has to be configured on your server first."}},
+{"@type":"Question","name":"Can I control who can access individual-level usage data and organization-wide reports?","acceptedAnswer":{"@type":"Answer","text":"Yes. There are three access roles: Developer sees their own pages, Manager sees their whole reporting line, and Admin sees everyone. The server enforces this, not just the screen. Admins can adjust each page per role on Roles & Permissions, and downloading the Company report is for admins by default."}},
+{"@type":"Question","name":"Does AI coding analytics include an audit log of admin actions?","acceptedAnswer":{"@type":"Answer","text":"Kite Pulse has a read-only, filterable Audit Log of sign-ins, failed sign-ins, lockouts and admin changes, covering over 100 kinds of action. It is kept indefinitely by default; a retention period (365 days by default) applies once the server operator enables deletion."}},
+{"@type":"Question","name":"Can we configure how long developer analytics data is retained?","acceptedAnswer":{"@type":"Answer","text":"Yes. On Retention, admins set how long plan-usage history is kept and the windows for raw content, derived data and audit history. Those windows are applied once the server operator enables deletion on the server. Until then, data stays."}},
+{"@type":"Question","name":"Does AI coding analytics support sign-up by company email domain?","acceptedAnswer":{"@type":"Answer","text":"Kite Pulse does. On Login & Registration an admin chooses admin-created accounts (the default), sign-up by company email domain, or open sign-up with admin approval. Sign-in is email and password."}},
+{"@type":"Question","name":"Can I export reports or integrate the data with our existing analytics and finance systems?","acceptedAnswer":{"@type":"Answer","text":"You can export. The Company report downloads as CSV or PDF, the Plan usage report as Excel, and an admin can export one person's data as a file. For a live connection, Kite Pulse has an Agent API and MCP server that are available when the server operator turns them on; they are off on a standard install."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.hero .lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.1rem}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.jump{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0}
+.jump a{display:block;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.88rem;font-weight:600;text-decoration:none;color:var(--ink)}
+.jump a:hover{border-color:var(--accent);color:var(--accent)}
+
+section.block{padding-block:42px;border-top:1px solid var(--line);display:grid;gap:18px}
+.feat{display:grid;gap:22px;align-items:start}
+@media (min-width:820px){.feat{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}}
+.feat .copy{display:grid;gap:12px;align-content:start}
+.feat .copy .area{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.feat .copy ul{font-size:.97rem}
+.more{font-size:.95rem;font-weight:600}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.note{font-size:.84rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.info{background:var(--accent-soft);color:var(--accent)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--muted)}
+.dot.on{background:var(--good)} .dot.away{background:var(--cost)}
+.muted{color:var(--muted)}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.tile{border-radius:10px;padding:10px 12px;background:var(--sunk);display:grid;gap:2px}
+.tile b{font-family:var(--mono);font-size:1.15rem;line-height:1.2}
+.tile span{font-size:.78rem;color:var(--muted)}
+.insight{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:4px;font-size:.88rem}
+.insight .v{font-weight:700}
+.tree{font-size:.9rem;display:grid;gap:8px}
+.tree .mod{font-weight:700}
+.tree .cap{padding-left:14px;border-left:2px solid var(--line);margin-left:4px;display:grid;gap:2px}
+.tree .sc{color:var(--muted);font-size:.84rem}
+
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--bg);padding:5px 11px;cursor:pointer;font-weight:600;font-size:.82rem}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.who td:first-child{font-weight:700;white-space:nowrap}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:14px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Product · See</div>
+    <h1>The team activity dashboard for AI-assisted development</h1>
+    <p class="lede">One place to see AI-assisted development across people, projects and tools, on a server your team controls.</p>
+    <div class="answer">
+      <p><b>A team activity dashboard shows what a software team is working on, where work gets stuck and how each project is moving, without status meetings.</b> Kite Pulse builds one from the session history that ten AI coding tools already keep on each developer's computer. Secrets are masked and the data goes only to your own server.</p>
+    </div>
+    <div class="hero-row">
+      <button class="btn" type="button">Book a demo</button>
+      <a class="btn ghost" href="/integrations">See the ten integrations</a>
+    </div>
+    <ul class="jump" aria-label="Feature areas">
+      <li><a href="#team">Team activity</a></li>
+      <li><a href="#projects">Project health</a></li>
+      <li><a href="#problems">Work problems</a></li>
+      <li><a href="#me">Scorecard</a></li>
+      <li><a href="#usage">AI usage</a></li>
+      <li><a href="#reports">Reports</a></li>
+      <li><a href="#knowledge">Knowledge</a></li>
+    </ul>
+    <div class="seo"><b>SEO</b>Main keyword "team activity dashboard" in the title tag (56 characters, starts with "Team"), H1, meta description (149 characters) and the bolded first sentence of the answer box. The lede is the MSoT one-line description. Intent: commercial. Each feature block below has a question heading, 3 to 4 bullets and a sample view rendered from SAMPLE in the script.</div>
+  </header>
+
+  <section class="block" id="team">
+    <div class="feat">
+      <div class="copy">
+        <div class="area">Team status dashboard</div>
+        <h2>What is my team working on right now?</h2>
+        <ul>
+          <li><b>Team Overview</b>: who is online and coding now, active time today against a typical day, and each person's current project. Refreshes every 30 seconds.</li>
+          <li>Who needs attention: failing uploads, backlogs, old app versions.</li>
+          <li><b>The Office</b>: a desk per person, grouped by team, with online, away or offline status. A virtual office for remote teams.</li>
+          <li><b>Leave &amp; On-Call</b> records leave and rotas so a quiet week is not misread. It is not a vacation tracker for teams.</li>
+        </ul>
+        <p class="more">More: <a href="/ai-agent-office">The Office, a live view of AI agents at work</a></p>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Team Overview <span class="sample">Sample data</span></div>
+        <div class="scroll"><table><thead><tr><th>Developer</th><th>Now</th><th class="r">Active today</th><th>Current project</th></tr></thead><tbody id="teamBody"></tbody></table></div>
+        <div id="teamAttn" class="note"></div>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords: "team status dashboard" (label), "what is my team working on dashboard" (H2 in question form), "virtual office for remote teams", "vacation tracker for teams" (stated honestly as not what it is). "Team availability dashboard" is covered by the online/away/offline status. Facts: MSoT 1.4 Team Overview, The Office, Leave &amp; On-Call.</div>
+  </section>
+
+  <section class="block" id="projects">
+    <div class="feat">
+      <div class="copy">
+        <div class="area">Project health dashboard</div>
+        <h2>Which projects are active, and which have gone quiet?</h2>
+        <ul>
+          <li><b>All Projects</b>: every project with its health (active, stable or dormant), sessions, contributors and last activity.</li>
+          <li>A project page with contributors, sessions and a summary card (some figures need AI labelling).</li>
+          <li><b>Duplicate Detection</b> groups folders that look like the same repository and offers Merge.</li>
+          <li><b>Collaboration</b>: team collaboration insights on projects several people work on, with contributors and shared sessions.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-label">All Projects <span class="sample">Sample data</span></div>
+        <div class="scroll"><table><thead><tr><th>Project</th><th>Health</th><th class="r">Sessions</th><th class="r">Contributors</th><th>Last activity</th></tr></thead><tbody id="projBody"></tbody></table></div>
+        <div id="dupNote" class="note"></div>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords: "project health dashboard" (label), "project health status" (health column), "duplicate repository detection", "team collaboration insights". Facts: MSoT 1.1 projects found automatically, 1.4 All Projects, Project page, Duplicate Detection, Collaboration. "Some figures need AI labelling" is Product Overview 5.5 detail on the Section 1 summary card.</div>
+  </section>
+
+  <section class="block" id="problems">
+    <div class="feat">
+      <div class="copy">
+        <div class="area">Failing commands analytics</div>
+        <h2>Where does work keep failing?</h2>
+        <ul>
+          <li><b>Work Problems</b> finds failed commands, error messages and repeated retries, using fixed rules and no AI.</li>
+          <li>Grouped by severity, with suggested actions and the developers most affected. Admin by default.</li>
+          <li>Failed tool calls are recorded for every supported tool except Aider.</li>
+        </ul>
+        <p class="more">More: <a href="/blog/visualize-ai-agents-working">How to read what an AI agent is doing</a></p>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Work Problems <span class="sample">Sample data</span></div>
+        <div class="scroll"><table><thead><tr><th>Severity</th><th>Problem</th><th class="r">Developers</th><th>Suggested action</th></tr></thead><tbody id="probBody"></tbody></table></div>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keyword "failing commands analytics" (label). Facts: MSoT 1.2 Work Problems; 1.1 note on failed tool calls and exit codes. The "AI agent stuck" notice is left out (Product Overview and Field Guide only).</div>
+  </section>
+
+  <section class="block" id="me">
+    <div class="feat">
+      <div class="copy">
+        <div class="area">Developer scorecard</div>
+        <h2>How do developers see their own work?</h2>
+        <ul>
+          <li><b>My Scorecard &amp; Insights</b> leads with "Top 3 to act on": a verdict, why it matters, what to try, or "not enough data".</li>
+          <li>Peak hour, busiest day, longest coding streak and deep sessions of 60 minutes or more.</li>
+          <li>A developer working style (builder, explorer, debugger, communicator or generalist) from what sessions mostly did. Styles of work, not personality types.</li>
+          <li>Private prompt statistics, and their own Claude plan usage on <b>Workspace</b>.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-label">My Scorecard &amp; Insights <span class="sample">Sample data</span></div>
+        <div class="tiles" id="meTiles"></div>
+        <div id="meInsights" style="display:grid;gap:8px"></div>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords: "developer scorecard" (label), "coding streak", "deep work sessions developer", "developer working style", "software developer personality types" (answered as styles, not types), "personal claude code usage stats" (Workspace plan usage). The /blog/developer-analytics-without-keystroke-tracking post covers the privacy side and is linked from the roles section. Facts: MSoT 1.4 own pages.</div>
+  </section>
+
+  <section class="block" id="usage">
+    <div class="feat">
+      <div class="copy">
+        <div class="area">Claude team plan usage statistics</div>
+        <h2>How much AI do we use, and who is near a Claude limit?</h2>
+        <ul>
+          <li><b>Team AI Usage</b>: tokens per developer, tool, model and project, with <a href="/ai-cost-tracking">estimated cost</a> per tool, never added across tools.</li>
+          <li><a href="/plan-headroom">Plan headroom</a>: who is close to a Claude Code plan limit, worst first.</li>
+          <li><a href="/ai-budgets">AI Budgets</a>: monthly budgets per team or project.</li>
+        </ul>
+        <p class="more">More: <a href="/blog/sprint-planning-claude-plan-limits">Sprint planning around Claude plan limits</a></p>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Team AI Usage · Overview <span class="sample">Sample data</span></div>
+        <div class="scroll"><table><thead><tr><th>Tool</th><th class="r">Tokens</th><th class="r">Est. cost</th></tr></thead><tbody id="useBody"></tbody></table></div>
+        <p class="note">Estimated from list prices, not billed spend. Codex, Cursor and Copilot usually show no price.</p>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude team plan usage statistics" (label). Kept short on purpose: plan headroom and budgets have their own pages. Facts: MSoT 1.2 (Team AI Usage, estimated cost per tool, Plan headroom, AI Budgets). The token pace line is left out (not in Section 1).</div>
+  </section>
+
+  <section class="block" id="reports">
+    <div class="feat">
+      <div class="copy">
+        <div class="area">Scheduled engineering reports</div>
+        <h2>Weekly and monthly engineering reports, sent by email</h2>
+        <ul>
+          <li>The <b>Company report</b> covers any period against the one before, as CSV or PDF: a company AI usage report without spreadsheet work.</li>
+          <li>The <b>Plan usage report</b> exports Claude usage data per developer and per Claude account to Excel.</li>
+          <li><b>Scheduled reports</b> email the Company report or one developer's report daily, weekly or monthly. Email must be set up on your server.</li>
+        </ul>
+        <p class="more">More: <a href="/blog/engineering-ai-spend-report">Building an AI spend report for finance</a></p>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Scheduled reports <span class="sample">Sample data</span></div>
+        <div class="seg" role="group" aria-label="How often"><button type="button" data-f="Daily" aria-pressed="false">Daily</button><button type="button" data-f="Weekly" aria-pressed="true">Weekly</button><button type="button" data-f="Monthly" aria-pressed="false">Monthly</button></div>
+        <div class="scroll"><table><thead><tr><th>Report</th><th>Sends</th><th>Format</th><th>Last sent</th></tr></thead><tbody id="repBody"></tbody></table></div>
+        <p class="note" id="repNote" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Folds in the /reports page. Secondary keywords: "weekly engineering report" and "monthly engineering report" (H2), "scheduled engineering reports email" (label), "company ai usage report", "export claude usage data", "claude plan usage report excel" (Plan usage report bullet), "ai usage report pdf" (CSV or PDF). Facts: MSoT 1.3. The "up to two years" range is left out (Product Overview only); MSoT says history starts when recording began.</div>
+  </section>
+
+  <section class="block" id="knowledge">
+    <div class="feat">
+      <div class="copy">
+        <div class="area">Engineering knowledge management</div>
+        <h2>Capture knowledge from AI coding sessions</h2>
+        <ul>
+          <li><b>Capability Map</b>: each project as modules, capabilities and scenarios, built and approved by a person.</li>
+          <li><a href="/skill-candidates">Skill Candidates</a>: draft Claude Code skills from repeated workflows, for a person to approve.</li>
+          <li><b>Session Graph</b> links sessions that look alike, rebuilt once a day.</li>
+          <li><b>Knowledge Records</b> quote passages worth keeping. They need AI labelling, off until an admin sets it up.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-label">Capability Map <span class="sample">Sample data</span></div>
+        <div class="tree" id="capTree"></div>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords: "engineering knowledge management" (label), "capture knowledge from ai coding sessions" (H2), "capability mapping tools" via Capability Map. Facts: MSoT 1.5. Capability ownership and Tenure &amp; Departure are left out (Product Overview only).</div>
+  </section>
+
+  <section class="block" id="who">
+    <h2>Who uses it and when</h2>
+    <p>Three access roles: Developer (own pages), Manager (their reporting line) and Admin (everyone), enforced by the server. More on <a href="/privacy">privacy</a>, <a href="/security">security</a>, <a href="/self-hosted">self-hosting</a> and <a href="/blog/developer-analytics-without-keystroke-tracking">analytics without keystroke tracking</a>.</p>
+    <div class="scroll"><table class="who">
+      <thead><tr><th>Who</th><th>What they get</th></tr></thead>
+      <tbody>
+        <tr><td>Developers</td><td>Their own sessions, work patterns, working style and suggestions to try, with private prompt statistics only they see.</td></tr>
+        <tr><td>Team leads and managers</td><td>Live team activity, project health, collaboration, plan-limit pressure and repeated failures for their reporting line.</td></tr>
+        <tr><td>Executives and finance</td><td>Token use and estimated list-price cost per tool, seat prices, shared accounts and monthly budgets per team or project.</td></tr>
+        <tr><td>Administrators and IT</td><td>Accounts and roles, project approvals, tool switches, machine status, infrastructure alerts and an audit log.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="seo"><b>SEO</b>The MSoT "Who it is for" table, word for word in the middle column. Role facts: MSoT 1.4 "Who sees what".</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about the team activity dashboard</h2>
+    <div>
+      <details open><summary>How do I create a weekly AI usage report for my team?</summary><p>In Kite Pulse an admin sets up a scheduled report: the Company report, or one developer's report, emailed daily, weekly or monthly as a PDF or CSV. The Company report compares the period with the one before. Email has to be configured on your server first.</p></details>
+      <details><summary>Can I control who can access individual-level usage data and organization-wide reports?</summary><p>Yes. There are three access roles: Developer sees their own pages, Manager sees their whole reporting line, and Admin sees everyone. The server enforces this, not just the screen. Admins can adjust each page per role on Roles &amp; Permissions, and downloading the Company report is for admins by default.</p></details>
+      <details><summary>Does AI coding analytics include an audit log of admin actions?</summary><p>Kite Pulse has a read-only, filterable Audit Log of sign-ins, failed sign-ins, lockouts and admin changes, covering over 100 kinds of action. It is kept indefinitely by default; a retention period (365 days by default) applies once the server operator enables deletion.</p></details>
+      <details><summary>Can we configure how long developer analytics data is retained?</summary><p>Yes. On Retention, admins set how long plan-usage history is kept and the windows for raw content, derived data and audit history. Those windows are applied once the server operator enables deletion on the server. Until then, data stays.</p></details>
+      <details><summary>Does AI coding analytics support sign-up by company email domain?</summary><p>Kite Pulse does. On Login &amp; Registration an admin chooses admin-created accounts (the default), sign-up by company email domain, or open sign-up with admin approval. Sign-in is email and password.</p></details>
+      <details><summary>Can I export reports or integrate the data with our existing analytics and finance systems?</summary><p>You can export. The Company report downloads as CSV or PDF, the Plan usage report as Excel, and an admin can export one person's data as a file. For a live connection, Kite Pulse has an Agent API and MCP server that are available when the server operator turns them on; they are off on a standard install.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Six of the brief's eight questions, word for word, mirrored in FAQPage JSON-LD. "How does role-based access work" is answered inside the access-control question rather than repeated. "Does the tool support enterprise security requirements, audit logs, and role-based access control?" is left to /security: an honest answer has to list what is not there, which belongs on the trust page. Facts: MSoT 1.3, 1.4, 1.6; Agent API wording from the brief's rule (available when the operator turns it on).</div>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See your own team's activity, on your own server</h3>
+      <p>Team, project and personal views from the AI tools your developers already use.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: team activity dashboard. Intent: commercial. Product tour for /features, with /reports folded in. Facts from MSoT Section 1 (1.1 to 1.6); detail from the Product Overview: summary-card figures needing AI labelling (5.5). Left out because they are not in Section 1: the token pace line, "Plan limit reached" and "AI agent stuck" notices, "What the agent did", full-screen and 3D Office, Slack delivery, user sync, "up to two years" of plan history, capability ownership, Tenure &amp; Departure, My Day. Hidden features (R3) not mentioned. "Top performers" and "Most active today" not mentioned, and no claim that it never ranks people (R4). Keywords not used: the "template" variants (Kite Pulse sends reports, it does not offer templates), "Claude Code daily summary / report / brief" (no daily Claude Code digest in Section 1; a daily scheduled developer report exists but is not Claude-specific), "dev scorecard", "coding streak app", "engineering project tracking ai", "claude enterprise export usage" (no Enterprise-plan export in Section 1). "Developer activity heatmap" is not used: the heatmap is a Field Guide detail of Activity Overview and the page is already long.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /features page. Every name, project, figure, date and report in the sample views is example data; product claims are from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* Example data only. Fictional people and projects; not a customer. */
+  const SAMPLE={
+    team:[
+      {name:'Priya',now:'Coding',dot:'on',active:'3h 10m',typical:'3h 30m',project:'payments-api'},
+      {name:'Ben',now:'Online',dot:'on',active:'2h 05m',typical:'3h 00m',project:'billing-web'},
+      {name:'Ana',now:'Coding',dot:'on',active:'4h 20m',typical:'3h 40m',project:'payments-api'},
+      {name:'Lee',now:'Away',dot:'away',active:'1h 15m',typical:'2h 50m',project:'mobile-app'},
+      {name:'Sam',now:'Offline',dot:'',active:'0h 00m',typical:'2h 30m',project:'infra-scripts',attn:'Upload failing'}
+    ],
+    projects:[
+      {name:'payments-api',health:'Active',sessions:142,people:4,last:'12 min ago'},
+      {name:'billing-web',health:'Active',sessions:88,people:3,last:'1 h ago'},
+      {name:'mobile-app',health:'Stable',sessions:31,people:2,last:'3 days ago'},
+      {name:'infra-scripts',health:'Stable',sessions:12,people:1,last:'6 days ago'},
+      {name:'legacy-admin',health:'Dormant',sessions:0,people:1,last:'7 weeks ago'}
+    ],
+    duplicate:'Duplicate Detection: "payments" and "payments-api" share one repository address. Merge?',
+    problems:[
+      {sev:'High',p:'Test command fails, retried 6 times in one session',dev:3,act:'Fix the shared test setup once'},
+      {sev:'Medium',p:'Build error "module not found" on two projects',dev:3,act:'Raise one fix with the platform team'},
+      {sev:'Low',p:'Repeated permission-denied on a deploy script',dev:1,act:'Check the script’s permissions'}
+    ],
+    me:{tiles:[['10:00','Peak hour'],['Tue','Busiest day'],['9 days','Longest streak'],['6','Deep sessions'],['Builder','Working style']],
+      insights:[
+        {v:'Most failed commands come from one test command',why:'The AI retried it six times in two sessions.',tryit:'Fix the test setup, then rerun.'},
+        {v:'Long sessions run late in the day',why:'Your deep sessions mostly start after 16:00.',tryit:'Start the big task before lunch.'},
+        {v:'Not enough data',why:'Too few sessions this week to judge reply pace.',tryit:''}
+      ]},
+    usage:[
+      {tool:'Claude Code',tokens:'48.2M',cost:'$312'},
+      {tool:'Gemini CLI',tokens:'6.1M',cost:'$21'},
+      {tool:'Cline',tokens:'3.4M',cost:'$18'},
+      {tool:'Codex',tokens:'9.8M',cost:'—'},
+      {tool:'Cursor',tokens:'5.5M',cost:'—'}
+    ],
+    reports:[
+      {r:'Company report',fmt:'PDF',to:'Leadership'},
+      {r:'Developer report: Ana',fmt:'CSV',to:'Ana, Lee'}
+    ],
+    lastSent:{Daily:'Today 07:00',Weekly:'Mon 07:00',Monthly:'1 Nov 07:00'},
+    capability:[
+      {mod:'Payments',caps:[{c:'Refunds',sc:'Full refund · Partial refund · Refund after dispute'},{c:'Card checkout',sc:'Saved card · New card · 3-D Secure step'}]},
+      {mod:'Billing',caps:[{c:'Invoices',sc:'Monthly invoice · Credit note'}]}
+    ]
+  };
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  $('teamBody').innerHTML=SAMPLE.team.map(t=>`<tr><td><b>${esc(t.name)}</b></td><td><span class="dot ${t.dot}"></span>${esc(t.now)}</td><td class="r num">${t.active}<br><span class="muted" style="font-size:.78rem">typical ${t.typical}</span></td><td>${esc(t.project)}${t.attn?` <span class="pill bad">${esc(t.attn)}</span>`:''}</td></tr>`).join('');
+  const attn=SAMPLE.team.filter(t=>t.attn);
+  $('teamAttn').textContent=`Needs attention: ${attn.length} (${attn.map(t=>t.name+', '+t.attn.toLowerCase()).join('; ')}). Refreshes every 30 seconds.`;
+
+  const hp={Active:'good',Stable:'info',Dormant:''};
+  $('projBody').innerHTML=SAMPLE.projects.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td><span class="pill ${hp[p.health]}">${p.health}</span></td><td class="r num">${p.sessions}</td><td class="r num">${p.people}</td><td>${esc(p.last)}</td></tr>`).join('');
+  $('dupNote').textContent=SAMPLE.duplicate;
+
+  const sp={High:'bad',Medium:'warn',Low:''};
+  $('probBody').innerHTML=SAMPLE.problems.map(x=>`<tr><td><span class="pill ${sp[x.sev]}">${x.sev}</span></td><td>${esc(x.p)}</td><td class="r num">${x.dev}</td><td>${esc(x.act)}</td></tr>`).join('');
+
+  $('meTiles').innerHTML=SAMPLE.me.tiles.map(([v,l])=>`<div class="tile"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
+  $('meInsights').innerHTML='<div class="note">Top 3 to act on</div>'+SAMPLE.me.insights.map(i=>`<div class="insight"><span class="v">${esc(i.v)}</span><span class="muted">${esc(i.why)}</span>${i.tryit?`<span>Try: ${esc(i.tryit)}</span>`:''}</div>`).join('');
+
+  $('useBody').innerHTML=SAMPLE.usage.map(u=>`<tr><td><b>${esc(u.tool)}</b></td><td class="r num">${u.tokens}</td><td class="r num">${u.cost}</td></tr>`).join('');
+
+  function renderReports(f){
+    $('repBody').innerHTML=SAMPLE.reports.map(r=>`<tr><td><b>${esc(r.r)}</b><br><span class="muted" style="font-size:.78rem">to ${esc(r.to)}</span></td><td>${f}</td><td>${r.fmt}</td><td>${SAMPLE.lastSent[f]}</td></tr>`).join('');
+    $('repNote').textContent=`${f} sends as PDF or CSV. The Company report compares the period with the one before. Each schedule has a preview and a send history.`;
+  }
+  document.querySelector('#reports .seg').addEventListener('click',e=>{const b=e.target.closest('button[data-f]');if(!b)return;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderReports(b.dataset.f);});
+  renderReports('Weekly');
+
+  $('capTree').innerHTML=SAMPLE.capability.map(m=>`<div><div class="mod">${esc(m.mod)}</div>${m.caps.map(c=>`<div class="cap"><span>${esc(c.c)}</span><span class="sc">${esc(c.sc)}</span></div>`).join('')}</div>`).join('')+'<div class="note">Built and approved by a person. A server operator can run a rule-based suggester to propose entries.</div>';
+})();
+</script>
+
+</body></html>

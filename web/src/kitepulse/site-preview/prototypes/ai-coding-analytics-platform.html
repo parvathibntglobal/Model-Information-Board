@@ -1,0 +1,269 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>AI Coding Analytics Platform for Leaders | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="What an AI coding analytics platform shows leaders, which questions Kite Pulse answers from real sessions, and what a pilot needs from your organisation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Kite Pulse in Five Minutes: The AI Coding Analytics Platform for Leaders","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"AI coding analytics platform"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Kite Pulse in Five Minutes for Leaders","item":"/blog/ai-coding-analytics-platform"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the best tool to track AI coding assistant usage for a team?","acceptedAnswer":{"@type":"Answer","text":"The right tool depends on how many AI coding assistants your team runs and what you need to see. A vendor's own admin console covers that vendor's tool. Git and ticket analytics cover what was shipped. If developers use several assistants and you want usage, estimated cost per tool and Claude plan limits side by side, look for a tool that reads the assistants' own session history; Kite Pulse does this for ten tools on a server you run."}},
+{"@type":"Question","name":"How can I see AI coding-tool usage across my entire engineering organization?","acceptedAnswer":{"@type":"Answer","text":"With Kite Pulse, each developer runs a small desktop program that reads the session history of ten AI coding tools and sends new activity to your own server, after they confirm their projects. An admin then sees everyone on Team AI Usage and Organisation Overview, and each manager sees their own reporting line. Coverage stops at the ten supported tools, and for GitHub Copilot it covers Copilot Chat in VS Code only."}},
+{"@type":"Question","name":"What does a pilot of an AI coding analytics tool look like?","acceptedAnswer":{"@type":"Answer","text":"For Kite Pulse, a pilot is usually one team on a local network, set up from the same installer as a single-computer install. An admin sets up the server and creates accounts, each developer installs the desktop program with their personal client code and confirms their projects, and an approver signs off where required. Once sessions arrive, the team pages fill and you can judge the fit before moving to an Ubuntu server or your own AWS account."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.placeholder{background:var(--cost-soft);border-radius:4px;padding:0 4px;font-family:var(--mono);font-size:.85em}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Product overview</div>
+    <h1>Kite Pulse in Five Minutes: The AI Coding Analytics Platform for Leaders</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Kite Pulse is an AI coding analytics platform that your organisation runs on its own server.</b> It reads the session history that ten AI coding tools already keep on each developer's computer, masks secrets, and shows leaders how AI tools are used, what they are estimated to cost per tool, who is close to a Claude plan limit, and where work gets stuck. To run it you need a self-hosted server, an admin, and each developer's consent before their sessions upload.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "ai coding analytics platform" (intent: Commercial) is in the title tag, H1, URL and the bolded first sentence of the answer box. Title tag: "AI Coding Analytics Platform for Leaders | Kite Pulse" (53 characters). The answer box also states the three things the organisation must supply, which is the article plan's brief. No promised returns anywhere on the page. Sources: every product claim is from MSoT Section 1; the Product Overview adds only the "flat subscriptions" reason (5.6), "managers and admins can view" the Company report (5.9) and the team setup order (section 10). Left out on purpose: the token pace line and illustrative week from the Product Overview, the Field Guide's tool count of 11 and timing figures, user sync, the Leaked Credentials page, Agent API and MCP, hidden pages, ranking panels, and any price or trial terms (owner to supply).</div>
+  </header>
+
+  <section class="block" id="what">
+    <h2>What an AI coding analytics platform is for</h2>
+    <p>Much of a developer's day now goes into directing an AI assistant: asking, reviewing, retrying and correcting. Commits, pull requests and tickets record what came out at the end. They do not show which assistants the team relies on, how much each is used, or where a session went round in circles.</p>
+    <p>An AI coding analytics platform reads that missing layer. Kite Pulse does it from the records the AI tools already write, so developers keep working as they do today, with no timesheets or manual logging. It is one of several ways to look at engineering. If you mainly need delivery figures from git and tickets, read our overview of <a href="/engineering-intelligence">how session analytics fits beside git and ticket analytics</a> before choosing.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">On each computer</span><h3>A desktop program</h3><p>Runs in the background on Windows or macOS and reads the AI tools' own session history.</p></div>
+      <div class="part"><span class="tag">On your infrastructure</span><h3>Your Kite Pulse server</h3><p>Stores and processes the sessions. There is no vendor cloud in between.</p></div>
+      <div class="part"><span class="tag">In the browser</span><h3>A web console</h3><p>Each person signs in and sees what their role allows: Developer, Manager or Admin.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="questions">
+    <h2>The questions leaders can answer from real sessions</h2>
+    <p>Every figure below comes from what happened in the sessions, not from surveys. The table pairs a leader's question with the console page that answers it.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Your question</th><th>Where Kite Pulse answers it</th></tr></thead>
+        <tbody>
+          <tr><td>Which AI tools and models do we actually use?</td><td>Team AI Usage shows token use per developer, tool, model, project and day. Its Models tab shows developers per model and model adoption over time.</td></tr>
+          <tr><td>How many accounts and seats are we paying for?</td><td>Tool Accounts counts the separate signed-in accounts per tool and marks accounts used by more than one person as "Shared". Admins can enter seat prices on Hourly Rates &amp; Seat Prices.</td></tr>
+          <tr><td>What is AI coding estimated to cost?</td><td>Estimated cost per tool from published list prices, labelled "not billed spend", plus monthly AI Budgets per team or project.</td></tr>
+          <tr><td>Who is about to hit a Claude plan limit?</td><td>Plan headroom lists people close to a limit, worst first, across the 5-hour, weekly and per-model weekly windows. Claude Code only.</td></tr>
+          <tr><td>Where is work getting stuck?</td><td>Work Problems uses fixed rules, with no AI, to find failed commands, error messages and repeated retries, grouped by severity with suggested actions.</td></tr>
+          <tr><td>Which projects are active?</td><td>All Projects shows each project as active, stable or dormant, with sessions, contributors and last activity.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Reading AI coding assistant adoption</h3>
+    <p>For AI coding assistant adoption, the useful view is who uses which tool and model, and how that changes month to month. The Models tab answers the first part. The Agent features tab shows which Claude Code agent features sessions used, such as sub-agents, plan mode and MCP tools. A Claude Code version check also shows who is running an older release.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai coding assistant adoption" in the H3 and its paragraph. Every row maps to MSoT 1.2 (Team AI Usage, Models tab, Tool Accounts, Hourly Rates &amp; Seat Prices, Estimated cost, AI Budgets, Plan headroom, Work Problems, version check) or 1.4 (All Projects).</div>
+  </section>
+
+  <section class="block" id="spend">
+    <h2>Building an engineering AI spend report you can defend</h2>
+    <p>An engineering AI spend report needs to be honest about what it measures. Kite Pulse multiplies tokens by each vendor's published list price, so the figure is an estimate. Many developers are on flat subscriptions, which is why the console labels it "not billed spend".</p>
+    <ul>
+      <li><b>What is priced.</b> Claude and Gemini models are priced from list prices. Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost, and Kite Pulse uses it. Codex, Cursor and Copilot usually show a dash, never $0.</li>
+      <li><b>Per tool, not one total.</b> Team AI Usage shows cost per tool and does not add it up across tools, because some tools carry no price.</li>
+      <li><b>Budgets per team or project.</b> Admins set a monthly AI Budget in tokens or estimated US dollars, with alerts at 80% and 100%. A dollar budget adds up the priced tools and reports unpriced tokens separately.</li>
+      <li><b>Cost per developer</b> is shown to admins only.</li>
+    </ul>
+    <p>For the method in more detail, including how to read the dashes, see our <a href="/ai-cost-tracking">guide to tracking AI coding cost</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "engineering ai spend report" in the H2 and first sentence. Cost wording follows MSoT 1.2 and R7: estimate, "not billed spend", per tool, never totalled, dashes never $0. The "flat subscriptions" reason is from the Product Overview 5.6.</div>
+  </section>
+
+  <section class="block" id="dashboard">
+    <h2>A CTO dashboard without another status meeting</h2>
+    <p>A CTO dashboard is only useful if nobody has to compile it. In Kite Pulse, the pages a technology leader opens most are these:</p>
+    <ul>
+      <li><b>Organisation Overview</b> (admin by default): active developers and hours, sessions, commits, project health, working styles, tools and languages.</li>
+      <li><b>Team Overview</b>: who is online and coding now, active time and sessions today against a typical day, and who needs attention.</li>
+      <li><b>The Office</b>: everyone's home page, a desk per person grouped by team, with markers for stuck work or plan limits.</li>
+      <li><b>Company report</b>: any period compared with the one before. Managers and admins can view it; admins can download it as CSV or PDF.</li>
+      <li><b>Scheduled reports</b>: the Company report emailed daily, weekly or monthly. This needs email set up on the server.</li>
+    </ul>
+    <p>Each manager sees their own reporting line, including indirect reports. An admin sees everyone. The server enforces this, not just the screen.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "cto dashboard" in the H2 and first sentence. Organisation Overview, Team Overview, The Office: MSoT 1.4. Reports: MSoT 1.3; "managers and admins can view" is from the Product Overview 5.9. No ranking language: the "Top performers" panel is not mentioned (R4, owner decision open).</div>
+  </section>
+
+  <section class="block" id="needs">
+    <h2>What Kite Pulse needs from your organisation</h2>
+    <p>Kite Pulse is self-hosted and proprietary. Before you plan a rollout, budget for three things.</p>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What you supply</h3>
+        <ul>
+          <li><b>A server you run</b>: one computer, a machine on the team's local network, an Ubuntu server, or your own AWS account.</li>
+          <li><b>An admin</b> to set up accounts and roles, approve projects, choose which tools are collected and set budgets.</li>
+          <li><b>Each developer's consent</b>: no session content uploads until they confirm their projects in the Onboarding Wizard, and an approver signs off where required.</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What it does not ask for</h3>
+        <ul>
+          <li>Access to project source files</li>
+          <li>Keystroke logs, screenshots or website history</li>
+          <li>An AI service: it works without one</li>
+          <li>A vendor cloud between you and your data</li>
+        </ul>
+      </div>
+    </div>
+    <p>Session records can include excerpts of code the AI read or wrote. Secrets are masked twice: on the computer before upload, and again on the server. Uploads are encrypted in transit, and each person has a Privacy page that shows what is recorded about them and who can see it.</p>
+  </section>
+
+  <section class="block" id="scaling">
+    <h2>Scaling AI adoption in engineering: from one team to the organisation</h2>
+    <p>Scaling AI adoption in engineering goes better when the first step is small. A sensible path with Kite Pulse looks like this:</p>
+    <ol class="steps">
+      <li><p>An admin sets up the server, starting with a team pilot on the local network from the same installer used for a single computer.</p></li>
+      <li><p>The admin creates an account for each person, or lets people sign up with a company email domain.</p></li>
+      <li><p>Each developer installs the desktop program and links it to their account with their personal client code, which starts with KP-.</p></li>
+      <li><p>Each developer confirms their projects. Where approval is on, an approver confirms the first project list.</p></li>
+      <li><p>Sessions start to arrive and the team pages fill. When the pilot has answered your questions, move to an Ubuntu server or your own AWS account.</p></li>
+    </ol>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>All ten tools are collected out of the box: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider. An admin can switch any of them off, or collect token counts only so no conversation leaves the computer for that tool.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keyword "scaling ai adoption in engineering" in the H2 and first sentence. Steps come from the Product Overview section 10 (team setup), each backed by MSoT 1.8 (team pilot, Ubuntu, AWS), 1.6 (Login &amp; Registration), 1.1 (personal client code, consent) and 1.4 (Onboarding Approvals). This is the single Kite Pulse callout.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What it will not tell you</h2>
+    <ul>
+      <li><b>Your vendor invoice.</b> Cost is an estimate from list prices, and some tools show no price at all.</li>
+      <li><b>A return on your AI spend.</b> Kite Pulse gives you inputs such as tokens, estimated cost, seat prices and active time. It does not calculate a return figure, and we do not promise one.</li>
+      <li><b>Delivery metrics.</b> For DORA metrics from git and tickets, a git-based analytics tool fits that job better.</li>
+      <li><b>Every AI tool.</b> Coverage is the ten tools above. For GitHub Copilot, only Copilot Chat in VS Code is read; inline completions, JetBrains and Copilot CLI are not collected.</li>
+      <li><b>Plan limits outside Claude Code.</b> Other tools show "Not reported by this tool".</li>
+    </ul>
+    <div class="seo"><b>Prototype</b>Honest scope (R9) and the plan brief's "no promised returns". The no-return-figure statement follows MSoT 2.5 (ROI method row).</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions leaders ask</h2>
+    <div>
+      <details open><summary>What is the best tool to track AI coding assistant usage for a team?</summary><p>The right tool depends on how many AI coding assistants your team runs and what you need to see. A vendor's own admin console covers that vendor's tool. Git and ticket analytics cover what was shipped. If developers use several assistants and you want usage, estimated cost per tool and Claude plan limits side by side, look for a tool that reads the assistants' own session history; Kite Pulse does this for ten tools on a server you run.</p></details>
+      <details><summary>How can I see AI coding-tool usage across my entire engineering organization?</summary><p>With Kite Pulse, each developer runs a small desktop program that reads the session history of ten AI coding tools and sends new activity to your own server, after they confirm their projects. An admin then sees everyone on Team AI Usage and Organisation Overview, and each manager sees their own reporting line. Coverage stops at the ten supported tools, and for GitHub Copilot it covers Copilot Chat in VS Code only.</p></details>
+      <details><summary>What does a pilot of an AI coding analytics tool look like?</summary><p>For Kite Pulse, a pilot is usually one team on a local network, set up from the same installer as a single-computer install. An admin sets up the server and creates accounts, each developer installs the desktop program with their personal client code and confirms their projects, and an approver signs off where required. Once sessions arrive, the team pages fill and you can judge the fit before moving to an Ubuntu server or your own AWS account.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The three FAQ questions from the brief, word for word, also in FAQPage JSON-LD. The first does not call Kite Pulse "the best" (R9). Trial terms are a business fact (MSoT 2.5), so the pilot answer describes the setup only.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/">Kite Pulse home<span>The product in brief</span></a></li>
+      <li><a href="/engineering-intelligence">Session analytics and git analytics<span>Where each approach fits</span></a></li>
+      <li><a href="/ai-cost-tracking">AI cost tracking guide<span>Estimate and track AI coding spend</span></a></li>
+      <li><a href="/pricing">Kite Pulse pricing<span class="placeholder">Plans and licence terms: owner to supply</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See how your teams work with AI, on your own server</h3>
+      <p>Book a demo to walk through the console and plan a pilot for one team.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/ai-coding-analytics-platform article. No example data; every product claim is from the Master Source of Truth, Section 1, and pricing is a placeholder.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

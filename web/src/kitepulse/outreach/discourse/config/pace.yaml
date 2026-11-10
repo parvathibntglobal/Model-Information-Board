@@ -1,0 +1,15 @@
+# Limits on what the Finder keeps.
+
+# Topics created before this are not read (the listing is paged until it passes
+# this age). Old threads have moved on, and a late reply that links to a
+# product reads as advertising.
+max_thread_age_days: 7
+
+# Usernames of team members who post replies. A topic where one of them has
+# already posted is dropped (reason: already_answered). One list for every
+# forum: a Discourse username belongs to one forum, so list each forum's name.
+#
+# EMPTY MEANS THE CHECK DOES NOT RUN, and the Finder says so in its output. It
+# never reads as "nobody on the team has replied".
+team_accounts:
+  discourse: []

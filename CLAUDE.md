@@ -78,6 +78,20 @@ These are the rules a helpful refactor will otherwise quietly violate.
    (The quiz drafter, stage `quiz`, also calls a model and is not recorded
    here; that is its own change.)
 
+   **Kite Pulse outreach's Shortlister, recorded 2026-11-09 (aloysiuspellissery;
+   decided without a proposal, for Parvathi and Anooj to see here):**
+   `web/src/kitepulse/outreach/shortlist.py` asks a model, by one forced tool
+   call, which listed problem a public forum thread is about and how directly.
+   That answer **orders** the outreach review list and does nothing else: code
+   sets threads aside before the call, checks every field after it and stores
+   a failing answer as invalid rather than correcting it, and no thread is
+   hidden, dropped or posted on the model's word - a person reads each one and
+   posts by hand. Its calls are rows in outreach's OWN database
+   (`kp_outreach_spend`, step `shortlist`), not `spend_ledger`, under
+   `OUTREACH_DAILY_BUDGET_USD`, outside the extraction budget. The prompt is in
+   `web/src/kitepulse/outreach/prompts/shortlist/`. The Reply Writer (step
+   `draft`) is not covered by this entry.
+
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 

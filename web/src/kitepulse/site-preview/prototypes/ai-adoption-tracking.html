@@ -1,0 +1,253 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>AI Adoption Tracking for Engineering Teams | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="AI adoption tracking from real session data: which AI coding tools and models your teams use, how that changes over time, and which projects rely on them.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"AI Adoption Tracking: See Which AI Tools and Models Your Company Really Uses","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"AI adoption tracking"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"AI Adoption Tracking","item":"/blog/ai-adoption-tracking"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I measure AI coding tool adoption on my team?","acceptedAnswer":{"@type":"Answer","text":"Count from what the tools record, not from licences or surveys. Track how many developers used each tool and each model in a period, their token use, which projects the sessions belonged to, and how those figures move week by week. A tool that reads the session history AI coding assistants already keep, such as Kite Pulse, gives you those counts without anyone logging their own use."}},
+{"@type":"Question","name":"How has AI coding-tool adoption changed over time?","acceptedAnswer":{"@type":"Answer","text":"For your own company, the answer is in your own data, not in an industry average. Plot developers per tool and per model, and token use, over months, and compare each period with the one before. In Kite Pulse, the Models tab of Team AI Usage shows model adoption over time, and the company report compares any period with the previous one."}},
+{"@type":"Question","name":"Can I see which AI models are being used and how frequently?","acceptedAnswer":{"@type":"Answer","text":"Yes, for the tools that record a model name. Kite Pulse's Team AI Usage shows token use per model for any period, and its Models tab shows how many developers use each model and how that changes over time. Most of the ten supported tools record the model; Cursor does so only when one model served the whole chat, and GitHub Copilot Chat in VS Code only when it was recorded."}},
+{"@type":"Question","name":"How do I find out which projects my team uses AI on the most?","acceptedAnswer":{"@type":"Answer","text":"Link every AI session to the repository it ran in, then count tokens and sessions per project. Kite Pulse does the linking automatically from folders and repository addresses, so one repository cloned on several machines counts as one project. Team AI Usage has a Projects tab, the Models tab shows models by project, and All Projects lists sessions and contributors per project."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Benefits for organisations</div>
+    <h1>AI Adoption Tracking: See Which AI Tools and Models Your Company Really Uses</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>AI adoption tracking means counting how AI coding assistants are actually used: which tools and models, by how many developers, on which projects, and how that changes over time.</b> The reliable source is the session history the tools already keep on each developer's computer, not licence counts or surveys. Read that history consistently across tools and you get adoption figures leaders can compare period to period.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "ai adoption tracking" in the title tag (55 characters), H1, URL and the bolded first sentence of the answer box. Meta description 154 characters. Intent is commercial, so the page compares ways to measure adoption before showing where Kite Pulse fits, and says what it cannot see.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why licence counts are not adoption</h2>
+    <p>Most companies know how many AI seats they pay for. Fewer know how many of those seats are in daily use, which models people choose when they have a choice, or which projects get most of the AI work. A seat bought in January says nothing about whether it was used in June.</p>
+    <p>Executives and technology leaders usually want three answers. Which AI tools and models are really used? Is use growing, flat or falling? And which projects depend on AI enough that a change in tool, model or plan would be felt? Each of those needs a count of real activity, taken the same way every week.</p>
+    <p>There is a second reason to measure use directly. Developers often run more than one assistant: a terminal agent for larger changes, an editor extension for quick questions, a different model for a different job. Any single vendor's view shows one slice of that, and the slices do not add up on their own.</p>
+  </section>
+
+  <section class="block" id="metrics">
+    <h2>AI adoption metrics worth tracking</h2>
+    <p>Good AI adoption metrics are counts you can check, broken down the way decisions are made. A practical set for AI coding assistant adoption:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Metric</th><th>What it tells you</th></tr></thead>
+        <tbody>
+          <tr><td>Developers per tool</td><td>How widely each assistant is used, and whether a tool you pay for has few active users.</td></tr>
+          <tr><td>Developers per model</td><td>Which models people choose, and how quickly a new model is picked up.</td></tr>
+          <tr><td>Token use per tool, model and project</td><td>Where the volume of AI work is, which is often different from where the headcount is.</td></tr>
+          <tr><td>Sessions and active time</td><td>Whether use is a daily habit or an occasional experiment.</td></tr>
+          <tr><td>Accounts per tool</td><td>Whether people work under company accounts, and whether one login is shared by several people.</td></tr>
+          <tr><td>The same figures over time</td><td>The trend. A single month is a snapshot; adoption is a direction.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Two habits keep these honest. Compare each period with the one before rather than reading a single number on its own, and keep the breakdowns at team and project level when the question is about the organisation. Adoption is a property of how a company works, and it is best read that way.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "ai adoption metrics" (H2 and first sentence) and "ai coding assistant adoption" (intro sentence). The table is general guidance, not product claims, so it carries no numbers.</div>
+  </section>
+
+  <section class="block" id="approaches">
+    <h2>Four ways to measure AI coding assistant adoption</h2>
+    <div class="parts">
+      <div class="part"><span class="tag">Quick</span><h3>Surveys</h3><p>Easy to run and good for sentiment. Weak for counts: people misremember how often they used a tool, and the answers cannot be repeated exactly next quarter.</p></div>
+      <div class="part"><span class="tag">Per vendor</span><h3>Vendor admin consoles</h3><p>Accurate for that vendor's own tool, as far as each console goes. Each one usually covers a single tool, so a team using several assistants gets several partial views in different formats.</p></div>
+      <div class="part"><span class="tag">Delivery</span><h3>Git and ticket analytics</h3><p>Show what was shipped, and the right choice for delivery metrics. They cannot see the AI conversation itself, so they do not say which tool or model did the work.</p></div>
+      <div class="part"><span class="tag">Sessions</span><h3>Session history</h3><p>Reads the records the AI tools already keep on each computer. Covers several tools in one consistent format, down to model and project, with nothing for developers to log.</p></div>
+    </div>
+    <p>These are not exclusive. Many teams pair a session view of AI use with their existing <a href="/engineering-intelligence">engineering analytics for delivery and planning</a>, because each answers questions the other cannot.</p>
+  </section>
+
+  <section class="block" id="dashboard">
+    <h2>What an AI adoption dashboard looks like in Kite Pulse</h2>
+    <p>Kite Pulse reads the session history of ten AI coding tools: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider. All ten are collected out of the box, and an admin can switch any of them off or collect token counts only. Projects are found automatically from folders and repository addresses, so one repository cloned on several machines counts as one project. See <a href="/integrations">what each of the ten integrations provides</a>.</p>
+    <p>The adoption picture lives mainly on <b>Team AI Usage</b>, which shows token use per developer, tool, model, project and day, for any period. Managers see their own reporting line; admins see everyone.</p>
+    <ul>
+      <li><b>Overview</b> is where admins also see the seat prices they have entered for each tool, so what a tool costs per seat sits beside how much it is used.</li>
+      <li><b>Models</b> shows developers per model, model adoption over time and models by project, plus the Claude Code effort-level and speed settings in use.</li>
+      <li><b>Projects</b> breaks token use down by project.</li>
+      <li><b>Tools &amp; accounts</b> and the separate <b>Tool Accounts</b> page show how many signed-in accounts each tool runs under, with accounts used by more than one person marked "Shared". That page covers Claude Code, Codex, Cursor, OpenCode and GitHub Copilot, and is admin only by default.</li>
+      <li><b>Agent features</b> shows which Claude Code agent features sessions used, such as sub-agents, background commands, plan mode, worktrees and MCP tools.</li>
+    </ul>
+    <p>Around it, <b>Organisation Overview</b> (admin by default) gives a company-wide view of active developers and hours, sessions, commits, project health, tools and languages. <b>Activity Overview</b> shows sessions per tool and the AI models used for the scope you pick, and <b>Trends</b> charts activity, sessions or cost over time with the most-used tools and languages. For a wider look at the console, read our guide to <a href="/ai-coding-analytics">AI coding analytics for teams</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai adoption dashboard" in this H2. Facts from MSoT 1.1 (ten tools, projects found automatically, counts-only mode) and 1.2 (Team AI Usage, Models tab, Agent features, Tool Accounts, seat prices). Activity Overview and Trends detail from the Field Guide, Insights section; both pages are listed in MSoT 1.4.</div>
+  </section>
+
+  <section class="block" id="models">
+    <h2>AI model adoption tracking</h2>
+    <p>AI model adoption tracking answers a narrower question: when a new model arrives, who moves to it and how fast, and which projects still rely on an older one. That matters for plan choices and for knowing where a model change would land.</p>
+    <p>The Models tab answers it from the model name each session records. Most of the ten tools record it. Two are partial: Cursor gives a model name only when one model served the whole chat, and GitHub Copilot Chat in VS Code only when it was recorded. Read the Models tab as complete for the other eight tools and partial for those two.</p>
+    <p>Model use and cost are separate questions. Estimated cost is shown per tool, from published list prices, and labelled "not billed spend". Claude and Gemini models are priced, and Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost; Codex, Cursor and Copilot usually show a dash rather than a figure. Our <a href="/ai-coding-analytics">AI coding analytics overview</a> covers the cost side in more detail.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Adoption is counted from what the tools themselves recorded, with nothing for developers to fill in. The desktop program runs in the background, masks secrets before upload and sends new activity only to the server your team runs. No session content uploads until each developer confirms their projects in the Onboarding Wizard.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai model adoption tracking" as H2. Model-name coverage per tool from the MSoT 1.1 "What each tool provides" table. Cost wording from MSoT 1.2 and R7: per tool, not billed spend, dash for Codex, Cursor and Copilot. The one Kite Pulse callout on the page.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What this view of adoption does not show</h2>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What it counts</h3>
+        <ul>
+          <li>Sessions, tokens and models from the ten supported tools</li>
+          <li>Which project each session belongs to</li>
+          <li>Accounts each tool runs under, for five of the tools</li>
+          <li>The same figures for any period, compared with the previous one</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What it does not count</h3>
+        <ul>
+          <li>AI tools outside the ten, or tools an admin has switched off</li>
+          <li>Copilot inline completions, Copilot in JetBrains and Copilot CLI</li>
+          <li>Activity from developers who have not confirmed their projects</li>
+          <li>Whether the AI-written code was good: it is not a code-quality tool</li>
+        </ul>
+      </div>
+    </div>
+    <p>If what you need is delivery speed from git and tickets, a git-based tool fits that job better. Kite Pulse covers the AI session, which those tools cannot see.</p>
+  </section>
+
+  <section class="block" id="reporting">
+    <h2>Reporting adoption to leadership</h2>
+    <p>Adoption figures are most useful on a schedule. The company report covers any period and compares it with the previous one, and it downloads as CSV or PDF, by admins by default. Admins can also email it daily, weekly or monthly as a scheduled report, once email is set up on the server. A quarterly review then starts from the same counts every time, rather than from a fresh survey.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about AI adoption tracking</h2>
+    <div>
+      <details open><summary>How do I measure AI coding tool adoption on my team?</summary><p>Count from what the tools record, not from licences or surveys. Track how many developers used each tool and each model in a period, their token use, which projects the sessions belonged to, and how those figures move week by week. A tool that reads the session history AI coding assistants already keep, such as Kite Pulse, gives you those counts without anyone logging their own use.</p></details>
+      <details><summary>How has AI coding-tool adoption changed over time?</summary><p>For your own company, the answer is in your own data, not in an industry average. Plot developers per tool and per model, and token use, over months, and compare each period with the one before. In Kite Pulse, the Models tab of Team AI Usage shows model adoption over time, and the company report compares any period with the previous one.</p></details>
+      <details><summary>Can I see which AI models are being used and how frequently?</summary><p>Yes, for the tools that record a model name. Kite Pulse's Team AI Usage shows token use per model for any period, and its Models tab shows how many developers use each model and how that changes over time. Most of the ten supported tools record the model; Cursor does so only when one model served the whole chat, and GitHub Copilot Chat in VS Code only when it was recorded.</p></details>
+      <details><summary>How do I find out which projects my team uses AI on the most?</summary><p>Link every AI session to the repository it ran in, then count tokens and sessions per project. Kite Pulse does the linking automatically from folders and repository addresses, so one repository cloned on several machines counts as one project. Team AI Usage has a Projects tab, the Models tab shows models by project, and All Projects lists sessions and contributors per project.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Four FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD. The second question is answered without an industry statistic (R2): no outside figure is used anywhere on the page.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-coding-analytics">AI coding analytics<span>Usage, cost and plan limits across your AI tools</span></a></li>
+      <li><a href="/engineering-intelligence">Engineering analytics for AI-assisted teams<span>Where AI session data fits beside delivery metrics</span></a></li>
+      <li><a href="/integrations">The ten integrations<span>What Kite Pulse reads from each AI coding tool</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See real AI adoption across your company</h3>
+      <p>Run Kite Pulse on your own server and see which AI tools and models each team and project relies on.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: ai adoption tracking. Intent: commercial. Facts from MSoT Section 1 (1.1, 1.2, 1.3, 1.4); detail on Activity Overview and Trends from the Field Guide (Insights). Left out on purpose: the Summary page's "AI adoption" panel (it sits beside label-based delivery and friction figures not listed in Section 1), Trends' label-based measures (need AI labelling), the token pace line (Product Overview and Field Guide only), shadow AI and the installed-tools read, plan headroom, and the "Top performers" panel. No outside statistics; no "never ranks" claim.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/ai-adoption-tracking article. No example data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

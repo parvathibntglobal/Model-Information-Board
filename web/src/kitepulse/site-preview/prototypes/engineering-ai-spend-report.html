@@ -1,0 +1,250 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Engineering AI Spend Report for Finance | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="What an engineering AI spend report for finance should hold: tokens by person, project, tool and model, estimated cost per tool, budgets and its limits.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Engineering AI Spend Report: Turn One AI Bill into a Breakdown","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"engineering ai spend report"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Engineering AI Spend Report","item":"/blog/engineering-ai-spend-report"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I track AI coding costs by developer, team, department, and project?","acceptedAnswer":{"@type":"Answer","text":"Partly, and it helps to know where each view lives. In Kite Pulse, token use per developer and per project is on Team AI Usage, and estimated cost per developer is shown to admins only, on that developer's AI Usage tab. Estimated cost per team or per project appears in AI Budgets, as a monthly budget an admin sets. There is no separate department level: teams are the grouping, so a department is tracked by setting up its teams."}},
+{"@type":"Question","name":"What is our total AI coding spend across the organization?","acceptedAnswer":{"@type":"Answer","text":"Your vendor invoices are the only source for total billed spend. Kite Pulse shows estimated cost per tool and does not add it up across tools, because some tools have no price and many seats are flat subscriptions. A dollar AI budget sums the priced tools only and reports unpriced tokens separately, so treat it as a partial figure, not a company total."}},
+{"@type":"Question","name":"Are Kite Pulse cost figures exact?","acceptedAnswer":{"@type":"Answer","text":"No. Token counts come from each tool's own records, but cost is an estimate: tokens multiplied by the vendor's published list price, or the cost the tool reports itself. It is labelled \"not billed spend\" in the console. Use it to see where AI use goes and how it changes, and use invoices for the amount you actually pay."}},
+{"@type":"Question","name":"How accurate are AI coding cost estimates?","acceptedAnswer":{"@type":"Answer","text":"They are as good as the price list and the token counts behind them. A list-price estimate does not know about flat subscriptions, discounts or credits, so it can differ a lot from what you are billed. In Kite Pulse, Claude and Gemini models are priced from list prices, five tools report their own cost, and Codex, Cursor and Copilot usually show a dash rather than a guessed figure."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700;white-space:nowrap}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} td:first-child{white-space:normal} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · For finance</div>
+    <h1>The Engineering AI Spend Report: Turn One AI Bill into a Breakdown</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>An engineering AI spend report shows finance where AI coding money goes: token use by person, project, tool, model and period, with an estimated cost per tool beside it.</b> It does not replace the vendor invoice. It explains the invoice, so a single line on a card statement becomes a breakdown a budget owner can question.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "engineering ai spend report" (intent: Commercial) in the title tag, H1, URL and the bolded first sentence of the answer box. Title tag "Engineering AI Spend Report for Finance | Kite Pulse" (52 characters). Angle kept apart from /ai-cost-tracking: that guide teaches how to estimate and track cost; this article is about the monthly report finance reads and about chargeback, and links to the guide for the method. Sources: product facts from MSoT Section 1 (1.1, 1.2, 1.3, 1.4); one detail from the Product Overview section 12. Left out on purpose: the token pace line and hourly rates (not in Section 1), any billable or markup view (hidden page), any organisation-wide cost total, and AI Budget alerts to Slack (Field Guide only).</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why the AI bill arrives as one line</h2>
+    <p>Most engineering teams now pay for several AI coding assistants at once. Some are flat seats on a subscription, some are billed by usage through an API key, and some sit on a personal card and come back as an expense claim. Each vendor sends its own invoice, and each invoice says how much, not who, which project or which model.</p>
+    <p>That leaves finance with three questions it cannot answer from the bill alone. Which teams and projects drive the usage? Are we paying for seats nobody uses, or for one seat several people share? And is next month going to look like this one? An engineering AI spend report answers those from the usage side, while the invoices stay the record of what was paid.</p>
+  </section>
+
+  <section class="block" id="contents">
+    <h2>What the report should contain</h2>
+    <p>A useful report is short. It keeps measured figures and estimated figures visibly apart, and it says what is missing instead of filling the gap with a zero.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Section</th><th>What it answers</th><th>Measured or estimated</th></tr></thead>
+        <tbody>
+          <tr><td>Tokens by tool</td><td>Which assistants the team actually uses, and how much</td><td>Measured, from each tool's own records</td></tr>
+          <tr><td>Tokens by project and team</td><td>Where the usage lands in the business</td><td>Measured</td></tr>
+          <tr><td>Token usage by model</td><td>Which models carry the work, and whether that is shifting</td><td>Measured</td></tr>
+          <tr><td>Estimated cost per tool</td><td>Roughly what the usage would cost at list prices</td><td>Estimated, not billed spend</td></tr>
+          <tr><td>Seats and accounts</td><td>Seat prices paid, accounts shared by several people</td><td>Entered by admins, plus account counts</td></tr>
+          <tr><td>Budget status</td><td>Which teams or projects are close to their monthly budget</td><td>Estimated for dollar budgets</td></tr>
+          <tr><td>Gaps</td><td>Which tools have no price, and how many tokens that covers</td><td>Stated, never set to zero</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>If you are still setting up the underlying tracking, the <a href="/ai-cost-tracking">step-by-step AI cost tracking guide</a> covers how to collect usage and estimate cost. This article is about presenting those figures to finance.</p>
+  </section>
+
+  <section class="block" id="project">
+    <h2>AI coding spend by project and team</h2>
+    <p>Project is the view finance asks for most, because projects map to products, clients and cost centres. Two figures matter, and they come from different places.</p>
+    <ul>
+      <li><b>Token use per project</b> for any period. This is the dependable figure, because it is counted from the sessions themselves and covers every tool that records tokens.</li>
+      <li><b>AI cost per project</b> in estimated dollars. This only adds up the tools that have a price, so it should always be shown next to the unpriced tokens it leaves out.</li>
+    </ul>
+    <p>Teams work the same way. A team's figure is the sum of the projects and people in it, and it is only as good as the team list. If people move between teams, the report needs membership with start and end dates, or last quarter's usage drifts into this quarter's team.</p>
+    <p>Setting a monthly <a href="/ai-budgets">AI budget per team or project</a> turns this section from a look back into an early warning: the report then shows not only what a project used but how close it is to what was agreed.</p>
+  </section>
+
+  <section class="block" id="model">
+    <h2>Token usage by model</h2>
+    <p>The same tool can run on a small, cheap model or a large, expensive one, and the price per token can differ many times over. A report that shows tokens by tool but not by model hides the biggest driver of usage cost. Show which models each project relies on and how that changes. A move to a larger model shows up here before it shows up on an invoice.</p>
+  </section>
+
+  <section class="block" id="estimates">
+    <h2>Estimated cost versus billed spend</h2>
+    <p>Finance readers will reasonably ask why the report's cost figure does not match the invoice. There are three honest reasons, and the report should say them on its first page.</p>
+    <ol class="steps">
+      <li><p><b>Subscriptions are flat.</b> A developer on a monthly seat pays the same whatever they use, so a list-price estimate of their tokens says what the usage is worth, not what was paid.</p></li>
+      <li><p><b>Some tools carry no price.</b> When no list price is known for a tool's models, the honest entry is a dash, not $0. A zero would make that tool look free.</p></li>
+      <li><p><b>Prices change.</b> When a vendor changes its list price, older usage should keep the price it ran at, or last quarter's figures move every time you reopen them.</p></li>
+    </ol>
+    <p>Because of the first two, adding the estimates for every tool into one company total produces a number that looks precise and is not. Keep cost per tool, and keep the invoice total as its own line.</p>
+  </section>
+
+  <section class="block" id="chargeback">
+    <h2>AI tool chargeback in engineering</h2>
+    <p>Chargeback means billing each team or project for its share of a shared cost. For AI coding tools, the amount to recharge should come from the invoices, because that is what the company paid. The usage report supplies the split.</p>
+    <ul>
+      <li>Use token share per team or project as the allocation key for usage-billed tools.</li>
+      <li>Allocate flat seats by who holds the seat, not by tokens, since the seat costs the same either way.</li>
+      <li>Show unpriced tools as tokens only, and agree with budget owners how to treat them before the first recharge.</li>
+      <li>Resolve shared accounts first. One login used by three people makes any per-person or per-team split wrong.</li>
+    </ul>
+    <p>Kite Pulse does not produce chargeback invoices or a billable figure. It provides the usage figures the split is based on, and the recharge itself stays in your finance system.</p>
+  </section>
+
+  <section class="block" id="kitepulse">
+    <h2>Where the figures come from in Kite Pulse</h2>
+    <p>Kite Pulse reads the session history that ten AI coding tools already keep on each developer's computer and sends it to a server your team runs. For an engineering AI spend report, the useful pages are these:</p>
+    <ul>
+      <li><b>Team AI Usage</b> shows token use per developer, tool, model, project and day, for any period, with tabs for Consumption, Models, Projects and Tools &amp; accounts. Estimated cost is shown per tool, never added up across tools, and labelled "not billed spend".</li>
+      <li><b>Estimated cost</b> is tokens multiplied by the vendor's published list price, with each price change kept as a new dated entry. Claude and Gemini models are priced; Aider, Cline, Roo Code, Kilo Code and OpenCode use the cost the tool reports itself. Codex, Cursor and Copilot usually show a dash.</li>
+      <li><b>AI Budgets</b> let admins set a monthly budget per team or per project, in tokens or estimated US dollars, with alerts at 80% and 100%. A dollar budget adds up the priced tools and reports unpriced tokens separately.</li>
+      <li><b>Hourly Rates &amp; Seat Prices</b> is where admins enter what each tool's seats cost; seat prices then appear on the Team AI Usage Overview for admins.</li>
+      <li><b>Tool Accounts</b> counts the separate signed-in accounts each tool runs under and marks accounts used by more than one person as "Shared", for Claude Code, Codex, Cursor, OpenCode and GitHub Copilot.</li>
+    </ul>
+    <p>Cost per developer is shown to admins only, on that developer's AI Usage tab. Managers see their own reporting line on Team AI Usage; admins see everyone.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>If finance only needs the numbers, an admin can set a tool to collect token counts only. The desktop program then counts tokens on the computer and sends just the counts, never the conversation.</p></div>
+    <div class="seo"><b>SEO</b>The single product section and the one callout. Facts from MSoT 1.2 (Team AI Usage, estimated cost per tool, cost per developer, AI Budgets, Hourly Rates &amp; Seat Prices, Tool Accounts) and 1.1 (counts-only mode). "Hourly rates" deliberately not described: only seat prices are in Section 1, and hourly rates feed the hidden Cost &amp; ROI page.</div>
+  </section>
+
+  <section class="block" id="routine">
+    <h2>A monthly routine for the report</h2>
+    <ol class="steps">
+      <li><p>At month end, take tokens by project, team and model for the month, and the estimated cost per tool, with unpriced tools listed by name.</p></li>
+      <li><p>Put each vendor's invoice total next to that tool's estimate. Explain large gaps by seat model, not by guesswork.</p></li>
+      <li><p>Check budget status for each team and project, and note any that crossed 80% or 100% during the month.</p></li>
+      <li><p>Review shared accounts and seat counts before the next renewal date.</p></li>
+    </ol>
+    <p>For the activity side of the month, the <a href="/features#reports">Company report and scheduled reports</a> compare any period with the one before and can be emailed daily, weekly or monthly as PDF or CSV, once email is set up on the server. Reports has no team filter, so team splits come from AI Budgets.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about AI spend reporting</h2>
+    <div>
+      <details open><summary>Can I track AI coding costs by developer, team, department, and project?</summary><p>Partly, and it helps to know where each view lives. In Kite Pulse, token use per developer and per project is on Team AI Usage, and estimated cost per developer is shown to admins only, on that developer's AI Usage tab. Estimated cost per team or per project appears in AI Budgets, as a monthly budget an admin sets. There is no separate department level: teams are the grouping, so a department is tracked by setting up its teams.</p></details>
+      <details><summary>What is our total AI coding spend across the organization?</summary><p>Your vendor invoices are the only source for total billed spend. Kite Pulse shows estimated cost per tool and does not add it up across tools, because some tools have no price and many seats are flat subscriptions. A dollar AI budget sums the priced tools only and reports unpriced tokens separately, so treat it as a partial figure, not a company total.</p></details>
+      <details><summary>Are Kite Pulse cost figures exact?</summary><p>No. Token counts come from each tool's own records, but cost is an estimate: tokens multiplied by the vendor's published list price, or the cost the tool reports itself. It is labelled "not billed spend" in the console. Use it to see where AI use goes and how it changes, and use invoices for the amount you actually pay.</p></details>
+      <details><summary>How accurate are AI coding cost estimates?</summary><p>They are as good as the price list and the token counts behind them. A list-price estimate does not know about flat subscriptions, discounts or credits, so it can differ a lot from what you are billed. In Kite Pulse, Claude and Gemini models are priced from list prices, five tools report their own cost, and Codex, Cursor and Copilot usually show a dash rather than a guessed figure.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Four FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD. Questions 1 and 2 are answered honestly about limits: no department level (teams only; MSoT corrections "Teams feed ... AI Budgets") and no organisation total (MSoT 1.2, 2.3 "Cost per person and per project"). "Token counts come from each tool's own records" is from the Product Overview, section 12.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-cost-tracking">AI cost tracking guide<span>Estimate and track AI coding spend, step by step</span></a></li>
+      <li><a href="/ai-budgets">AI budgets<span>Monthly budgets per team or project, with alerts</span></a></li>
+      <li><a href="/features#reports">Reports<span>Company report, plan usage report and scheduled emails</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Give finance a breakdown, not a single line</h3>
+      <p>See token use by person, project, tool and model, with estimated cost per tool, on a server your team runs.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/engineering-ai-spend-report article. No example data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

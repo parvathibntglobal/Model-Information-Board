@@ -1,0 +1,254 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Visualize AI Agents Working: Read the Signs | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How to visualize AI agents working across a team: what working, waiting, stuck and plan-limit states mean, and how to see them without asking.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Reading an Agent's Body Language: How to Visualize AI Agents Working","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"Visualizing AI coding agents at work"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Reading an Agent's Body Language","item":"/blog/visualize-ai-agents-working"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How can I see what my team's AI agents are doing right now?","acceptedAnswer":{"@type":"Answer","text":"Without a shared view you have to ask, or look over a shoulder at a terminal. A tool that reads the AI tools' own session history can show it instead. In Kite Pulse, The Office gives a desk per person grouped by team, with online, away or offline status and markers for stuck work or plan limits, and Agents in parallel shows how many agents and sub-agents are working now and whether each is working, waiting for the developer or waiting for permission. Detail is shown only for people in your scope."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0}
+.tools li{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-weight:600;font-size:.92rem}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700;white-space:nowrap}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} td:first-child{white-space:normal} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Live updates</div>
+    <h1>Reading an Agent's Body Language: How to Visualize AI Agents Working</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p>To visualize AI agents working across a team, you need a few plain states for each agent: working, waiting for its developer, waiting for permission, stuck, or stopped at a plan limit. Each one asks for a different response, and most of them are invisible from outside the developer's terminal.</p>
+      <p>This article explains what each state usually means, what to do about it, and the ways a team can see those states without asking every developer in turn.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Title tag "Visualize AI Agents Working: Read the Signs | Kite Pulse" (56 characters). Meta description 143 characters. Main keyword "visualize ai agents working" in the title tag, H1, URL and the first sentence of the answer box. Intent is commercial, so the page compares three ways of seeing agent state before the product callout.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why it is hard to see what AI agents are doing right now</h2>
+    <p>An AI coding agent works inside one person's terminal or editor, on one computer. It reads files, runs commands, edits code and sometimes starts sub-agents of its own. All of that scrolls past in a window only its developer is looking at, and often not even them: the point of an agent is that you can hand it a task and turn to something else.</p>
+    <p>So the question a lead most wants answered, "is the work moving?", has no obvious place to look. Commits arrive late, and a stand-up gives a summary from memory once a day. And a developer running two or three agents at once may not know which one has been sitting idle for the last twenty minutes.</p>
+    <p>If you want to see what AI agents are doing right now, the agents' own session records are the honest source. Coding assistants such as Claude Code, Codex and Cursor already keep them on each developer's computer as they work. Read those, and an agent's state becomes something you can look at instead of something you have to ask about.</p>
+  </section>
+
+  <section class="block" id="states">
+    <h2>Five states, and what each one asks of you</h2>
+    <p>Think of these as an agent's body language. None of them tells you whether the code is good. Each tells you whether the work is moving, and if it is not, whose move it is.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>State</th><th>What it usually means</th><th>Whose move</th></tr></thead>
+        <tbody>
+          <tr><td>Working</td><td>The agent is taking steps: reading, editing, running commands, or supervising its sub-agents.</td><td>Nobody's. Leave it alone.</td></tr>
+          <tr><td>Waiting for the developer</td><td>The agent has replied or asked a question and is holding until its person answers.</td><td>The developer. Often they have simply moved on to something else.</td></tr>
+          <tr><td>Waiting for permission</td><td>The agent wants to run a command or change a file and needs someone to approve it.</td><td>The developer. This is the cheapest stall to clear: one keypress.</td></tr>
+          <tr><td>Stuck</td><td>The agent keeps hitting the same problem, often the same failing command, without getting further.</td><td>A person, with fresh context. More retries rarely help.</td></tr>
+          <tr><td>At a plan limit</td><td>The developer's Claude plan window is used up, so the agent cannot continue until it resets.</td><td>Whoever plans the work. Nothing in the code is wrong.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The table also shows why one green or red light per person is not enough. A waiting agent and a stuck agent both look "not working" from a distance, and they need opposite responses: one needs a reply in ten seconds, the other needs someone to sit down and think.</p>
+  </section>
+
+  <section class="block" id="waiting">
+    <h2>Claude Code waiting for input: the quiet stall</h2>
+    <p>The most common lost time with an agent is not failure. It is waiting. The agent finishes a step, asks "shall I run the migration?", and the developer is in a meeting or deep in another window. The agent costs nothing while it waits, which is exactly why nobody notices. The task just takes the afternoon instead of the hour.</p>
+    <p>Two kinds of waiting are worth telling apart. Claude Code waiting for input after a reply is a conversation pause; the developer decides what comes next. Waiting for permission is narrower: the agent already knows what it wants to do and needs a yes. When people run several agents in parallel, permission waits pile up first, because each agent asks at its own moment.</p>
+    <p>What helps:</p>
+    <ul>
+      <li>Before handing off a long task, give the agent the approvals it will predictably need, so it does not stop at the first command.</li>
+      <li>Treat a waiting agent as a reminder, never as a mistake. It usually means the person has other work.</li>
+    </ul>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude code waiting for input" in this H2 and its second paragraph. The product facts used later (states "working, waiting for the developer, waiting for permission") are Agents in parallel, MSoT 1.4. Claude Code's own "waiting for you" and approval signals are not released (MSoT 2.3), so the page does not describe them.</div>
+  </section>
+
+  <section class="block" id="stuck">
+    <h2>When a Claude Code agent is stuck: reading the signs</h2>
+    <p>A Claude Code agent stuck on a problem rarely looks stuck from the inside. It is busy. It runs the test, reads the error, changes a line and runs the test again. Tokens keep flowing and the work does not move. That is why "is it active?" is the wrong question and "is it making progress?" is the right one.</p>
+    <p>The signs are mechanical, which makes them easy to spot in a session record and hard to spot in a scrolling terminal:</p>
+    <ul>
+      <li>the same command failing again and again, with the same error;</li>
+      <li>the same file edited back and forth;</li>
+      <li>a long stretch of activity with no new file, test or commit at the end of it.</li>
+    </ul>
+    <p>We cover the mechanics of those cycles, and how to break them, in <a href="/blog/ai-retry-loops">our guide to AI retry loops</a>. The short version: a person with fresh context usually ends a stuck stretch faster than another retry, so the value is in noticing early.</p>
+    <p>In Kite Pulse, Work Problems finds failed commands, error messages and repeated retries with fixed rules and no AI, grouped by severity with suggested actions. In The Office, a stuck agent gets a marker on its desk, and for people in your scope the desk says how many times the agent hit the same problem and for how long, with plain reasons.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude code agent stuck" in this H2 and the first paragraph. Kept as a how-to-read section, not a story, so it does not compete with /blog/stuck-ai-agent. The "how many times, for how long, plain reasons" detail is from the Product Overview 5.2 (desk side panel), as detail of MSoT 1.4's stuck-work marker.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>The agent that stops for reasons outside the code</h2>
+    <p>Some stops have nothing to do with the task. A Claude plan has a 5-hour window, a weekly window and a weekly window per model. When one is used up, the agent cannot continue until that window resets. From outside it looks like an agent that went quiet.</p>
+    <p>This state is worth seeing before it arrives. In Kite Pulse, a reading of 80% or more counts as "near" and 100% as "at limit", and The Office marks plan limits on the desk. <a href="/plan-headroom">Plan headroom</a> lists who is close to a Claude plan limit, worst first. It covers Claude Code only; other tools show "Not reported by this tool".</p>
+  </section>
+
+  <section class="block" id="compare">
+    <h2>Three ways to see what agents are doing</h2>
+    <p>The right way to watch agents depends on how many people and agents are involved.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Approach</th><th>What you see</th><th>What you miss</th><th>Fits when</th></tr></thead>
+        <tbody>
+          <tr><td>Ask, or look at the terminal</td><td>Exactly what the agent is doing, in full.</td><td>Everything you did not ask about, and anything between check-ins.</td><td>One developer, or a pair working side by side.</td></tr>
+          <tr><td>Each tool's own interface</td><td>Its own sessions, in that tool's terms.</td><td>Other tools, other people, and any view across the team.</td><td>A team on one tool that needs no shared picture.</td></tr>
+          <tr><td>A team view built from session history</td><td>State, presence and markers for many people and tools at once.</td><td>The conversation itself, and anything the tools do not record.</td><td>Several people running agents, often in parallel, across tools.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>If you work alone with one agent, your terminal is enough, and adding a dashboard would be ceremony. The third approach earns its place when a lead needs to know which of a dozen agents need a person, without interrupting a dozen people to find out.</p>
+  </section>
+
+  <section class="block" id="office">
+    <h2>How Kite Pulse shows it: The Office and Agents in parallel</h2>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Kite Pulse reads the session history ten AI coding tools already keep on each developer's computer. Its home page, <a href="/ai-agent-office">The Office</a>, has a desk per person grouped by team, with online, away or offline status and markers for stuck work or plan limits. Agents in parallel, on a developer's page, shows how many AI agents and sub-agents are working now, their state (working, waiting for the developer, waiting for permission), and a lane chart for any past day.</p></div>
+    <p>A few details decide how to read it:</p>
+    <ul>
+      <li><b>Online means recent.</b> A person counts as online when their desktop program has checked in within the last 10 minutes, and The Office is as fresh as each computer's latest upload.</li>
+      <li><b>Presence is shared, detail is scoped.</b> Everyone sees a colleague's name, AI tool and whether they are online or away. Stuck and plan-limit detail is shown only for yourself, the people you manage, and admins.</li>
+      <li><b>Agents in parallel has its own scope.</b> Admins can open it for anyone; managers see it for themselves. A lead reads team state from The Office markers, and an admin can go to one developer's lanes.</li>
+      <li><b>The lane chart answers "what happened yesterday?"</b> Pick a past day to see when agents ran side by side and when they sat waiting.</li>
+    </ul>
+    <div class="seo"><b>SEO</b>The one product callout. Office facts: MSoT 1.4 (The Office, Agents in parallel). "Online = checked in within 10 minutes", "as fresh as the latest upload" and the presence/detail split are from the Product Overview 5.2, as detail of The Office's status and "detail only for people in your scope". Left out on purpose: the 3D view and every animation (postures, lounge, head down, walking in and out, parcel on a push), the waiting and syncing desk markers, the Office's tabs and filters, and the "AI agent stuck" notice, none of which MSoT Section 1 lists.</div>
+  </section>
+
+  <section class="block" id="limits-of-signals">
+    <h2>What the signals do not tell you</h2>
+    <p>A state is a description of what an agent did, and nothing more. Read it with that in mind:</p>
+    <ul>
+      <li><b>Waiting is not idleness.</b> A developer with a waiting agent is usually doing other work, often reviewing what an agent produced earlier.</li>
+      <li><b>Working is not progress.</b> A stuck agent is busy too. Look at whether the same problem keeps coming back.</li>
+      <li><b>Offline is not absent.</b> People step away, travel and take leave. A quiet desk on a leave day says nothing about the work.</li>
+      <li><b>None of it says whether the code is good.</b> That still takes a review.</li>
+    </ul>
+    <p>Used this way, a view of agent state replaces a round of "how is it going?" messages with a quick look.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about seeing AI agents at work</h2>
+    <div>
+      <details open><summary>How can I see what my team's AI agents are doing right now?</summary><p>Without a shared view you have to ask, or look over a shoulder at a terminal. A tool that reads the AI tools' own session history can show it instead. In Kite Pulse, The Office gives a desk per person grouped by team, with online, away or offline status and markers for stuck work or plan limits, and Agents in parallel shows how many agents and sub-agents are working now and whether each is working, waiting for the developer or waiting for permission. Detail is shown only for people in your scope.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief's one FAQ question, marked up as FAQPage JSON-LD with the same text. The answer names the low-tech option first (R9) and keeps Agents in parallel's scope implicit in "people in your scope".</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-agent-office">The Office<span>Your team's AI agents, desk by desk</span></a></li>
+      <li><a href="/blog/ai-retry-loops">AI retry loops<span>Why agents repeat themselves, and how to stop it</span></a></li>
+      <li><a href="/plan-headroom">Plan headroom<span>Claude plan limits before they stop work</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See every agent's state in one place</h3>
+      <p>Run Kite Pulse on your own server and add the desktop program on each developer's computer.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/visualize-ai-agents-working article. No example data; every product claim is from the Master Source of Truth, Section 1, with detail from the Product Overview 5.2.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

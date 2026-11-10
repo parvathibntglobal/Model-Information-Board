@@ -1,0 +1,246 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Control Claude Code Spend on a Small Team | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Control Claude Code spend small team style: start on one machine, watch plan headroom and token pace, and set a monthly AI budget with alerts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Control Claude Code Spend Small Team Style: A Founder's Playbook","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"Controlling Claude Code spend on a small engineering team"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Control Claude Code spend on a small team","item":"/blog/control-claude-code-spend-small-team"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Which Claude plan does my engineering team need?","acceptedAnswer":{"@type":"Answer","text":"Kite Pulse does not recommend a plan, and plan prices come from Anthropic, not from us. What it gives you is the evidence: the Plan usage report shows each developer's and each Claude account's weekly peaks, weeks at 80% or more, and weeks and 5-hour windows at the limit. Someone who reaches the limit most weeks needs more room; someone who rarely passes 80% may not."}},
+{"@type":"Question","name":"How do I know which developers are close to their Claude limit?","acceptedAnswer":{"@type":"Answer","text":"Plan headroom on Team AI Usage lists who is close to a Claude plan limit, worst first, across the 5-hour window, the weekly window and each model's weekly window. Near means 80% or more and at limit means 100%. Old readings are flagged as stale rather than hidden. It covers Claude Code only; other tools show Not reported by this tool."}},
+{"@type":"Question","name":"How do I set a budget for AI coding tools per team?","acceptedAnswer":{"@type":"Answer","text":"In Kite Pulse, an admin opens AI Budgets and sets a monthly budget per team or per project, in tokens or in estimated US dollars. Alerts fire at 80% and 100%. A dollar budget adds up the priced tools only and reports unpriced tokens separately, so a tool without a known price never counts as free."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700;white-space:nowrap}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} td:first-child{white-space:normal} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Startups</div>
+    <h1>How to Control Claude Code Spend on a Small Team: A Founder's Playbook</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>To control Claude Code spend on a small team, watch two separate limits: what your tokens are estimated to cost, and how close each person is to their Claude plan's 5-hour and weekly windows.</b> Start on one machine, set a monthly budget with alerts at 80% and 100%, and look at plan headroom once a week so nobody runs out halfway through a task.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "control claude code spend small team" (Commercial intent) is in the meta description, the H1 and the bolded first sentence of the answer box; the URL carries it as the slug. The exact phrase is not natural English, so the H1 and answer use "control Claude Code spend on a small team"; the exact phrase stays in the meta description and slug. Title tag "Control Claude Code Spend on a Small Team | Kite Pulse" is 54 characters. Facts come from the Master Source of Truth Section 1 (1.2 AI usage, cost and plan limits; 1.3 Reports; 1.4 pages; 1.8 Deployment), with detail from the Complete Product Overview (5.6 token pace line, 5.4 Team Review and AI Collaboration thresholds, 5.7 and 5.10 plan limit notice) and the Field Guide (AI Budgets are per team or project, never a person). Left out on purpose: Capability ownership and the bus factor (detail only in the Overview), the Headroom view in The Office, Slack delivery of budget alerts, every outside figure about Anthropic plan prices or limits, and the numbers in the token pace line (14 and 30 days), which are not in the MSoT.</div>
+  </header>
+
+  <section class="block" id="two-limits">
+    <h2>A small team has two AI limits, and they fail differently</h2>
+    <p>Most founders think of AI coding cost as one bill. With Claude Code there are two things to watch, and they hurt in different ways.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Money</span><h3>The estimated cost of tokens</h3><p>How many tokens each tool used, priced at the vendor's published list price. It tells you where usage is heading and which project is using it. It is not your invoice.</p></div>
+      <div class="part"><span class="tag">Time</span><h3>Claude plan windows</h3><p>Each developer's plan has a 5-hour window, a weekly window and a weekly window per model. When one fills up, that person stops getting work out of Claude Code until it resets.</p></div>
+    </div>
+    <p>Many teams pay for Claude Code through flat per-seat plans, so the money side grows slowly and predictably while the time side is where things go wrong. A developer who hits a weekly limit on Wednesday afternoon loses the rest of the week's AI help, and on a small team that is a large share of your capacity. Claude Code team usage limits are a planning problem before they are a cost problem.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude code team usage limits" in the third paragraph. The three windows are named as the MSoT (1.2 Plan headroom) names them; no Anthropic plan prices or limit sizes are stated, because none are verified in the data file.</div>
+  </section>
+
+  <section class="block" id="one-machine">
+    <h2>Start with local AI coding analytics for a single user</h2>
+    <p>You do not need a server project to begin. Kite Pulse can run on one computer for one person: a single command sets up the server, the background worker, the desktop program and the database, reachable from that computer only. That makes it local AI coding analytics for a single user, typically the founder who writes the most code.</p>
+    <p>A week on your own machine shows how many tokens a normal day uses and how close you get to your own plan limits. Every developer sees their own Claude plan figures on their Workspace page.</p>
+    <p>When it is worth sharing, the same installer runs a team pilot on your local network. Later you can move to an Ubuntu server or your own AWS account. Every option is self-hosted, so session data goes only to the server you run.</p>
+    <ol class="steps">
+      <li><p>Install on your own computer and confirm your projects in the Onboarding Wizard. No session content uploads until you do.</p></li>
+      <li><p>Work normally for a week. The desktop program reads the session history Claude Code and the other supported tools already keep, with secrets masked before upload.</p></li>
+      <li><p>Move to a team pilot on your network, and give each person their own account and personal client code.</p></li>
+    </ol>
+    <div class="seo"><b>SEO</b>Secondary keyword "local ai coding analytics single user" in this H2 and the first paragraph. Deployment facts from MSoT 1.8; consent and masking from 1.1 and 1.7.</div>
+  </section>
+
+  <section class="block" id="headroom">
+    <h2>Watch plan headroom and token pace every week</h2>
+    <p><a href="/plan-headroom">Plan headroom on Team AI Usage</a> shows who is close to a Claude plan limit, worst first, across the 5-hour window, the weekly window and each model's weekly window. "Near" means 80% or more, and "at limit" means 100%. Old readings are flagged as stale rather than hidden, so a quiet machine does not look like spare room.</p>
+    <p>The figures come from the usage Claude Code saves on each developer's computer; no login or password is read. By default they are as fresh as the last time Claude Code saved them. An admin can switch on a background refresh that keeps them current without using any tokens.</p>
+    <p>Plan headroom covers Claude Code only. Other tools show "Not reported by this tool". If you want to understand how the windows themselves behave, read our guide to <a href="/claude-code-usage-limits">Claude Code usage limits</a>.</p>
+    <p>For the money side, Team AI Usage shows token use per developer, tool, model, project and day, so a heavy day stands out on the daily view.</p>
+    <h3>A short weekly routine</h3>
+    <ol class="steps">
+      <li><p>Open Plan headroom. Anyone near a weekly limit early in the week gets the smaller tasks, and the large one moves to after their reset.</p></li>
+      <li><p>Look at tokens by day for heavy days, then open that day's sessions to see what drove it.</p></li>
+      <li><p>Look at the budget alerts below, if any fired.</p></li>
+    </ol>
+    <div class="seo"><b>SEO</b>Links to /plan-headroom and /claude-code-usage-limits. Plan headroom facts from MSoT 1.2. The "Plan limit reached" notice and the token pace line are left out: Product Overview only, not in Section 1.</div>
+  </section>
+
+  <section class="block" id="budgets">
+    <h2>Set AI coding budget alerts per team or project</h2>
+    <p>A budget turns a worry into an alert. In <a href="/ai-budgets">AI Budgets</a>, an admin sets a monthly budget per team or per project, in tokens or in estimated US dollars. Alerts fire at 80% and at 100%. Budgets are set for a team or a project, not for a person.</p>
+    <p>Three things to know before you pick dollars over tokens:</p>
+    <ul>
+      <li><b>Cost is an estimate.</b> Tokens are multiplied by the vendor's published list price, and the figure is labelled "not billed spend". Claude and Gemini models are priced. Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost, and Kite Pulse uses it.</li>
+      <li><b>Some tools have no price.</b> Codex, Cursor and GitHub Copilot Chat in VS Code usually show a dash, never $0. A dollar budget adds up the priced tools and reports unpriced tokens separately.</li>
+      <li><b>Cost stays per tool.</b> Team AI Usage shows estimated cost per tool and never adds it up across tools. Cost per developer is shown to admins only.</li>
+    </ul>
+    <p>For a team that uses Claude Code almost exclusively, a dollar budget is a fair early warning. For a team that mixes tools, a token budget may say more. Our <a href="/ai-cost-tracking">AI cost tracking guide</a> walks through estimating spend tool by tool.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai coding budget alerts" in this H2. Links to /ai-budgets and /ai-cost-tracking. Budget and cost wording from MSoT 1.2 and R7; "not for a person" from the Field Guide (AI Budgets alerts: "never a person"), detailing MSoT 1.2 AI Budgets.</div>
+  </section>
+
+  <section class="block" id="plan-choice">
+    <h2>Choosing a Claude plan for each engineer on the team</h2>
+    <p>Picking a Claude plan for engineering team members is a guess until you have a few weeks of history. The Plan usage report gives that history per developer and per Claude account: weekly peaks, weeks at 80% or more, weeks and 5-hour windows at the limit, and per-model peaks. It downloads as Excel for admins, and history starts when recording began.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>What the report shows</th><th>What it suggests</th></tr></thead>
+        <tbody>
+          <tr><td>Weeks at the limit, often</td><td>This person's work needs more plan room, or their heaviest tasks need spreading across the week.</td></tr>
+          <tr><td>5-hour windows at the limit</td><td>Bursty days. Breaking big tasks up may help more than a bigger plan.</td></tr>
+          <tr><td>Weekly peaks rarely near 80%</td><td>The current plan has room to spare.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Two other views help with seats. Tool Accounts shows how many separate accounts each tool runs under, the plan tier, and accounts used by more than one person, marked "Shared". Hourly Rates &amp; Seat Prices lets an admin enter what each tool's seats cost, so seat prices sit beside usage on the Team AI Usage Overview.</p>
+    <p>Kite Pulse does not recommend a plan or know Anthropic's current prices. You make the call; the report gives you the evidence.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude plan for engineering team" in the first paragraph (the H2 uses a natural variant). Facts from MSoT 1.3 Plan usage report and 1.2 Tool Accounts and Hourly Rates &amp; Seat Prices. The table's right-hand column is reading advice, not a product claim.</div>
+  </section>
+
+  <section class="block" id="one-person">
+    <h2>Spot the parts of the product only one person works on</h2>
+    <p>On a small team, one person's empty plan window can stall a whole area of the product. All Projects lists every project with its contributors, sessions and last activity, and Collaboration shows the projects several people work on. A project that never appears in Collaboration, with one name in its contributors, is a part of the product only one person touches.</p>
+    <p>If that person runs out of plan room, nobody else is warmed up on the code, so plan their heavy weeks first. Leave &amp; On-Call records holidays, so a quiet week of leave is not misread.</p>
+  </section>
+
+  <section class="block" id="small-limits">
+    <h2>What very small teams will not see</h2>
+    <p>Some team measures are pooled across people on purpose, and they wait for enough people before showing anything. Team Review holds back small teams, and AI Collaboration needs a minimum team size before a team appears. Both also need AI labelling, which is off until an admin sets it up. Trends draws a gap for a week with too little data, and personal insights say "not enough data" instead of guessing.</p>
+    <p>For a very small team, that means the plan, token and budget views above do most of the work, and the pooled team pages fill in as you grow. If one founder uses one tool and never comes near a limit, a weekly look at your own Workspace figures may be all you need for now.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Everything in this article works without any AI service: plan headroom, token use, estimated cost per tool, budgets and the Plan usage report. It all runs on a server you control.</p></div>
+    <div class="seo"><b>SEO</b>Honest scope (R9). Team Review "small teams are held back" and AI Collaboration's minimum size are from the Product Overview 5.4, detailing MSoT 1.4 pages of the same name; the exact minimum (three) is left out because the MSoT does not state it. Trends and "not enough data" from MSoT 1.4 and Overview 5.4.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions founders ask about Claude Code spend</h2>
+    <div>
+      <details open><summary>Which Claude plan does my engineering team need?</summary><p>Kite Pulse does not recommend a plan, and plan prices come from Anthropic, not from us. What it gives you is the evidence: the Plan usage report shows each developer's and each Claude account's weekly peaks, weeks at 80% or more, and weeks and 5-hour windows at the limit. Someone who reaches the limit most weeks needs more room; someone who rarely passes 80% may not.</p></details>
+      <details><summary>How do I know which developers are close to their Claude limit?</summary><p>Plan headroom on Team AI Usage lists who is close to a Claude plan limit, worst first, across the 5-hour window, the weekly window and each model's weekly window. Near means 80% or more and at limit means 100%. Old readings are flagged as stale rather than hidden. It covers Claude Code only; other tools show Not reported by this tool.</p></details>
+      <details><summary>How do I set a budget for AI coding tools per team?</summary><p>In Kite Pulse, an admin opens AI Budgets and sets a monthly budget per team or per project, in tokens or in estimated US dollars. Alerts fire at 80% and 100%. A dollar budget adds up the priced tools only and reports unpriced tokens separately, so a tool without a known price never counts as free.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>All three brief questions, mirrored as FAQPage JSON-LD in the head. The plan question has no truthful product answer, so it says what Kite Pulse does not do and points to the Plan usage report.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related guides</h2>
+    <ul class="related">
+      <li><a href="/plan-headroom">Plan headroom<span>Claude plan limits before they bite</span></a></li>
+      <li><a href="/claude-code-usage-limits">Claude Code usage limits<span>How the 5-hour and weekly windows work</span></a></li>
+      <li><a href="/ai-budgets">AI budgets<span>Monthly budgets per team or project</span></a></li>
+      <li><a href="/ai-cost-tracking">AI cost tracking guide<span>Estimate AI coding spend by tool</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Keep a small team's Claude Code use in view</h3>
+      <p>Start Kite Pulse on one computer, then grow to a server your team runs.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/control-claude-code-spend-small-team article. No example data; every product claim is from the Master Source of Truth, Section 1, with detail noted in the SEO notes.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

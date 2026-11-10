@@ -1,0 +1,248 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Avoid Hitting Claude Limit Windows Mid-Task | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How to avoid hitting Claude limit windows mid-task: check the 5-hour, weekly and per-model readings before a long task and treat 80% as near.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Avoid Hitting Claude Limit Windows in the Middle of a Long Task","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Avoiding Claude plan limits in Claude Code"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Avoid Hitting Claude Limit Windows","item":"/blog/avoid-hitting-claude-limit"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How much Claude usage do I have left this week?","acceptedAnswer":{"@type":"Answer","text":"Look at your weekly window reading and at the weekly reading for the model you plan to use, since either can stop you. The figure is a percentage of that window already used, so what is left is the rest of it. In Kite Pulse, your own Claude plan usage is on your Workspace page, read from the figures Claude Code saves on your computer."}},
+{"@type":"Question","name":"What should I do when my Claude Code limit is reached?","acceptedAnswer":{"@type":"Answer","text":"Stop starting new AI work in that window. Commit or stash what you have, write a short note on where the task stands, and switch to work that does not need the agent, such as review, tests you write yourself or planning the next step. Check which window ran out: a 5-hour window and a weekly window are very different waits. Our Claude Code usage limits guide covers the options in more detail."}},
+{"@type":"Question","name":"Will my Claude usage last the whole workday?","acceptedAnswer":{"@type":"Answer","text":"Nobody can promise that from one reading, because it depends on what you ask the agent to do. Compare your current readings with how much a similar task used last time. If any window is already at 80% or more, plan the day around smaller tasks or leave the large one until that window has room again."}},
+{"@type":"Question","name":"claude code how close am i to the limit","acceptedAnswer":{"@type":"Answer","text":"Check all three windows: the 5-hour window, the weekly window and the weekly window for the model you use. The one closest to 100% is the one that will stop you. Kite Pulse calls a window near at 80% or more and at limit at 100%, and shows your own figures on Workspace. It covers Claude Code only."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+.num{font-variant-numeric:tabular-nums}
+
+.example{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:8px}
+.example .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cost)}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Benefits for individual developers</div>
+    <h1>How to Avoid Hitting Claude Limit Windows in the Middle of a Long Task</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p>To avoid hitting Claude limit windows mid-task, check how much of each window you have already used before you start anything long, and size the task to the window with the least room. There are three readings to look at in Claude Code: the 5-hour window, the weekly window and the weekly window for the model you plan to use. Treat any of them at 80% or more as near, and keep the large job for when it has room.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "avoid hitting claude limit" in the title tag (56 characters, starts with "Avoid"), H1, URL and the first sentence of the answer box, which answers the question before any product mention (Informational intent). Meta description 141 characters.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why a limit hurts most in the middle of a task</h2>
+    <p>Running out of usage at the start of the day is an inconvenience. Running out halfway through a refactor is worse. The agent stops with files half changed, the plan it was following lives in a conversation you cannot continue for a while, and you have to decide whether to finish by hand, revert, or wait.</p>
+    <p>The cost is mostly lost context. You knew what the agent was about to do next; an hour later, after other work, you have to rebuild that picture from the diff. So the useful habit is less about using less and more about not starting a long piece of AI work in a window that cannot hold it.</p>
+    <p>This article is the personal version of that habit: what one developer checks before a long task. For the full background on how Claude plan limits work, read our <a href="/claude-code-usage-limits">Claude Code usage limits guide</a>. If you plan work for a team, <a href="/blog/sprint-planning-claude-plan-limits">sprint planning around Claude plan limits</a> covers the same readings across everyone in a sprint.</p>
+  </section>
+
+  <section class="block" id="windows">
+    <h2>Claude Code remaining usage: the three windows to read</h2>
+    <p>Claude Code remaining usage is not one number. Each reading is a percentage of a window already used, and any of the three can be the one that stops you:</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Short</span><h3>The 5-hour window</h3><p>The one you feel during a single working session. A heavy morning can fill it even when your week has plenty left.</p></div>
+      <div class="part"><span class="tag">Long</span><h3>The weekly window</h3><p>The one that decides whether a big task can happen this week at all. Once it is full, a fresh 5-hour window does not help.</p></div>
+      <div class="part"><span class="tag">Per model</span><h3>Each model's weekly window</h3><p>A model can run out on its own while the overall weekly reading still looks fine. Read the window for the model you are about to use.</p></div>
+    </div>
+    <p>Whether you picture it as a Claude Code usage bar or as a percentage, the question is the same: which of the three is closest to full? That window is your real limit for the next task, whatever the other two say.</p>
+    <p>We deliberately do not restate how long each window is or when it resets. Anthropic sets those rules and can change them, so check Anthropic's own documentation for your plan. The <a href="/claude-code-usage-limits">Claude Code usage limits guide</a> collects what is known about window lengths and reset behaviour in one place.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "claude code remaining usage" (H2 and first sentence) and "claude code usage bar" (body, used as the reader's own picture, not as a Kite Pulse feature). Window names from MSoT 1.2 Plan headroom. No outside claim about window sizes or reset rules, per the brief.</div>
+  </section>
+
+  <section class="block" id="routine">
+    <h2>A two-minute check before a long task</h2>
+    <p>Do this before anything you expect to run for a long stretch: a migration, a multi-file refactor, a large test-writing pass, or a session with several sub-agents.</p>
+    <ol>
+      <li><b>Read all three windows.</b> Note the 5-hour, weekly and per-model weekly figures, and which one is highest.</li>
+      <li><b>Check how fresh the reading is.</b> A figure saved an hour ago does not include the hour since. If it is old, treat it as lower than the truth.</li>
+      <li><b>Compare with the last similar task.</b> If your last refactor of this size took a large share of a window, expect this one to do the same. Your own history is a better guide than any rule of thumb.</li>
+      <li><b>Apply the 80% line.</b> If the highest window is at 80% or more, it is near. Pick a smaller slice of the task, or move the large job to when that window has room.</li>
+      <li><b>Set checkpoints.</b> Ask the agent to work in steps you can commit. If a limit does arrive, you stop at a clean point rather than in the middle of a change.</li>
+      <li><b>Keep a plan outside the chat.</b> A short task file in the repository lets you or a fresh session pick the work up after a reset.</li>
+    </ol>
+    <div class="example">
+      <span class="tag">Illustrative example, not a customer case</span>
+      <p>A developer is about to start a large database migration with Claude Code. Their 5-hour window reads 30%, which looks safe, but the weekly window for the model they use reads 86%. That model is near its weekly limit, so they split the job: the schema changes now, with a commit after each table, and the data backfill later in the week when the window has more room.</p>
+    </div>
+  </section>
+
+  <section class="block" id="reset">
+    <h2>Claude Code limit reset time and the weekly limit reset</h2>
+    <p>Knowing the Claude Code limit reset time matters most when you are already near. If the 5-hour window is the one that is full, the wait is part of a day. If the weekly window or a model's weekly window is full, a Claude weekly limit reset can be days away, and the right move is a different plan rather than a coffee break.</p>
+    <p>That is why the routine reads all three windows. The same 90% means something very different in a short window than in a weekly one. When you check, note which window is closest to full and when Anthropic says it resets, then decide whether the task waits, shrinks, or moves to work that needs no agent.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "claude code limit reset time" and "claude weekly limit reset" in this H2 and body. Written without stating Anthropic's reset schedule (brief: no outside claims about how windows reset or their sizes); the reader is pointed to Anthropic and to /claude-code-usage-limits.</div>
+  </section>
+
+  <section class="block" id="kitepulse">
+    <h2>Seeing your own plan figures in one place</h2>
+    <p>Kite Pulse shows every developer their own Claude plan usage on the <b>Workspace</b> page, the same page that tells you whether your projects are being collected. It tracks the three windows above: the 5-hour window, the weekly window and each model's weekly window. A window at 80% or more counts as near, and 100% counts as at limit.</p>
+    <p>The figures come from the usage figures Claude Code saves on your computer. No Claude login or password is read. By default a figure is as fresh as the last time Claude Code saved it. An admin can switch on an optional background refresh that keeps the figures current without using any tokens, and you can turn that refresh off for yourself. Your <b>Privacy</b> page lists what is recorded about you and who can see it.</p>
+    <p>Your team lead sees the same readings on <a href="/plan-headroom">Plan headroom</a>, which lists who is close to a Claude plan limit, worst first, and flags old readings as stale rather than hiding them. That is the view behind the team planning article; this one is about your own check.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Your plan figures sit on Workspace with nothing to install beyond the desktop program that already collects your sessions. It reads usage figures Claude Code has saved, not your account, and sends them only to the server your team runs.</p></div>
+    <div class="seo"><b>SEO</b>The one product section and the one callout. Facts: MSoT 1.2 (your own plan figures on Workspace; Plan headroom windows, 80%/100%, stale flagged; where plan figures come from, background refresh needs no tokens), MSoT 1.1 optional reads (refresh is an admin switch the developer can turn off), MSoT 1.4 (Workspace, Privacy). Workspace showing the three windows is from the Field Guide, Workspace ("plan headroom" on Workspace).</div>
+  </section>
+
+  <section class="block" id="scope">
+    <h2>What this covers, and what it does not</h2>
+    <div class="cansee">
+      <div class="yes">
+        <h3>Covered</h3>
+        <ul>
+          <li>Claude plan usage from Claude Code</li>
+          <li>The 5-hour, weekly and per-model weekly windows</li>
+          <li>Near at 80% or more, at limit at 100%</li>
+          <li>Your own figures on Workspace, for every role</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>Not covered</h3>
+        <ul>
+          <li>Plan limits in other AI tools: they show "Not reported by this tool"</li>
+          <li>Claude use outside Claude Code</li>
+          <li>Anthropic's window sizes or reset rules</li>
+          <li>Readings newer than Claude Code's last save, unless the background refresh is on</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="reached">
+    <h2>If you hit the limit anyway</h2>
+    <p>Even with a check, a task can grow. When a window runs out, stop starting new agent work in it. Commit or stash the change, write two lines on where the task stands and what comes next, and note which window is full. Then move to work that does not need the agent: reviewing a teammate's change, writing tests by hand, reading the code the next step will touch. If the work is urgent, tell your lead early so it can move to someone with room. The <a href="/claude-code-usage-limits">usage limits guide</a> has a longer list of options for when the Claude Code limit is reached.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about avoiding Claude limits</h2>
+    <div>
+      <details open><summary>How much Claude usage do I have left this week?</summary><p>Look at your weekly window reading and at the weekly reading for the model you plan to use, since either can stop you. The figure is a percentage of that window already used, so what is left is the rest of it. In Kite Pulse, your own Claude plan usage is on your Workspace page, read from the figures Claude Code saves on your computer.</p></details>
+      <details><summary>What should I do when my Claude Code limit is reached?</summary><p>Stop starting new AI work in that window. Commit or stash what you have, write a short note on where the task stands, and switch to work that does not need the agent, such as review, tests you write yourself or planning the next step. Check which window ran out: a 5-hour window and a weekly window are very different waits. Our Claude Code usage limits guide covers the options in more detail.</p></details>
+      <details><summary>Will my Claude usage last the whole workday?</summary><p>Nobody can promise that from one reading, because it depends on what you ask the agent to do. Compare your current readings with how much a similar task used last time. If any window is already at 80% or more, plan the day around smaller tasks or leave the large one until that window has room again.</p></details>
+      <details><summary>claude code how close am i to the limit</summary><p>Check all three windows: the 5-hour window, the weekly window and the weekly window for the model you use. The one closest to 100% is the one that will stop you. Kite Pulse calls a window near at 80% or more and at limit at 100%, and shows your own figures on Workspace. It covers Claude Code only.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Four FAQ questions from the brief, word for word (the last keeps its search-query form), mirrored in FAQPage JSON-LD. No answer states a window size or reset time.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/claude-code-usage-limits">Claude Code usage limits<span>How the limits work and how to make them last</span></a></li>
+      <li><a href="/blog/sprint-planning-claude-plan-limits">Sprint planning around Claude limits<span>The same readings across a whole team</span></a></li>
+      <li><a href="/plan-headroom">Plan headroom<span>Who is close to a Claude plan limit, worst first</span></a></li>
+      <li><a href="/solutions/developers">For developers<span>What you see about your own work</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Know your Claude plan figures before the long task</h3>
+      <p>Run Kite Pulse on your own server and give every developer their own plan readings on Workspace.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: avoid hitting claude limit. Intent: informational. Facts from MSoT Section 1 (1.1 optional reads, 1.2 Plan headroom, Your own plan figures, Where plan figures come from; 1.4 Workspace, Privacy). One detail from the Field Guide (Workspace shows plan headroom), detailing MSoT 1.2 "Your own plan figures". Left out on purpose: the "Plan limit reached" notice and reset times on a Headroom board (Product Overview and Field Guide only), the name-tag markers and Office Headroom view, the status-line reading (MSoT 2.3, not released), the plan usage report (admin download, not a developer tool), and every statement about Anthropic's window lengths or reset schedule.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/avoid-hitting-claude-limit article. The migration story is an illustrative example; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

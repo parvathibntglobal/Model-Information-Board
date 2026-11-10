@@ -1,0 +1,74 @@
+# The Discourse forums the Finder reads, one entry per forum, keyed by host
+# (the Finder reads https://<host>). Adding a forum is adding an entry here.
+#
+# vendor_replies is one of:
+#   allowed         a person has read the forum's rules and they permit it
+#   pending_review  nobody has decided yet. Topics are KEPT and FLAGGED, so a
+#                   reviewer sees them and knows the question is open.
+#   not_allowed     every topic from here is dropped, with that reason
+#
+# Each entry is a person's reading of that forum's own rules. Set it only after
+# reading rules_url, and record who decided and when. All three forums below
+# are run by a vendor whose product Kite Pulse sits beside; expect their rules
+# to be strict about promotion.
+#
+# The conditions in `note` are read by the reviewer, not by code: nothing in
+# the Finder or the review screen enforces them yet.
+#
+# Topics read per week, from each forum's /about.json on 2026-11-06:
+# forum.cursor.com 520, community.openai.com 794. discuss.ai.google.dev was
+# 3,022 in 30 days on 2026-10-26 (MIB's measurement, contract/sources.yaml).
+
+communities:
+  forum.cursor.com:
+    name: Cursor Community Forum
+    vendor_replies: allowed
+    rules_url: https://forum.cursor.com/guidelines
+    decided_by: aloysiuspellissery
+    decided_on: 2026-11-09
+    note: >-
+      Cursor's own forum. Its listing carries an excerpt of each opening post,
+      so phrases match the title and the first ~200 characters. Allowed with
+      the forum's own conditions: "Be upfront. If you're sharing something you
+      sell or profit from, say so."; "Keep it relevant. Only share your project
+      in threads where it genuinely helps solve the problem being discussed.";
+      "Respect the thread. If someone's asking for help with an issue, lead
+      with the help."; "Contribute first. Be a community member, not just a
+      marketer." Dropping product links as a main activity is "closer to spam
+      than participation", so post from accounts that also take part without
+      mentioning Kite Pulse. "Posts generated entirely by AI will likely be
+      removed": a person writes or substantially rewrites every reply. Posts
+      about Kite Pulse itself belong in Showcase -> "Built for Cursor".
+
+  community.openai.com:
+    name: OpenAI Developer Community
+    vendor_replies: allowed
+    rules_url: https://community.openai.com/guidelines
+    decided_by: aloysiuspellissery
+    decided_on: 2026-11-09
+    note: >-
+      No excerpts in its listing (2026-11-06), so phrases match titles only.
+      Allowed at a low pace: "Share the cool things you have built, but avoid
+      repetitive or overly promotional posts", and "Spamming other members with
+      pitches or other forms of self-promotion will not be tolerated."
+      Promotion must relate to "OpenAI products, developer work, or the
+      category's purpose". No disclosure rule and no AI-text rule on the page;
+      disclose in every reply anyway.
+
+  discuss.ai.google.dev:
+    name: Google AI Developers Forum
+    vendor_replies: pending_review
+    rules_url: https://discuss.ai.google.dev/guidelines
+    decided_by: aloysiuspellissery
+    decided_on: 2026-11-09
+    note: >-
+      No excerpts in its listing (2026-11-06), so phrases match titles only.
+      Google's terms make robots.txt the permission for automated access
+      (contract/sources.yaml, google-ai-developers-forum); the client obeys it.
+      LEFT PENDING on 2026-11-09, read and not decided: the guidelines have no
+      self-promotion rule, and spam includes "unwanted promotional or
+      commercial content" and "anything that appears to be an automated or
+      mass solicitation". Whether a vendor reply is "unwanted" is the
+      moderators' call and nothing on the page says it is wanted. Reply only
+      where a thread asks for a tool, and disclose: concealing "ownership or
+      primary purpose" breaks its impersonation rule.

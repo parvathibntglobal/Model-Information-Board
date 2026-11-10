@@ -1,0 +1,243 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Can My Employer See My Claude Code Chats? | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Can my employer see my Claude Code chats? What decides it, the questions to ask, and exactly who sees what when a team runs Kite Pulse.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Can My Employer See My Claude Code Chats? An Honest Answer for Developers","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Whether employers can see developers' AI coding assistant conversations"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Can My Employer See My Claude Code Chats?","item":"/blog/can-my-employer-see-my-claude-code-chats"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can my manager see everything I type to the AI?","acceptedAnswer":{"@type":"Answer","text":"Not everything you type, but possibly everything you send. What you send to an AI coding tool is saved in its session history, and a company tool that reads that history can upload it. In Kite Pulse, with session sync on, your manager can open the sessions of people in their reporting line, while your private prompt statistics are shown only to you. With a tool set to counts only, no conversation is sent at all, and keystrokes are never logged."}},
+{"@type":"Question","name":"Can managers see developers' AI prompts?","acceptedAnswer":{"@type":"Answer","text":"They can if the company runs a tool that collects the conversations and gives managers access to it. Ask which tools read AI sessions on your computer, what they collect and who can open it. In Kite Pulse, conversations upload only when session sync is on and only after you confirm your projects, and a manager sees only their own reporting line, enforced by the server."}},
+{"@type":"Question","name":"Will developers see AI usage tracking as surveillance?","acceptedAnswer":{"@type":"Answer","text":"Some will, especially if they find out after it is installed. It reads differently when people are told beforehand what is collected and why, can see their own data and who else sees it, and the company collects no more than it needs, such as token counts only where the question is volume."}},
+{"@type":"Question","name":"Can I see usage by individual developer without creating a surveillance problem?","acceptedAnswer":{"@type":"Answer","text":"Yes, if the rules are set before the data arrives. Say in writing what is collected and what it is used for, collect token counts rather than conversations where counts answer the question, keep each manager to their own reporting line, and give every developer the same view of their own data. In Kite Pulse, Team AI Usage shows token use per developer, managers see only their reporting line, and estimated cost per developer is admin-only."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Privacy for developers</div>
+    <h1>Can My Employer See My Claude Code Chats? An Honest Answer for Developers</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Can my employer see my Claude Code chats? It can if your company runs something that collects them or gives it access to them, so the honest answer is "it depends on what your employer has set up".</b> Three things decide it: the account Claude Code runs under, the admin settings that come with your company's plan, and any tool your employer runs that reads AI sessions from your computer. The quickest way to know is to read your company's AI policy and ask what your plan's admin settings and internal tools allow.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "can my employer see my claude code chats" in the title tag (54 characters), H1, URL and the bolded first sentence of the answer box, which answers before any product mention (writer brief 2). Meta description 135 characters. Intent is informational, so the page teaches first and brings in Kite Pulse in one section and one callout. No claim is made about Anthropic's own admin features: none were verified with a source and date, so the page tells the reader to check their plan's admin settings.</div>
+  </header>
+
+  <section class="block" id="decides">
+    <h2>What decides whether your employer can see your chats</h2>
+    <p>A Claude Code conversation does not live in one place. It is sent to the model provider to get an answer, and Claude Code, like most AI coding tools, also keeps a session history on your computer. Who else can read it depends on which of these routes your company uses.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Account</span><h3>The plan you sign in with</h3><p>A company plan comes with an administrator. What that administrator can see, whether usage figures, conversation content or neither, varies by vendor and plan and changes over time. Ask whoever runs it, or read the plan's admin settings yourself.</p></div>
+      <div class="part"><span class="tag">Laptop</span><h3>The computer it runs on</h3><p>On a company-managed laptop, IT can usually reach the files on it. Session history saved by an AI tool is a set of files like any other.</p></div>
+      <div class="part"><span class="tag">Network</span><h3>How requests leave the building</h3><p>If AI traffic goes through a company gateway or a shared company key, whoever runs that gateway may be able to log what passes through it.</p></div>
+      <div class="part"><span class="tag">Team tools</span><h3>Analytics that read sessions</h3><p>Some teams run a tool that reads the session history on each computer and sends it to a company server. What it sends, and who sees it, is set by that tool and its admins.</p></div>
+    </div>
+    <p>None of this is unusual or sinister; it is the same as email on a work account. The useful step is to find out which routes apply to you, so you can work without guessing.</p>
+    <div class="seo"><b>SEO</b>General, vendor-neutral section. "Tools keep a session history on the computer" is MSoT product summary wording. Deliberately says nothing specific about Anthropic's console, plans or retention (not verified with source and date).</div>
+  </section>
+
+  <section class="block" id="ask">
+    <h2>Can my manager see my Claude prompts? Six questions to ask</h2>
+    <p>"Can my manager see my Claude prompts?" has a short answer at your company, and someone already knows it. A reasonable AI policy answers these six in writing.</p>
+    <ol>
+      <li><b>Which account does my Claude Code run under?</b> A company plan, a company API key or a personal account.</li>
+      <li><b>Is any tool reading AI session history on this computer?</b> If yes, which one, and for which AI tools.</li>
+      <li><b>What does it collect?</b> The full conversation, a summary, or only counts such as tokens and sessions.</li>
+      <li><b>Who can open it?</b> Your manager, their managers, admins, colleagues, or only you.</li>
+      <li><b>Where is it stored, and for how long?</b> On a vendor's cloud or a server your company runs, and who decides how long it is kept.</li>
+      <li><b>Can I see what is recorded about me?</b> A tool that shows each person their own data, and who else sees it, is much easier to trust.</li>
+    </ol>
+    <p>If nobody can answer, assume a work account is visible to work. Keep personal questions out of it, and never paste passwords or keys into a conversation with an AI tool.</p>
+  </section>
+
+  <section class="block" id="other-tools">
+    <h2>Can my company see my Cursor chats, or my Copilot chats?</h2>
+    <p>The same reasoning applies to every AI coding tool. Cursor, GitHub Copilot Chat, Codex and Cline all keep a record of your conversations, reachable through the same four routes. So "can my company see my Cursor chats?" and "can my employer see Copilot chats?" get the same first answer as Claude Code: it depends on what your company has set up, and your AI policy should say.</p>
+    <p>A team analytics tool only sees the tools it supports, and sometimes only part of a tool, so ask for the list.</p>
+  </section>
+
+  <section class="block" id="kite-pulse">
+    <h2>If your team uses Kite Pulse: who sees what</h2>
+    <p>Kite Pulse is one of those team tools, so here is its answer. It reads the session history of ten AI coding tools, including Claude Code, Cursor and GitHub Copilot Chat in VS Code, and sends it only to a server your company runs. Whether your conversations are part of that depends on one switch per tool, set by an admin.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Who</th><th>What they see about your AI work</th></tr></thead>
+        <tbody>
+          <tr><td>You</td><td>Your own sessions, activity, work patterns and plan usage, plus private prompt statistics: your most repeated prompt, most cryptic prompt, thank-you count and reply pace.</td></tr>
+          <tr><td>Your manager</td><td>When session sync is on: your sessions, with a summary and a detailed view, and the same report you see, without your private prompt statistics. This covers their whole reporting line, so a manager's manager sees it too.</td></tr>
+          <tr><td>Admins</td><td>Everyone. Estimated cost per developer is shown to admins only.</td></tr>
+          <tr><td>Colleagues</td><td>Your presence in The Office: your name, team, AI tool and whether you are online, away or offline. Nothing else.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>So, with session sync on, the honest answer is yes: your manager can see your session details. Private prompt statistics are the exception: the server removes them for everyone but you.</p>
+
+    <h3>Counts-only mode sends no conversation</h3>
+    <p>Each tool has two switches: Session sync, which uploads the conversations, and Token consumption, which uploads counts only. With Session sync off and Token consumption on, the program counts tokens on your computer and sends only the numbers. That is how you track token usage without collecting prompts, and it is a fair thing to ask for if your team only needs volume.</p>
+
+    <h3>Consent before sync</h3>
+    <p>No session content is uploaded until you confirm your projects in the Onboarding Wizard and, where required, an approver signs off. Before that, only the list of detected project folders is sent, so the wizard can show it to you. Projects an admin switches off are not read at all.</p>
+
+    <h3>A role based access control dashboard, enforced by the server</h3>
+    <p>There are three access roles: Admin sees everyone, Manager sees themselves plus their whole reporting line, and Developer sees their own pages plus The Office, Needs attention and Help. The server enforces these limits, not just the screen, and admins can fine-tune each page per role on Roles &amp; Permissions. Managers who do not work on a project see folder labels rather than full paths.</p>
+
+    <h3>The Office: presence for everyone, detail in scope</h3>
+    <p>The Office is the home page, with a desk per person grouped by team. Everyone sees everyone's presence. Detail, such as your current project or a marker for stuck work or a plan limit, is shown only to you, the managers you report to, directly or indirectly, and admins. Read more about <a href="/ai-agent-office">how The Office shows AI agents at work</a>.</p>
+
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Your Privacy page lists every data point recorded about you, whether it is on now, and who can see it. Secrets are masked on your computer before upload and again on the server, and nothing is sent to a vendor cloud. It does not log keystrokes, take screenshots or track websites. The full detail is on <a href="/privacy">our privacy page</a>, and <a href="/security">the security page</a> covers sign-in, roles and the audit log.</p></div>
+    <div class="seo"><b>SEO</b>The one product section and the one callout. Secondary keywords "track token usage without collecting prompts" (counts-only H3) and "role based access control dashboard" (H3). Facts: MSoT 1.1 (two switches, counts-only, consent, folders first, ten tools), 1.4 (three roles, server-enforced, Roles &amp; Permissions, private prompt statistics, All Developers "same report without private prompt fields", My Sessions summary and detailed view, The Office), 1.2 (cost per developer admin-only), 1.7 (Privacy page, masking twice, no vendor cloud, folder labels). Detail from the Product Overview 5.2 and Field Guide (The Office for a manager, "Presence for everyone, detail in scope"): presence is name, team, AI tool and online/away. "Your manager can see your session details" is the honest reading of All Developers plus My Sessions; the page does not claim managers never see message text.</div>
+  </section>
+
+  <section class="block" id="source">
+    <h2>Developer analytics without source code access</h2>
+    <p>A related worry is code. A tool that reads AI session records does not need to open your repositories to show usage, and this one does not open a project's source files. The caveat is real, though: a session record is a conversation with an assistant that read and wrote code, so excerpts of code can appear in it, which is why secrets are masked. Our post on <a href="/blog/developer-analytics-without-keystroke-tracking">developer analytics without keystroke tracking</a> goes further into what developers tend to accept and why.</p>
+  </section>
+
+  <section class="block" id="unsure">
+    <h2>What to do if you are still unsure</h2>
+    <ol>
+      <li><b>Read the AI policy.</b> If there is none, ask for one. The six questions above are a good outline.</li>
+      <li><b>Check your plan's admin settings,</b> or ask the person who administers the plan what they can see.</li>
+      <li><b>Read the privacy page of any team tool</b> that shows you what is recorded about you.</li>
+      <li><b>Ask for counts only</b> where your team only needs to know how much AI is used.</li>
+    </ol>
+    <p>Planning a rollout instead? Our guide to <a href="/blog/tracking-ai-usage-ethically">tracking AI usage ethically</a> covers the policy and how to explain it to a team.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions developers ask about privacy and AI tools</h2>
+    <div>
+      <details open><summary>Can my manager see everything I type to the AI?</summary><p>Not everything you type, but possibly everything you send. What you send to an AI coding tool is saved in its session history, and a company tool that reads that history can upload it. In Kite Pulse, with session sync on, your manager can open the sessions of people in their reporting line, while your private prompt statistics are shown only to you. With a tool set to counts only, no conversation is sent at all, and keystrokes are never logged.</p></details>
+      <details><summary>Can managers see developers' AI prompts?</summary><p>They can if the company runs a tool that collects the conversations and gives managers access to it. Ask which tools read AI sessions on your computer, what they collect and who can open it. In Kite Pulse, conversations upload only when session sync is on and only after you confirm your projects, and a manager sees only their own reporting line, enforced by the server.</p></details>
+      <details><summary>Will developers see AI usage tracking as surveillance?</summary><p>Some will, especially if they find out after it is installed. It reads differently when people are told beforehand what is collected and why, can see their own data and who else sees it, and the company collects no more than it needs, such as token counts only where the question is volume.</p></details>
+      <details><summary>Can I see usage by individual developer without creating a surveillance problem?</summary><p>Yes, if the rules are set before the data arrives. Say in writing what is collected and what it is used for, collect token counts rather than conversations where counts answer the question, keep each manager to their own reporting line, and give every developer the same view of their own data. In Kite Pulse, Team AI Usage shows token use per developer, managers see only their reporting line, and estimated cost per developer is admin-only.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>All four FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD. The first two answer "yes, with session sync on" rather than a reassuring "no". FAQ 4 facts: MSoT 1.2 (Team AI Usage per developer, cost per developer admin-only) and 1.4/1.6 (manager scope).</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/privacy">Privacy<span>What is read, what is sent and who sees it</span></a></li>
+      <li><a href="/ai-agent-office">The Office<span>Presence for everyone, detail in scope</span></a></li>
+      <li><a href="/blog/tracking-ai-usage-ethically">Tracking AI usage ethically<span>Policy and communication for a fair rollout</span></a></li>
+      <li><a href="/blog/developer-analytics-without-keystroke-tracking">Analytics without keystroke tracking<span>What developers push back on, and what they accept</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">AI usage visibility your developers can check for themselves</h3>
+      <p>Kite Pulse runs on your own server, asks before it syncs, and shows every person what is recorded about them.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: can my employer see my claude code chats. Intent: informational, written from the developer's side. Facts from MSoT Section 1 (1.1, 1.2, 1.4, 1.6, 1.7); presence detail for The Office from the Product Overview 5.2 and the Field Guide (The Office for a manager; Presence for everyone, detail in scope). Left out on purpose: anything about Anthropic's admin console, plans or data retention (not verified with a source and date); the admin option to stop a role seeing other people's desks and "agent keys cannot read The Office" (Product Overview only; the Agent API is MSoT 2.1); "never message text" (true of some views in the Field Guide only, and session details are visible to managers, so the page does not promise it); session playback and "What the agent did"; erasure and retention; "never ranks people". No outside statistics.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/can-my-employer-see-my-claude-code-chats article. No example data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

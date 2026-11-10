@@ -1,0 +1,270 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Token Usage per Developer, Model and Tool | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Token usage per developer, model, tool, project and day: what to track, where the counts come from, and how to read them as usage, not a ranking.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Token Usage per Developer: Tokens by Person, Tool, Model, Project and Day","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"token usage per developer"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Token Usage per Developer","item":"/blog/token-usage-per-developer"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How can I see how many tokens each developer uses?","acceptedAnswer":{"@type":"Answer","text":"Each AI vendor's console shows token use for its own tool only, so a team on several tools has to combine the numbers. Kite Pulse reads the token counts ten AI coding tools already record on each developer's computer and shows them on Team AI Usage per developer, tool, model, project and day, for any period. Managers see their own reporting line and admins see everyone."}},
+{"@type":"Question","name":"How can I track which AI models (Opus, Sonnet, GPT) my team uses?","acceptedAnswer":{"@type":"Answer","text":"Use the model name each session records. On Kite Pulse's Models tab you see developers per model, model adoption over time and models by project, plus Claude Code effort-level and speed settings. Most of the ten supported tools record the model; Cursor does so only when one model served the whole chat, and GitHub Copilot Chat in VS Code when it is recorded."}},
+{"@type":"Question","name":"Can I see which AI models are being used and how frequently?","acceptedAnswer":{"@type":"Answer","text":"Yes. Team AI Usage shows token use per model for any period, and the Models tab shows how many developers use each model and how that changes over time. Frequency is measured in tokens and developers, from the sessions the tools recorded, so a model used in a tool that does not record its model name will not appear under that model."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700;white-space:nowrap}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} td:first-child{white-space:normal} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Features and capabilities</div>
+    <h1>Token Usage per Developer: Tokens by Person, Tool, Model, Project and Day</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Token usage per developer is the number of tokens each person's AI coding sessions sent and received, split by tool, model, project and day.</b> Most teams cannot see it in one place, because each AI vendor's console covers only its own tool. Read the counts as a description of how AI is used across the team, and pair them with the model, the project and the kind of work before drawing any conclusion about a person.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "token usage per developer". Intent: Commercial, so the page helps the reader decide what to track and what tool fits, product second. Keyword in the title tag (54 characters), H1, URL and the bolded definition in the answer box. Title tag: "Token Usage per Developer, Model and Tool | Kite Pulse". Meta description 145 characters.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why per-developer token counts are hard to get</h2>
+    <p>A token is the unit AI tools use to measure the text sent to a model and the text it sends back. It is also the basis of AI cost, so it is the first figure finance and engineering leaders ask for. The trouble is where the numbers live.</p>
+    <p>Each AI coding tool keeps its own history on each developer's computer, in its own format. A vendor's admin console, where there is one, shows usage for that vendor's tool only. A developer who uses Claude Code in the morning and Cursor in the afternoon appears in two places, under two accounts, with no shared project name. Many people are also on flat subscriptions, so the invoice says little about who used what.</p>
+    <p>To track LLM token usage by team across several tools, you need the counts gathered from every tool, joined to the right person and project, and kept in one consistent format.</p>
+  </section>
+
+  <section class="block" id="dimensions">
+    <h2>Five ways to split team token usage</h2>
+    <p>One total for the month answers very little. These five splits answer the questions people actually ask:</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Per developer</span><h3>Person</h3><p>How AI use is spread across the team, and who may need a different plan or seat.</p></div>
+      <div class="part"><span class="tag">Per tool</span><h3>Tool</h3><p>Which AI coding assistants carry the work, and which seats are barely used.</p></div>
+      <div class="part"><span class="tag">Per model</span><h3>Model</h3><p>Which models the team relies on, and whether that is changing.</p></div>
+      <div class="part"><span class="tag">Per project</span><h3>Project</h3><p>Where AI effort goes, for budgeting and planning.</p></div>
+      <div class="part"><span class="tag">Per day</span><h3>Day</h3><p>Whether use is steady, growing, or spiking around a release.</p></div>
+    </div>
+    <p>Kite Pulse's Team AI Usage page shows token use per developer, tool, model, project and day, for any period. Its tabs are Overview, Consumption, Models, Projects, Tools &amp; accounts, Agent features and Plan headroom. Managers see their own reporting line; admins see everyone.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "track llm token usage by team" in the last paragraph of the previous section. Team AI Usage and its tabs: MSoT 1.2. The token pace line (Product Overview 5.6) is left out: Section 1 does not list it.</div>
+  </section>
+
+  <section class="block" id="source">
+    <h2>Where the token counts come from</h2>
+    <p>Kite Pulse does not ask developers to log anything. A small desktop program on each computer (Windows or macOS) reads the session history ten AI coding tools already keep: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider. It masks secrets, encrypts session uploads and sends only new activity to a server your team runs, after the developer confirms their projects.</p>
+    <p>Not every tool records the same detail, and the figures are only as complete as the tool's own records:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Tool</th><th>Tokens</th><th>Model name</th></tr></thead>
+        <tbody>
+          <tr><td>Claude Code, Codex, Gemini CLI</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Cline, Roo Code, Kilo Code, OpenCode, Aider</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Cursor</td><td>Input and output only</td><td>Only when one model served the whole chat</td></tr>
+          <tr><td>GitHub Copilot Chat in VS Code</td><td>Input and output only</td><td>When recorded</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>For teams that want the numbers without the conversations, an admin can run any tool in counts-only mode: Session sync off, Token consumption on. The program then counts tokens on the computer and sends only the numbers. See <a href="/integrations">what each of the ten integrations collects</a> for the full table.</p>
+  </section>
+
+  <section class="block" id="models">
+    <h2>Token usage by model and AI model adoption tracking</h2>
+    <p>Model choice shapes both cost and results, and teams drift between models as vendors release new ones. Token usage by model tells you which models carry the work today. Adoption over time tells you how quickly a new model is picked up, and whether an older one is still in use somewhere.</p>
+    <p>On the Models tab of Team AI Usage you see:</p>
+    <ul>
+      <li>Developers per model, so you know how many people use each one.</li>
+      <li>Model adoption over time.</li>
+      <li>Models by project, so you can see which projects rely on which models.</li>
+      <li>Claude Code effort-level and speed settings.</li>
+    </ul>
+    <p>The model name comes from each session's own record. Where a tool does not record it, as with Cursor chats that switched models, those tokens cannot be filed under a model, so read the Models tab together with the table above.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "token usage by model" and "ai model adoption tracking" in this H2 and body. Models tab: MSoT 1.2. Model-name coverage per tool: MSoT 1.1 table.</div>
+  </section>
+
+  <section class="block" id="agent-features">
+    <h2>Claude Code agent features usage</h2>
+    <p>Two developers can use a similar number of tokens in very different ways. One runs single conversations; another starts sub-agents, runs commands in the background and works across several worktrees at once. The Agent features tab shows which Claude Code agent features sessions used, such as sub-agents, background commands, plan mode, worktrees and MCP tools, by session and by developer.</p>
+    <p>This is often the context a per-developer token count is missing. Higher use can simply mean more agent work running in parallel. To see how many AI agents and sub-agents a person has working at once, and a lane chart for any past day, see <a href="/ai-agent-office">Agents in parallel on The Office page</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude code agent features usage" as the H2. Agent features tab: MSoT 1.2; Agents in parallel: MSoT 1.4.</div>
+  </section>
+
+  <section class="block" id="cost">
+    <h2>From tokens to estimated cost</h2>
+    <p>Tokens are counted; cost is estimated. Kite Pulse multiplies tokens by each vendor's published list price, keeping older sessions at the price they ran at. Claude and Gemini models are priced, and Aider, Cline, Roo Code, Kilo Code and OpenCode use the cost the tool reports itself. Codex, Cursor and Copilot usually show a dash, never $0.</p>
+    <ul>
+      <li>On Team AI Usage, cost is shown per tool, labelled "not billed spend", and never added up across tools.</li>
+      <li>Cost per developer is shown to admins only, on that developer's AI Usage tab.</li>
+      <li>Per team or project, cost appears in AI Budgets: a monthly budget in tokens or estimated US dollars, with alerts at 80% and 100%. A dollar budget adds up the priced tools and reports unpriced tokens separately.</li>
+    </ul>
+    <p>For a step-by-step method, including what to do about tools with no price, see the <a href="/ai-cost-tracking">guide to tracking AI coding costs</a>.</p>
+  </section>
+
+  <section class="block" id="reading">
+    <h2>Reading per-person token figures as usage</h2>
+    <p>A token count describes how much AI a person used. It does not say how much they delivered, how good the work was, or how hard the problem was. A developer debugging a large legacy service may send far more context than one writing a small new module, and both may be doing exactly the right thing. Tool and model matter too: the same task can cost very different token counts in two tools.</p>
+    <div class="cansee">
+      <div class="yes">
+        <h3>Good uses of per-developer tokens</h3>
+        <ul>
+          <li>Matching plans and seats to how people actually work</li>
+          <li>Spotting an unusual day and asking what happened</li>
+          <li>Seeing which models and tools a team has adopted</li>
+          <li>Setting budgets per team or project</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>Weak uses</h3>
+        <ul>
+          <li>Treating more tokens as more output</li>
+          <li>Treating fewer tokens as more efficient work</li>
+          <li>Comparing people on different tools or models</li>
+          <li>Judging a person on one number without the project and work behind it</li>
+        </ul>
+      </div>
+    </div>
+    <p>Some ordering of people is useful. Plan headroom lists who is close to a Claude plan limit, worst first, across the 5-hour, weekly and per-model weekly windows, so a lead can move work before someone hits the limit. It covers Claude Code only. For the wider picture of how AI-assisted work happens, beyond tokens, see <a href="/ai-coding-analytics">AI coding analytics for teams</a>.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Team AI Usage puts tokens from ten AI coding tools in one view per developer, tool, model, project and day, on a server your team runs. Each person can open their own Privacy page to see every data point recorded about them, whether it is on, and who can see it.</p></div>
+    <div class="seo"><b>SEO</b>R4: per-person tokens framed as describing usage. No "never ranks people" claim (MSoT owner decision on "Top performers" and "Most active today"). Plan headroom worst-first ordering stated openly. Callout: MSoT 1.2 and 1.7 (Privacy page).</div>
+  </section>
+
+  <section class="block" id="fit">
+    <h2>When another approach fits better</h2>
+    <ul>
+      <li><b>One tool only.</b> If the whole team uses a single AI tool, that vendor's own admin console may already show enough usage detail.</li>
+      <li><b>Exact billing.</b> For the amount you will actually pay, use the vendor's invoice. Kite Pulse cost figures are list-price estimates.</li>
+      <li><b>Delivery metrics.</b> For lead time or deployment frequency from git and tickets, a git-based analytics tool is the better fit.</li>
+    </ul>
+    <p>Kite Pulse fits when several AI coding tools are in use and you want token use per developer, model and project in one place, without sending data to a vendor cloud.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about token usage per developer</h2>
+    <div>
+      <details open><summary>How can I see how many tokens each developer uses?</summary><p>Each AI vendor's console shows token use for its own tool only, so a team on several tools has to combine the numbers. Kite Pulse reads the token counts ten AI coding tools already record on each developer's computer and shows them on Team AI Usage per developer, tool, model, project and day, for any period. Managers see their own reporting line and admins see everyone.</p></details>
+      <details><summary>How can I track which AI models (Opus, Sonnet, GPT) my team uses?</summary><p>Use the model name each session records. On Kite Pulse's Models tab you see developers per model, model adoption over time and models by project, plus Claude Code effort-level and speed settings. Most of the ten supported tools record the model; Cursor does so only when one model served the whole chat, and GitHub Copilot Chat in VS Code when it is recorded.</p></details>
+      <details><summary>Can I see which AI models are being used and how frequently?</summary><p>Yes. Team AI Usage shows token use per model for any period, and the Models tab shows how many developers use each model and how that changes over time. Frequency is measured in tokens and developers, from the sessions the tools recorded, so a model used in a tool that does not record its model name will not appear under that model.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Three FAQ questions from the brief, marked up as FAQPage JSON-LD with identical text. The Opus/Sonnet/GPT question is answered through recorded model names rather than a promise about specific model names.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-cost-tracking">AI cost tracking guide<span>Estimate and track AI coding spend</span></a></li>
+      <li><a href="/ai-coding-analytics">AI coding analytics<span>How AI-assisted work happens across a team</span></a></li>
+      <li><a href="/ai-agent-office">Parallel AI agents<span>Agents and sub-agents running at once</span></a></li>
+      <li><a href="/integrations">The ten integrations<span>What each AI tool provides</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See token use across your team's AI tools</h3>
+      <p>Run Kite Pulse on your own server and connect the desktop program on each developer's computer.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Review</b>Main keyword: token usage per developer. Intent: Commercial. Facts from MSoT Section 1 (1.1 tool table and counts-only mode, 1.2 Team AI Usage, Models and Agent features tabs, cost, AI Budgets, Plan headroom, 1.4 Agents in parallel, 1.7 Privacy page). Left out on purpose: the token pace line (Product Overview only),cache efficiency (Field Guide only), the Field Guide's "no other ranking of people" line (conflicts with the MSoT owner decision), hourly rates per role, Agent API and MCP access to usage data (operator setup), and any statistics or customer figures.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/token-usage-per-developer article. No example data; every product claim is from the Master Source of Truth, Section 1, with one detail from the Product Overview.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

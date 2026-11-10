@@ -1,0 +1,72 @@
+# What the Finder looks for on Reddit: problems Kite Pulse solves, and the
+# phrases people use when they have that problem.
+#
+# Written by a person, tuned by reading what each phrase finds. A phrase that
+# returns mostly noise should be removed, not kept "for recall": every post it
+# finds is one a reviewer has to read.
+#
+# HOW A PHRASE MATCHES HERE (common/match.py), the same as Discourse: every
+# word must appear as a whole word, in any order, ignoring case, with an
+# optional plain ending ("limit" matches "limits", "limited"; "hit" does NOT
+# match "hitting").
+#
+# AGAINST THE TITLE ONLY. The RapidAPI listing sends no post body
+# (2026-11-10), so a phrase must be something people put in a post title. Two
+# or three words is the useful length. The subreddits are already about these
+# tools, so a phrase need not name the product.
+#
+# First version, 2026-11-10, from the Discourse list. Not yet tuned against
+# real results.
+
+problems:
+  claude-limits:
+    description: People hitting Claude or Claude Code usage limits
+    phrases:
+      reddit:
+        - usage limit
+        - weekly limit
+        - limit reached
+        - claude limit
+        # added 2026-11-10 from the Product Overview §2 (plan limits); untested
+        - 5 hour limit
+        - limit reset
+        - rate limit
+
+  ai-cost-per-developer:
+    description: Teams trying to see what AI coding tools cost, per developer, project or seat
+    phrases:
+      reddit:
+        - cost per developer
+        - team cost
+        - team spend
+        # added 2026-11-10 (spend, budgets, seats); untested
+        - AI spend
+        - token cost
+        - token usage
+        - AI budget
+        - shared account
+
+  agent-stuck:
+    description: Coding agents that loop, stall or get stuck
+    phrases:
+      reddit:
+        - agent stuck
+        - stuck loop
+        - agent loop
+        # added 2026-11-10 (stuck agents, repeated retries); untested
+        - going in circles
+        - infinite loop
+        - keeps retrying
+
+  ai-usage-visibility:
+    description: Managers wanting visibility into how their team uses AI coding tools, and whether they pay off
+    phrases:
+      reddit:
+        - team usage
+        - usage dashboard
+        - track usage
+        # added 2026-11-10 (productivity, adoption, one view across tools); untested
+        - AI productivity
+        - AI adoption
+        - AI ROI
+        - multiple AI tools

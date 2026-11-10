@@ -3167,6 +3167,107 @@ def discussions_delete(req: DiscussionDeleteRequest) -> dict:
     return {"id": req.id, "state": "deleted"}
 
 
+# ── Admin -> Kite Pulse -> Outreach (2026-11-09) ─────────────────────────────
+#
+# The phase-1 review queue: threads the outreach Finders saved, which a person
+# skips or answers by hand. The logic is `web/src/kitepulse/outreach/kp_review.py`
+# and the rows are in OUTREACH'S OWN DATABASE (KP_OUTREACH_DATABASE_URL), never
+# MIB's: these routes do not use `_conn()`. Nothing here posts to any forum.
+#
+# The folder is APPENDED to sys.path, never prepended, so it cannot shadow a
+# module the board imports; `assert_loaded_from` fails if `common` resolved
+# anywhere else. Every route needs a token (app-wide gate; none is public).
+
+_KP_OUTREACH = _REPO_ROOT / "web" / "src" / "kitepulse" / "outreach"
+
+
+def _kp_review():
+    if str(_KP_OUTREACH) not in sys.path:
+        sys.path.append(str(_KP_OUTREACH))
+    import kp_review
+
+    kp_review.assert_loaded_from(_KP_OUTREACH)
+    return kp_review
+
+
+def _kp_call(action):
+    """Run one review action on a fresh outreach connection, mapping refusals."""
+    import psycopg
+
+    kp = _kp_review()
+    try:
+        with kp.connect() as conn:
+            return action(kp, conn)
+    except kp.db.OutreachDbError as e:
+        raise HTTPException(status_code=503, detail=f"outreach database: {e}") from None
+    except kp.Refused as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except kp.NotFound as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    except kp.WrongState as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    except kp.reply_check.RulesError as e:
+        raise HTTPException(status_code=500, detail=f"reply check config: {e}") from None
+    except psycopg.Error as e:
+        raise HTTPException(status_code=503, detail=(
+            f"outreach database: {type(e).__name__}: {e}".rstrip()
+            + ". If a table or column is missing, run "
+            "py -3.12 web/src/kitepulse/outreach/setup_db.py")) from None
+
+
+def _signed_in_as(authorization: str | None) -> str | None:
+    """The email in the caller's session token, or None (the shared API_TOKEN
+    and an open local backend carry no identity, and that stays None)."""
+    supplied = (authorization or "").removeprefix("Bearer ").strip()
+    return login.read(supplied) if supplied else None
+
+
+@app.get("/admin/outreach/threads")
+def admin_outreach_threads(tab: str = "found", source: str | None = None,
+                           problem: str | None = None, view: str | None = None) -> dict:
+    return _kp_call(lambda kp, conn: kp.listing(conn, tab, source=source, problem=problem,
+                                                view=view))
+
+
+class OutreachSkipRequest(BaseModel):
+    reason: str
+    note: str | None = None
+
+
+class OutreachPostedRequest(BaseModel):
+    url: str
+    account: str
+
+
+@app.post("/admin/outreach/threads/{thread_id}/skip")
+def admin_outreach_skip(thread_id: int, req: OutreachSkipRequest,
+                        authorization: str | None = Header(default=None)) -> dict:
+    by = _signed_in_as(authorization)
+    return _kp_call(lambda kp, conn: kp.skip(conn, thread_id, req.reason, req.note, by))
+
+
+@app.post("/admin/outreach/threads/{thread_id}/posted")
+def admin_outreach_posted(thread_id: int, req: OutreachPostedRequest,
+                          authorization: str | None = Header(default=None)) -> dict:
+    by = _signed_in_as(authorization)
+    return _kp_call(lambda kp, conn: kp.mark_posted(conn, thread_id, req.url, req.account, by))
+
+
+@app.post("/admin/outreach/threads/{thread_id}/reopen")
+def admin_outreach_reopen(thread_id: int) -> dict:
+    return _kp_call(lambda kp, conn: kp.reopen(conn, thread_id))
+
+
+class OutreachCheckRequest(BaseModel):
+    text: str
+
+
+@app.post("/admin/outreach/threads/{thread_id}/check")
+def admin_outreach_check(thread_id: int, req: OutreachCheckRequest) -> dict:
+    """The REPLY CHECK on a reply about to be posted. Advisory; writes nothing."""
+    return _kp_call(lambda kp, conn: kp.check_reply(conn, thread_id, req.text))
+
+
 # THE BENCHMARKS PAGE (2026-10-22, Parvathi): signed in only (every route here
 # needs the token - none is in judge/gate.py's public lists). Published
 # benchmark results for the tracked text models, scraped by collect/benchmarks/

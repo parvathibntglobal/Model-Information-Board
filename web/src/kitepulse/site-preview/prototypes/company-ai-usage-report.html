@@ -1,0 +1,299 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Company AI Usage Report Without a Spreadsheet | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How to build a company AI usage report leadership reads every week: what to include, how to schedule it by email, and where the figures come from.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Company AI Usage Report: Report Upward Without Building a Spreadsheet","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"company AI usage report"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Company AI Usage Report","item":"/blog/company-ai-usage-report"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I report AI tool return on investment to leadership?","acceptedAnswer":{"@type":"Answer","text":"Report the inputs leadership needs to judge the return, and mark which are measured and which are estimated: token use per tool, model and project, estimated list-price cost per tool, the seat prices you pay, and active time. Put the vendor invoices beside the estimates, because estimates are not billed spend. Kite Pulse supplies those inputs but does not calculate a return figure, so the judgement about value stays with you and your leadership."}},
+{"@type":"Question","name":"What metrics should I report to leadership about AI coding-tool adoption?","acceptedAnswer":{"@type":"Answer","text":"Keep to a short set you can repeat every period: active developers per tool and per model, token use by tool, model and project, estimated cost per tool labelled as an estimate, budget status per team or project, and plan-limit pressure where your tools report it. Show each figure against the previous period, because leadership reads direction more than level."}},
+{"@type":"Question","name":"How do I create a weekly AI usage report for my team?","acceptedAnswer":{"@type":"Answer","text":"Fix the sections once, pull the same figures on the same day each week, and compare them with the week before. In Kite Pulse an admin can email the Company report weekly as PDF or CSV once email is set up on the server. Reports has no team filter, so a manager's own figures come from Team AI Usage, which shows their reporting line, and from AI Budgets for team totals."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px;min-width:0}
+.tool .label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tool pre{margin:0;background:var(--sunk);border-radius:10px;padding:14px;font-family:var(--mono);font-size:.82rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.copy{justify-self:start;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · For managers and teams</div>
+    <h1>The Company AI Usage Report: Report Upward Without Building a Spreadsheet</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>A company AI usage report tells leadership how AI coding tools were used in a period and how that compares with the period before, built from recorded activity rather than a spreadsheet someone assembles by hand.</b> The useful version keeps the same sections every time, arrives on a schedule, and separates what was measured from what was estimated. Managers then spend their time explaining the numbers instead of collecting them.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "company ai usage report" (intent: Commercial) in the title tag (58 characters), H1, URL and the bolded first sentence of the answer box. Angle kept apart from /blog/engineering-ai-spend-report (finance, cost, chargeback) and /blog/ai-adoption-tracking (which tools and models are used): this post is about the recurring report a manager sends upward, how to produce it, and how to schedule it.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why the AI report keeps turning into a spreadsheet</h2>
+    <p>Somebody in leadership asks how the company is using its AI coding tools. The engineering manager exports what each vendor console offers into a spreadsheet and fixes the columns so they line up. Next month the exports have changed shape, a new tool has arrived, and the work starts again.</p>
+    <p>The trouble is that it is rebuilt by hand each time, so it is slow, its definitions drift from month to month, and nobody can say whether a change in the numbers is a change in usage or in how they were gathered. Developers also rarely use a single assistant, and each vendor sees only its own slice. A report leadership can trust has to be produced the same way every period, across every tool.</p>
+  </section>
+
+  <section class="block" id="contents">
+    <h2>What leadership wants from the report</h2>
+    <p>Executives reading an AI report usually have four questions: are we using what we pay for, is use growing, what is it costing, and is anything about to get in the way. A short set of figures answers all four, as long as each one is shown against the previous period.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Figure</th><th>Question it answers</th><th>Measured or estimated</th></tr></thead>
+        <tbody>
+          <tr><td>Active developers per tool and model</td><td>Are the seats and tools in real use?</td><td>Measured</td></tr>
+          <tr><td>Token use by tool, model and project</td><td>Where is the AI work going?</td><td>Measured</td></tr>
+          <tr><td>Estimated cost per tool</td><td>Roughly what the usage is worth at list prices</td><td>Estimated, not billed spend</td></tr>
+          <tr><td>Budget status per team or project</td><td>Is anyone close to what was agreed?</td><td>Measured for token budgets, estimated for dollar budgets</td></tr>
+          <tr><td>Plan-limit pressure</td><td>Are people running into their AI plan limits?</td><td>Measured, where the tool reports it</td></tr>
+          <tr><td>Change against last period</td><td>Which way is it moving?</td><td>Derived from the above</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>If your audience is finance and the question is mostly money, the <a href="/blog/engineering-ai-spend-report">engineering AI spend report</a> article covers the cost side in depth, including why estimates and invoices differ and how to handle chargeback.</p>
+  </section>
+
+  <section class="block" id="template">
+    <h2>A weekly engineering report template for AI usage</h2>
+    <p>A weekly engineering report works when it is short enough to read in two minutes and fixed enough to compare with last week. The template below has no numbers in it: fill each line from your own data, on the same day every week, and leave a line marked "not available" rather than guessing.</p>
+    <div class="tool">
+      <span class="label">Template · copy and adapt</span>
+<pre id="tpl">AI usage report: week of [date]
+Compared with: week of [previous date]
+
+1. Adoption
+   Active developers per AI tool: [this week] vs [last week]
+   Models in use, and any new model picked up: [notes]
+
+2. Volume
+   Token use by tool: [figures]
+   Top projects by token use: [figures]
+
+3. Cost (estimate, not billed spend)
+   Estimated cost per tool: [figures, or "no price" for unpriced tools]
+   Budgets near or over limit: [team or project, % used]
+
+4. Plan limits
+   People at or near their plan limit this week: [count, tool]
+
+5. What changed and why
+   [two or three sentences in plain words]
+
+6. Decisions or asks for leadership
+   [seats to add or remove, budgets to revisit]</pre>
+      <button class="copy" type="button" id="copyTpl">Copy template</button>
+    </div>
+    <p>Never add estimated costs for different tools into one total when some have no price. A line that silently drops a tool reads as if that tool cost nothing.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "weekly engineering report" and "weekly engineering report template" in this H2 and the first sentence. The template is general guidance and contains placeholders only, no numbers (R2).</div>
+  </section>
+
+  <section class="block" id="approaches">
+    <h2>Four ways to produce a company AI usage report</h2>
+    <p>The choice depends on how many tools you run and whether you need delivery figures, AI figures or both.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Manual</span><h3>Vendor exports into a spreadsheet</h3><p>Fine for one tool and an occasional report. It does not scale past a few tools, and definitions drift each time someone rebuilds it.</p></div>
+      <div class="part"><span class="tag">Scripts</span><h3>Your own scripts or BI dashboards</h3><p>Flexible if you have the time to maintain them. Every vendor API change becomes your problem, and most tools do not expose session detail at all.</p></div>
+      <div class="part"><span class="tag">Delivery</span><h3>Git and ticket analytics</h3><p>The right choice for delivery speed and planning metrics. They see commits and tickets, not the AI conversation, so they cannot say which tool or model did the work.</p></div>
+      <div class="part"><span class="tag">Sessions</span><h3>Session-based reporting</h3><p>Reads the session history the AI tools already keep, across several tools in one format, and produces the report on a schedule with nothing for developers to log.</p></div>
+    </div>
+    <p>Many teams combine the last two: a session view for AI use, next to their existing <a href="/engineering-intelligence">engineering analytics for delivery and planning</a>. If delivery metrics are all you need, a git-based tool is the better fit.</p>
+  </section>
+
+  <section class="block" id="scheduled">
+    <h2>Scheduled engineering reports by email</h2>
+    <p>A report that has to be requested gets requested late. Scheduled engineering reports by email land in the same inboxes on the same day, and the manager adds context instead of producing the document.</p>
+    <ol class="steps">
+      <li><p><b>Pick the period that matches the meeting.</b> Weekly for a team sync, monthly for a leadership review. A daily report suits only people who act on it daily.</p></li>
+      <li><p><b>Pick the format that matches the reader.</b> PDF for people who read, CSV for people who will put the figures into their own model.</p></li>
+      <li><p><b>Preview before the first send</b>, and keep a record of what went out, so "did they get it" has an answer.</p></li>
+      <li><p><b>Always compare with the previous period.</b> A single week on its own invites the wrong question.</p></li>
+    </ol>
+  </section>
+
+  <section class="block" id="kitepulse">
+    <h2>How the reports work in Kite Pulse</h2>
+    <p>Kite Pulse reads the session history that ten AI coding tools already keep on each developer's computer and sends it to a server your team runs. Its Reports area has three parts, described in more detail on the <a href="/features#reports">features page under Reports</a>:</p>
+    <ul>
+      <li><b>Company report.</b> Covers any period and compares it with the previous period. It downloads as CSV or PDF, by admins by default.</li>
+      <li><b>Scheduled reports.</b> The Company report, or one developer's report, emailed daily, weekly or monthly as PDF or CSV, with a preview and a send history. Admins set them up, and email must be configured on the server first.</li>
+      <li><b>Plan usage report.</b> Claude plan usage per developer and per Claude account for a month or a date range: weekly peaks, weeks at 80% or more, weeks and 5-hour windows at the limit, and per-model peaks. It downloads as Excel, by admins by default, and its history starts when recording began.</li>
+    </ul>
+    <p>The token and cost lines of the template come from two other places. <b>Team AI Usage</b> shows token use per developer, tool, model, project and day for any period, with estimated cost per tool labelled "not billed spend" and never added up across tools. Managers see their own reporting line there; admins see everyone. <b>AI Budgets</b> holds a monthly budget per team or per project, in tokens or estimated US dollars, with alerts at 80% and 100%; a dollar budget adds up the priced tools and reports unpriced tokens separately. Plan-limit figures cover Claude Code only, and the <a href="/plan-headroom">plan headroom page</a> explains how they are read.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Nobody fills anything in. The desktop program reads the history each tool already keeps, masks secrets before upload, and sends only new activity to your own server, after each developer has confirmed their projects.</p></div>
+    <div class="seo"><b>SEO</b>The single product section and the one callout. Facts from MSoT 1.3 (Company report, Plan usage report, Scheduled reports), 1.2 (Team AI Usage, estimated cost per tool, AI Budgets, plan headroom), 1.1 (ten tools, secrets masked, only new activity, consent) and 2.1 (email needs server setup). The Company report's contents are deliberately not described: Section 1 does not list them, so token and cost figures are attributed to Team AI Usage, AI Budgets and the Plan usage report.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What to know before you rely on it</h2>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What it gives you</h3>
+        <ul>
+          <li>A Company report for any period against the one before</li>
+          <li>Scheduled email delivery, daily, weekly or monthly</li>
+          <li>Token use by tool, model and project for any period</li>
+          <li>Monthly budgets per team or project, with alerts</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What it does not give you</h3>
+        <ul>
+          <li>A team filter on Reports: team figures come from AI Budgets</li>
+          <li>Billed spend, or one cost total across all tools</li>
+          <li>A return figure: it supplies the inputs, not the verdict</li>
+          <li>Plan limits for tools other than Claude Code</li>
+        </ul>
+      </div>
+    </div>
+    <p>Cost is priced for Claude and Gemini models, and Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost. Codex, Cursor and Copilot usually show a dash rather than a figure, so mark those tools "no price" in the report instead of leaving them out.</p>
+  </section>
+
+  <section class="block" id="value">
+    <h2>Reporting value, not only volume</h2>
+    <p>Sooner or later leadership asks whether the tools are worth it. Tokens per project, estimated cost per tool, seat prices and active time show what the company put in and where. What came out, in features shipped or time saved, needs your judgement and your delivery data. Our guide to <a href="/blog/ai-coding-roi">measuring the return on AI coding tools</a> walks through how to combine the two without overstating either.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about company AI usage reports</h2>
+    <div>
+      <details open><summary>How do I report AI tool return on investment to leadership?</summary><p>Report the inputs leadership needs to judge the return, and mark which are measured and which are estimated: token use per tool, model and project, estimated list-price cost per tool, the seat prices you pay, and active time. Put the vendor invoices beside the estimates, because estimates are not billed spend. Kite Pulse supplies those inputs but does not calculate a return figure, so the judgement about value stays with you and your leadership.</p></details>
+      <details><summary>What metrics should I report to leadership about AI coding-tool adoption?</summary><p>Keep to a short set you can repeat every period: active developers per tool and per model, token use by tool, model and project, estimated cost per tool labelled as an estimate, budget status per team or project, and plan-limit pressure where your tools report it. Show each figure against the previous period, because leadership reads direction more than level.</p></details>
+      <details><summary>How do I create a weekly AI usage report for my team?</summary><p>Fix the sections once, pull the same figures on the same day each week, and compare them with the week before. In Kite Pulse an admin can email the Company report weekly as PDF or CSV once email is set up on the server. Reports has no team filter, so a manager's own figures come from Team AI Usage, which shows their reporting line, and from AI Budgets for team totals.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Three FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD. The first is the brief's "How do I report AI tool ROI to leadership?" with "ROI" spelled out, so the page never names the hidden Cost &amp; ROI page; the answer states that no return figure is calculated (MSoT 2.5).</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/blog/engineering-ai-spend-report">Engineering AI spend report<span>The cost breakdown finance asks for</span></a></li>
+      <li><a href="/blog/ai-adoption-tracking">AI adoption tracking<span>Which AI tools and models your company really uses</span></a></li>
+      <li><a href="/ai-budgets">AI budgets<span>Monthly budgets per team or project, with alerts</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Send leadership the same report every week</h3>
+      <p>Schedule the Company report by email and take token and cost figures from your own server, with nothing rebuilt by hand.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: company ai usage report. Intent: commercial. All product facts from MSoT Section 1 (1.1, 1.2, 1.3) plus 2.1 for the email prerequisite and the "Website corrections" row "Reports has no team filter". Nothing taken from the Product Overview or Field Guide. Left out on purpose: what the Company report contains (the Product Overview, 5.9 and its "Friday, end of week" row, and the Field Guide's "Reports" card describe contents and manager viewing; Section 1 does not), "up to two years" of plan history, Slack delivery, the token pace line, any ROI figure or the hidden Cost &amp; ROI page, and the "Top performers" panel.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/company-ai-usage-report article. The weekly template is placeholders only; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+document.getElementById('copyTpl').addEventListener('click',e=>{
+  const pre=document.getElementById('tpl'), btn=e.currentTarget;
+  const done=()=>{btn.textContent='Copied';setTimeout(()=>btn.textContent='Copy template',1500)};
+  const fallback=()=>{const r=document.createRange();r.selectNodeContents(pre);const s=getSelection();s.removeAllRanges();s.addRange(r);btn.textContent='Selected: press Ctrl+C'};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(pre.textContent).then(done,fallback)}else{fallback()}
+});
+</script>
+
+</body></html>

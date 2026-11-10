@@ -1,0 +1,49 @@
+# The Shortlister's settings (ARCHITECTURE.md 5.2; shortlist.py).
+#
+# Every key is required; shortlist.py has no defaults (CLAUDE.md rule 12).
+# The words the model is sent are in prompts/shortlist/, not here.
+
+# Which model, via OpenRouter. Decided 2026-11-09 (ARCHITECTURE.md section 8).
+model: deepseek/deepseek-v4-flash
+
+# A ceiling on what one call may write. The answer is four short fields; a
+# call that hits this is stored as invalid, never retried in the same run.
+max_output_tokens: 400
+
+# The post as sent: title plus text, cut at this many characters. Hacker
+# News comments run to 7,450 characters (measured 2026-11-09 over 153 saved
+# threads, median 1,231); the cut is said in the prompt, not hidden.
+max_post_chars: 4000
+
+# The reason the model gives, at most this many words, or the answer is invalid.
+max_reason_words: 30
+
+# ── BEFORE THE MODEL: code sets a thread aside, it is not sent ───────────────
+#
+# A thread set aside is NOT dropped: it stays in To review, at the bottom,
+# saying why. These are unmeasured checks, so they decide spend and order,
+# never visibility (CLAUDE.md rule 8). If reviewers skip every set-aside
+# thread for a few weeks, that is the evidence for making one a Finder drop.
+
+# words_far_apart: none of the thread's matched phrases has all its words
+# within this many words of each other.
+#
+# Measured 2026-11-09 over the 280 threads then waiting (all saved by the
+# Finders' first runs that day): window 10 sends 91 and sets aside 189
+# (Hacker News 4 of 153 sent, dev.to 66 of 99, Discourse 21 of 28). A hand
+# read of 20 set-aside threads (8 dev.to, 5 Discourse, 7 Hacker News, random)
+# found 17 rightly set aside, 1 clear miss and 2 borderline, ALL THREE on
+# Hacker News ("I hit my 5-hr limit ... 30 minutes of Claude Code"): people
+# there write about limits without the phrase's words together.
+closeness_window_words: 10
+
+# hiring_thread: a comment under a story whose title matches one of these
+# (case ignored). 49 of the 153 Hacker News threads on 2026-11-09 were comments
+# in "Who is hiring?" / "Who wants to be hired?": job posts naming Claude Code.
+set_aside_parent_titles:
+  - "who is hiring"
+  - "who wants to be hired"
+  - "seeking freelancer"
+
+# too_old: older than the source's pace.yaml max_thread_age_days NOW (the
+# Finder checked it at fetch time; a thread can age out while waiting).

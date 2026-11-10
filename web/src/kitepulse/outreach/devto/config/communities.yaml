@@ -1,0 +1,30 @@
+# Whether dev.to welcomes a disclosed comment from someone who works on a
+# product.
+#
+# vendor_replies is one of:
+#   allowed         a person has read the rules and they permit it
+#   pending_review  nobody has decided yet. Articles are KEPT and FLAGGED, so a
+#                   reviewer sees them and knows the question is open.
+#   not_allowed     every article is dropped, with that reason
+#
+# Set it only after reading rules_url, and record who decided and when.
+#
+# The conditions in `note` are read by the reviewer, not by code: nothing in
+# the Finder or the review screen enforces them yet.
+
+communities:
+  dev.to:
+    name: DEV Community
+    vendor_replies: allowed
+    rules_url: https://dev.to/terms
+    decided_by: aloysiuspellissery
+    decided_on: 2026-11-09
+    note: >-
+      Allowed when the comment carries real substance. The Terms' content
+      policy (section 11) "applies to comments, articles, and all other works"
+      and requires content that "is not designed primarily for the purposes of
+      promotion or creating backlinks"; "If a post contains affiliate links,
+      that fact must be clearly disclosed." The Code of Conduct
+      (https://dev.to/code-of-conduct) asks that AI assistance used to create
+      content be disclosed. Answer the question first, mention Kite Pulse at
+      most once, disclose the affiliation in every comment.

@@ -1,0 +1,13 @@
+# Limits on what the Finder keeps.
+
+# Threads older than this are dropped (reason: too_old). Old threads have moved
+# on, and a late reply that links to a product reads as advertising.
+max_thread_age_days: 7
+
+# Usernames of team members who post replies, per source. A thread where one of
+# them has already commented is dropped (reason: already_answered).
+#
+# EMPTY MEANS THE CHECK DOES NOT RUN, and the Finder says so in its output. It
+# never reads as "nobody on the team has replied".
+team_accounts:
+  hackernews: []

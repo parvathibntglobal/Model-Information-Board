@@ -1,0 +1,32 @@
+# Communities the Finder may shortlist from, and whether each one welcomes a
+# disclosed reply from someone who works on a product.
+#
+# vendor_replies is one of:
+#   allowed         a person has read the community's rules and they permit it
+#   pending_review  nobody has decided yet. Threads are KEPT and FLAGGED, so a
+#                   reviewer sees them and knows the question is open.
+#   not_allowed     every thread from here is dropped, with that reason
+#
+# Each entry is a person's reading of that community's own rules. Set it only
+# after reading rules_url, and record who decided and when.
+#
+# The conditions in `note` are read by the reviewer, not by code: nothing in
+# the Finder or the review screen enforces them yet.
+
+communities:
+  hackernews:
+    name: Hacker News
+    vendor_replies: allowed
+    rules_url: https://news.ycombinator.com/newsguidelines.html
+    decided_by: aloysiuspellissery
+    decided_on: 2026-11-09
+    note: >-
+      Allowed in moderation, HUMAN-WRITTEN REPLIES ONLY. The guidelines say
+      "It's ok to post your own stuff part of the time, but the primary use of
+      the site should be for curiosity" and "Please don't use HN primarily for
+      promotion", and they forbid generated text: "Don't post generated text or
+      AI-edited text." So no model draft is posted here, edited or not; phase 2
+      may show notes, never a draft. Never ask anyone, colleagues included, to
+      upvote or comment (the FAQ: HN penalises or bans accounts that do). Post
+      from an established account, not a new one. Disclose the affiliation in
+      every reply; the guidelines have no disclosure rule, so this is ours.

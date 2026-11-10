@@ -1,0 +1,251 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Claude MD Version Control: A Guide for Teams | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Claude MD version control for teams: what to commit, what to keep local, AGENTS.md vs CLAUDE.md, and how to read a rule's change history in git.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Claude MD Version Control: Keeping CLAUDE.md and AGENTS.md in Git","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"claude md version control"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Claude MD Version Control","item":"/blog/claude-md-version-control"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I share AI best practices across my team?","acceptedAnswer":{"@type":"Answer","text":"Write them where the agents read them: a project CLAUDE.md or AGENTS.md committed to the repository, reviewed in pull requests like any other change, with one line saying why each rule exists. Keep personal preferences in an ignored local file, and put company-wide rules in one shared place rather than copying them into every repository. When a workflow keeps repeating, turn it into a reusable skill or command instead of another paragraph of instructions."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);border-radius:5px;padding:1px 5px;overflow-wrap:anywhere}
+pre{margin:0;font-family:var(--mono);font-size:.85rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;line-height:1.55}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Project knowledge</div>
+    <h1>Claude MD Version Control: Keeping CLAUDE.md and AGENTS.md in Git</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Claude MD version control means committing your project's CLAUDE.md (and AGENTS.md, if you use it) to the repository and changing it through reviewed commits, like any other file that shapes how the software is built.</b> Shared rules go in the committed file, personal preferences go in a local file that git ignores, and every change carries a reason. Then <code>git log</code> and <code>git blame</code> can tell anyone why the agent behaves the way it does.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "claude md version control" written as typed (people search "claude md") in the title tag (57 characters), H1, URL and the bolded first sentence of the answer box. Meta description 144 characters. Intent is commercial: the page helps a tech lead decide how to set up and govern these files, and the product appears in one section and one callout.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why your agent instructions belong in version control</h2>
+    <p>A CLAUDE.md file is read at the start of every Claude Code session in that project. Whatever it says about build commands, test habits, folders to avoid or how to write a migration, the agent will try to follow. In practice that makes it configuration for how code gets written, and configuration that lives outside version control drifts.</p>
+    <p>Three things go wrong when the file is treated as a scratchpad. Rules appear with no reason attached, so nobody dares remove them later. Rules disappear in an unrelated commit, and the mistake they prevented comes back. And each developer's copy slowly diverges, so two people running the same agent on the same repository get different behaviour without knowing why.</p>
+    <p>Keeping the file in git, and changing it on purpose, fixes all three. It also gives you a record of how your team's working practices changed as you learned what the agents get wrong, which is part of a project's <a href="/blog/institutional-knowledge">institutional knowledge</a> and usually the hardest part to reconstruct later.</p>
+  </section>
+
+  <section class="block" id="what-to-commit">
+    <h2>What to commit and what to keep local</h2>
+    <p>Claude Code reads instruction files at several levels, and only some of them belong in the repository. Anthropic's documentation describes these locations:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>File</th><th>Who it applies to</th><th>Commit it?</th></tr></thead>
+        <tbody>
+          <tr><td><code>./CLAUDE.md</code> or <code>./.claude/CLAUDE.md</code></td><td>Everyone working in the project</td><td>Yes. This is the shared file.</td></tr>
+          <tr><td><code>CLAUDE.md</code> in a subfolder</td><td>Work in that part of the codebase; loaded when the agent works there</td><td>Yes, with the code it describes.</td></tr>
+          <tr><td><code>.claude/rules/*.md</code></td><td>Rules split by topic, or scoped to certain file paths</td><td>Yes.</td></tr>
+          <tr><td><code>./CLAUDE.local.md</code></td><td>Only you, in this project</td><td>No. Add it to <code>.gitignore</code>.</td></tr>
+          <tr><td><code>~/.claude/CLAUDE.md</code></td><td>Only you, in every project</td><td>Not in the project repository.</td></tr>
+          <tr><td>Managed policy CLAUDE.md</td><td>Everyone in the organisation, placed by IT</td><td>In whatever repository IT uses to distribute it.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Two details matter for review. Files found from the project folder upward are combined, not overridden, so a short project file plus a short subfolder file is easier to reason about than one long file. And a CLAUDE.md can pull in another file with an <code>@path</code> import, which helps you organise a long file but does not make it cheaper: imported files load together with the file that imports them.</p>
+    <div class="seo"><b>SEO</b>Outside facts from Anthropic's Claude Code memory documentation, https://code.claude.com/docs/en/memory, checked 2 Nov 2026: file locations and scopes, CLAUDE.local.md in .gitignore, files combined rather than overridden, @path imports load with the importing file, the 200-line target used below. Not product claims.</div>
+  </section>
+
+  <section class="block" id="agents-vs-claude">
+    <h2>AGENTS.md vs CLAUDE.md</h2>
+    <p>AGENTS.md is an open format for instructions to coding agents, described by its maintainers as a README for agents. Many tools read it, including Codex, Cursor, Gemini CLI, Aider, Roo Code, Kilo Code and OpenCode. In a monorepo you can place one in each subproject, and the nearest file to the work takes precedence. CLAUDE.md is the file Claude Code reads.</p>
+    <p>Recent Claude Code versions can also read AGENTS.md, with one catch that is easy to trip over. By default Claude reads AGENTS.md only when there is no CLAUDE.md, <code>.claude/CLAUDE.md</code> or CLAUDE.local.md in the working folder or above it. So a developer who adds a private CLAUDE.local.md to a project that relies on AGENTS.md quietly stops getting the shared instructions.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">One tool</span><h3>CLAUDE.md only</h3><p>Fine when the whole team uses Claude Code. Simplest to review.</p></div>
+      <div class="part"><span class="tag">Several tools</span><h3>AGENTS.md as the source</h3><p>Write the shared rules once in AGENTS.md, and keep a short CLAUDE.md that imports it with <code>@AGENTS.md</code> plus any Claude-only notes. One file to review, every tool reads the same rules.</p></div>
+      <div class="part"><span class="tag">Avoid</span><h3>Two full copies</h3><p>Two files saying nearly the same thing drift within weeks, and reviewers end up approving a change in one and missing the other.</p></div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keyword "agents.md vs claude.md" as this H2. AGENTS.md facts from https://agents.md/ (supported tools, nearest file wins), and the CLAUDE.md/AGENTS.md loading rule and @AGENTS.md import from the Claude Code memory documentation, both checked 2 Nov 2026. Tools named here are limited to ones on agents.md's list.</div>
+  </section>
+
+  <section class="block" id="best-practices">
+    <h2>CLAUDE.md best practices for a shared repository</h2>
+    <p>These work equally well as AGENTS.md best practices. Most of them are ordinary good habits for any configuration file, applied to one that people tend to edit in a hurry.</p>
+    <ul>
+      <li><b>Review it like code.</b> Changes to the shared file go through a pull request. If your platform supports code owners, name one or two people for the instruction files so a change always reaches someone who knows why the existing rules are there.</li>
+      <li><b>Put the reason next to the rule.</b> One line is enough: what went wrong, and roughly when. A rule with its reason can be judged later; a bare rule can only be obeyed or deleted.</li>
+      <li><b>Write commit messages for the next reader.</b> "Update CLAUDE.md" tells nobody anything. "Stop the agent running migrations against the shared database" does.</li>
+      <li><b>Keep it short.</b> Anthropic suggests aiming for under 200 lines per CLAUDE.md, because longer files take more context and are followed less consistently. Move rules that only matter for one area into a subfolder file or a path-scoped rule.</li>
+      <li><b>Keep secrets and personal paths out.</b> Sandbox addresses, your own test data and anything resembling a credential belong in the ignored local file or nowhere.</li>
+      <li><b>Instructions guide; they do not enforce.</b> The agent treats these files as context. When something must never happen, use a hook or a permission setting as well, and keep the CLAUDE.md line as the explanation.</li>
+      <li><b>Link decisions instead of pasting them.</b> If the team keeps decision records, point to the record from the rule. The decision stays in one place and the instruction stays short.</li>
+    </ul>
+    <p><b>An illustrative example, not a customer case.</b> A team adds "never edit generated API clients by hand" after an agent's change is overwritten by the next build. Months later, a newer team member trims the file and removes the line as noise. With the reason written beside the rule and the change in a reviewed pull request, the reviewer sees what is being dropped and asks. Without them, the same mistake waits to happen again.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "claude.md best practices" (H2) and "agents.md best practices" (first sentence). Hooks, permissions and the "context, not enforced configuration" point are from the Claude Code memory documentation, checked 2 Nov 2026. The example is labelled illustrative (R2).</div>
+  </section>
+
+  <section class="block" id="history">
+    <h2>Reading the CLAUDE.md change history</h2>
+    <p>Once the file is versioned, the CLAUDE.md change history answers most "why does the agent do this?" questions with plain git:</p>
+<pre>git log --follow -p -- CLAUDE.md      every change, with the diff
+git blame CLAUDE.md                   who last changed each line, and in which commit
+git log -S "migrations" -- CLAUDE.md  when a phrase was added or removed
+git log -p -- AGENTS.md .claude/rules  the same for the other instruction files</pre>
+    <p>The <code>-S</code> search is the useful one when a rule has gone missing: it finds the commit that removed the text, even if the file was rewritten since. Pair it with the pull request for that commit and you usually have the reason.</p>
+    <p>What git cannot show is how the instructions met the work. It records that a rule changed, not which sessions ran under the old version or whether the agent kept tripping over the same problem afterwards. That part of the picture comes from the sessions themselves.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude.md change history" in this H2 and first sentence. Standard git commands, no product claims.</div>
+  </section>
+
+  <section class="block" id="org">
+    <h2>Keeping instructions consistent across many repositories</h2>
+    <p>A single project is easy. Thirty repositories, each with its own file, is where shared practice starts to fork. The usual options, and where each fits:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Approach</th><th>Fits when</th><th>Watch out for</th></tr></thead>
+        <tbody>
+          <tr><td>Per repository file</td><td>Projects really differ in how they build and test</td><td>Company-wide rules copied by hand and drifting</td></tr>
+          <tr><td>Template repository</td><td>New projects should start from one agreed file</td><td>Only helps at creation; old projects keep the old text</td></tr>
+          <tr><td>Managed policy file</td><td>A few rules must apply to every developer's Claude Code</td><td>Changes go through IT's distribution, not a project pull request</td></tr>
+          <tr><td>Shared skills and commands</td><td>A workflow repeats across teams</td><td>Needs an owner, or stale skills pile up</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Most teams combine them: a short managed file for the handful of rules that apply everywhere, a committed file per project for local detail, and reusable skills for the repeated workflows.</p>
+  </section>
+
+  <section class="block" id="kite-pulse">
+    <h2>Where Kite Pulse fits</h2>
+    <p>Kite Pulse reads the session history that ten AI coding tools already keep on each developer's computer and sends it to a server your team runs itself. It does not open a project's source files. By default it does not read project notes either.</p>
+    <p>An admin can switch on an optional <b>project notes</b> read, which collects a project's CLAUDE.md, AGENTS.md, READMEs and decision records. It is off until an admin turns it on under Settings › Retention › Kite Pulse app reads, and it needs version 0.4.2 of the desktop program. Your repository stays the place where these files are written, reviewed and versioned; Kite Pulse does not replace git for that.</p>
+    <p>For the repeated workflows mentioned above, <a href="/skill-candidates">Skill Candidates</a> builds draft Claude Code skills by rules from repeated workflows, with no AI model, for a person to approve or reject. The full list of what the console shows is on the <a href="/features">features page</a>, and how data is protected is on the <a href="/security">security page</a>.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Runs on your own server, with no vendor cloud between. Secrets are masked on the developer's computer before upload and again on the server, and no session content uploads until each developer confirms their projects. Optional reads such as project notes stay off until an admin switches them on.</p></div>
+    <div class="seo"><b>SEO</b>The one product section and one callout. Facts from MSoT 1.1 (ten tools, optional reads list: project notes = CLAUDE.md, AGENTS.md, READMEs, decision records; Settings › Retention › Kite Pulse app reads; app 0.4.2), 1.7 (does not open source files; optional project-notes read off by default; secrets masked twice; consent before sync; no vendor cloud) and 1.5 (Skill Candidates). Deliberately not described: any page showing note versions, diffs or a read log, because Section 1 does not list one.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about versioning agent instructions</h2>
+    <div>
+      <details open><summary>How do I share AI best practices across my team?</summary><p>Write them where the agents read them: a project CLAUDE.md or AGENTS.md committed to the repository, reviewed in pull requests like any other change, with one line saying why each rule exists. Keep personal preferences in an ignored local file, and put company-wide rules in one shared place rather than copying them into every repository. When a workflow keeps repeating, turn it into a reusable skill or command instead of another paragraph of instructions.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief's one FAQ question, word for word, mirrored in FAQPage JSON-LD. Answered as general practice; no product claim in it.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/blog/institutional-knowledge">Institutional knowledge<span>Keeping what a team has learned when people move on</span></a></li>
+      <li><a href="/skill-candidates">Skill Candidates<span>Draft Claude Code skills from workflows that repeat</span></a></li>
+      <li><a href="/features">Kite Pulse features<span>Everything the console shows, page by page</span></a></li>
+      <li><a href="/security">Security<span>How sessions are masked, sent and stored</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See how your team works with AI agents</h3>
+      <p>Run Kite Pulse on your own server and see sessions, tools and projects across the team, with optional reads switched on only when you choose.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: claude md version control. Intent: commercial. Product facts only from MSoT Section 1 (1.1 optional reads, 1.5 Skill Candidates, 1.7 privacy safeguards); nothing taken from the Product Overview or Field Guide. Outside facts: Claude Code memory documentation (code.claude.com/docs/en/memory) and agents.md, both checked 2 Nov 2026. Left out on purpose: the "every version, what changed, every read recorded" Project notes view and its access rule (Product Overview and Field Guide only); masking of note text specifically; per-project exclusion from the notes read (MSoT 2.1, operator setting); Knowledge Records; anything on The Office's knowledge tab. No outside statistics.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/claude-md-version-control article. No example data; the scenario in the best-practices section is illustrative.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

@@ -1,0 +1,255 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Local AI Coding Analytics for a Single User | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A local AI coding analytics single user setup: your own stats from ten AI coding tools, on one computer, with no vendor cloud. What it shows and costs you.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Local AI Coding Analytics Single User Setup: Your Own Stats on Your Own Laptop","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Local AI coding analytics for a single user"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Local AI Coding Analytics for a Single User","item":"/blog/local-ai-coding-analytics"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can one person use Kite Pulse alone?","acceptedAnswer":{"@type":"Answer","text":"Yes. One command sets up the server, background worker, collector and database on one computer, reachable from that computer only. You get the same personal pages a team member gets, and because you are the only admin on that install, you also see the usage, cost estimate and plan pages for your own work."}},
+{"@type":"Question","name":"Does Kite Pulse send data to a vendor's cloud?","acceptedAnswer":{"@type":"Answer","text":"No. Session data goes only to the server you run, and on a one-person install that server is on the same computer. It works without any AI service; if you choose to switch on AI labelling, scrubbed text is sent to the AI provider through OpenRouter, and that is off until an admin sets it up."}},
+{"@type":"Question","name":"Is there a self-hosted tool to monitor AI coding tool usage?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kite Pulse reads the session history of ten AI coding tools and keeps it on a server you run, from one computer up to an Ubuntu server or your own AWS account. It covers Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider, and no other tools."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.story{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:8px}
+.story .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Benefits for individual developers</div>
+    <h1>Local AI Coding Analytics Single User Setup: Your Own Stats on Your Own Laptop</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>A local AI coding analytics single user setup reads the session history your AI coding tools already keep and turns it into your own stats, on your own computer, with no outside server involved.</b> It suits freelancers and solo developers who want their tokens, sessions, projects and plan usage without handing their AI conversations to anyone. Kite Pulse can run this way: one command puts the whole thing on one computer, reachable from that computer only.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "local ai coding analytics single user" in the title tag (starts with "Local"), meta description, H1, URL topic and the bolded first sentence of the answer box. The keyword is an awkward string, so H1 and answer carry it as "single user setup". Intent: commercial, so the page compares the ways a solo developer can get personal stats before describing the one-computer install, and says what running it yourself costs in effort.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why a solo developer wants their own AI coding stats</h2>
+    <p>When you work alone, nobody asks for a usage report. The questions come from you. Which client project took most of last month's AI work? Is your Claude plan the right size, or do you hit the weekly window every Thursday? Did the new model you switched to change how you work?</p>
+    <p>The raw answers already sit on your disk. Claude Code, Codex, Cursor and the other assistants each keep a history of every session. What is missing is one place that reads all of it the same way, links each session to its project, and shows the result over weeks. That is what "my AI coding stats" means in practice: your own figures, from your own history, across every tool you use.</p>
+  </section>
+
+  <section class="block" id="options">
+    <h2>Four ways to get personal Claude Code usage stats</h2>
+    <p>There is more than one way to get personal Claude Code usage stats, and the right one depends on how many tools you use and where you are willing to send your session history.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Built in</span><h3>Each tool's own usage screen</h3><p>No setup and nothing new to trust. Each covers a single tool and shows what that vendor chooses, usually without your projects or a month-to-month history.</p></div>
+      <div class="part"><span class="tag">Do it yourself</span><h3>Scripts over local logs</h3><p>Private and free to write. Every tool keeps its history in its own format, and the formats change, so a script that covers several tools becomes a small project you maintain.</p></div>
+      <div class="part"><span class="tag">Hosted</span><h3>A vendor-hosted analytics service</h3><p>Nothing to run. Your session history, which can include code the AI read or wrote, goes to someone else's servers, which a client contract may not allow.</p></div>
+      <div class="part"><span class="tag">Self-hosted</span><h3>Analytics on your own computer</h3><p>Several tools in one consistent view, and the data stays on your machine. You run the software yourself, which means installing it, starting it and keeping it updated.</p></div>
+    </div>
+    <p>If one tool's own screen answers your questions, stay there. Self-hosting earns its place when you use several assistants, work for several clients, or cannot send session content off your machine.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "personal claude code usage stats" in this H2 and the first sentence. The four approaches are general guidance with no claims about any named vendor, so no outside facts need a source.</div>
+  </section>
+
+  <section class="block" id="setup">
+    <h2>Self-hosted Claude Code analytics on one computer</h2>
+    <p>Every way of running Kite Pulse is self-hosted. The smallest is one computer for one person: a single command sets up the server, the background worker, the collector (the desktop program that reads your AI tools' history) and the database, all on your machine and reachable from that computer only. The full list of ways to run it, from this up to an Ubuntu server or your own AWS account, is on the <a href="/self-hosted">self-hosted deployment page</a>.</p>
+    <p>From install to first figures:</p>
+    <ol>
+      <li>Run the install command. The first start takes a few minutes and ends by printing the address of your console.</li>
+      <li>Open that address and sign in as the first admin. You are asked to choose a new password straight away.</li>
+      <li>Confirm your projects in the Onboarding Wizard. The collector has already found your project folders and their repository addresses, but no session content is sent until you confirm. Approval of a first project list is on by default; on a solo install you can switch it off in Detection Rules. An empty console before this step is expected.</li>
+      <li>Keep working. The collector runs in the background, reads the history each tool already keeps, masks secrets and sends only new activity.</li>
+    </ol>
+    <p>It reads ten tools out of the box: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider. You can switch any of them off, or collect token counts only, so the numbers are counted without the conversation being stored.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "self-hosted claude code analytics" as this H2. One-computer facts from MSoT 1.8; ten tools, counts-only mode, consent, masking and new-activity-only from 1.1; first-admin password change from 1.6. Install detail (first start takes a few minutes, the command prints the console address, you sign in as the first admin, an empty console before the wizard is expected) is from the Field Guide, "Run it" steps 3, 5 and 6, detailing MSoT 1.8 one computer. The operating system for the one-computer server is left out on purpose: MSoT 2.3 says the Windows one-machine installer is not proven end to end.</div>
+  </section>
+
+  <section class="block" id="see">
+    <h2>What one person sees on their own install</h2>
+    <p>Your personal pages are the same ones every team member gets, and our <a href="/solutions/developers">page for individual developers</a> walks through them: Workspace with each project's collection status and your Claude plan usage, My Activity, My Sessions, My Scorecard &amp; Insights with its "Top 3 to act on", work-pattern facts, working style and private prompt statistics.</p>
+    <p>The difference on a one-person install is that you are also the admin, so pages a developer on a team does not see by default are yours too:</p>
+    <ul>
+      <li><b>Team AI Usage</b> shows your token use per tool, model, project and day, for any period. Its Models tab shows which models you used and how that changed over time, and Plan headroom shows how close you are to your Claude plan's 5-hour, weekly and per-model weekly windows.</li>
+      <li><b>Estimated cost</b> appears per tool and on your own AI Usage tab, calculated from published list prices and labelled "not billed spend". Claude and Gemini models are priced; Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost; Codex, Cursor and Copilot usually show a dash.</li>
+      <li><b>AI Budgets</b> lets you set a monthly budget per project, in tokens or estimated US dollars, with alerts at 80% and 100%. For a freelancer, a project is often a client, so this is a simple way to notice when one client's work is running hot. Our post on <a href="/blog/ai-cost-per-project-agencies">AI cost per project</a> covers how to read those figures.</li>
+      <li><b>The company report</b> covers any period against the previous one and downloads as CSV or PDF, which makes a tidy monthly record of your own work.</li>
+    </ul>
+    <p>Every page is described on the <a href="/features">features overview</a>.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Nothing about your work has to leave your computer. Collection, counts, reports, budgets and rule-based labels all run without any AI service and without a key. Your private prompt statistics stay visible to you alone, and the Privacy page lists every data point recorded about you and whether it is on.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keyword "my ai coding stats" is in the section above. Facts: MSoT 1.4 (personal pages, Privacy page, private prompt statistics), 1.2 (Team AI Usage tabs, cost per tool, cost per developer admin-only, Models tab, Plan headroom windows, AI Budgets), 1.3 (company report), 1.5 (runs without any AI service). "You are also the admin" rests on the Field Guide, "Run it" step 5 (the one-computer install signs you in as the first admin), detailing 1.8 and 1.6. The one Kite Pulse callout on the page.</div>
+  </section>
+
+  <section class="block" id="data">
+    <h2>Self-hosted AI usage tracking: where your data goes</h2>
+    <p>Self-hosted AI usage tracking only means something if you can say exactly where the data goes. On a one-person install, the answer is short: from the collector to the server on the same computer, with no vendor cloud in between. The collector will not run until it is given a server address, and none is built in.</p>
+    <p>The usual safeguards still apply locally. Secrets matching 36 credential patterns are masked on the computer before upload and again on the server before storage. Session uploads are encrypted before they leave the collector. The collector reads session records, folder names and repository addresses, and does not open your source files, log keystrokes, take screenshots or track websites; session records can still include excerpts of code the AI read or wrote. The full list is on the <a href="/privacy">privacy page</a>.</p>
+    <p>One switch can send text outside: AI labelling. It is off until an admin sets it up with an OpenRouter key and a monthly budget, and if you turn it on, scrubbed text goes to the AI provider through OpenRouter. On a solo install that admin is you, so the decision is yours.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "self-hosted ai usage tracking" as this H2 and first sentence. Facts from MSoT 1.1 (no built-in server address, 36 patterns, encrypted uploads), 1.7 (masked twice, keyed hash, reads session records not source files, no vendor cloud, OpenRouter opt-in) and 1.5 (AI labelling setup). No claim of encryption at rest.</div>
+  </section>
+
+  <section class="block" id="example">
+    <h2>An illustrative example: one freelancer, two clients</h2>
+    <div class="story">
+      <span class="tag">Illustrative example, not a customer case</span>
+      <p>A freelance developer uses Claude Code for most work and Cline for one client who asked for it. Both clients' repositories live on the same laptop. After installing on that laptop and confirming both projects, she checks Team AI Usage at the end of the month. The Projects tab shows which client took more of her tokens, the Claude Code cost estimate sits beside Cline's own reported cost, and Plan headroom shows which weeks she ran close to her weekly window. She sets a monthly token budget on the busier project so the 80% alert tells her early next time.</p>
+    </div>
+    <p>None of the session history left the laptop. The cost figures are estimates, not an invoice, and the two tools' costs are shown side by side, never added up.</p>
+  </section>
+
+  <section class="block" id="tradeoffs">
+    <h2>What running it yourself costs you</h2>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What you get</h3>
+        <ul>
+          <li>Your stats from ten AI coding tools in one place</li>
+          <li>Sessions linked to projects automatically</li>
+          <li>Claude plan usage for Claude Code</li>
+          <li>Data that stays on your computer</li>
+          <li>A path to a team pilot from the same installer</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What you take on</h3>
+        <ul>
+          <li>Installing, starting and updating it yourself</li>
+          <li>One computer only: another machine cannot reach a one-computer install</li>
+          <li>Plan limits for Claude Code only; other tools show "Not reported by this tool"</li>
+          <li>No cost figure for most Codex, Cursor and Copilot sessions</li>
+          <li>Copilot inline completions, Copilot in JetBrains and Copilot CLI are not read</li>
+        </ul>
+      </div>
+    </div>
+    <p>If you code on two computers, or you take on a collaborator, the same installer runs a team pilot on your local network, on an address you choose. There is no vendor-hosted version, so if you want analytics you never have to run, this is not the tool. For reading your own plan figures, see the guide to <a href="/claude-code-usage-limits">Claude Code usage limits</a>.</p>
+    <div class="seo"><b>SEO</b>Trade-offs from MSoT 1.8 (reachable from that computer only, team pilot from the same installer, Ubuntu and AWS), 1.2 (Plan headroom Claude Code only, "Not reported by this tool"), 1.1 table (cost column), 2.3 (Copilot outside VS Code Chat not built) and 2.4 (no vendor-hosted version). Honest scope per R9.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about running it alone</h2>
+    <div>
+      <details open><summary>Can one person use Kite Pulse alone?</summary><p>Yes. One command sets up the server, background worker, collector and database on one computer, reachable from that computer only. You get the same personal pages a team member gets, and because you are the only admin on that install, you also see the usage, cost estimate and plan pages for your own work.</p></details>
+      <details><summary>Does Kite Pulse send data to a vendor's cloud?</summary><p>No. Session data goes only to the server you run, and on a one-person install that server is on the same computer. It works without any AI service; if you choose to switch on AI labelling, scrubbed text is sent to the AI provider through OpenRouter, and that is off until an admin sets it up.</p></details>
+      <details><summary>Is there a self-hosted tool to monitor AI coding tool usage?</summary><p>Yes. Kite Pulse reads the session history of ten AI coding tools and keeps it on a server you run, from one computer up to an Ubuntu server or your own AWS account. It covers Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider, and no other tools.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The three FAQ questions from the brief, word for word, mirrored in the FAQPage JSON-LD. Answers from MSoT 1.8, 1.7, 1.5 and 1.1.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/solutions/developers">For individual developers<span>Your own pages, plan usage and Top 3 to act on</span></a></li>
+      <li><a href="/self-hosted">Self-hosted deployment<span>One computer, team pilot, Ubuntu or your AWS account</span></a></li>
+      <li><a href="/blog/control-claude-code-spend-small-team">Claude Code spend on a small team<span>When one person becomes a few</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See your own AI coding stats on your own computer</h3>
+      <p>Run Kite Pulse on one machine and read your sessions, tokens and plan usage across ten AI coding tools.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: local ai coding analytics single user. Intent: commercial. Facts from MSoT Section 1 (1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8) and 2.4 for the honest "no vendor-hosted version". Detail from the Field Guide "Run it" (first start takes a few minutes, printed address, first-admin sign-in, empty console before the wizard) used only for the 1.8 one-computer option. Personal pages are linked to /solutions/developers and deployment options to /self-hosted rather than repeated. Left out on purpose: the server operating system for the one-computer install (MSoT 2.3: Windows one-machine installer not proven), Docker, port numbers and the default admin address (operational detail, Field Guide only), the token pace line, notices, The Office views, Agent API and MCP, the Leaked Credentials page, retention deletion, and any claim that erasing removes all data. No outside statistics.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/local-ai-coding-analytics article. No example data beyond the labelled illustrative story; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

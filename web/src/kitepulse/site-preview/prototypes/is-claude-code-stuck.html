@@ -1,0 +1,234 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>How to Tell if Claude Code Is Stuck | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How to tell if Claude Code is stuck, only waiting, or frozen: four signs to check at your own terminal, what to do next, and how a team sees it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Tell if Claude Code Is Stuck, or Only Waiting for You","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Telling whether a Claude Code session is stuck, waiting or frozen"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"How to Tell if Claude Code Is Stuck","item":"/blog/is-claude-code-stuck"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I spot developers who are stuck in long AI sessions?","acceptedAnswer":{"@type":"Answer","text":"Look for repetition, not length. A two-hour session that keeps producing new files and passing tests is going well; a forty-minute one that runs the same failing command over and over is not. Across a team, Kite Pulse puts a stuck marker on the person's desk in The Office, and Work Problems lists repeated retries and failed commands. Each developer's report also shows deep sessions of 60 minutes or more and their longest session, which is a reason to ask, not a verdict."}},
+{"@type":"Question","name":"How do I know when AI is retrying the same failed fix repeatedly?","acceptedAnswer":{"@type":"Answer","text":"At your own terminal, the pattern is an edit, the same command, the same error, and another edit, with nothing new in between. When you see it twice, stop the run and read the error yourself. For a team, Work Problems finds repeated retries, failed commands and error messages with fixed rules and no AI; it is an admin page by default. Failed tool calls are recorded for every supported tool except Aider."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:14px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+.steps p{font-size:.97rem}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700;white-space:nowrap}
+
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;max-width:none}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} td:first-child{white-space:normal} .kp{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Live updates</div>
+    <h1>How to Tell if Claude Code Is Stuck, or Only Waiting for You</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>7 min read</span></div>
+    <div class="answer">
+      <p><b>How to tell if Claude Code is stuck: check whether it is making progress, not whether it is busy.</b> If it runs the same command and gets the same error after every edit, changes the same lines back and forth, or works for a long stretch with nothing new to show, it is stuck. If a question or a permission prompt is on screen, it is only waiting for you.</p>
+      <p>Below are the four signs to check at your own terminal, what to do about each, and how a lead can tell which of a team's agents need a person without asking everyone.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Title tag "How to Tell if Claude Code Is Stuck | Kite Pulse" (48 characters). Meta description 144 characters. Main keyword "how to tell if claude code is stuck" in the title tag, H1, URL slug (short form) and the bolded first sentence of the answer box, which answers the question plainly before any product mention (AEO). Intent is Informational: the first half of the page is useful to someone at their own terminal with no product at all.</div>
+  </header>
+
+  <section class="block" id="three-stops">
+    <h2>Stuck, waiting or frozen: three different stops</h2>
+    <p>"Claude Code stuck" gets used for three situations that look alike from across the room and need different responses. Telling them apart takes about ten seconds once you know what to look at.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Situation</th><th>What you see</th><th>What it needs</th></tr></thead>
+        <tbody>
+          <tr><td>Waiting</td><td>A question, a plan to approve, or a request to run a command or edit a file. Nothing moves until you answer.</td><td>You. Usually one reply or one keypress.</td></tr>
+          <tr><td>Stuck</td><td>Plenty of activity. Edits, commands and errors keep scrolling past, but the error at the end of each round is the same one.</td><td>A person with fresh context. Another retry rarely helps.</td></tr>
+          <tr><td>Frozen</td><td>No new output at all for a long time, and no prompt waiting for you.</td><td>A look at what it last started, the network, and your plan limits.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The awkward one is the middle row. Waiting and frozen are quiet, so people notice them. A stuck agent is busy, and busy looks like work. That is why "is it doing something?" is the wrong question.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "claude code stuck" (body) and "claude code session frozen" (via the Frozen row and the next section). No product claims in this section; general guidance only.</div>
+  </section>
+
+  <section class="block" id="signs">
+    <h2>Four signs to check at your own terminal</h2>
+    <ol class="steps">
+      <li><div><h3>The same command keeps failing</h3><p>Scroll back over the last few rounds. If the test, build or script ends with the same error each time, with an edit in between, the edits are not reaching the cause. This is the classic AI agent stuck in a loop.</p></div></li>
+      <li><div><h3>The same edit is made, undone and made again</h3><p>The agent changes a line, the change breaks something else, it changes it back, and the first failure returns. Two files edited in turn, round after round, is the same pattern on a larger scale.</p></div></li>
+      <li><div><h3>Time passes and nothing new exists</h3><p>Ask what is different now from twenty minutes ago: a new file, a passing test, a finished step in its plan. If the honest answer is "nothing", the session is busy without progress, however much it has printed.</p></div></li>
+      <li><div><h3>It is waiting for permission, not stuck at all</h3><p>Before deciding anything, look at the bottom of the window. Claude Code waiting for input, or for approval to run a command, sits completely still. It looks frozen and it is the cheapest stop to clear.</p></div></li>
+    </ol>
+    <h3>When the session is frozen rather than stuck</h3>
+    <p>If there is no prompt and no new output, check three things in this order. Did the agent start something that never ends on its own, such as a development server or a test runner in watch mode? Has the network dropped? And has your Claude plan window run out? A plan has a 5-hour window and a weekly window, and when one is used up the agent cannot continue until it resets. None of these is a problem with the code.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "ai agent stuck in loop" (sign 1), "claude code waiting for input" (sign 4) and "claude code session frozen" (H3). Kept as a checklist for one person at one terminal, which neither /blog/stuck-ai-agent (a story) nor /blog/visualize-ai-agents-working (reading states across a team) covers. The plan windows are the ones named in MSoT 1.2.</div>
+  </section>
+
+  <section class="block" id="what-to-do">
+    <h2>What to do once you know it is stuck</h2>
+    <p>The instinct is to type "try again". It rarely works, because the agent already tried again several times. What works better:</p>
+    <ul>
+      <li><b>Stop the run.</b> Every extra round adds tokens and scrolls the useful error further away.</li>
+      <li><b>Read the last error yourself.</b> You know things about your machine that the agent cannot see.</li>
+      <li><b>Look outside the code.</b> A service that is not running, a missing credential or setting, a network call or a test configuration can fail the same way no matter what is edited.</li>
+      <li><b>Restart with a request that names the real problem</b>, and give it the approvals it will predictably need so it does not stop at the first command.</li>
+    </ul>
+    <p>If the same kind of loop keeps coming back, it is worth understanding why agents fall into it. Our guide to <a href="/blog/ai-retry-loops">why AI agents retry the same failed fix, and how to break the cycle</a> goes into the causes.</p>
+  </section>
+
+  <section class="block" id="notify">
+    <h2>A Claude Code notification when waiting: useful, with one gap</h2>
+    <p>You do not have to watch the terminal to catch the waiting case. Claude Code's hooks include a Notification event, and its matchers include a permission prompt and an idle prompt. A small hook can play a sound or show a desktop notification when either fires, so a Claude Code notification when waiting reaches you in another window. (Source: Anthropic's Claude Code hooks documentation, checked 2 Nov 2026.)</p>
+    <p>Notice what it cannot do. A stuck agent never asks for anything. It keeps running, so no waiting notification ever fires for it. The quiet stops come to you; the busy one does not. For that you need someone, or something, looking at whether the work is repeating.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude code notification when waiting" in this H2 and body. Outside fact: Claude Code hooks have a Notification event whose matchers include permission_prompt and idle_prompt. Source: https://code.claude.com/docs/en/hooks, checked 2 Nov 2026. No idle duration is given because it was not confirmed. Kite Pulse's own waiting signals for Claude Code are unreleased (MSoT 2.3) and are not mentioned.</div>
+  </section>
+
+  <section class="block" id="team">
+    <h2>Across a team: which Claude Code agent is stuck right now?</h2>
+    <p>Everything above works when the agent is yours and the window is in front of you. A lead with eight people, some running several agents each, cannot scroll eight terminals. The question becomes which Claude Code agent is stuck, and whose move it is, without interrupting everyone to find out.</p>
+    <p>A tool that reads the session history the AI tools already keep can answer it. In Kite Pulse, three views do the work.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Everyone</span><h3>The Office</h3><p>A desk per person, grouped by team, with online, away or offline status and a marker for stuck work or a plan limit. For yourself, the people you manage and admins, the desk says how many times the agent hit the same problem and for how long, with plain reasons.</p></div>
+      <div class="part"><span class="tag">One developer</span><h3>Agents in parallel</h3><p>How many AI agents and sub-agents are working now, and whether each is working, waiting for the developer or waiting for permission, with a lane chart for any past day. Admins can open it for anyone; managers see it for themselves.</p></div>
+      <div class="part"><span class="tag">Admin by default</span><h3>Work Problems</h3><p>Fixed rules, with no AI, find failed commands, error messages and repeated retries, grouped by severity with suggested actions and the most affected developers. Admins can grant it to other roles.</p></div>
+    </div>
+    <p>The three answer different questions. The Office says who needs a look now. Agents in parallel separates a stuck agent from one that is simply waiting on its person. Work Problems shows whether the same failure is hitting several people, which usually means a broken setup, not a broken habit. The thresholds it uses live in Detection Rules.</p>
+    <p>For how each agent state reads and what it asks of you, see <a href="/blog/visualize-ai-agents-working">how to read an AI agent's working, waiting and stuck states</a>. For one team lead following a stuck marker to a fix, read <a href="/blog/stuck-ai-agent">the story of a stuck agent caught before lunch</a>. The Office itself is described on <a href="/ai-agent-office">the live office view of your team's AI agents</a>.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>The "failed" in these views is recorded, not guessed: failed tool calls come from every supported tool except Aider, and command exit codes from Claude Code, Codex and Copilot. All three views run on your own server from the session history, with no AI service needed.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude code agent stuck" in the H2 and first paragraph. Facts: The Office and Agents in parallel (MSoT 1.4), Work Problems (1.2), Detection Rules and Roles &amp; Permissions (1.6, 1.4), failed tool calls and exit codes (1.1), no AI service needed (product summary, 1.5). The "how many times, how long, plain reasons" desk detail is from the Product Overview 5.2, as detail of The Office's stuck-work marker. The one product callout on the page.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What the team view does not tell you</h2>
+    <ul>
+      <li><b>It is a place you look.</b> The stuck marker sits on a desk. Teams that rely on it tend to keep The Office open on a shared screen.</li>
+      <li><b>Detail is scoped.</b> Everyone sees presence. What a stuck marker is about is shown only for yourself, the people you manage and admins.</li>
+      <li><b>A plan limit is not a stuck agent.</b> The Office marks it separately, each developer sees their own Claude plan usage on Workspace, and <a href="/plan-headroom">Plan headroom</a> lists who is near a limit, worst first. It covers Claude Code only.</li>
+      <li><b>It does not say whether the code is good</b>, and it does not read keystrokes, screenshots or project source files. Session records can include excerpts of code the AI read or wrote, with secrets masked.</li>
+    </ul>
+    <p>Stuck agents are one slice of how a team works. If you also want delivery figures from git and tickets, see where <a href="/engineering-intelligence">AI session data fits beside engineering delivery analytics</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai agent stuck" in the intro of the team section and here by implication. Honest scope (R9). Scoping and presence: MSoT 1.4 plus Product Overview 5.2. Plan headroom and Workspace: MSoT 1.2. Privacy wording: MSoT 1.7.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about stuck AI sessions</h2>
+    <div>
+      <details open><summary>How do I spot developers who are stuck in long AI sessions?</summary><p>Look for repetition, not length. A two-hour session that keeps producing new files and passing tests is going well; a forty-minute one that runs the same failing command over and over is not. Across a team, Kite Pulse puts a stuck marker on the person's desk in The Office, and Work Problems lists repeated retries and failed commands. Each developer's report also shows deep sessions of 60 minutes or more and their longest session, which is a reason to ask, not a verdict.</p></details>
+      <details><summary>How do I know when AI is retrying the same failed fix repeatedly?</summary><p>At your own terminal, the pattern is an edit, the same command, the same error, and another edit, with nothing new in between. When you see it twice, stop the run and read the error yourself. For a team, Work Problems finds repeated retries, failed commands and error messages with fixed rules and no AI; it is an admin page by default. Failed tool calls are recorded for every supported tool except Aider.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief's two FAQ questions, word for word, mirrored in FAQPage JSON-LD. Answered from the individual's side first, so they differ from the same questions on /blog/stuck-ai-agent. Deep sessions and longest session: MSoT 1.4 work-pattern facts. "Two-hour" and "forty-minute" are illustrative, not data.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/blog/ai-retry-loops">AI retry loops<span>Why agents repeat the same failed fix</span></a></li>
+      <li><a href="/blog/visualize-ai-agents-working">Reading agent states<span>Working, waiting, stuck and at a limit</span></a></li>
+      <li><a href="/blog/stuck-ai-agent">The stuck agent caught before lunch<span>One lead, one marker, one fix</span></a></li>
+      <li><a href="/ai-agent-office">The Office<span>Your team's AI agents, desk by desk</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Find the stuck agent while there is still time to help</h3>
+      <p>Run Kite Pulse on your own server and see which of your team's agents need a person.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: how to tell if claude code is stuck. Intent: Informational. Facts from MSoT Section 1 (1.1, 1.2, 1.4, 1.6, 1.7); one detail from the Product Overview 5.2 (desk "AI stuck" line). One outside fact (Claude Code Notification hook), source in the notify section's note. Left out on purpose: the 30-minute "AI agent stuck" notice to person and manager (Product Overview and Field Guide only; the plan brief asked for it), the "two quiet minutes = waiting" rule (Product Overview 3D posture and Field Guide "Waiting for you", tied to unreleased signals), Kite Pulse's Claude Code waiting and approval signals (MSoT 2.3), "What the agent did", session playback, The Office's 3D, full-screen and Headroom views, Tasks and Activity tabs, and the operator's interval switch.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/is-claude-code-stuck article. No example data; session lengths in the FAQ are illustrative, and every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

@@ -1,0 +1,29 @@
+{
+  "name": "shortlist",
+  "description": "Record which problem the post's author has, and how directly the post is about it.",
+  "parameters": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["problem", "relevance", "article_slug", "reason"],
+    "properties": {
+      "problem": {
+        "type": "string",
+        "enum": "{problem_keys}",
+        "description": "One problem key from the list, or none."
+      },
+      "relevance": {
+        "type": "string",
+        "enum": ["high", "medium", "low"]
+      },
+      "article_slug": {
+        "type": ["string", "null"],
+        "enum": "{article_slugs}",
+        "description": "A slug from the article list, or null. Null when the list is empty."
+      },
+      "reason": {
+        "type": "string",
+        "description": "At most {max_reason_words} words: what in the post made you choose this."
+      }
+    }
+  }
+}

@@ -1,0 +1,260 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Measure Developer Experience Without Surveys | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Measure developer experience without surveys: which survey questions AI session records can answer, which they cannot, and what to report to leadership.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Measure Developer Experience Without Surveys, and What You Still Have to Ask","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Measuring developer experience without surveys"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Developer Experience Without Surveys","item":"/blog/developer-experience-without-surveys"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I see what my team is working on without status meetings?","acceptedAnswer":{"@type":"Answer","text":"Read it from the work itself. Each AI coding session runs in a project folder, so a tool that links sessions to repositories can show who is working where right now and which projects several people share. In Kite Pulse, Team Overview shows who is coding now and each person's current project, and Collaboration lists projects with more than one contributor. Keep a meeting for decisions, not for status."}},
+{"@type":"Question","name":"What metrics should I report to leadership about AI coding-tool adoption?","acceptedAnswer":{"@type":"Answer","text":"Report counts that can be repeated every period: active developers per tool and per model, sessions, token use by team or project, and the same figures against the previous period. Add estimated cost only where it is priced, labelled as an estimate rather than billed spend. Avoid survey percentages for adoption, because they cannot be measured the same way next quarter."}},
+{"@type":"Question","name":"How can managers spot struggling developers early without surveys?","acceptedAnswer":{"@type":"Answer","text":"Partly. Session records show friction early: the same command failing again and again, a fix retried many times, very long sessions with little progress. They do not show stress, motivation or anything happening outside the AI tools, so treat a signal as a reason to talk to the person, not as a conclusion. Read signals next to recorded leave and on-call, so a quiet week is not mistaken for a problem."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+.v{display:inline-block;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:2px 8px;white-space:nowrap;font-weight:600}
+.v.rec{background:var(--good-soft);color:var(--good)}
+.v.part{background:var(--cost-soft);color:var(--cost)}
+.v.ask{background:var(--bad-soft);color:var(--bad)}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.example{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:8px}
+.example .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Benefits for organisations</div>
+    <h1>How to Measure Developer Experience Without Surveys, and What You Still Have to Ask</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>You can measure developer experience without surveys only in part: the facts of how work went, such as active time, retries, failed commands, time an agent spent waiting and long focused sessions, are already recorded in AI coding sessions, but how people feel about their work is recorded nowhere.</b> Use those records to retire the survey questions that ask people to remember facts, and keep a short survey for satisfaction, stress and whether the work feels worthwhile.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "measure developer experience without surveys" in the title tag (57 characters), H1, URL and the bolded first sentence of the answer box, which answers the question before any product mention. Meta description 152 characters. Intent is informational: the page teaches which survey questions records can replace, then gives the product one section and one callout.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why leaders want fewer survey questions</h2>
+    <p>Developer experience surveys are slow and expensive in attention. They run once a quarter, the response rate drifts, and many questions ask people to estimate things they did not count: how many hours of focus they had, how often the build broke, which AI tools they used last month. Answers to those questions are memory, and memory is a weak instrument for frequency.</p>
+    <p>Much of a developer's day now runs through an AI coding assistant, and the assistant keeps a history of each session on the developer's computer. That history records when work happened, which tool and model ran, which commands failed and how often the same fix was tried again. For an executive or engineering leader, that turns a set of survey questions into records you can read the same way every week.</p>
+    <p>This article is about which questions those are. For the frameworks themselves (SPACE, DevEx and DX Core 4) and a full metric library, read our guide to <a href="/blog/developer-experience-metrics">developer experience metrics and the frameworks behind them</a>. For whether AI is making delivery faster, see <a href="/blog/measure-developer-productivity-ai">how to measure developer productivity with AI against a fair baseline</a>.</p>
+  </section>
+
+  <section class="block" id="questions">
+    <h2>Which survey questions session records can answer</h2>
+    <p>Take a typical developer experience survey and sort its questions into three groups. Some ask about facts the sessions already hold. Some ask about facts the sessions hold only in part. The rest ask about feelings and judgement, and no record answers those.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Survey question</th><th>What the session record holds</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td>How much uninterrupted focus time did you get?</td><td>Active time, deep sessions of an hour or more, and the share of short bursts under 15 minutes.</td><td><span class="v rec">Use the record</span></td></tr>
+          <tr><td>How often do commands and tests fail on you?</td><td>Failed commands and tool calls, error messages and the same fix retried again and again.</td><td><span class="v rec">Use the record</span></td></tr>
+          <tr><td>Which AI tools and models do you use?</td><td>Sessions per tool and per model, for every tool that is collected.</td><td><span class="v rec">Use the record</span></td></tr>
+          <tr><td>How much time do you lose waiting?</td><td>Whether an AI agent is waiting for the developer or for permission. Waiting on CI and code review lives in your build and git tools instead.</td><td><span class="v part">Partly</span></td></tr>
+          <tr><td>How fragmented is your day?</td><td>Short bursts and how many sessions ran at once. The pattern shows; the cause (meetings, pages, context switching) does not.</td><td><span class="v part">Partly</span></td></tr>
+          <tr><td>Can you find the documentation you need?</td><td>Repeated retries hint at missing context, but cannot tell missing docs from a hard problem.</td><td><span class="v ask">Keep asking</span></td></tr>
+          <tr><td>How satisfied are you with your tools and work?</td><td>Nothing. Satisfaction is a judgement, not an event.</td><td><span class="v ask">Keep asking</span></td></tr>
+          <tr><td>How stressed or stretched do you feel?</td><td>Nothing reliable. Long hours can be flow or a grind, and the record looks the same.</td><td><span class="v ask">Keep asking</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The first group is where a survey gains least and loses most. Drop those questions, and the survey that remains is shorter, which tends to keep more people answering it honestly.</p>
+    <div class="seo"><b>SEO</b>The question-by-question table is this page's own angle; /blog/developer-experience-metrics already maps session signals to DevEx dimensions, so this page does not repeat that mapping or compare frameworks. "Waiting" is limited to the agent states in MSoT 1.4 (Agents in parallel); Claude Code "waiting for you" signals are not released (MSoT 2.3) and are not used.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What records cannot replace</h2>
+    <p>Developer experience is, by its own definition, about how the work feels to the people doing it. A record of what happened is evidence about friction. It is not evidence about experience. Be plain with leadership about that line, because the cost of crossing it is a dashboard that reads calm while a team is unhappy.</p>
+    <div class="cansee">
+      <div class="yes">
+        <h3>Session records can show</h3>
+        <ul>
+          <li>When and how long people worked with AI tools</li>
+          <li>Failing commands, errors and repeated retries</li>
+          <li>Long focused sessions and fragmented days</li>
+          <li>Which projects and tools the work ran in</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>Session records cannot show</h3>
+        <ul>
+          <li>Satisfaction, stress, motivation or burnout</li>
+          <li>Meetings, reviews, design talks and any work done without an AI tool</li>
+          <li>Whether the code was good, or the project worth doing</li>
+          <li>Why someone worked late or went quiet</li>
+        </ul>
+      </div>
+    </div>
+    <p>If the question is delivery speed, review wait or change failure rate, git and ticket analytics answer it better than session data does. Many teams run both and pair session records with <a href="/engineering-intelligence">engineering analytics for delivery and planning</a>, because each sees what the other cannot.</p>
+  </section>
+
+  <section class="block" id="kpis">
+    <h2>Software engineering KPIs that come from records, not recall</h2>
+    <p>The software engineering KPIs that work best for leadership are the ones measured the same way every period, at team or organisation level. From session records, a practical short list is:</p>
+    <ul>
+      <li><b>Active developers and active hours</b>, against the previous period.</li>
+      <li><b>Sessions per tool and per model</b>, as an adoption measure (our piece on <a href="/blog/ai-adoption-tracking">AI adoption tracking</a> goes deeper).</li>
+      <li><b>Recurring failures</b>: the commands and errors that keep coming back, and how many people they reach.</li>
+      <li><b>Project health</b>: which projects are active, stable or dormant, and how many people contribute.</li>
+    </ul>
+    <p>Two habits keep these honest. Read each figure as a change from your own baseline, never as a target. And read them for teams, not for individuals: a person's active hours say little about their contribution, and turning them into a goal produces more hours, not better work.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "software engineering kpis" in the H2 and first sentence. The list is general guidance; each item matches a Section 1 figure (Organisation Overview 1.4, Team AI Usage 1.2, Work Problems 1.2, All Projects 1.4).</div>
+  </section>
+
+  <section class="block" id="dashboard">
+    <h2>A CTO dashboard built from the sessions</h2>
+    <p>Kite Pulse is an engineering visibility tool built on exactly these records. A small desktop program reads the session history of ten AI coding tools (Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider), masks secrets, and sends new activity to a server your team runs itself. Nobody fills anything in.</p>
+    <ul>
+      <li><b>Organisation Overview</b> (admin by default) is the company-wide view a CTO dashboard usually tries to be: active developers and hours, sessions, commits, project health, working styles, tools and languages for the period.</li>
+      <li><b>Team Overview</b> shows who is coding now, active time and sessions today against a typical day, and each person's current project, for a manager's own reporting line.</li>
+      <li><b>Work Problems</b> (admin by default) uses fixed rules, with no AI, to find failed commands, error messages and repeated retries, grouped by severity with suggested actions and who is affected. Failed tool calls are recorded for every tool except Aider; command exit codes come from Claude Code, Codex and Copilot.</li>
+      <li><b>Agents in parallel</b>, on a developer's page (admins see it for anyone), shows each AI agent's state, including waiting for the developer or waiting for permission, with a lane chart for any past day.</li>
+      <li><b>Leave &amp; On-Call</b> records holidays and duty rotas so a quiet week is not misread.</li>
+    </ul>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>The figures come from what the AI tools recorded, not from what anyone remembered. The program reads session records, folder names and repository addresses; it does not open a project's source files, log keystrokes or take screenshots. No session content uploads until each developer confirms their projects. Read <a href="/privacy">what is collected and who can see it</a>.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keywords "cto dashboard" (H2) and "engineering visibility tool" (first sentence). Facts: MSoT 1.1 (ten tools, masking, failed tool calls and exit codes), 1.2 (Work Problems), 1.4 (Organisation Overview, Team Overview, Agents in parallel, Leave &amp; On-Call), 1.7 (privacy). The one Kite Pulse callout on the page. The "Top performers" panel on Organisation Overview is not described; no "never ranks" claim is made (R4).</div>
+  </section>
+
+  <section class="block" id="report">
+    <h2>The company AI usage report</h2>
+    <p>Leaders rarely open a console. They read a report. The company report covers any period and compares it with the previous one, so a quarterly review starts from the same counts every time: active time, sessions and project health against last period. Admins can download it as CSV or PDF, or email it daily, weekly or monthly as a scheduled report once email is set up on the server.</p>
+    <p>For the AI side of the same report, Team AI Usage adds token use per tool, model, project and day, with estimated cost per tool from list prices, labelled "not billed spend". Our guide to the <a href="/blog/engineering-ai-spend-report">engineering AI spend report</a> covers that half.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "company ai usage report" in the H2. Company report and scheduled reports from MSoT 1.3; "active time, sessions and project health against last week" detail from the Product Overview, section 7 (Friday row).</div>
+  </section>
+
+  <section class="block" id="both">
+    <h2>Running records and a shorter survey together</h2>
+    <p>The goal is a smaller survey, not none. Ask about feelings once a quarter, with a handful of questions, and read the records between rounds. When the two disagree, that is the most useful finding of all.</p>
+    <div class="example">
+      <span class="tag">Illustrative example, not a customer case</span>
+      <p>A platform team drops its five questions about build failures and focus time. The quarterly survey shrinks to four questions on satisfaction, workload and tooling. Between rounds, a lead sees the same failing test command across three developers on two projects and raises it as one fix. Next quarter the survey's tooling score is flat, so the lead asks why in a retrospective and learns the real complaint is review wait, which the git tools then confirm.</p>
+    </div>
+    <p>Neither source alone would have found that. The records found friction quickly, and the survey showed it was not the friction that mattered most.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about measuring developer experience without surveys</h2>
+    <div>
+      <details open><summary>How do I see what my team is working on without status meetings?</summary><p>Read it from the work itself. Each AI coding session runs in a project folder, so a tool that links sessions to repositories can show who is working where right now and which projects several people share. In Kite Pulse, Team Overview shows who is coding now and each person's current project, and Collaboration lists projects with more than one contributor. Keep a meeting for decisions, not for status.</p></details>
+      <details><summary>What metrics should I report to leadership about AI coding-tool adoption?</summary><p>Report counts that can be repeated every period: active developers per tool and per model, sessions, token use by team or project, and the same figures against the previous period. Add estimated cost only where it is priced, labelled as an estimate rather than billed spend. Avoid survey percentages for adoption, because they cannot be measured the same way next quarter.</p></details>
+      <details><summary>How can managers spot struggling developers early without surveys?</summary><p>Partly. Session records show friction early: the same command failing again and again, a fix retried many times, very long sessions with little progress. They do not show stress, motivation or anything happening outside the AI tools, so treat a signal as a reason to talk to the person, not as a conclusion. Read signals next to recorded leave and on-call, so a quiet week is not mistaken for a problem.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Three FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD. The third is answered "Partly", in line with R9: records show friction, not how a person is doing.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/blog/developer-experience-metrics">Developer experience metrics<span>Frameworks, a metric library and a scorecard</span></a></li>
+      <li><a href="/blog/measure-developer-productivity-ai">Measuring productivity with AI<span>Delivery, quality and a fair test</span></a></li>
+      <li><a href="/blog/developer-analytics-without-keystroke-tracking">Analytics without keystroke tracking<span>What session data reads, and what it leaves alone</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See where your team's work gets stuck</h3>
+      <p>Run Kite Pulse on your own server and read friction from the sessions, so your survey can ask only what records cannot answer.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: measure developer experience without surveys. Intent: informational. Facts from MSoT Section 1 (1.1, 1.2, 1.3, 1.4, 1.7); one detail from the Product Overview (section 7, company report contents) and none from the Field Guide. Left out on purpose: Trends (planner note: switched off in avoid.tsv; its label measures need AI labelling), the Summary page, Blocker Board, Team Review and AI Collaboration (need AI labelling), Claude Code "waiting for you" signals (not released), the "AI agent stuck" notice and "What the agent did" (batch-2 exclusions), the "Top performers" panel, and any outside statistic. Framework comparisons are linked, not repeated. The example is labelled illustrative (R2).</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/developer-experience-without-surveys article. The team story is an illustrative example; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

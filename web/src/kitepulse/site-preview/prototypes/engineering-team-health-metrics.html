@@ -1,0 +1,278 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Engineering Team Health Metrics: Weekly Review | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Engineering team health metrics for a weekly review: what to read, which questions to ask, and how to pick one shared cause of lost time to fix next.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Engineering Team Health Metrics: A Weekly Review That Fixes One Shared Cause at a Time","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"engineering team health metrics"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Engineering Team Health Metrics","item":"/blog/engineering-team-health-metrics"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How can managers spot struggling developers early without surveys?","acceptedAnswer":{"@type":"Answer","text":"Look for friction that repeats rather than one bad day: the same failure hit again and again, AI work that keeps getting stuck, or leave that is never taken. In Kite Pulse, The Office marks stuck work on the desks of people in your scope, and Work Problems lists failed commands, error messages and retries with the developers most affected (admin by default). Record leave and rotas on Leave & On-Call so a quiet week is not misread, and treat any signal as the start of a private conversation, not a conclusion."}},
+{"@type":"Question","name":"How do I identify developers who need support or coaching with AI tools?","acceptedAnswer":{"@type":"Answer","text":"Look for repeated friction in their AI sessions rather than low usage: commands that keep failing, retries that do not settle, or a Claude Code version that has fallen behind. In Kite Pulse, Work Problems shows the developers most affected by failures, Team AI Usage marks each developer's Claude Code version as Latest, Recent or Behind, and each developer's page shows the same report the person sees, led by “Top 3 to act on”. Start the conversation from that shared report, so it is about what to try next."}},
+{"@type":"Question","name":"Is Kite Pulse a performance-ranking tool?","acceptedAnswer":{"@type":"Answer","text":"It is not built as one. It describes what happened in AI coding sessions, its personal insights say “not enough data” rather than guess, and team-level views such as the Blocker Board show recurring causes with suggested actions, never a single person. Some pages do name individuals, such as the developers most affected on Work Problems, so agree as a team how those pages are used and say so openly."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap;font-family:var(--mono);font-size:.85rem;font-weight:400}
+
+.steps{counter-reset:step;list-style:none;padding:0;display:grid;gap:12px;max-width:none}
+.steps li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px 14px 56px;position:relative}
+.steps li::before{counter-increment:step;content:counter(step);position:absolute;left:16px;top:14px;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:var(--mono);font-weight:600;font-size:.85rem;display:grid;place-items:center}
+.steps li b{display:block}
+.steps .time{font-family:var(--mono);font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.example{background:var(--sunk);border-radius:12px;padding:14px 18px;display:grid;gap:6px}
+.example .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;max-width:none}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .kp{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Workflows and decisions</div>
+    <h1>Engineering Team Health Metrics: A Weekly Review That Fixes One Shared Cause at a Time</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Engineering team health metrics are team-level signals of how the work is going: where time is lost to repeated failures and blockers, how load and absence are spread, where people overlap, and which projects are active or drifting.</b> Read them once a week, as a team, against the week before. End each review by choosing one shared cause of lost time to fix next, with an owner and a date to check it.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "engineering team health metrics" in the title tag (59 characters), H1, URL and the bolded first sentence of the answer box, which answers the question before any product mention. Intent is informational: the definition, questions and routine come first; the product appears in one section and one callout. The working title's "without ranking anyone" was dropped from the H1 to keep ranking framing off the page (R4).</div>
+  </header>
+
+  <section class="block" id="what">
+    <h2>What engineering team health metrics measure</h2>
+    <p>In a healthy team, problems get fixed once instead of worked around daily, load is spread, and people on the same thing know about each other. Team health metrics describe those working conditions, so they are read at team level and over time.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Signal</th><th>What it tells you</th><th>Read it as</th></tr></thead>
+        <tbody>
+          <tr><td>Recurring causes of lost time</td><td>Which problems cost the team time again and again</td><td>A short list of causes to fix</td></tr>
+          <tr><td>Repeated failures and retries</td><td>Builds, commands or tools that keep failing for more than one person</td><td>Friction in the system, not a skills gap</td></tr>
+          <tr><td>Leave, holidays and on-call</td><td>Who is away or carrying duty this week</td><td>Context for every other number</td></tr>
+          <tr><td>Overlap on shared projects</td><td>Where several people work in the same place</td><td>A prompt to connect people before they collide</td></tr>
+          <tr><td>Project health</td><td>Which projects are active, stable or have gone quiet</td><td>Where a decision is due</td></tr>
+          <tr><td>Change since last week</td><td>Whether each signal is moving</td><td>The direction matters more than one reading</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>A team health monitor is simply the place these signals sit together, so the review does not start with an hour of gathering. Compare each week with the one before, and keep the discussion on causes: once a review becomes a comparison of people, people manage the number instead of the problem (more in <a href="/blog/measure-developer-productivity-ai">measuring developer productivity with AI</a>).</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "team health monitor" in the closing paragraph. The table is general guidance, not a product claim, and carries no numbers.</div>
+  </section>
+
+  <section class="block" id="questions">
+    <h2>Team health check questions for every week</h2>
+    <p>Survey-based team health checks, where each person votes on areas such as pace, support and fun, capture mood well but tire people as a weekly habit. A short set of questions answered from what actually happened holds up better.</p>
+    <ol>
+      <li>What cost us the most time this week, and is it the same thing as last week?</li>
+      <li>Which failure did more than one person run into?</li>
+      <li>Who was away or on call, and does that explain any quiet patch?</li>
+      <li>Where are several people working on the same project, and do they know it?</li>
+      <li>Which project went quiet, and was that planned?</li>
+      <li>What one thing do we fix before the next review, who owns it, and how will we know it worked?</li>
+    </ol>
+    <p>The last question makes the review worth the time. A team health check that ends with ten concerns usually changes nothing; one that ends with a named fix changes one thing every week.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "team health check questions" (H2 form and list) and "team health check" (intro and closing paragraph).</div>
+  </section>
+
+  <section class="block" id="friction">
+    <h2>Developer friction and developer pain points: where lost time hides</h2>
+    <p>Developer friction is time lost to things that are not the work itself: a flaky test, a build step that fails on one machine, a command that needs three attempts, an AI agent looping on the same error. Each feels too minor to raise. Added up across a team, these developer pain points are often the biggest fixable cost in the week.</p>
+    <p>The cheapest wins are shared. A failure one person hits may be their setup; the same failure across several people and projects is a team problem with one fix. So the review looks for causes that recur and spread, and leaves one-off bad days alone.</p>
+    <div class="example">
+      <span class="tag">Illustrative example, not a customer case</span>
+      <p>A team of six sees the same integration test failing in several people's sessions, each time followed by retries. Nobody raised it; each assumed it was their branch. The review picks it as the one fix, the platform owner takes it, and next week starts by checking whether the retries stopped.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords "developer friction" and "developer pain points" in the H2 and body. The example is labelled as illustrative (R2) and uses no product figures.</div>
+  </section>
+
+  <section class="block" id="burnout">
+    <h2>Developer burnout symptoms: what activity data can and cannot show</h2>
+    <p>Activity data can show patterns that often sit next to developer burnout symptoms: days that keep getting longer, weeks with no quiet stretch, on-call stacked on a full delivery load, leave never taken. It cannot show how a person feels. Use these signals to decide who to check in with, privately, and let the person tell you what is going on.</p>
+    <p>A quiet week can be a holiday, a rota or work away from AI tools, so record leave and on-call before reading the numbers. For a fuller list of early signs and how to raise them, read <a href="/blog/engineering-burnout-signals">engineering burnout signals managers can act on</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "developer burnout symptoms" in the H2 and first sentence. No outside statistics on burnout are used (R2).</div>
+  </section>
+
+  <section class="block" id="routine">
+    <h2>The weekly team health review, step by step</h2>
+    <p>Thirty minutes is enough once the signals are in one place. The timings are a suggestion.</p>
+    <ol class="steps">
+      <li><b>Before the meeting: update leave and on-call</b><span class="time">2 min</span><br>So everything after is read against who was here.</li>
+      <li><b>Check last week's fix</b><span class="time">5 min</span><br>Did the cause you picked shrink, stay the same or move? If not fixed, decide whether it stays as this week's fix.</li>
+      <li><b>Read the blocker board</b><span class="time">10 min</span><br>The blocker board engineering teams keep has one card per cause with a suggested action, not one per person. Look at what recurs and what spread across people or projects.</li>
+      <li><b>Look at overlap and project health</b><span class="time">5 min</span><br>Projects where several people now work, and projects that went quiet. Each usually needs one conversation.</li>
+      <li><b>Ask one or two of the questions above</b><span class="time">5 min</span><br>Let the team add what the data cannot see, such as a slow review queue.</li>
+      <li><b>Choose one cause to fix</b><span class="time">3 min</span><br>Name an owner and the date you will check it. Write it where next week's review starts.</li>
+    </ol>
+    <div class="seo"><b>SEO</b>Secondary keyword "blocker board engineering" in step 3 ("the blocker board engineering teams keep"). Timings are labelled as a suggestion; they are not product claims or measurements.</div>
+  </section>
+
+  <section class="block" id="inputs">
+    <h2>Where the inputs come from in Kite Pulse</h2>
+    <p>Kite Pulse reads the session history ten AI coding tools already keep on each developer's computer, and several of its console pages map onto the review above. Managers see their own reporting line; admins see everyone. The <a href="/features">full feature tour</a> covers the rest.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Context</span><h3>Team Overview</h3><p>Who is online and coding now, active time and sessions today against a typical day, who needs attention (a failing upload, a backlog, an old app version) and each person's current project. Past days can be picked.</p></div>
+      <div class="part"><span class="tag">Step 1</span><h3>Leave &amp; On-Call</h3><p>Records leave, holidays and duty rotas so insights do not misread them. Managers edit their own line; company holidays are admin only.</p></div>
+      <div class="part"><span class="tag">Step 3</span><h3>Work Problems</h3><p>Fixed rules, no AI, find failed commands, error messages and repeated retries, grouped by severity with suggested actions and the developers most affected. Admin by default.</p></div>
+      <div class="part"><span class="tag">Step 3</span><h3>Blocker Board</h3><p>Recurring causes of lost time with suggested actions, never a single person. Admin by default. It needs AI labelling, which an admin sets up on Classification with an OpenRouter key and a monthly budget.</p></div>
+      <div class="part"><span class="tag">Step 4</span><h3>Collaboration</h3><p>Projects several people work on, with contributors, shared sessions and last activity.</p></div>
+      <div class="part"><span class="tag">Step 4</span><h3>All Projects</h3><p>Every project with its health (active, stable or dormant), sessions, contributors and last activity.</p></div>
+    </div>
+    <p>Blocker Board and Team Review (one team's week against the week before, also built on AI labelling) are admin by default; admins can grant them to managers on Roles &amp; Permissions. Without any AI service, the other five pages still cover most of the routine. For a manager's whole week, see <a href="/solutions/engineering-managers">the guide for engineering managers</a>.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Nothing here needs developers to log anything. The desktop program reads session records, folder names and repository addresses; it does not open a project's source files, log keystrokes or take screenshots, and it masks secrets before upload. See <a href="/privacy">what is collected and who sees it</a>.</p></div>
+    <div class="seo"><b>SEO</b>The one product section and the one callout. Facts from MSoT 1.4 (Team Overview, Leave &amp; On-Call, Collaboration, All Projects, Blocker Board/Team Review/Workflows &amp; Pain Points admin by default and grantable, Who sees what), 1.2 (Work Problems), 1.5 (AI labelling setup, runs without AI), 1.7 (privacy). "Needs AI labelling" for Blocker Board and Team Review, and Team Review's "one team's week against last week", are Product Overview detail of MSoT 1.4 items.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What this review cannot tell you</h2>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What the session data covers</h3>
+        <ul>
+          <li>Repeated failures, errors and retries in AI coding sessions</li>
+          <li>Who is active now, and today against a typical day</li>
+          <li>Shared projects and project health</li>
+          <li>Leave and rotas you record</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What it does not cover</h3>
+        <ul>
+          <li>How people feel: ask them, or run a short survey</li>
+          <li>Delivery speed from git and tickets</li>
+          <li>Work outside the ten supported AI tools, such as meetings and code review</li>
+          <li>Developers who have not yet confirmed their projects</li>
+        </ul>
+      </div>
+    </div>
+    <p>For delivery figures such as lead time, a git and ticket based tool fits better; see <a href="/engineering-intelligence">engineering analytics for AI-assisted teams</a> for how the two fit together. For the wider set of frameworks behind team experience measures, read our guide to <a href="/blog/developer-experience-metrics">developer experience metrics</a>.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about engineering team health metrics</h2>
+    <div>
+      <details open><summary>How can managers spot struggling developers early without surveys?</summary><p>Look for friction that repeats rather than one bad day: the same failure hit again and again, AI work that keeps getting stuck, or leave that is never taken. In Kite Pulse, The Office marks stuck work on the desks of people in your scope, and Work Problems lists failed commands, error messages and retries with the developers most affected (admin by default). Record leave and rotas on Leave &amp; On-Call so a quiet week is not misread, and treat any signal as the start of a private conversation, not a conclusion.</p></details>
+      <details><summary>How do I identify developers who need support or coaching with AI tools?</summary><p>Look for repeated friction in their AI sessions rather than low usage: commands that keep failing, retries that do not settle, or a Claude Code version that has fallen behind. In Kite Pulse, Work Problems shows the developers most affected by failures, Team AI Usage marks each developer's Claude Code version as Latest, Recent or Behind, and each developer's page shows the same report the person sees, led by “Top 3 to act on”. Start the conversation from that shared report, so it is about what to try next.</p></details>
+      <details><summary>Is Kite Pulse a performance-ranking tool?</summary><p>It is not built as one. It describes what happened in AI coding sessions, its personal insights say “not enough data” rather than guess, and team-level views such as the Blocker Board show recurring causes with suggested actions, never a single person. Some pages do name individuals, such as the developers most affected on Work Problems, so agree as a team how those pages are used and say so openly.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Three FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD. The third is answered without "never ranks" (R4) and says plainly that some pages name individuals. Facts: The Office markers and developer page report (MSoT 1.4), Work Problems (1.2), Claude Code version Latest/Recent/Behind (1.4), "not enough data" (1.4 My Scorecard &amp; Insights).</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/solutions/engineering-managers">For engineering managers<span>A weekly routine across The Office, plan limits and projects</span></a></li>
+      <li><a href="/blog/engineering-burnout-signals">Engineering burnout signals<span>Early signs in the data, and how to raise them</span></a></li>
+      <li><a href="/blog/developer-experience-metrics">Developer experience metrics<span>What to measure about the developer experience in the AI era</span></a></li>
+      <li><a href="/engineering-intelligence">Engineering analytics for AI-assisted teams<span>Where AI session data fits beside delivery metrics</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See where your team loses time each week</h3>
+      <p>Run Kite Pulse on your own server and bring recurring failures, leave, shared projects and project health into one weekly review.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: engineering team health metrics. Intent: informational. Facts from MSoT Section 1 (1.2, 1.4, 1.5, 1.7); "needs AI labelling" for Blocker Board and Team Review and Team Review's week-against-last-week detail from the Product Overview (team pages section). Left out on purpose: Team Overview's "Most active today" and Organisation Overview's "Top performers" (R4), Blocker Board's 28-day window (Field Guide only), Team Review's measures (completion, win rate, friction), AI Collaboration figures, Trends' label-based measures, plan headroom, and every hidden page (Coaching &amp; Risk, Activity Rhythm). No outside statistics; no "never ranks" claim; no ranking framing in headings.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/engineering-team-health-metrics article. The team in the friction section is an illustrative example; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

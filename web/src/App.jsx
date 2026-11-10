@@ -83,7 +83,7 @@ const News = page(() => import('./routes/News'))
 const NewsStory = page(() => import('./routes/NewsStory'))
 const Updates = page(() => import('./routes/Updates'))
 const AiUpdates = page(() => import('./routes/AiUpdates'))
-const KitePulse = page(() => import('./kitepulse/KitePulseSite'))
+const KitePulse = page(() => import('./kitepulse/site-preview/KitePulseSite'))
 
 /** What a page shows while its chunk downloads: the skeleton the pages use for data. */
 const PAGE_LOADING = (
@@ -135,7 +135,7 @@ export default function App() {
   //    the page back into the scroll it left, taking the side nav up with it;
   //  - Kite Pulse, below, which brings its own footer.
   const onAdmin = loc.pathname === '/admin' || loc.pathname.startsWith('/admin/')
-  // KITE PULSE IS ANOTHER PRODUCT'S SITE (kitepulse/KitePulseSite.jsx): it brings its
+  // KITE PULSE IS ANOTHER PRODUCT'S SITE (kitepulse/site-preview/KitePulseSite.jsx): it brings its
   // own header and footer, and the board's nav above it would make it read as
   // a board page.
   const onKitePulse = loc.pathname === '/kite-pulse' || loc.pathname.startsWith('/kite-pulse/')
