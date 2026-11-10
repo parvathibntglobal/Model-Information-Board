@@ -77,6 +77,17 @@ link_preview:
     # aiwire.dev/img/og.png on 47 of 47 stories, tldr.tech's logo on 4 of 4.
     aiwire: "the same site banner on every story (47 of 47, 2026-10-28)"
     tldr_ai: "the same logo on every story (4 of 4, 2026-10-28)"
+    # arstechnica.com answers article pages with 405 to this client: 10 of 10
+    # on 2026-11-09 (docs/measurements/editorial-and-news-sites-2026-11-09.out.json).
+    # The feed itself answers 200, so the source stays; its stories get cards.
+    ars_ai: "article pages answer 405 to our client (10 of 10, 2026-11-09)"
+    # Every's terms forbid automatic copying ("no scraping", read 2026-11-09).
+    # The feed is published by Every for reading; its article pages are not
+    # asked, so its stories get cards.
+    every_vibe_check: "terms forbid automatic copying; feed only (2026-11-09)"
+    # Listed in headline_only below, which also stops previews; named here too so
+    # the skip list says why on its own.
+    mit_tr_ai: "terms bar robots and scrapers; headline only (2026-11-09)"
   max_per_run: 80
   max_attempts: 3
   look_back_days: 7
@@ -125,6 +136,45 @@ story:
 # its source entry above. Listing it is the way out if TechCrunch asks.
 as_given: {}
 
+# THE SPONSORED BADGE (#614, agreed by Parvathi 2026-11-09). An item carries the
+# badge when the PUBLISHER labels it, in its own feed: a category, or the
+# author, equal to one of these as a whole value (any case). Nothing is
+# searched for inside a title or summary - "insights" in a headline is not MIT
+# Technology Review Insights. A badge the page shows and a filter a reader may
+# turn on ("Hide sponsored"), never one applied by default (rule 8).
+#
+# MEASURED 2026-11-09 on the agreed feeds (one read each):
+#   The New Stack   13 of 26 items carry `Sponsored`, `sponsored-post`,
+#                   `sponsored-post-contributed`, `sponsored-podcast` or
+#                   `sponsored-webinar` (each with a `sponsor-<company>` tag)
+#   IEEE Spectrum   `Type-sponsored` ("brought to you by" in the summary)
+#   MIT Tech Review `sponsored`, author "MIT Technology Review Insights"
+#   InfoQ, ZDNET, The Verge, Ars Technica, Every, TechCrunch: none printed.
+# NOT CAUGHT: a sponsored story its publisher does not label in the feed. An
+# item with no badge is "no label printed", never "editorial" (rule 6), and the
+# page says so. VentureBeat prints "Partner Content" on its pages; its feed's
+# form is unread (429 on 2026-11-09), so its label is added when it is seated.
+#   categories   whole category values that mean "sponsored"
+#   authors      whole author values that mean "sponsored"
+sponsored_labels:
+  categories: [Sponsored, sponsored-post, sponsored-post-contributed, sponsored-podcast,
+               sponsored-webinar, Type-sponsored]
+  authors: ["MIT Technology Review Insights"]
+
+# HEADLINE, DATE AND LINK ONLY (#615 review, Parvathi 2026-11-09). A source listed
+# here has no summary stored: its story shows the headline, the date and a link to
+# the publisher, and its article pages are never asked for a link preview. For a
+# source whose terms speak to automated copying directly, until someone reads a
+# feed or syndication clause that allows more - then the line comes out.
+#
+# What is still kept: the feed response itself, in the raw store, as for every
+# source (immutable payloads, CLAUDE.md conventions). It is never shown.
+#
+#   key -> why (terms as read; the source's own `terms` field has the quote)
+headline_only:
+  every_vibe_check: "terms forbid automatic copying ('no scraping'), read 2026-11-09"
+  mit_tr_ai: "terms bar robots and scrapers and grant use 'case-by-case', read 2026-11-09"
+
 # What the News page shows by default, and the longest window it may ask for.
 page:
   default_days: 7
@@ -138,7 +188,8 @@ page:
 #   kind      feed            RSS or Atom
 #             github_releases GitHub's REST API, /repos/{owner}/{repo}/releases
 #   url       what is read
-#   terms     what we may do with it, as read on 2026-10-22
+#   terms     what we may do with it, as read on the date the entry gives
+#             (2026-10-22 for the first sources); "NOT READ" where it could not be
 #   daily     true: all of one UTC day's items become ONE entry ("15 builds on
 #             2026-10-28"). For a source that publishes automated builds many
 #             times a day (llama.cpp: 30 in 48 hours, 2026-10-28; anooj).
@@ -173,6 +224,77 @@ sources:
     #   THE WAY OUT IS ONE LINE: `as_given: {techcrunch_ai: "<reason>"}` shows
     #     its summary whole and stops its link previews; removing the source
     #     is the step after that. Either, the day TechCrunch asks us.
+    daily: false
+
+  # ── the trade press (#614, agreed by Parvathi 2026-11-09) ─────────────────
+  # Bylined editorial sites carrying the day's agent and tool news. Measured
+  # 2026-11-09 (docs/measurements/editorial-and-news-sites-2026-11-09.*): each
+  # feed answers 200, robots.txt allows the feed to our User-Agent, every item
+  # carries a byline. NEVER EVIDENCE, like every source here.
+  #
+  # TERMS, READ 2026-11-09 AND INFORMING ONLY (sources.yaml: terms findings
+  # inform, never block). Two of eight terms pages could be read by our tools;
+  # the other six did not load (blocked or empty) and say so below rather than
+  # pretend to a reading. They are to be read in a browser and this field
+  # updated; until then "not read" is the honest value (rule 6).
+  - key: thenewstack
+    group: selected
+    label: The New Stack
+    kind: feed
+    url: https://thenewstack.io/feed/
+    terms: "NOT READ: the terms page served a newsletter sign-up, not its text (2026-11-09). Half the feed is labelled sponsored (13 of 26, 2026-11-09): see sponsored_labels."
+    daily: false
+  - key: infoq_ai
+    group: selected
+    label: InfoQ AI, ML & Data
+    kind: feed
+    url: https://feed.infoq.com/ai-ml-data-eng/
+    terms: "NOT READ: no terms page found at the usual paths (404, 2026-11-09)."
+    daily: false
+  - key: ieee_spectrum_ai
+    group: selected
+    label: IEEE Spectrum AI
+    kind: feed
+    url: https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss
+    terms: "NOT READ: ieee.org site terms returned empty (2026-11-09)."
+    daily: false
+  - key: zdnet_ai
+    group: selected
+    label: ZDNET AI
+    kind: feed
+    url: https://www.zdnet.com/topic/artificial-intelligence/rss.xml
+    terms: "NOT READ: zdnet.com and ziffdavis.com were blocked to our reader (2026-11-09). Owner Ziff Davis; group terms apply."
+    daily: false
+  - key: mit_tr_ai
+    group: selected
+    label: MIT Technology Review AI
+    kind: feed
+    url: https://www.technologyreview.com/topic/artificial-intelligence/feed/
+    terms: "Terms of service (read 2026-11-09) name RSS feeds among the Services and say 'Permission to use Content is granted on a case-by-case basis'; no headline or excerpt clause. Bars robots and scrapers, and AI training without consent. So HEADLINE, DATE AND LINK ONLY (headline_only, #615 review) until a clause allowing more is read."
+    daily: false
+  - key: verge_ai
+    group: selected
+    label: The Verge AI
+    kind: feed
+    url: https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+    terms: "NOT READ: theverge.com and voxmedia.com were blocked to our reader (2026-11-09). Owner Vox Media; its Licensing FAQ is the page to read."
+    daily: false
+  - key: ars_ai
+    group: selected
+    label: Ars Technica AI
+    kind: feed
+    url: https://arstechnica.com/ai/feed/
+    terms: "NOT READ: arstechnica.com and condenast.com were blocked to our reader (2026-11-09). Owner Conde Nast. Article pages answer 405, so no link previews (link_preview.skip)."
+    daily: false
+  - key: every_vibe_check
+    group: selected
+    label: Every - Vibe Check
+    kind: feed
+    # NOT `/vibe-check/feed.xml`: the page advertises that URL and it answers
+    # 404; this one answers 200 with RSS (2026-11-09). Headlines only here - as
+    # evidence, Every waits for the press decision and its own ruling (#614).
+    url: https://every.to/vibe-check/feed
+    terms: "Terms (read 2026-11-09) forbid to 'extensively or automatically copy any content from the Services (in other words, no scraping)'; no feed clause. Every publishes the feed itself. So HEADLINE, DATE AND LINK ONLY (headline_only, #615 review): no summary stored, no article page asked. Paywalled articles: 8 of 10 pages (2026-11-09)."
     daily: false
 
   # ── AI labs: official feeds, no rule against headline plus link ───────────

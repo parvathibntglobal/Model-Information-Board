@@ -111,6 +111,7 @@ export default function NewsStory() {
             ? <time dateTime={story.published_at}>{full(story.published_at)}</time>
             : <span title={`First seen ${full(story.first_seen_at)}`}>date not given by the source</span>}
           {story.llm_keywords.length > 0 && <Badge tone="pass" title={`Matched: ${story.llm_keywords.join(', ')}`}>LLM</Badge>}
+          {(story.sponsored || []).length > 0 && <Badge tone="warn" title={`The publisher labels this: ${story.sponsored.join(', ')}`}>Sponsored</Badge>}
         </div>
         <h1 className="ns-title">{story.title}</h1>
         {story.author && <p className="nw-byline">By {story.author}</p>}

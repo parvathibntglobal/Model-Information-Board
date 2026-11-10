@@ -17,7 +17,11 @@ import '../styles/news.css'
  * find one (anooj, 2026-10-28).
  *
  * NOTHING IS HIDDEN BY DEFAULT. The LLM badge marks stories that matched the
- * contract's keyword list; "LLM only" is the reader's choice (rule 8). An
+ * contract's keyword list; "LLM only" is the reader's choice (rule 8). The
+ * Sponsored badge is the publisher's own printed label (a feed category or
+ * author, matched whole: judge/news.py `sponsored_labels`); "Hide sponsored" is
+ * off unless the reader turns it on, and an unlabelled story is not a claim
+ * that it is editorial (#614). An
  * undated story is listed after every dated one, never as fresh (rule 6), and
  * every source says what its last read did (rule 4).
  */
@@ -82,6 +86,7 @@ export default function News() {
   const [days, setDays] = useState(7)
   const [group, setGroup] = useState('all')
   const [llmOnly, setLlmOnly] = useState(false)
+  const [hideSponsored, setHideSponsored] = useState(false)
   const [query, setQuery] = useState('')
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
@@ -99,8 +104,10 @@ export default function News() {
     return (data?.items || []).filter((it) =>
       (group === 'all' || sources[it.source_key]?.group === group)
       && (!llmOnly || it.llm_keywords.length > 0)
+      && (!hideSponsored || !(it.sponsored || []).length)
       && (!q || `${it.title} ${it.summary || ''}`.toLowerCase().includes(q)))
-  }, [data, group, llmOnly, query, sources])
+  }, [data, group, llmOnly, hideSponsored, query, sources])
+  const sponsoredInWindow = (data?.items || []).filter((it) => (it.sponsored || []).length).length
 
   const dated = shown.filter((it) => it.published_at)
   const undated = shown.filter((it) => !it.published_at)
@@ -142,6 +149,9 @@ export default function News() {
         <label className="nw-check">
           <input type="checkbox" checked={llmOnly} onChange={(e) => setLlmOnly(e.target.checked)} /> LLM only
         </label>
+        <label className="nw-check" title="Stories the publisher itself labels sponsored, in its feed's categories or author. A sponsored story the publisher does not label is not caught.">
+          <input type="checkbox" checked={hideSponsored} onChange={(e) => setHideSponsored(e.target.checked)} /> Hide sponsored
+        </label>
         <input className="lv-search" placeholder="Search headlines" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
@@ -156,10 +166,20 @@ export default function News() {
             {data.days === 1 ? ' 24 hours' : ` ${data.days} days`}, across {data.population.sources_listed} sources
             ({data.population.items_stored} stored in all)
             {data.population.capped_at ? `; only the newest ${data.population.capped_at} are listed` : ''}
-            {undated.length ? `; ${undated.length} undated, listed last` : ''}.
+            {undated.length ? `; ${undated.length} undated, listed last` : ''}
+            {sponsoredInWindow ? `; ${sponsoredInWindow} labelled sponsored by their publisher${hideSponsored ? ', hidden' : ''}` : ''}.
           </p>
+          {/* #615 review: a label that looks sponsored but is not on the contract's list is
+              reported here, never badged, so a new publisher label is seen rather than missed. */}
+          {Object.keys(data.population.sponsor_like_unlisted || {}).length > 0 && (
+            <p className="dim nw-count">
+              Not badged, but labelled like sponsorship:{' '}
+              {Object.entries(data.population.sponsor_like_unlisted).map(([label, n]) => `"${label}" (${n})`).join(', ')}.
+              Candidates for <code>sponsored_labels</code> in contract/news_sources.yaml.
+            </p>
+          )}
 
-          {shown.length === 0 && <p className="lv-empty">No stories match{llmOnly ? ' (LLM only is on)' : ''}.</p>}
+          {shown.length === 0 && <p className="lv-empty">No stories match{llmOnly || hideSponsored ? ` (${[llmOnly && 'LLM only', hideSponsored && 'Hide sponsored'].filter(Boolean).join(' and ')} is on)` : ''}.</p>}
 
           {lead && (
             <section className="nw-top">

@@ -18,7 +18,9 @@ looks right is the wrong kind of fallback).
 
 NOTHING IS FILTERED HERE. The LLM badge (`llm_keywords`) travels on every item
 and the page lets a reader filter on it; the server never does, because nobody
-has measured what the keyword list misses (rule 8).
+has measured what the keyword list misses (rule 8). The sponsored badge
+(`sponsored`, the publisher's own printed labels) is the same: shown, and
+hidden only when a reader asks (#614).
 
 The judge does not import collect/, so the contract is read here directly.
 """
@@ -26,6 +28,7 @@ The judge does not import collect/, so the contract is read here directly.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -49,7 +52,56 @@ def _contract() -> dict[str, Any]:
     if not isinstance(generic, int) or generic < 2:
         raise ValueError("contract/news_sources.yaml: link_preview.generic_min_stories must be "
                          "an integer of 2 or more")
+    labels = raw.get("sponsored_labels")
+    if not isinstance(labels, dict) or set(labels) != {"categories", "authors"} or not all(
+            isinstance(v, list) and all(isinstance(w, str) and w.strip() for w in v)
+            for v in labels.values()):
+        raise ValueError("contract/news_sources.yaml: sponsored_labels must have exactly "
+                         "`categories` and `authors`, each a list of labels ([] for none)")
     return raw
+
+
+def sponsored_labels(contract: dict[str, Any], author: str | None,
+                     categories: list[str] | None) -> list[str]:
+    """The publisher's own sponsored labels this item carries, or [] (#614).
+
+    A PRINTED LABEL ONLY, MATCHED WHOLE. A category or author is compared as a
+    complete value, case-insensitively, against `sponsored_labels`; nothing is
+    searched for inside a title or summary, so "insights" in a headline is not
+    MIT Technology Review Insights. A badge the page shows and a filter a reader
+    may turn on, never applied here (rule 8).
+
+    [] MEANS "NO LABEL PRINTED", NOT "EDITORIAL". A publisher that sponsors
+    without labelling it in the feed is not caught, and the page says so (rule 6).
+    """
+    want = contract["sponsored_labels"]
+    cats = {c.strip().casefold() for c in want["categories"]}
+    authors = {a.strip().casefold() for a in want["authors"]}
+    hits = [c for c in (categories or []) if c.strip().casefold() in cats]
+    if author and author.strip().casefold() in authors:
+        hits.append(author.strip())
+    return hits
+
+
+_SPONSOR_LIKE = re.compile(r"sponsor|partner content|paid post|presented by|advertorial", re.I)
+
+
+def unlisted_sponsor_like(contract: dict[str, Any], author: str | None,
+                          categories: list[str] | None) -> list[str]:
+    """Sponsor-looking categories or author on an item that carries NO badge (#615 review).
+
+    A MEASUREMENT, NOT A MATCH. The badge stays a whole-value match on the listed
+    labels; this only reports what the list may be missing - a publisher adding
+    `sponsored-ebook` tomorrow - so it is seen rather than silently unbadged.
+    Items already badged are skipped: The New Stack's `sponsor-<company>` tags
+    always sit beside a listed label and would only be noise (rule 7).
+    """
+    if sponsored_labels(contract, author, categories):
+        return []
+    found = [c for c in (categories or []) if _SPONSOR_LIKE.search(c)]
+    if author and _SPONSOR_LIKE.search(author):
+        found.append(author.strip())
+    return found
 
 
 # A SOURCE'S ONE-PICTURE-FOR-EVERYTHING IS NOT A STORY'S PICTURE. AIWire's
@@ -116,6 +168,7 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "first_seen_at": r[5].isoformat(),
             "summary": r[6], "author": r[7], "categories": list(r[8] or []),
             "llm_keywords": list(r[9] or []), "daily_count": r[10],
+            "sponsored": sponsored_labels(contract, r[7], r[8]),
             # The story's picture; None means the page draws a card - also for
             # a source's generic site image (`image_generic`).
             "image_url": None if (r[1], r[11]) in generic else r[11],
@@ -145,6 +198,8 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "items_total": total, "items_in_window": in_window, "undated_in_window": undated,
         })
     in_window = sum(s["items_in_window"] for s in sources)
+    unlisted = Counter(label for r in rows[: page["max_items"]]
+                       for label in unlisted_sponsor_like(contract, r[7], r[8]))
     return {
         "days": days,
         "max_days": page["max_days"],
@@ -158,6 +213,10 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "capped_at": page["max_items"] if capped else None,
             "items_stored": sum(s["items_total"] for s in sources),
             "sources_listed": len(sources),
+            # Labels that look sponsored on unbadged stories among those listed,
+            # with how many stories carry each: candidates for sponsored_labels,
+            # never a badge. Read by web/src/routes/News.jsx's count line.
+            "sponsor_like_unlisted": dict(unlisted.most_common()),
         },
     }
 
@@ -260,7 +319,8 @@ ORDER BY (slug = %s) DESC LIMIT 1
 """
 
 _RECENT_SQL = """
-SELECT id, source_key, title, url, published_at, first_seen_at, summary, image_url, slug
+SELECT id, source_key, title, url, published_at, first_seen_at, summary, image_url, slug,
+       author, categories
 FROM news_item
 WHERE id <> %s AND coalesce(published_at, first_seen_at) >= %s
 ORDER BY coalesce(published_at, first_seen_at) DESC
@@ -268,11 +328,14 @@ LIMIT 600
 """
 
 
-def _card(r, generic: set[tuple[str, str]]) -> dict[str, Any]:
+def _card(r, generic: set[tuple[str, str]], contract: dict[str, Any]) -> dict[str, Any]:
+    # THE BADGE TRAVELS WITH THE STORY (#615 review): a sponsored story listed
+    # under another one is badged as it is on the News page.
     return {"id": r[0], "source_key": r[1], "title": r[2], "url": r[3],
             "published_at": r[4].isoformat() if r[4] else None,
             "first_seen_at": r[5].isoformat(), "summary": r[6],
-            "image_url": None if (r[1], r[7]) in generic else r[7], "slug": r[8]}
+            "image_url": None if (r[1], r[7]) in generic else r[7], "slug": r[8],
+            "sponsored": sponsored_labels(contract, r[9], r[10])}
 
 
 def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, Any]:
@@ -314,16 +377,17 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
                                           pattern))
             if shared & wanted:
                 shares = [labels.get(c, c) for c in shared & wanted]
-                same_model.append(_card(r, generic) | {"shares": shares})
+                same_model.append(_card(r, generic, contract) | {"shares": shares})
                 continue
         if r[1] == row[1] and len(same_source) < rules["related_max"]:
-            same_source.append(_card(r, generic))
+            same_source.append(_card(r, generic, contract))
     return {
         "story": {
             "id": row[0], "source_key": row[1], "title": row[2], "url": row[3],
             "published_at": row[4].isoformat() if row[4] else None,
             "first_seen_at": row[5].isoformat(), "summary": row[6], "author": row[7],
             "categories": list(row[8] or []), "llm_keywords": list(row[9] or []),
+            "sponsored": sponsored_labels(contract, row[7], row[8]),
             "daily_count": row[10],
             "image_url": None if (row[1], row[11]) in generic else row[11],
             "image_generic": (row[1], row[11]) in generic, "image_source": row[12],
