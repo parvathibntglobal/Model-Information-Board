@@ -127,8 +127,10 @@ def stage(record: dict) -> list[str]:
 COST_LABELS = {
     "billed": "billed by OpenRouter",
     "tokens": "tokens x the configured rate (no billed figure), not an invoice (#381)",
-    "mixed": ("mixed: billed by OpenRouter where a call reported a cost, "
-              "tokens x the configured rate where it did not"),
+    # Per THREAD, not per call (#617 review, note 2): a thread where only some
+    # calls reported a cost is priced wholly from tokens.
+    "mixed": ("mixed: billed by OpenRouter for threads where every call reported "
+              "a cost, tokens x the configured rate otherwise"),
 }
 #: A record from before #617 carries no `cost_basis`, and its cost was always
 #: tokens x the rate - so it keeps the label it was printed with.

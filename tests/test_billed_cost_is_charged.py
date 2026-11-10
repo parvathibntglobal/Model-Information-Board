@@ -68,6 +68,13 @@ def test_a_byok_call_charges_the_upstream_cost_not_the_zero():
     assert client_mod._billed_cost(usage) == 0.0031
 
 
+def test_a_byok_call_counts_the_fee_as_well_as_the_upstream_cost():
+    """#617 review, note 1: `cost` is OpenRouter's BYOK fee, also spend."""
+    usage = {"cost": 0.0002, "is_byok": True,
+             "cost_details": {"upstream_inference_cost": 0.0031}}
+    assert abs(client_mod._billed_cost(usage) - 0.0033) < 1e-12
+
+
 def test_a_byok_call_with_no_upstream_cost_falls_back_to_tokens(monkeypatch):
     usage = {"prompt_tokens": 10, "completion_tokens": 5, "cost": 0, "is_byok": True}
     assert client_mod._billed_cost(usage) is None
@@ -116,3 +123,37 @@ def test_the_cost_line_says_billed_tokens_or_mixed():
     assert "mixed" in _cost_line({"cost_basis": "mixed"})
     # a record from before #617 was always token-priced, and keeps its label
     assert "not an invoice" in _cost_line({})
+
+
+def test_a_partly_billed_thread_is_token_priced_and_counted(monkeypatch):
+    """#617 review, note 3: run the pipeline's own charge path. A thread whose
+    calls reported `[0.01, None]` is charged at the token price and counted in
+    `partly_billed` - the one thing that makes such a run read "mixed"."""
+    from types import SimpleNamespace
+
+    from judge import pipeline as pipeline_mod
+    from judge.extract.runner import ThreadInput
+
+    def run(self, thread, **kwargs):
+        return SimpleNamespace(
+            stored_claim_ids=[], cells=[], stored_claims=0,
+            extraction=SimpleNamespace(
+                input_tokens=1_000, output_tokens=500, cached_input_tokens=0,
+                schema_retries=0, reported_costs=costs[thread.thread_context_id],
+            ),
+        )
+
+    costs = {"part": [0.01, None], "whole": [0.02, 0.03]}
+    monkeypatch.setattr(pipeline_mod.Pipeline, "run", run)
+    pipe = pipeline_mod.Pipeline(conn=None, client=None, capability_keys=["k"],
+                                 extractor_model="m")
+    monkeypatch.setattr(pipe._ledger, "record", lambda record: None)
+    budget = Budget(limit_usd=None, pricing=PRICING)
+    threads = [ThreadInput(thread_context_id=t, flattened_text=f"text of {t}",
+                           offset_map=(), raw_text_of={}) for t in costs]
+    pipe.run_all(threads, facts={}, model_version_of={}, already_extracted={},
+                 budget=budget)
+
+    assert budget.partly_billed == 1
+    assert (budget.billed_charges, budget.token_charges) == (1, 1)
+    assert abs(budget.spent_usd - (0.05 + budget.cost_of(1_000, 500))) < 1e-12

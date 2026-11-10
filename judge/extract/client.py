@@ -918,13 +918,20 @@ def _billed_cost(usage: dict) -> float | None:
       With `is_byok: true` the upstream's charge is in
       `cost_details.upstream_inference_cost` and `cost` can be 0 - charged as
       it stands, every such call would cost the daily cap nothing, with no
-      error anywhere (rule 12). So a BYOK call takes the upstream figure, and
-      without one, None: the token price, never the 0. Our key reported
+      error anywhere (rule 12). So a BYOK call takes the upstream figure plus
+      `cost` (the fee), and without an upstream figure, None: the token price,
+      never the 0. Our key reported
       `is_byok: false` on a live call, 2026-11-09.
     """
     if usage.get("is_byok") is True:
+        # BOTH ARE SPEND (#617 review, note 1): `cost` is OpenRouter's own BYOK
+        # fee, charged to our credits; `upstream_inference_cost` is what the
+        # provider charged on the key. The upstream figure alone undercounts by
+        # the fee.
         upstream = (usage.get("cost_details") or {}).get("upstream_inference_cost")
-        return float(upstream) if upstream is not None else None
+        if upstream is None:
+            return None
+        return float(upstream) + float(usage.get("cost") or 0)
     cost = usage.get("cost")
     return float(cost) if cost is not None else None
 
