@@ -45,6 +45,9 @@ name: Registry poll
 #   secrets.STAGING_DATABASE_URL   the shared staging DSN
 #   vars.USER_AGENT or secrets.USER_AGENT   identifying UA with a contact URL
 #   vars.REGISTRY_DIFF_ISSUE       the issue the diff is posted to (#450)
+#   vars.CATALOGUE_SEAT_ENABLED    OPTIONAL. '1' turns on the catalogue seat step
+#                                  (#616), set after its first hand apply; unset,
+#                                  the run prints a notice that it is off.
 #   vars.PROMOTION_ISSUE           the issue the promotion report is posted to.
 #                                  Checked by its own step, AFTER the poll, so a
 #                                  missing one fails that step loudly without
@@ -133,24 +136,6 @@ jobs:
             gh issue comment "$DIFF_ISSUE" --body-file auto_seat.md
           fi
 
-      # CATALOGUE MODELS THE POLL NEVER BRINGS (#616): a `catalogued` registry row
-      # each, so a claim found in a thread we already read is FILED, not held. A
-      # registry row, never a tracked model - auto_track requires `polled`, so no
-      # daily fetch starts. Never touches an existing row. After auto_seat, so a
-      # model the poll did bring is already `polled` and is no candidate here.
-      # Posted only when it wrote something; the report is the staging-write
-      # announcement, as auto_seat's is. Needs migration
-      # 20261110T0600_model_version_catalogued_provenance.sql: without it the
-      # insert is a CHECK violation and this step fails loudly, writing nothing.
-      - name: Seat registry rows for catalogue models the poll does not bring
-        run: |
-          python scripts/seat_catalogue_models.py --apply --out catalogue_seat.md
-          if grep -q "nothing written: no new catalogue model to seat" catalogue_seat.md; then
-            echo "catalogue_seat: nothing written, nothing posted"
-          else
-            gh issue comment "$DIFF_ISSUE" --body-file catalogue_seat.md
-          fi
-
       # ONCE A DAY, on the morning slot or by hand. It ranks the corpus, which
       # a twelve-hour-old poll does not change.
       - name: Post the promotion report where a person sees it
@@ -162,6 +147,41 @@ jobs:
           fi
           python scripts/promotion_report.py --out promotion.md
           gh issue comment "$PROMOTION_ISSUE" --body-file promotion.md
+
+      # CATALOGUE MODELS THE POLL NEVER BRINGS (#616): a `catalogued` registry row
+      # each, so a claim found in a thread we already read is FILED, not held. A
+      # registry row, never a tracked model - auto_track requires `polled`, so no
+      # daily fetch starts. Never touches an existing row. Posted only when it
+      # wrote something; the report is the staging-write announcement, as
+      # auto_seat's is.
+      #
+      # OFF UNTIL A PERSON TURNS IT ON (#619 review, point 1). The first apply on
+      # the shared database is a HAND run, announced on #616 with --list-aside.
+      # Only after it does anyone set the repository variable
+      # CATALOGUE_SEAT_ENABLED=1, which is also the off switch (no PR needed).
+      # While it is unset, the step below says so on every run (rule 12: a
+      # skipped write must not look like a quiet one).
+      #
+      # AFTER THE PROMOTION REPORT, with !cancelled() (#619 review, point 2): this
+      # step fails loudly by design when its migration
+      # (20261110T0600_model_version_catalogued_provenance.sql) has not run, and a
+      # failure here must not skip the unrelated report above it.
+      - name: Seat registry rows for catalogue models the poll does not bring
+        if: ${{ !cancelled() && vars.CATALOGUE_SEAT_ENABLED == '1' }}
+        run: |
+          python scripts/seat_catalogue_models.py --apply --out catalogue_seat.md
+          if grep -q "nothing written: no new catalogue model to seat" catalogue_seat.md; then
+            echo "catalogue_seat: nothing written, nothing posted"
+          else
+            gh issue comment "$DIFF_ISSUE" --body-file catalogue_seat.md
+          fi
+
+      - name: Say that catalogue seating is off
+        if: ${{ !cancelled() && vars.CATALOGUE_SEAT_ENABLED != '1' }}
+        run: >
+          echo "::notice::catalogue seating is OFF: repository variable
+          CATALOGUE_SEAT_ENABLED is not '1'. It is set after the first hand
+          apply (#616); nothing was seated on this run."
 
       - name: Keep the journal
         if: always()
