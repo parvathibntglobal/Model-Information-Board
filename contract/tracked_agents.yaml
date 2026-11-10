@@ -82,7 +82,3 @@ agents:
     registry: nousresearch/hermes-agent
     search_terms: ['hermes agents']
     subreddits: []
-  - name: Siri AI
-    registry: apple/siri-ai
-    search_terms: []
-    subreddits: []

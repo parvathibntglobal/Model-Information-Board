@@ -106,14 +106,7 @@ models:
       surface: 'hermes agent'
       variants: ['hermes-agent', 'hermesagent']
 
-  # THE TENTH (2026-11-09): the most-discussed agent not yet tested - 29 Hacker
-  # News stories and 137 comments since 2026-08-01, more than Duet, Dots or
-  # Gemini Spark (docs/measurements/agent-discussion-2026-11-09.out.json).
-  # Bare "siri" is the assistant everyone has; only "siri ai" names the agent.
-  - canonical_id: 'apple/siri-ai'
-    provider: 'apple'
-    family: 'siri'
-    display_name: 'Siri AI'
-    aliases:
-      surface: 'siri ai'
-      variants: ['siri-ai', 'siriai']
+  # SIRI AI WAS CONSIDERED AND LEFT OUT (anooj, 2026-11-10): it reaches only Apple
+  # users, a section of the audience. It had the most discussion of the untested
+  # agents (29 HN stories, 137 comments since 2026-08-01), recorded here so the
+  # choice is not re-made from the counts alone.

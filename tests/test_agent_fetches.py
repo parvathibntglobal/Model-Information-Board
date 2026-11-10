@@ -33,7 +33,7 @@ def test_the_real_lists_agree_and_never_touch_the_model_list():
     agents = config.tracked_agents()
     seed = load_seed_file(ROOT / "contract" / "agent_models.yaml")
     seeded = {m.canonical_id for m in seed.models}
-    assert len(agents) == 10
+    assert len(agents) == 9
     assert {a.registry for a in agents} == seeded  # every tracked agent has a registry row
     # NEVER IN tracked_models.yaml: that list feeds the model fetch, the models
     # page and auto_track (whose providers would then admit Meta's models).
