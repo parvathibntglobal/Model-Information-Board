@@ -252,6 +252,12 @@ class TestTheEvidencePipelineNeverReadsIt:
             "judge/tracked.py",
             "collect/ops/sweep_reddit.py",
             "collect/registry/litellm.py",
+            # #616, 2026-11-10. Reads names and `output_modalities` to seat a
+            # `catalogued` registry row for each in-scope catalogue model the
+            # poll never brings, so its claims are filed instead of held. A
+            # registry write, not the evidence pipeline: nothing there
+            # extracts, counts or weights, and no document or claim is read.
+            "collect/ops/catalogue_seat.py",
         }
 
     def test_the_nightly_chain_polls_it_without_depending_on_it(self):

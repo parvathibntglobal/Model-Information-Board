@@ -93,8 +93,13 @@ CREATE TABLE model_version (
   -- models to track is a scoping decision — issue #33.
   last_swept_at               timestamptz,
 
+  -- `catalogued` (#616, 2026-11-10): a row seated from OpenRouter's CATALOGUE for a
+  -- model the poll never brings, so its evidence can be filed. Written only by
+  -- collect/ops/catalogue_seat.py, which never touches an existing row; the poll
+  -- upgrades it to `polled` if it later brings the model. Never tracked: `auto_track`
+  -- requires `polled`. Order: polled > seed / unpolled > catalogued.
   CONSTRAINT model_version_provenance_ck
-    CHECK (provenance IN ('seed', 'polled', 'unpolled'))
+    CHECK (provenance IN ('seed', 'polled', 'unpolled', 'catalogued'))
 );
 
 -- ============================================================================

@@ -36,6 +36,9 @@ name: Registry poll
 #   NOT seating       aliases stay manual: seat() with its collision check. A
 #                     polled model is RECOGNISED in documents the day it lands
 #                     and is not SEARCHED for until a person seats it.
+#   catalogue rows    a `catalogued` registry row (with generated aliases) for
+#                     each in-scope catalogue model the poll never brings, so
+#                     its claims file; never tracked, never fetched (#616).
 #
 # REQUIRES, AND FAILS LOUDLY WITHOUT (rule 12 - a skipped poll must not look
 # like a quiet one):
@@ -128,6 +131,24 @@ jobs:
             echo "auto_seat: nothing seated, nothing posted"
           else
             gh issue comment "$DIFF_ISSUE" --body-file auto_seat.md
+          fi
+
+      # CATALOGUE MODELS THE POLL NEVER BRINGS (#616): a `catalogued` registry row
+      # each, so a claim found in a thread we already read is FILED, not held. A
+      # registry row, never a tracked model - auto_track requires `polled`, so no
+      # daily fetch starts. Never touches an existing row. After auto_seat, so a
+      # model the poll did bring is already `polled` and is no candidate here.
+      # Posted only when it wrote something; the report is the staging-write
+      # announcement, as auto_seat's is. Needs migration
+      # 20261110T0600_model_version_catalogued_provenance.sql: without it the
+      # insert is a CHECK violation and this step fails loudly, writing nothing.
+      - name: Seat registry rows for catalogue models the poll does not bring
+        run: |
+          python scripts/seat_catalogue_models.py --apply --out catalogue_seat.md
+          if grep -q "nothing written: no new catalogue model to seat" catalogue_seat.md; then
+            echo "catalogue_seat: nothing written, nothing posted"
+          else
+            gh issue comment "$DIFF_ISSUE" --body-file catalogue_seat.md
           fi
 
       # ONCE A DAY, on the morning slot or by hand. It ranks the corpus, which
