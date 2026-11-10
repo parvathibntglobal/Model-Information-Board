@@ -25,6 +25,12 @@
 #    aliases: as aliases they would be family rows. Plurals are SEARCH terms in
 #    `tracked_agents.yaml`; bare short names are held (#610, decision 4).
 #
+# NO FAMILY (#618 review, point 6). `family` is left absent on every agent row.
+# A maker's family ('claude', 'gemini', 'grok', ...) would make an agent part of
+# that model family, so a family-level "Claude" claim could count toward Claude
+# Duet or Claude Code once the family-claims ruling lands. Absent, it is no
+# family claim at all (rule 6), and nothing reads it today.
+#
 # NO FIGURES. An agent is sold as a subscription, not per token; `price_in` is
 # USD per 1M tokens. Every field but identity and aliases stays absent (FR-2).
 
@@ -34,7 +40,6 @@ provenance: seed
 models:
   - canonical_id: 'meta/meta-muse'
     provider: 'meta'
-    family: 'muse'
     display_name: 'Meta Muse'
     aliases:
       surface: 'meta muse'
@@ -42,7 +47,6 @@ models:
 
   - canonical_id: 'openai/openai-dots'
     provider: 'openai'
-    family: 'dots'
     display_name: 'OpenAI Dots'
     aliases:
       surface: 'openai dots'
@@ -50,7 +54,6 @@ models:
 
   - canonical_id: 'anthropic/claude-duet'
     provider: 'anthropic'
-    family: 'claude'
     display_name: 'Claude Duet'
     aliases:
       surface: 'claude duet'
@@ -60,7 +63,6 @@ models:
   # 41 results contained it, probe on #611).
   - canonical_id: 'anthropic/claude-cowork'
     provider: 'anthropic'
-    family: 'claude'
     display_name: 'Claude Cowork'
     aliases:
       surface: 'claude cowork'
@@ -68,7 +70,6 @@ models:
 
   - canonical_id: 'xai/grok-bot'
     provider: 'xai'
-    family: 'grok'
     display_name: 'Grok Bot'
     aliases:
       surface: 'grok bot'
@@ -76,7 +77,6 @@ models:
 
   - canonical_id: 'openai/chatgpt-work'
     provider: 'openai'
-    family: 'chatgpt'
     display_name: 'ChatGPT Work'
     aliases:
       surface: 'chatgpt work'
@@ -84,7 +84,6 @@ models:
 
   - canonical_id: 'google/gemini-spark'
     provider: 'google'
-    family: 'gemini'
     display_name: 'Gemini Spark'
     aliases:
       surface: 'gemini spark'
@@ -92,7 +91,6 @@ models:
 
   - canonical_id: 'openclaw/openclaw'
     provider: 'openclaw'
-    family: 'openclaw'
     display_name: 'OpenClaw'
     aliases:
       surface: 'openclaw'
@@ -100,7 +98,6 @@ models:
 
   - canonical_id: 'nousresearch/hermes-agent'
     provider: 'nousresearch'
-    family: 'hermes'
     display_name: 'Hermes Agent'
     aliases:
       surface: 'hermes agent'
@@ -128,7 +125,6 @@ models:
 
   - canonical_id: 'anthropic/claude-code'
     provider: 'anthropic'
-    family: 'claude'
     display_name: 'Claude Code'
     aliases:
       surface: 'claude code'
@@ -136,7 +132,6 @@ models:
 
   - canonical_id: 'openai/openai-codex'
     provider: 'openai'
-    family: 'codex'
     display_name: 'OpenAI Codex'
     aliases:
       surface: 'openai codex'
@@ -144,7 +139,6 @@ models:
 
   - canonical_id: 'google/gemini-cli'
     provider: 'google'
-    family: 'gemini'
     display_name: 'Gemini CLI'
     aliases:
       surface: 'gemini cli'
@@ -152,7 +146,6 @@ models:
 
   - canonical_id: 'github/github-copilot'
     provider: 'github'
-    family: 'copilot'
     display_name: 'GitHub Copilot'
     aliases:
       surface: 'github copilot'
@@ -160,7 +153,6 @@ models:
 
   - canonical_id: 'google/google-antigravity'
     provider: 'google'
-    family: 'antigravity'
     display_name: 'Google Antigravity'
     aliases:
       surface: 'google antigravity'

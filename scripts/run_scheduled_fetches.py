@@ -379,7 +379,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"daily budget spent (${spent:.4f} of ${cap:.2f}); "
                   f"{len(due) - i} model(s) not run")
             break
-        # THE AGENT RUN'S OWN CEILING: what THIS run has spent since it started,
+        # THE AGENT RUN'S OWN CEILING: what has been spent SINCE THIS RUN STARTED
+        # (team-wide, so an Admin fetch meanwhile counts too - the safe side;
+        # checked before each launch, so one fetch can pass it by its own cost),
         # so the agents cannot use up the shared daily cap before the model fetch.
         if extracting and run_ceiling is not None and spent - spent_at_start >= run_ceiling:
             for rest in due[i:]:
