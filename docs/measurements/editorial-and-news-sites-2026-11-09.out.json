@@ -1,0 +1,718 @@
+{
+ "measured_on": "2026-11-09",
+ "population_fingerprint": "150e9ba1f03700b4",
+ "sample_per_site": 10,
+ "tools_list": [
+  "Claude Code",
+  "Codex",
+  "Cursor",
+  "Copilot",
+  "Kiro",
+  "Devin",
+  "Windsurf",
+  "Replit",
+  "Lovable",
+  "MCP",
+  "Model Context Protocol",
+  "Duet",
+  "Dots",
+  "Muse",
+  "OpenClaw",
+  "Hermes Agent",
+  "Cowork",
+  "ChatGPT Work",
+  "Gemini Spark",
+  "Grok Bot",
+  "LangChain",
+  "LlamaIndex",
+  "vLLM",
+  "Ollama",
+  "llama.cpp",
+  "Hugging Face"
+ ],
+ "sites": {
+  "Every (Vibe Check)": {
+   "feed_candidates": [
+    "https://every.to/vibe-check/feed"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://every.to/vibe-check/feed",
+   "generator": null,
+   "items": 50,
+   "feed_full_text": 0,
+   "items_with_byline": 50,
+   "distinct_bylines": 15,
+   "titles_with_release_verb": 0,
+   "ai_items": 44,
+   "tool_items": 23,
+   "tools_named": {
+    "Claude Code": 17,
+    "Codex": 13,
+    "Cursor": 4,
+    "Cowork": 2,
+    "Duet": 1,
+    "Dots": 1,
+    "Replit": 1
+   },
+   "article_pages_read": {
+    "200": 10
+   },
+   "paywall_marker_pages": 8,
+   "articles_sampled": 10,
+   "article_chars_median": 1458,
+   "articles_naming_a_family": 8,
+   "articles_naming_a_model": 8,
+   "naming_sentences": 63,
+   "naming_exactly_one": 55,
+   "multi_model_widths": {
+    "2": 6,
+    "3": 1,
+    "4": 1
+   },
+   "eval_cue_sentences": 9,
+   "sample_titles": [
+    "Vibe Check: Duet—Anthropic's Always-on Agent",
+    "Vibe Check: Gemini 4 Argon Puts Google Back On the Frontier",
+    "Vibe Check: Dots—Always-on Agents in ChatGPT",
+    "Vibe Check: Sonnet 5.5 Finds Its Place in Claude’s Crowded Family",
+    "Vibe Check: GPT-6 Sol vs. Opus 5.5",
+    "Vibe Check: Opus 5.5 Is Pulling Our Codex Converts Back to Claude",
+    "Vibe Check: Is Astra a Breakthrough for Indie Filmmakers?",
+    "Mini-Vibe Check: TypeSafe's Jev Judged Everything I’ve Written in 0.7 Seconds",
+    "Vibe Check: GPT-6 Astra Is a Big Upgrade With Some Bad Habits",
+    "Vibe Check: Claude Opus 5 Is Brilliant in Flashes, Frustrating in Practice"
+   ]
+  },
+  "InfoQ": {
+   "feed_candidates": [
+    "https://feed.infoq.com/ai-ml-data-eng/"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://feed.infoq.com/ai-ml-data-eng/",
+   "generator": null,
+   "items": 15,
+   "feed_full_text": 0,
+   "items_with_byline": 15,
+   "distinct_bylines": 9,
+   "titles_with_release_verb": 2,
+   "ai_items": 11,
+   "tool_items": 2,
+   "tools_named": {
+    "MCP": 2
+   },
+   "article_pages_read": {
+    "200": 10
+   },
+   "paywall_marker_pages": 0,
+   "articles_sampled": 10,
+   "article_chars_median": 3791,
+   "articles_naming_a_family": 4,
+   "articles_naming_a_model": 1,
+   "naming_sentences": 2,
+   "naming_exactly_one": 2,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 1,
+   "sample_titles": [
+    "Pinterest Replaces Journey Clustering with 4B Qwen3 LLM, Reports Improved Engagement",
+    "How Grab Improved Mobile App Stability by Safely Handling Surge in AI-Generated Code Changes",
+    "GitLab 19.5 Makes Agentic Development a Governed Part of the DevOps Platform",
+    "Google Cloud API Gateway Introduces Streaming Support for Real-Time and AI-Powered Applications",
+    "Presentation: Zero Trust Agent Systems that Pass Audits and Still Ship",
+    "Google Launches LiteRT Tensor API for Building, Customizing, and Optimizing ML Models for On-Device",
+    "Presentation: Beyond the Harness: Canvas for AI Agents",
+    "Uber Builds MCP Gateway to Govern Access to 800+ Servers and 5,000+ AI Agent Tools",
+    "Article: Systemic Approach to Memory, Knowledge, and Context in Agentic AI Architectures",
+    "Google Discloses PageBreak AI Security Agent That Found 500+ XSS Bugs"
+   ]
+  },
+  "The New Stack": {
+   "feed_candidates": [
+    "https://thenewstack.io/feed/"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://thenewstack.io/feed/",
+   "generator": "https://wordpress.org/?v=7.1.4",
+   "items": 26,
+   "feed_full_text": 26,
+   "items_with_byline": 26,
+   "distinct_bylines": 16,
+   "titles_with_release_verb": 1,
+   "ai_items": 23,
+   "tool_items": 5,
+   "tools_named": {
+    "Kiro": 1,
+    "Muse": 1,
+    "Replit": 1,
+    "Lovable": 1,
+    "Cursor": 1,
+    "vLLM": 1,
+    "Hugging Face": 1,
+    "MCP": 1,
+    "Model Context Protocol": 1
+   },
+   "article_pages_read": {},
+   "paywall_marker_pages": 0,
+   "articles_sampled": 10,
+   "article_chars_median": 7838,
+   "articles_naming_a_family": 3,
+   "articles_naming_a_model": 2,
+   "naming_sentences": 9,
+   "naming_exactly_one": 3,
+   "multi_model_widths": {
+    "2": 6
+   },
+   "eval_cue_sentences": 2,
+   "sample_titles": [
+    "Moving from AI adoption to an AI operating model: How Docusign engineering went beyond tool rollout",
+    "Scaling an autonomous agent from one team to fifty: A serverless-to-container decision framework",
+    "Perplexity’s AI agents keep working after you close the tab",
+    "How we review 4x more AI code without reading every line",
+    "Why AWS wants developers to stop babysitting their AI agents",
+    "AI agents are getting more complex. Developers shouldn’t have to babysit them.",
+    "Cognition turned an open model into a coding beast. But it won’t release the weights.",
+    "Meta’s best AI model now trains the one most of its users get",
+    "“Most apps never make it off localhost”: Cursor takes on Lovable and Replit with fully managed app d",
+    "Kubernetes, mark II? Why Google’s giving away gVisor, a code sandbox used by Anthropic and OpenAI"
+   ]
+  },
+  "IEEE Spectrum": {
+   "feed_candidates": [
+    "https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss",
+   "generator": null,
+   "items": 30,
+   "feed_full_text": 0,
+   "items_with_byline": 30,
+   "distinct_bylines": 26,
+   "titles_with_release_verb": 1,
+   "ai_items": 23,
+   "tool_items": 7,
+   "tools_named": {
+    "Hugging Face": 3,
+    "Claude Code": 2,
+    "Codex": 1,
+    "OpenClaw": 1,
+    "Copilot": 1,
+    "Model Context Protocol": 1
+   },
+   "article_pages_read": {
+    "200": 10
+   },
+   "paywall_marker_pages": 0,
+   "articles_sampled": 10,
+   "article_chars_median": 7405,
+   "articles_naming_a_family": 5,
+   "articles_naming_a_model": 2,
+   "naming_sentences": 2,
+   "naming_exactly_one": 2,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 2,
+   "sample_titles": [
+    "AI Text Watermarking May Not Be Able to Meet the E.U.’s New Rules",
+    "How a Kenyan Startup Is Rethinking AI for Small Businesses",
+    "Guarding the Gates of Knowledge",
+    "Consumer Appetite for Personal AI Goes Mainstream",
+    "Systems Thinking Is Vital in the Age of AI",
+    "I Used AI to Fake a Scientific Paper. Here’s What Happened",
+    "IEEE Xplore Digital Library Adds AI Assistant",
+    "How Wikipedia’s Editors Keep the Online Encyclopedia Human-Written",
+    "Could Treating AI as Conscious Make It More Dangerous?",
+    "Edge AI for Smart Cities: From Insight to Cognitive Action"
+   ]
+  },
+  "Ars Technica": {
+   "feed_candidates": [
+    "https://arstechnica.com/ai/feed/"
+   ],
+   "robots": "405",
+   "feed": "https://arstechnica.com/ai/feed/",
+   "generator": null,
+   "items": 20,
+   "feed_full_text": 0,
+   "items_with_byline": 20,
+   "distinct_bylines": 7,
+   "titles_with_release_verb": 3,
+   "ai_items": 14,
+   "tool_items": 2,
+   "tools_named": {
+    "Claude Code": 1,
+    "Cursor": 1
+   },
+   "article_pages_read": {
+    "405": 10
+   },
+   "paywall_marker_pages": 0,
+   "articles_sampled": 10,
+   "article_chars_median": 1091,
+   "articles_naming_a_family": 4,
+   "articles_naming_a_model": 1,
+   "naming_sentences": 1,
+   "naming_exactly_one": 1,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 0,
+   "sample_titles": [
+    "“Does Meta think we can’t read?” Meta abandons sketchy commercial terms update.",
+    "Could potential AI clones of GTA VI force a quicker official port?",
+    "Google: Schools can keep search while skipping Gemini, but AI search is non-negotiable",
+    "Big Tech claims voters’ AI backlash is “anti-Trump” not “anti-tech”",
+    "Google will let schools skip AI tools, but they have to give up search, too",
+    "Claude’s new rules against game cloning won’t stop the AI copying boom",
+    "Supersonic airliner in doubt as company shifts to powering AI data centers",
+    "Dartmouth's provost warned us about AI cheating—but his own AI use cost him his job",
+    "Basically no one is using AI agents for their DoorDash orders",
+    "Fujifilm to boost tape production 5x as AI fuels archiving demand"
+   ]
+  },
+  "VentureBeat": {
+   "feed_candidates": [
+    "https://venturebeat.com/category/ai/feed/"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed_refusals": [
+    "https://venturebeat.com/category/ai/feed/ -> 429"
+   ],
+   "feed": null,
+   "generator": null,
+   "items": 0
+  },
+  "The Register": {
+   "feed_candidates": [
+    "https://www.theregister.com/software/ai_ml/headlines.atom"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed_refusals": [
+    "https://www.theregister.com/software/ai_ml/headlines.atom -> 200 but not a feed"
+   ],
+   "feed": null,
+   "generator": null,
+   "items": 0
+  },
+  "DevClass": {
+   "feed_candidates": [
+    "https://devclass.com/feed/"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed_refusals": [
+    "https://devclass.com/feed/ -> 200 but not a feed"
+   ],
+   "feed": null,
+   "generator": null,
+   "items": 0
+  },
+  "HackerNoon": {
+   "feed_candidates": [
+    "https://hackernoon.com/feed"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": false,
+   "robots_allows_us_articles": false,
+   "feed": "https://hackernoon.com/feed",
+   "generator": "RSS for Node",
+   "items": 20,
+   "feed_full_text": 19,
+   "items_with_byline": 20,
+   "distinct_bylines": 20,
+   "titles_with_release_verb": 1,
+   "ai_items": 9,
+   "tool_items": 2,
+   "tools_named": {
+    "Claude Code": 2,
+    "MCP": 1,
+    "Codex": 1
+   },
+   "article_pages_read": {
+    "200": 1
+   },
+   "paywall_marker_pages": 0,
+   "articles_sampled": 9,
+   "article_chars_median": 8780,
+   "articles_naming_a_family": 8,
+   "articles_naming_a_model": 1,
+   "naming_sentences": 2,
+   "naming_exactly_one": 2,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 0,
+   "sample_titles": [
+    "Claude's False Police Tip Shows Why AI Safety Cannot Depend on the Model Alone",
+    "A Step-by-Step Guide to eBay API Integration With AI Agents",
+    "Inside Viggle Remake: LoRA-Based Video Editing With MiniMax-H3",
+    "What Would It Take to Prove That an AI Is Conscious?",
+    "6 User Mindsets That Should Shape Your B2B Onboarding Strategy",
+    "Pressing Enter Doesn’t Make You a Creator",
+    "Octopus v2: Vehicle Function Examples",
+    "Building Reliable iOS Apps With AI Agents",
+    "19 Agent Skills Test Your Web App With Playwright and Real Browsers"
+   ]
+  },
+  "TechCrunch": {
+   "feed_candidates": [
+    "https://techcrunch.com/category/artificial-intelligence/feed/"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://techcrunch.com/category/artificial-intelligence/feed/",
+   "generator": "https://wordpress.org/?v=6.9.11",
+   "items": 20,
+   "feed_full_text": 0,
+   "items_with_byline": 20,
+   "distinct_bylines": 11,
+   "titles_with_release_verb": 3,
+   "ai_items": 12,
+   "tool_items": 3,
+   "tools_named": {
+    "Muse": 3
+   },
+   "article_pages_read": {
+    "200": 10
+   },
+   "paywall_marker_pages": 0,
+   "articles_sampled": 10,
+   "article_chars_median": 2352,
+   "articles_naming_a_family": 1,
+   "articles_naming_a_model": 1,
+   "naming_sentences": 2,
+   "naming_exactly_one": 0,
+   "multi_model_widths": {
+    "2": 2
+   },
+   "eval_cue_sentences": 0,
+   "sample_titles": [
+    "Crusoe sells troubled Wyoming data center project to Google",
+    "Hundreds of Artex AI hacking tools found publicly exposed to the web",
+    "Meta introduces Spaces, a new way to collaborate with your Muse agent",
+    "How a Blue Wave midterm might reshape the AI industry",
+    "After the midterms, is the AI industry in for a rough two years?",
+    "Ramp data shows AI spending stalling just as Anthropic nears its IPO",
+    "Underdog shows off a 32MB speech model in new demo",
+    "Palo Alto Networks in talks to buy AI agent security startup Clutch for $500M",
+    "Airbnb says it’s launching an AI travel agent in the first half of 2027",
+    "Meta says US users can now video chat with their Muse AI avatar"
+   ]
+  },
+  "InfoWorld": {
+   "feed_candidates": [
+    "https://www.infoworld.com/artificial-intelligence/feed/"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://www.infoworld.com/artificial-intelligence/feed/",
+   "generator": null,
+   "items": 20,
+   "feed_full_text": 0,
+   "items_with_byline": 0,
+   "distinct_bylines": 0,
+   "titles_with_release_verb": 2,
+   "ai_items": 15,
+   "tool_items": 7,
+   "tools_named": {
+    "Codex": 4,
+    "Claude Code": 3,
+    "vLLM": 1,
+    "Hugging Face": 1,
+    "Kiro": 1,
+    "MCP": 1,
+    "Cursor": 1
+   },
+   "article_pages_read": {
+    "200": 10
+   },
+   "paywall_marker_pages": 0,
+   "articles_sampled": 10,
+   "article_chars_median": 5779,
+   "articles_naming_a_family": 2,
+   "articles_naming_a_model": 0,
+   "naming_sentences": 0,
+   "naming_exactly_one": 0,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 0,
+   "sample_titles": [
+    "How neurosymbolic AI can transform enterprise decision-making",
+    "Enterprises must take blame for their AI agents’ mistakes, say regulators",
+    "OpenAI buys tiny software developer to improve Codex",
+    "CPython flaw exposes AI inference servers to sandbox escape attacks",
+    "Why edge-cloud AI inference pipelines are key",
+    "AWS launches Kiro bots to help devs coordinate AI coding agents",
+    "Meta acquires Conductor as AI coding shifts toward multi-agent development",
+    "Your LLM writes good SQL. That’s not the same as safe SQL",
+    "Why enterprise AI needs unified metadata infrastructure",
+    "MariaDB enhances agent development for its next-gen database platform"
+   ]
+  },
+  "SD Times": {
+   "feed_candidates": [
+    "https://sdtimes.com/feed/"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://sdtimes.com/feed/",
+   "generator": "https://wordpress.org/?v=7.1.4",
+   "items": 10,
+   "feed_full_text": 10,
+   "items_with_byline": 10,
+   "distinct_bylines": 5,
+   "titles_with_release_verb": 5,
+   "ai_items": 6,
+   "tool_items": 2,
+   "tools_named": {
+    "Kiro": 1,
+    "Copilot": 1
+   },
+   "article_pages_read": {},
+   "paywall_marker_pages": 0,
+   "articles_sampled": 6,
+   "article_chars_median": 5825,
+   "articles_naming_a_family": 0,
+   "articles_naming_a_model": 1,
+   "naming_sentences": 1,
+   "naming_exactly_one": 1,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 0,
+   "sample_titles": [
+    "Tessl Launches Software Factory Platform to Support AI Coding’s Transition from Assistance to Execut",
+    "LaunchDarkly Introduces Automating Release Safeguards for AI-Written Code",
+    "Why AI Adoption Depends on Business Processes, Not Just Technology",
+    "Blocks introduces Builderlab to bring ideas and execution together",
+    "Your AI Bill Is a Data Problem",
+    "Below the Waterline: Why AI’s True Cost Is Measured Per Task, Not Per Token"
+   ]
+  },
+  "MIT Technology Review": {
+   "feed_candidates": [
+    "https://www.technologyreview.com/topic/artificial-intelligence/feed/"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://www.technologyreview.com/topic/artificial-intelligence/feed/",
+   "generator": "https://wordpress.org/?v=7.1.4",
+   "items": 10,
+   "feed_full_text": 10,
+   "items_with_byline": 10,
+   "distinct_bylines": 6,
+   "titles_with_release_verb": 0,
+   "ai_items": 8,
+   "tool_items": 2,
+   "tools_named": {
+    "Copilot": 1,
+    "Claude Code": 1,
+    "Hugging Face": 1
+   },
+   "article_pages_read": {},
+   "paywall_marker_pages": 0,
+   "articles_sampled": 8,
+   "article_chars_median": 5286,
+   "articles_naming_a_family": 2,
+   "articles_naming_a_model": 1,
+   "naming_sentences": 1,
+   "naming_exactly_one": 1,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 1,
+   "sample_titles": [
+    "Texas was the new epicenter of the AI data center buildout. That might be kaput.",
+    "Securing the agentic enterprise with data lineage",
+    "How “reverse game theory” could keep AI agents in check",
+    "Here’s who is falling in line for Trump’s “Super Intelligence” loyalty test",
+    "Raising the quality of insights in agentic analytics",
+    "Stop counting tokens, start counting what ships",
+    "We urgently need to monitor AI agents’ actions in real time",
+    "Creating AI value with enterprise context"
+   ]
+  },
+  "Tom's Guide": {
+   "feed_candidates": [
+    "https://www.tomsguide.com/feeds/tag/ai"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://www.tomsguide.com/feeds/tag/ai",
+   "generator": null,
+   "items": 50,
+   "feed_full_text": 50,
+   "items_with_byline": 50,
+   "distinct_bylines": 6,
+   "titles_with_release_verb": 1,
+   "ai_items": 37,
+   "tool_items": 3,
+   "tools_named": {
+    "Muse": 1,
+    "Grok Bot": 1,
+    "Copilot": 1
+   },
+   "article_pages_read": {},
+   "paywall_marker_pages": 0,
+   "articles_sampled": 10,
+   "article_chars_median": 5331,
+   "articles_naming_a_family": 4,
+   "articles_naming_a_model": 0,
+   "naming_sentences": 0,
+   "naming_exactly_one": 0,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 0,
+   "sample_titles": [
+    "These are the 7 most vital AI terms beginners (and even power users) should know, from large languag",
+    "1 in 4 data centers sits in a water-stressed area — here’s what that means for nearby communities",
+    "A town of 6,600 people took on a $900 million AI data center — and won. Here's how they did it.",
+    "Man sues OpenAI alleging ChatGPT helped his wife try to murder him: it's the 10th homicide the AI ch",
+    "A new bill could ban powerful AI in the US — here's what it means for ChatGPT",
+    "Amazon’s new text-to-shop feature arrives ahead of the holidays — here’s how the latest improvement ",
+    "Did the AI bubble just pop? $2 trillion reality check hits Nvidia, Meta & SpaceX as Wall Street pani",
+    "Here's what James Talarico, Abdul El-Sayed and other US midterm election winners have to say about A",
+    "Nvidia's new AI laptop runs nearly 80% slower on Linux — but only when it's plugged in",
+    "Meta's Muse AI can do TikTok dances now and it's coming to your Instagram Stories — here's how to us"
+   ]
+  },
+  "ZDNET": {
+   "feed_candidates": [
+    "https://www.zdnet.com/topic/artificial-intelligence/rss.xml"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://www.zdnet.com/topic/artificial-intelligence/rss.xml",
+   "generator": "WordPress",
+   "items": 25,
+   "feed_full_text": 0,
+   "items_with_byline": 25,
+   "distinct_bylines": 11,
+   "titles_with_release_verb": 0,
+   "ai_items": 10,
+   "tool_items": 1,
+   "tools_named": {
+    "Claude Code": 1
+   },
+   "article_pages_read": {
+    "200": 10
+   },
+   "paywall_marker_pages": 0,
+   "articles_sampled": 10,
+   "article_chars_median": 3613,
+   "articles_naming_a_family": 6,
+   "articles_naming_a_model": 1,
+   "naming_sentences": 12,
+   "naming_exactly_one": 11,
+   "multi_model_widths": {
+    "2": 1
+   },
+   "eval_cue_sentences": 1,
+   "sample_titles": [
+    "Thinking Machines’ new model takes the lead in western open-weight AI",
+    "92% of HR say staff can train for AI jobs – but half of companies still hire outside",
+    "Claude’s new Personal Finance tool aims to help analyze your spending – read-only, of course",
+    "The Siri AI waitlist is gone in iOS 27: How to try the beta today",
+    "Researchers asked people to use AI chatbots for election info – results were mixed",
+    "Want an AI job? Deployment engineers are earning executive-level pay – up to $1.45M a year",
+    "Safari finally gets 3 popular browser features – and I can’t wait to try them",
+    "Can Netflix’s new AI tool stop your TV-streaming doomscrolling? How to try it",
+    "SUSE lays off 1 in 10 workers – citing AI and automation",
+    "Is Claude Code truly faster with message threads? I did the math on my logs"
+   ]
+  },
+  "The Verge": {
+   "feed_candidates": [
+    "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+   "generator": null,
+   "items": 10,
+   "feed_full_text": 1,
+   "items_with_byline": 10,
+   "distinct_bylines": 6,
+   "titles_with_release_verb": 0,
+   "ai_items": 8,
+   "tool_items": 1,
+   "tools_named": {
+    "Muse": 1,
+    "Dots": 1
+   },
+   "article_pages_read": {
+    "200": 7
+   },
+   "paywall_marker_pages": 0,
+   "articles_sampled": 8,
+   "article_chars_median": 1916,
+   "articles_naming_a_family": 2,
+   "articles_naming_a_model": 2,
+   "naming_sentences": 4,
+   "naming_exactly_one": 4,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 0,
+   "sample_titles": [
+    "Here’s the full text of Jensen Huang’s memo to Nvidia",
+    "Apple is racing to make Siri more agentic",
+    "Elvis and Eminem rights holders are suing Suno",
+    "NYT Cooking’s AI assistant saved my weeknight chicken, but almost ruined my cake",
+    "The US let Nvidia sell chips to an empty office in China",
+    "AI broke the cybersecurity world. What’s next?",
+    "Why a new report on Anthropic automating AI development is alarming researchers",
+    "China reportedly recruited AI exec to spy on Jensen Huang"
+   ]
+  },
+  "The Pragmatic Engineer": {
+   "feed_candidates": [
+    "https://newsletter.pragmaticengineer.com/feed"
+   ],
+   "robots": "200",
+   "robots_allows_us_feed": true,
+   "robots_allows_us_articles": true,
+   "feed": "https://newsletter.pragmaticengineer.com/feed",
+   "generator": "Substack",
+   "items": 20,
+   "feed_full_text": 15,
+   "items_with_byline": 20,
+   "distinct_bylines": 1,
+   "titles_with_release_verb": 0,
+   "ai_items": 14,
+   "tool_items": 1,
+   "tools_named": {
+    "Cursor": 1
+   },
+   "article_pages_read": {
+    "200": 2
+   },
+   "paywall_marker_pages": 2,
+   "articles_sampled": 10,
+   "article_chars_median": 12348,
+   "articles_naming_a_family": 7,
+   "articles_naming_a_model": 2,
+   "naming_sentences": 7,
+   "naming_exactly_one": 7,
+   "multi_model_widths": {},
+   "eval_cue_sentences": 1,
+   "sample_titles": [
+    "Scaling Slack and GitHub with Maude Lemaire",
+    "The Pulse: Anthropic kills the coding interview",
+    "Software engineering at Google & CS education with Titus Winters",
+    "AI SRE: what is it, how could it change on-call – and does it work?",
+    "The Pulse: Time to rethink software security because of AI?",
+    "The revised rules of engineering management with Will Larson",
+    "What’s the ROI of software engineers’ spending on AI?",
+    "The Pulse: OpenAI software engineer accused of spying",
+    "Uber’s AI infra, from the inside",
+    "Building resilient AI-powered software, and planning for when things go wrong"
+   ]
+  }
+ }
+}
