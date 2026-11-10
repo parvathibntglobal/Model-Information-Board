@@ -106,6 +106,75 @@ models:
       surface: 'hermes agent'
       variants: ['hermes-agent', 'hermesagent']
 
+  # ── CODING AGENTS (anooj, 2026-11-10: "make sure there are agents like claude
+  # code, codex ... included"). Counted before choosing, 2026-11-10, since
+  # 2026-08-01: board quotes naming the agent (of 18,484 entries by 3,177 people,
+  # every source) and Hacker News stories via Algolia:
+  #
+  #   Claude Code         71 people on the board   1,208 HN stories
+  #   Google Antigravity  11                          69  (phrase "antigravity")
+  #   GitHub Copilot       8                          50
+  #   OpenAI Codex         2 ("openai codex"/"codex cli")  28
+  #   Gemini CLI           0                           9
+  #
+  # No key below was owned by any live alias or registry display name on the
+  # shared database (checked 2026-11-10).
+  #
+  # BARE "CODEX" IS NOT AN ALIAS, though 63 board people wrote it: the registry
+  # holds five GPT Codex MODELS (openai/gpt-5.1-codex ... gpt-5.3-codex), and a
+  # bare "Codex" can mean either. It is held, as every bare short name is (#610,
+  # decision 4). Same for bare "Copilot" (Microsoft's assistant) and bare
+  # "Antigravity" (an English word, rule 10).
+
+  - canonical_id: 'anthropic/claude-code'
+    provider: 'anthropic'
+    family: 'claude'
+    display_name: 'Claude Code'
+    aliases:
+      surface: 'claude code'
+      variants: ['claude-code', 'claudecode']
+
+  - canonical_id: 'openai/openai-codex'
+    provider: 'openai'
+    family: 'codex'
+    display_name: 'OpenAI Codex'
+    aliases:
+      surface: 'openai codex'
+      variants: ['openai-codex', 'openaicodex']
+
+  - canonical_id: 'google/gemini-cli'
+    provider: 'google'
+    family: 'gemini'
+    display_name: 'Gemini CLI'
+    aliases:
+      surface: 'gemini cli'
+      variants: ['gemini-cli', 'geminicli']
+
+  - canonical_id: 'github/github-copilot'
+    provider: 'github'
+    family: 'copilot'
+    display_name: 'GitHub Copilot'
+    aliases:
+      surface: 'github copilot'
+      variants: ['github-copilot', 'githubcopilot']
+
+  - canonical_id: 'google/google-antigravity'
+    provider: 'google'
+    family: 'antigravity'
+    display_name: 'Google Antigravity'
+    aliases:
+      surface: 'google antigravity'
+      variants: ['google-antigravity', 'googleantigravity']
+
+  # CURSOR AND OPENCODE WERE CONSIDERED AND LEFT OUT FOR NOW (2026-11-10), for
+  # their NAMES, not their reach. "Cursor" is an ordinary English word, and its
+  # users write it bare (10 board people under a narrowed pattern, "Cursor
+  # agent/IDE/..."); a bare-word alias is what rule 10 refuses. "OpenCode" (18
+  # board people, 193 HN stories) needs the spaced rendering "open code", an
+  # ordinary phrase, as a required alias. Both need a person's ruling on the name
+  # form first. Kiro (4 people), Aider (2), Devin, Windsurf, Cline and Amp (0 on
+  # the board) were too thin.
+
   # SIRI AI WAS CONSIDERED AND LEFT OUT (anooj, 2026-11-10): it reaches only Apple
   # users, a section of the audience. It had the most discussion of the untested
   # agents (29 HN stories, 137 comments since 2026-08-01), recorded here so the

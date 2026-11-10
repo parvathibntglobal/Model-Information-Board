@@ -33,13 +33,25 @@ def test_the_real_lists_agree_and_never_touch_the_model_list():
     agents = config.tracked_agents()
     seed = load_seed_file(ROOT / "contract" / "agent_models.yaml")
     seeded = {m.canonical_id for m in seed.models}
-    assert len(agents) == 9
+    assert len(agents) == 14  # nine (#609-#611) + five coding agents (2026-11-10)
     assert {a.registry for a in agents} == seeded  # every tracked agent has a registry row
     # NEVER IN tracked_models.yaml: that list feeds the model fetch, the models
     # page and auto_track (whose providers would then admit Meta's models).
     model_ids = {m.registry for m in config.tracked_models() if m.registry}
     assert not model_ids & seeded
     assert all(m.kind != "agent" for m in config.tracked_models())
+
+
+def test_the_coding_agents_are_tracked_and_bare_codex_is_no_alias():
+    """anooj, 2026-11-10: Claude Code and Codex must be in the list. Bare "codex"
+    stays held: the registry holds GPT Codex MODELS it would also name."""
+    tracked = {a.registry for a in config.tracked_agents()}
+    assert {"anthropic/claude-code", "openai/openai-codex"} <= tracked
+    from collect.registry.aliases import normalize
+
+    keys = {normalize(v) for m in load_seed_file(ROOT / "contract" / "agent_models.yaml").models
+            for v in [m.aliases.surface, *m.aliases.variants]}
+    assert {"codex", "cursor", "copilot", "antigravity"}.isdisjoint(keys)
 
 
 def test_every_agent_alias_is_a_snapshot_never_a_family_row():

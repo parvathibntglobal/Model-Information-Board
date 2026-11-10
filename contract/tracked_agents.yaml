@@ -20,7 +20,10 @@
 #                          fetch at 20:30 UTC, so the agents must not use it up
 #                          first. Test B's first fetches of nine agents cost $0.12
 #                          in all (2026-11-09, tokens x rate) - a first night with
-#                          backlogs is the expensive one.
+#                          backlogs is the expensive one. Claude Code's backlog is the
+#                          largest by far (1,208 HN stories since 2026-08-01), so
+#                          its first nights will meet this ceiling; the run stops
+#                          launching and the rest waits for the next night.
 #
 # PER AGENT
 #   name           shown in the run summary
@@ -81,4 +84,29 @@ agents:
   - name: Hermes Agent
     registry: nousresearch/hermes-agent
     search_terms: ['hermes agents']
+    subreddits: []
+  # CODING AGENTS (2026-11-10). Counts and the name rulings: agent_models.yaml.
+  # Subreddits are [] until a probe shows one is about that agent alone, as
+  # test B did for r/openclaw and r/GrokBot.
+  - name: Claude Code
+    registry: anthropic/claude-code
+    search_terms: []
+    subreddits: []
+  - name: OpenAI Codex
+    registry: openai/openai-codex
+    # Most people write bare "Codex", which is held (agent_models.yaml); this
+    # widens the search. A hit naming only bare "Codex" is counted, not filed.
+    search_terms: ['codex cli']
+    subreddits: []
+  - name: Gemini CLI
+    registry: google/gemini-cli
+    search_terms: []
+    subreddits: []
+  - name: GitHub Copilot
+    registry: github/github-copilot
+    search_terms: []
+    subreddits: []
+  - name: Google Antigravity
+    registry: google/google-antigravity
+    search_terms: []
     subreddits: []
