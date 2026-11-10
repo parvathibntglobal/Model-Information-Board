@@ -123,6 +123,9 @@ class TestCostOfIsSafeToCallHere:
             #: `Completion` carries this with a default of 0, and `charge`
             #: reads it to price cached input at the cached rate.
             cached_input_tokens = 0
+            #: Likewise defaulted to None on `Completion`; None sends `charge`
+            #: to the token price this test compares against (#381 step 2).
+            reported_cost_usd = None
 
             def __init__(self, i, o):
                 self.input_tokens, self.output_tokens = i, o

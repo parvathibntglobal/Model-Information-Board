@@ -383,10 +383,14 @@ class Completion:
     #:   can express that; the reported figure already does (#381).
     #:
     #:   None when the provider did not report one - never 0, which would read
-    #:   as free (rule 6). RECORDED, NOT YET USED FOR THE LEDGER OR THE CAP:
-    #:   moving the spend ledger onto it is #381's fix, alongside choosing the
-    #:   single record site. Consumer named, per rule 9: `ExtractionRun.
-    #:   reported_costs`, printed on the per-thread line.
+    #:   as free (rule 6). USED FOR THE LEDGER AND THE CAP (#381 step 2):
+    #:   `_record_spend` writes it as the ledger row's usd, and `Budget.charge`
+    #:   charges it. Token pricing is the fallback only when it is None.
+    #:   Measured 2026-11-09 (GPT Image 2.5 Sunburst fetch, 95 calls): tokens x
+    #:   rate with the cache discount gave $0.0521, billed was $0.0646 - the
+    #:   cap was counting about 19% under what was spent. Consumers named, per
+    #:   rule 9: those two, and `ExtractionRun.reported_costs` on the per-thread
+    #:   line.
     reported_cost_usd: float | None = None
 
     @property
@@ -903,9 +907,33 @@ class OpenRouterClient:
             ceiling_tokens=self.max_output_tokens,
             provider=seen["provider"],
             generation_id=seen["id"],
-            reported_cost_usd=(float(usage["cost"])
-                               if usage.get("cost") is not None else None),
+            reported_cost_usd=_billed_cost(usage),
         )
+
+
+def _billed_cost(usage: dict) -> float | None:
+    """What OpenRouter billed for one call, or None to price it from tokens.
+
+    ⚠ A BRING-YOUR-OWN-KEY CALL CAN REPORT `cost: 0` (#617 review, point 2).
+      With `is_byok: true` the upstream's charge is in
+      `cost_details.upstream_inference_cost` and `cost` can be 0 - charged as
+      it stands, every such call would cost the daily cap nothing, with no
+      error anywhere (rule 12). So a BYOK call takes the upstream figure plus
+      `cost` (the fee), and without an upstream figure, None: the token price,
+      never the 0. Our key reported
+      `is_byok: false` on a live call, 2026-11-09.
+    """
+    if usage.get("is_byok") is True:
+        # BOTH ARE SPEND (#617 review, note 1): `cost` is OpenRouter's own BYOK
+        # fee, charged to our credits; `upstream_inference_cost` is what the
+        # provider charged on the key. The upstream figure alone undercounts by
+        # the fee.
+        upstream = (usage.get("cost_details") or {}).get("upstream_inference_cost")
+        if upstream is None:
+            return None
+        return float(upstream) + float(usage.get("cost") or 0)
+    cost = usage.get("cost")
+    return float(cost) if cost is not None else None
 
 
 def _cached_tokens(usage: dict) -> int:
@@ -966,6 +994,11 @@ def _record_spend(usage: dict, *, served: str | None, asked: str) -> None:
     from judge import spend_ledger
     from judge.extract.budget import pricing_for
 
+    # THE BILLED FIGURE WHEN THE PROVIDER SENT ONE (#381 step 2). Tokens times
+    # our rate only when it did not - a call with no reported cost is still
+    # priced, never recorded as free (rule 6). `_billed_cost` is the same
+    # reading `Completion.reported_cost_usd` gets, BYOK guard included.
+    billed = _billed_cost(usage)
     spend_ledger.record(
         stage=spend_ledger.STAGE_EXTRACT,
         model=served or "",
@@ -973,6 +1006,7 @@ def _record_spend(usage: dict, *, served: str | None, asked: str) -> None:
         input_tokens=usage.get("prompt_tokens", 0),
         output_tokens=usage.get("completion_tokens", 0),
         cached_input_tokens=_cached_tokens(usage),
+        **({"reported": True, "reported_usd": billed} if billed is not None else {}),
     )
 
 
