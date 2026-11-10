@@ -3216,7 +3216,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     from judge.cli import _model_version_map
     from judge.config import capabilities
     from judge.curate.labels import Driver
-    from judge.extract.budget import Budget
+    from judge.extract.budget import Budget, cost_basis
     from judge.extract.client import OpenRouterClient
     from judge.pipeline import Pipeline
     from judge.store.extractions import ExtractionLedger
@@ -3435,12 +3435,16 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     #   `spent_usd` as the run's cost would charge this run for every fetch
     #   since midnight.
     spent_before = 0.0
+    # The charge counters, taken at the same moment, so the end record's
+    # `cost_basis` describes this run's charges only (#617 review, point 1).
+    basis_before = (0, 0, 0)
     # This process's spend rows the shared table did not get, before the stage
     # runs - the stage line reports the delta (#393).
     unmirrored_before = spend_ledger.unmirrored_count()
     if budget is not None:
         budget.spent_usd = spend_ledger.spent_today()
         spent_before = budget.spent_usd
+        basis_before = (budget.billed_charges, budget.token_charges, budget.partly_billed)
         # TWO FETCHES AT ONCE (2026-10-15): every cap check re-reads today's
         # total, so a run started beside this one spends from the same cap.
         budget.shared_today = spend_ledger.spent_today
@@ -3878,12 +3882,13 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # had sent or got back - and the terminal, the UI and a replay all read
     # that same record.
     #
-    # ⚠ `cost` IS TOKENS TIMES A CONFIGURED RATE, NOT AN INVOICE, and the
-    #   renderer says so on the line. #381 measured the two constants in this
-    #   repo disagreeing by 2.11x and nothing has ever been checked against a
-    #   bill. Printing it unlabelled would be the "looks measured and is not"
-    #   that rule 3 is about; withholding it entirely would be worse, because
-    #   it is the only spend figure a person running a fetch can see.
+    # ⚠ `cost` SAYS WHAT IT IS MADE OF, via `cost_basis` (#381 step 2, #617).
+    #   Since #617 a call is charged OpenRouter's billed figure when it reports
+    #   one and tokens x a configured rate when it does not, so `cost_usd` can
+    #   be either - or both. The renderer labels the line from `cost_basis`:
+    #   printing it unlabelled would be the "looks measured and is not" rule 3
+    #   is about, and a billed figure labelled as an estimate is the same
+    #   defect the other way round.
     prog.record_summary(
         llm=extractor_model(),
         sent_threads=len(threads),
@@ -3909,6 +3914,11 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             "tokens_in": budget.input_tokens,
             "tokens_out": budget.output_tokens,
             "cost_usd": round(budget.spent_usd - spent_before, 6),
+            "cost_basis": cost_basis(
+                budget.billed_charges - basis_before[0],
+                budget.token_charges - basis_before[1],
+                budget.partly_billed - basis_before[2],
+            ),
             # A provider that stops reporting usage silently disables the cap,
             # and the symptom is a total that looks like good news.
             "unmetered_calls": budget.unmetered_calls,

@@ -907,9 +907,26 @@ class OpenRouterClient:
             ceiling_tokens=self.max_output_tokens,
             provider=seen["provider"],
             generation_id=seen["id"],
-            reported_cost_usd=(float(usage["cost"])
-                               if usage.get("cost") is not None else None),
+            reported_cost_usd=_billed_cost(usage),
         )
+
+
+def _billed_cost(usage: dict) -> float | None:
+    """What OpenRouter billed for one call, or None to price it from tokens.
+
+    ⚠ A BRING-YOUR-OWN-KEY CALL CAN REPORT `cost: 0` (#617 review, point 2).
+      With `is_byok: true` the upstream's charge is in
+      `cost_details.upstream_inference_cost` and `cost` can be 0 - charged as
+      it stands, every such call would cost the daily cap nothing, with no
+      error anywhere (rule 12). So a BYOK call takes the upstream figure, and
+      without one, None: the token price, never the 0. Our key reported
+      `is_byok: false` on a live call, 2026-11-09.
+    """
+    if usage.get("is_byok") is True:
+        upstream = (usage.get("cost_details") or {}).get("upstream_inference_cost")
+        return float(upstream) if upstream is not None else None
+    cost = usage.get("cost")
+    return float(cost) if cost is not None else None
 
 
 def _cached_tokens(usage: dict) -> int:
@@ -972,8 +989,9 @@ def _record_spend(usage: dict, *, served: str | None, asked: str) -> None:
 
     # THE BILLED FIGURE WHEN THE PROVIDER SENT ONE (#381 step 2). Tokens times
     # our rate only when it did not - a call with no reported cost is still
-    # priced, never recorded as free (rule 6).
-    billed = usage.get("cost")
+    # priced, never recorded as free (rule 6). `_billed_cost` is the same
+    # reading `Completion.reported_cost_usd` gets, BYOK guard included.
+    billed = _billed_cost(usage)
     spend_ledger.record(
         stage=spend_ledger.STAGE_EXTRACT,
         model=served or "",
@@ -981,7 +999,7 @@ def _record_spend(usage: dict, *, served: str | None, asked: str) -> None:
         input_tokens=usage.get("prompt_tokens", 0),
         output_tokens=usage.get("completion_tokens", 0),
         cached_input_tokens=_cached_tokens(usage),
-        **({"reported": True, "reported_usd": float(billed)} if billed is not None else {}),
+        **({"reported": True, "reported_usd": billed} if billed is not None else {}),
     )
 
 

@@ -1519,12 +1519,20 @@ class Pipeline:
             #   included. Before 2026-11-09 the line priced tokens WITHOUT the
             #   cache discount and the charge priced them WITH it, and the billed
             #   figure was neither: 95 calls read $0.0670 / $0.0521 / $0.0646.
+            #   PARTLY BILLED (some calls reported, some did not) is priced
+            #   wholly from tokens - conservative - while `_record_spend` writes
+            #   the reporting calls' ledger rows at their billed figure. The
+            #   run's total and the ledger's then differ, so it is counted and
+            #   the cost line says "mixed" (#617 review, point 3).
             billed_each = result.extraction.reported_costs
             billed = (
                 sum(billed_each)
                 if billed_each and all(c is not None for c in billed_each)
                 else None
             )
+            if (budget is not None and billed is None
+                    and any(c is not None for c in billed_each or [])):
+                budget.partly_billed += 1
             if on_result is not None:
                 thread_in = result.extraction.input_tokens
                 thread_out = result.extraction.output_tokens

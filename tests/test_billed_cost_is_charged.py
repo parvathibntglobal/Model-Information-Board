@@ -58,3 +58,61 @@ def test_a_call_with_no_billed_figure_is_still_priced_from_tokens(monkeypatch):
     kw = _ledger_kwargs(monkeypatch, {"prompt_tokens": 10, "completion_tokens": 5})
     assert "reported" not in kw and "reported_usd" not in kw
     assert kw["input_tokens"] == 10 and kw["output_tokens"] == 5
+
+
+# ── #617 review, point 2: a bring-your-own-key call can report cost 0 ────────
+
+def test_a_byok_call_charges_the_upstream_cost_not_the_zero():
+    usage = {"cost": 0, "is_byok": True,
+             "cost_details": {"upstream_inference_cost": 0.0031}}
+    assert client_mod._billed_cost(usage) == 0.0031
+
+
+def test_a_byok_call_with_no_upstream_cost_falls_back_to_tokens(monkeypatch):
+    usage = {"prompt_tokens": 10, "completion_tokens": 5, "cost": 0, "is_byok": True}
+    assert client_mod._billed_cost(usage) is None
+    kw = _ledger_kwargs(monkeypatch, usage)
+    assert "reported" not in kw  # priced from tokens, never recorded at $0
+
+
+def test_an_ordinary_call_takes_its_cost_as_billed():
+    assert client_mod._billed_cost({"cost": 0.002, "is_byok": False}) == 0.002
+    assert client_mod._billed_cost({}) is None
+
+
+# ── #617 review, points 1 and 3: the cost says what it is made of ────────────
+
+def test_the_budget_counts_how_each_charge_was_priced():
+    budget = Budget(limit_usd=None, pricing=PRICING)
+    budget.charge(_completion(0.01))
+    budget.charge(_completion(None))
+    assert (budget.billed_charges, budget.token_charges) == (1, 1)
+
+
+def test_cost_basis():
+    from judge.extract.budget import cost_basis
+
+    assert cost_basis(0, 0, 0) is None
+    assert cost_basis(95, 0, 0) == "billed"
+    assert cost_basis(0, 3, 0) == "tokens"
+    assert cost_basis(2, 1, 0) == "mixed"
+    # a partly billed thread is charged at the token price while its ledger
+    # rows are billed - the two totals differ, so the run is mixed
+    assert cost_basis(0, 1, 1) == "mixed"
+
+
+def _cost_line(record: dict) -> str:
+    from judge import fetch_console
+
+    body = fetch_console.ending({"kind": "end", "status": "ok", "cost_usd": 0.0646, **record},
+                                model_version_id="mv_x")
+    return next(line for line in body if line.strip().startswith("cost"))
+
+
+def test_the_cost_line_says_billed_tokens_or_mixed():
+    assert "billed by OpenRouter" in _cost_line({"cost_basis": "billed"})
+    assert "not an invoice" not in _cost_line({"cost_basis": "billed"})
+    assert "no billed figure" in _cost_line({"cost_basis": "tokens"})
+    assert "mixed" in _cost_line({"cost_basis": "mixed"})
+    # a record from before #617 was always token-priced, and keeps its label
+    assert "not an invoice" in _cost_line({})

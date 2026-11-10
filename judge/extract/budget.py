@@ -176,6 +176,24 @@ def pricing_for(model: str) -> Pricing | None:
 #: so this UNDER-estimates the pre-call spend for the current extractor — the
 #: gate is optimistic, though the post-call charge from reported tokens is
 #: accurate. Wants a proper DeepSeek re-measurement to replace these.
+#: What a run's `cost_usd` is made of (#617 review, point 1).
+COST_BILLED, COST_TOKENS, COST_MIXED = "billed", "tokens", "mixed"
+
+
+def cost_basis(billed: int, tokens: int, partly_billed: int) -> str | None:
+    """`billed`, `tokens` or `mixed` for a run's charges; None when it made none.
+
+    MIXED when both kinds were charged, or when any thread was only partly
+    billed - there the run's total is token-priced while the ledger rows are
+    billed, so the two totals differ and the label has to say so.
+    """
+    if billed == 0 and tokens == 0:
+        return None
+    if partly_billed or (billed and tokens):
+        return COST_MIXED
+    return COST_BILLED if billed else COST_TOKENS
+
+
 ESTIMATED_INPUT_TOKENS = 2010
 ESTIMATED_OUTPUT_TOKENS = 589
 
@@ -212,6 +230,15 @@ class Budget:
     #: this cap, and the symptom is a suspiciously low total that looks like
     #: good news.
     unmetered_calls: int = 0
+    #: HOW EACH CHARGE WAS PRICED (#617 review, points 1 and 3). `billed_charges`
+    #: took OpenRouter's own figure, `token_charges` the token price. A thread
+    #: where only SOME calls reported a cost is charged at the token price while
+    #: its ledger rows are billed per call, so the run's total and the ledger's
+    #: differ; `partly_billed` counts those threads so the difference is
+    #: visible rather than inferred. `cost_basis()` reads all three.
+    billed_charges: int = 0
+    token_charges: int = 0
+    partly_billed: int = 0
     #: TOKENS AS THE PROVIDER REPORTED THEM, summed across this run's calls.
     #:
     #: `charge()` already receives both numbers and was throwing them away
@@ -323,12 +350,14 @@ class Budget:
         """
         if completion.reported_cost_usd is not None:
             cost = float(completion.reported_cost_usd)
+            self.billed_charges += 1
         else:
             cost = self.cost_of(
                 completion.input_tokens,
                 completion.output_tokens,
                 completion.cached_input_tokens,
             )
+            self.token_charges += 1
         self.spent_usd += cost
         self.input_tokens += completion.input_tokens
         self.output_tokens += completion.output_tokens

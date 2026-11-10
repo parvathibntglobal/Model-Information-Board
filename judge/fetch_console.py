@@ -120,6 +120,21 @@ def stage(record: dict) -> list[str]:
     return lines
 
 
+#: THE COST LINE'S LABEL, BY WHAT THE FIGURE IS MADE OF (#617 review, point 1).
+#: Keyed by the end record's `cost_basis` - `judge.extract.budget.cost_basis`'s
+#: values, spelled out here rather than imported so this renderer stays free of
+#: the extract package.
+COST_LABELS = {
+    "billed": "billed by OpenRouter",
+    "tokens": "tokens x the configured rate (no billed figure), not an invoice (#381)",
+    "mixed": ("mixed: billed by OpenRouter where a call reported a cost, "
+              "tokens x the configured rate where it did not"),
+}
+#: A record from before #617 carries no `cost_basis`, and its cost was always
+#: tokens x the rate - so it keeps the label it was printed with.
+COST_LABEL_UNRECORDED = "tokens x the configured rate, not an invoice (#381)"
+
+
 def ending(record: dict, *, model_version_id: str) -> list[str]:
     """The closing box: what the run amounted to.
 
@@ -133,12 +148,12 @@ def ending(record: dict, *, model_version_id: str) -> list[str]:
       it - prints the box with the model and nothing else, which is the honest
       shape of "it ended and it extracted nothing".
 
-    ⚠ AND THE COST LINE SAYS WHAT IT IS. `spend_ledger`'s dollars are tokens
+    ⚠ AND THE COST LINE SAYS WHAT IT IS. Before #617 every dollar was tokens
       times a configured rate, and #381 measured the two rates in this repo
-      disagreeing by 2.11x with neither ever checked against an invoice.
-      Printing `$0.017892` bare would be a figure that looks measured and is
-      not; withholding it would leave a person running a fetch with no spend
-      figure at all. So it is shown and labelled.
+      disagreeing by 2.11x. Since #617 a call is charged OpenRouter's billed
+      figure when it reports one, so the figure is billed, token-priced or
+      mixed - and the end record's `cost_basis` says which, so the label does
+      too (`COST_LABELS`). Bare, either kind reads as something it is not.
     """
     status = str(record.get("status") or "").upper()
     lines = [
@@ -192,7 +207,7 @@ def ending(record: dict, *, model_version_id: str) -> list[str]:
     if record.get("cost_usd") is not None:
         lines.append(
             f"  cost    ${float(record['cost_usd']):.6f}   "
-            f"tokens x the configured rate, not an invoice (#381)"
+            f"{COST_LABELS.get(record.get('cost_basis'), COST_LABEL_UNRECORDED)}"
         )
 
     verified = record.get("claims_verified")
