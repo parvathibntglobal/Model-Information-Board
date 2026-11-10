@@ -193,8 +193,10 @@ def summarise_runs(records: list[dict]) -> str:
               "not reported by that run, which is not the same as zero."]
     # MEDIA'S SHARE OF THE NIGHT (#602 item 8), in counts only - no spend on a
     # public issue; each run's `cost_usd` stays in its own fetch log.
-    # "unknown" is an untracked model fetched by hand, searched as text (#612).
-    media = [r for r in records if r.get("model_kind") not in (None, "text", "unknown")]
+    # ONLY THE KINDS THAT ARE MEDIA (#618/#620 review, Parvathi). It counted
+    # "everything but text and unknown", so `decision` (Jev, which keeps the text
+    # arms) and `agent` (its own nightly run) would both have read as media.
+    media = [r for r in records if r.get("model_kind") in MEDIA_SUMMARY_KINDS]
     if media:
         read = sum(int(r.get("threads_read") or 0) for r in media)
         total = sum(int(r.get("threads_read") or 0) for r in records)
@@ -213,6 +215,14 @@ def summarise_runs(records: list[dict]) -> str:
                   "(`FETCH_EXTRACT=off`): harvested and stored, nothing extracted. "
                   "Their threads stay unread until an extracting run reads them."]
     return "\n".join(lines) + "\n"
+
+
+#: The kinds the summary's "Media models" line counts. Deliberately NOT
+#: scripts/fetch_model.py MEDIA_KINDS, which also holds `agent` because an agent
+#: takes the same name-only SEARCH path - a search choice, not a kind of model.
+#: tests/test_scheduler_status.py pins the two together, so a media kind added to
+#: the fetch cannot silently go uncounted here (rule 12).
+MEDIA_SUMMARY_KINDS = frozenset({"image", "video", "speech", "transcription"})
 
 
 def safe_record(end_record: dict) -> dict:
