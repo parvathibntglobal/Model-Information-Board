@@ -1,0 +1,25 @@
+{
+ "measured_on": "2026-11-09",
+ "population": "the 10,578 flattened thread texts readable in the shared raw store (raw_blob) on 2026-11-09; threads that use the bare capitalised word, grouped as the script's docstring defines",
+ "threads": {
+  "Muse": {
+   "caught": 51,
+   "model name only": 73,
+   "giveaway nearby": 45,
+   "no giveaway": 35
+  },
+  "Dots": {
+   "caught": 10,
+   "model name only": 0,
+   "giveaway nearby": 15,
+   "no giveaway": 7
+  },
+  "Duet": {
+   "caught": 38,
+   "model name only": 0,
+   "giveaway nearby": 3,
+   "no giveaway": 2
+  }
+ },
+ "note": "Produced by an earlier copy of this script with the same patterns and grouping, which also printed sample snippets; those are not kept, because some are Reddit or X text. A 0 is a counted zero: no Dots thread fell in 'model name only', and Duet has no model-name pattern."
+}

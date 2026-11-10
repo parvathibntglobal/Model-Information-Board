@@ -128,13 +128,30 @@ def evidence_feed_terms() -> dict:
     raw = (_read("publication.yaml") or {}).get("evidence_feed") or {}
     may = raw.get("may_draw_on_withheld")
     embed = raw.get("embed_only")
-    if not isinstance(may, bool) or not isinstance(embed, list):
+    held = raw.get("held")
+    if not isinstance(may, bool) or not isinstance(embed, list) or not isinstance(held, list):
         raise PublicationConfigError(
             "contract/publication.yaml `evidence_feed` needs `may_draw_on_withheld` "
-            f"(true/false) and `embed_only` (a list); got {may!r} and {embed!r}. "
-            "Refusing rather than guessing what the feed may show."
+            f"(true/false), `embed_only` and `held` (lists); got {may!r}, {embed!r} "
+            f"and {held!r}. Refusing rather than guessing what the feed may show."
         )
-    return {"may_draw_on_withheld": may, "embed_only": tuple(str(s).strip() for s in embed)}
+    return {"may_draw_on_withheld": may, "embed_only": tuple(str(s).strip() for s in embed),
+            "held": tuple(str(s).strip() for s in held)}
+
+
+def feed_hides(source: str | None) -> bool:
+    """Whether the evidence feed shows a report from `source` with no text and
+    no source - `{"kind": "withheld"}` - while still listing and counting it.
+
+    ONE RULE FOR THE THREE PLACES THAT APPLY IT (2026-10-26, #567 review): the
+    feed's items, its summaries' citations and the paraphraser, so they cannot
+    disagree. Hidden when the source is withheld publicly and the feed may not
+    draw on withheld sources, OR when it is `held` - a source whose terms carry
+    a condition not yet met, whatever `may_draw_on_withheld` says.
+    """
+    terms = evidence_feed_terms()
+    return ((withheld_publicly(source) and not terms["may_draw_on_withheld"])
+            or (source in terms["held"]))
 
 
 @lru_cache(maxsize=1)

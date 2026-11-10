@@ -218,6 +218,27 @@ def test_the_public_list_names_only_reads_that_were_checked():
         # 2026-10-23: the local VRAM tool - measured file sizes and header fields,
         # registry prices, contract constants; no source text
         "/local-models",
+        # 2026-10-29 (PROPOSED): the home page's updates strip - published words,
+        # kind and time only (tests/test_updates.py checks what it sends).
+        "/updates/published",
+        # 2026-10-30 (PROPOSED): the AI benchmarks page - shown figures, ranks and
+        # their source, link and date; no unreviewed value
+        # (tests/test_benchmark_charts.py checks what it sends).
+        "/ai-benchmarks",
+        # 2026-10-30 (PROPOSED): the verified-facts box inside a migration guide -
+        # registry figures, a checklist from contract/migrations.yaml and counts of
+        # board entries; no quote or source (tests/test_guide_facts.py).
+        "/guide-facts",
+        # 2026-10-30 (PROPOSED): the AI updates page - approved updates' words,
+        # kind, label and date (tests/test_updates.py checks what it sends).
+        "/updates/approved",
+        # 2026-11-02 (PROPOSED, prototype): Watch my models - counts from every
+        # source, quotes only from shown sources (tests/test_watch.py).
+        "/watch",
+        # 2026-11-03 (PROPOSED, prototype): the launch verdict - counts from every
+        # source, quotes only from shown sources (tests/test_verdict.py).
+        "/verdict",
+        "/verdict/week",
     } == gate.PUBLIC_READ_PATHS
     assert gate.PUBLIC_READ_PREFIXES == ("/model-catalog/", "/glossary-terms/")
 

@@ -283,6 +283,10 @@ class HfRun:
     list_calls: int = 0
     detail_calls: int = 0
     http_errors: int = 0
+    #: WHICH KIND each failed request was ("HTTP 500", "ConnectError"), so the
+    #: fetch line can tell throttling from timeouts from refusals (#602), as
+    #: the arXiv arm already does. `http_errors` stays the count.
+    failures: list = field(default_factory=list)
     pages_stored: int = 0
 
     discovery_refs: list[str] = field(default_factory=list)
@@ -375,10 +379,12 @@ class HuggingFaceHarvester:
             response = self._client.get(url, params=params)
         except httpx.HTTPError as error:
             run.http_errors += 1
+            run.failures.append(type(error).__name__)
             log.error("huggingface: request failed on %s: %s", path, error)
             return None
         if response.status_code != 200:
             run.http_errors += 1
+            run.failures.append(f"HTTP {response.status_code}")
             log.warning("huggingface: HTTP %s on %s %r", response.status_code, path, params)
             return None
         return response
@@ -533,6 +539,7 @@ class HuggingFaceHarvester:
         run: HfRun | None = None,
         max_repos: int = 3,
         max_discussions: int = 5,
+        repo_ids: list[str] | None = None,
     ) -> HfRun:
         """Repos -> discussions -> comments, bounded on every level.
 
@@ -547,10 +554,17 @@ class HuggingFaceHarvester:
         """
         from collect.adapters.queries.sieve import sieve
 
-        run = self.search_repos(query, run=run)
-
-        repos = run.repos_matched
-        if terms is not None:
+        if repo_ids is not None:
+            # CURATED REPOS (#602): a media model's `hf_repos:` in
+            # contract/tracked_models.yaml names its official repo(s), so the
+            # name search - which returns re-uploads as often as the original -
+            # is skipped and exactly these are walked, still under `max_repos`.
+            run = run if run is not None else HfRun(query=query, started_at=self._clock())
+            repos = [_CuratedRepo(r) for r in repo_ids]
+        else:
+            run = self.search_repos(query, run=run)
+            repos = run.repos_matched
+        if terms is not None and repo_ids is None:
             # A repo that does not match is not walked. This is routing, not a
             # document verdict - no row is created or refused by it.
             repos = [r for r in repos if sieve(terms, r.sieve_text).passed]
@@ -802,3 +816,10 @@ def harvester_for_source(source, *, rulings=None, **kwargs) -> HuggingFaceHarves
         observations={source_id: observe_huggingface_use()},
     )
     return HuggingFaceHarvester(**kwargs)
+
+
+class _CuratedRepo:
+    """A repo named in the contract rather than found by search: only its id."""
+
+    def __init__(self, repo_id: str) -> None:
+        self.repo_id = repo_id

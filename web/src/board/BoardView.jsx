@@ -65,6 +65,21 @@ export default function BoardView({ html }) {
       if (row) row.remove()
       return
     }
+    // A GUIDE'S COPY BUTTON (2026-10-30): copies the code in its own pane - the
+    // official code block or the open tab. Says so when the browser refuses,
+    // rather than looking as if it copied (rule 12).
+    const copy = e.target.closest && e.target.closest('[data-copy]')
+    if (copy) {
+      e.preventDefault()
+      const code = copy.closest('.es-ocode-pane')?.querySelector('code')?.textContent ?? ''
+      const said = (ok) => {
+        copy.textContent = ok ? 'Copied' : 'Copy failed'
+        setTimeout(() => { copy.textContent = 'Copy' }, 1600)
+      }
+      if (code && navigator.clipboard?.writeText) navigator.clipboard.writeText(code).then(() => said(true), () => said(false))
+      else said(false)
+      return
+    }
     const go = e.target.closest && e.target.closest('[data-go]')
     // A MODIFIED CLICK IS THE BROWSER'S (SEO item 3). Every link now has a real
     // href, so Ctrl/Cmd/Shift/Alt-click opens it in a new tab or window the

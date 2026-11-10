@@ -160,13 +160,16 @@ jobs:
       # up over nights instead of overrunning the step. Feed-only newsletters
       # make no article request at all. A failure here turns the job red and
       # the models still run. Skipped when a manual run scopes SOURCES to
-      # platforms that are not blogs.
+      # platforms that are not blogs. --scheduled: feeds marked
+      # `harvest: manual` (the *.substack.com newsletters, which refuse
+      # robots.txt to this runner; own-domain ones do not) are left out before any request and named in the log; a
+      # developer machine harvests them by hand (#599).
       - name: Harvest the blog and newsletter feeds
         if: >-
           steps.gate.outputs.enabled == 'true'
           && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'blog'))
         timeout-minutes: 20
-        run: python scripts/harvest_blogs.py --new-only --max-new-articles 10
+        run: python scripts/harvest_blogs.py --scheduled --new-only --max-new-articles 10
 
       # THE DEVELOPER FORUMS, ONCE A NIGHT, BEFORE THE MODELS (2026-10-26).
       # The Google AI Developers Forum's robots.txt disallows search, so it is
@@ -181,16 +184,60 @@ jobs:
         timeout-minutes: 15
         run: python scripts/harvest_forums.py --max-new-topics 150
 
+      # THE MEDIA SEARCH SWEEP, ONCE A WEEK, BEFORE THE MODELS (#602, 2026-11-09).
+      # Six Reddit searches from contract/sources.yaml `sweep_media_subreddits`
+      # (seedance, kling, google veo, nano banana, gpt image, elevenlabs),
+      # newest first. Every post found is stored; comments are
+      # read only for posts naming a model the registry or the catalogue knows.
+      # At most `max_requests` (100) Reddit requests a run, pages and comments
+      # together, on the Reddit RapidAPI key. Each media model's fetch below then
+      # reads the threads that name it. WEEKLY: on Mondays (UTC), or whenever the
+      # workflow is started by hand. No key: skipped, said so.
+      - name: Search Reddit for media models (weekly)
+        if: >-
+          !cancelled() && steps.gate.outputs.enabled == 'true'
+          && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'reddit'))
+        timeout-minutes: 10
+        run: |
+          if [ "$(date -u +%u)" != "1" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "::notice::the media search sweep runs weekly, on Mondays (UTC): not today."
+            exit 0
+          fi
+          # A WARNING, NOT A NOTICE (#612 review, point 8). This runs once a week,
+          # so a missing setting skipped quietly costs a week nobody sees. The run
+          # stays green - the per-model arms skip themselves the same way - but
+          # the warning is on the run's summary page.
+          if [ -z "$RAPIDAPI_KEY" ]; then
+            echo "::warning::RAPIDAPI_KEY is not set - this week's media search sweep was skipped."
+            echo "Media search sweep SKIPPED: RAPIDAPI_KEY is not set." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # NO REDDIT HOST, NO RUN: without one the sweep refuses with a
+          # configuration error. REDDIT_PROVIDER is the only host setting this
+          # job's env carries.
+          if [ -z "$REDDIT_PROVIDER" ]; then
+            echo "::warning::REDDIT_PROVIDER is not set - this week's media search sweep was skipped."
+            echo "Media search sweep SKIPPED: REDDIT_PROVIDER is not set." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python -m collect.cli ops sweep-reddit --media --store raw_store
+
       - name: Fetch the due models
         if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
         # --job-limit-minutes 320 is timeout-minutes (355) less the feed step's
-        # 20 and the forum step's 15: a fetch still running at 310 min of THIS
+        # 20 and the forum step's 15: a fetch still running at 320 min of THIS
         # step is stopped by the runner, which then posts the summary. Each
         # thread commits as it finishes, so that loses one thread at most and
         # the model stays due. That makes a late launch cheap, so
         # --deadline-minutes 300 starts models until minute 300.
+        # ON A SWEEP NIGHT ONLY (Mondays, or a run started by hand) the media
+        # search sweep's 10 minutes come off both (#612 review, point 10): the
+        # other six nights keep their full time.
         run: |
           args="--job-limit-minutes 320 --deadline-minutes 300"
+          if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            args="--job-limit-minutes 310 --deadline-minutes 290"
+          fi
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

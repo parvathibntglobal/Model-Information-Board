@@ -67,15 +67,22 @@ const Reports = page(() => import('./routes/Reports'))
 const Catalog = page(() => import('./routes/Catalog'))
 const Evidence = page(() => import('./routes/Evidence'))
 const Discussions = page(() => import('./routes/Discussions'))
+const Benchmarks = page(() => import('./routes/Benchmarks'))
 const ModelDetail = page(() => import('./routes/ModelDetail'))
 const Models = page(() => import('./routes/Models'))
 const Compare = page(() => import('./routes/Compare'))
 const TokenCounter = page(() => import('./routes/TokenCounter'))
 const VramCalculator = page(() => import('./routes/VramCalculator'))
+const BenchmarkCharts = page(() => import('./routes/BenchmarkCharts'))
 const ModelFinder = page(() => import('./routes/ModelFinder'))
 const Admin = page(() => import('./routes/Admin'))
 const BlogLogs = page(() => import('./routes/BlogLogs'))
 const Keywords = page(() => import('./routes/Keywords'))
+const PriceChanges = page(() => import('./routes/PriceChanges'))
+const News = page(() => import('./routes/News'))
+const NewsStory = page(() => import('./routes/NewsStory'))
+const Updates = page(() => import('./routes/Updates'))
+const AiUpdates = page(() => import('./routes/AiUpdates'))
 const KitePulse = page(() => import('./kitepulse/site-preview/KitePulseSite'))
 
 /** What a page shows while its chunk downloads: the skeleton the pages use for data. */
@@ -119,13 +126,15 @@ export default function App() {
   }, [])
 
   const onLogin = loc.pathname === '/login'
-  // The footer is the landing page's: its columns are a site map and a list of
-  // evidence platforms, which belong where a visitor first arrives. The board,
-  // model and compare pages end on their own content. /admin must never have
-  // one: it fills the viewport and scrolls inside its own panes (`.adm-page`),
-  // and a footer under that layout would put the page back into the scroll it
-  // left, taking the side nav up with it.
-  const onHome = loc.pathname === '/'
+  // THE FOOTER IS ON EVERY PAGE (2026-10-29, anooj). It was the landing page's
+  // alone, so a visitor who arrived on a blog, a review or a tool from search
+  // reached the end of the page with no site map. Three places go without it:
+  //  - /login, which hides the nav too and fills the screen on its own;
+  //  - /admin and its sub-pages: /admin fills the viewport and scrolls inside
+  //    its own panes (`.adm-page`), and a footer under that layout would put
+  //    the page back into the scroll it left, taking the side nav up with it;
+  //  - Kite Pulse, below, which brings its own footer.
+  const onAdmin = loc.pathname === '/admin' || loc.pathname.startsWith('/admin/')
   // KITE PULSE IS ANOTHER PRODUCT'S SITE (kitepulse/site-preview/KitePulseSite.jsx): it brings its
   // own header and footer, and the board's nav above it would make it read as
   // a board page.
@@ -185,10 +194,20 @@ export default function App() {
               same reason as /compare - `/models/*` is a model id. */}
           <Route path="/token-counter" element={<TokenCounter />} />
           <Route path="/local-llm-vram-calculator" element={<VramCalculator />} />
+          {/* Public: the Benchmarks table's values, one model at a time; the
+              model's id is the rest of the address (2026-10-30). */}
+          <Route path="/ai-benchmarks/*" element={<BenchmarkCharts />} />
           <Route path="/ai-model-pricing"  element={<ModelFinder />} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
+          <Route path="/benchmarks" element={<Require session={session}><Benchmarks /></Require>} />
           <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />
+          <Route path="/price-changes" element={<Require session={session}><PriceChanges /></Require>} />
+          <Route path="/news" element={<Require session={session}><News /></Require>} />
+          <Route path="/news/:id" element={<Require session={session}><NewsStory /></Require>} />
+          <Route path="/updates" element={<Require session={session}><Updates /></Require>} />
+          {/* Public: the updates a person approved on /updates (2026-10-30). */}
+          <Route path="/ai-news-headlines" element={<AiUpdates />} />
           <Route path="/keywords" element={<MovedTo path="/seo-keywords" />} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
           {/* Signed in only: an internal preview of another product's site. */}
@@ -200,7 +219,7 @@ export default function App() {
         </Suspense>
       </main>
 
-      {onHome && <Footer />}
+      {!onLogin && !onAdmin && !onKitePulse && <Footer />}
       {/* HOVER PREVIEWS OFF (2026-10-19, anooj): components/HoverPreview.jsx
           is kept; mounting it here again turns them back on. */}
     </>

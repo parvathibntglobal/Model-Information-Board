@@ -23,6 +23,52 @@ class FeedModelUnavailable(RuntimeError):
     """The call could not be made, or its answer could not be read."""
 
 
+class BudgetSpent(FeedModelUnavailable):
+    """The run's spend cap was reached; this call was not made."""
+
+
+#: What this process has spent on feed calls, in dollars at the cost OpenRouter
+#: reported - what `capped` holds a scheduled run to. A call that reported no
+#: cost adds nothing, so the figure is a floor and the run report says how many
+#: calls that was (rule 6: an unreported cost is not a zero).
+_spent = {"usd": 0.0, "calls": 0, "unreported": 0}
+
+
+def spent() -> dict:
+    return dict(_spent)
+
+
+def count_spend(cost) -> None:
+    """Add one call to the total; `call_tool` does this after each call."""
+    _spent["calls"] += 1
+    if isinstance(cost, (int, float)) and not isinstance(cost, bool):
+        _spent["usd"] += float(cost)
+    else:
+        _spent["unreported"] += 1
+
+
+def reset_spent() -> None:
+    _spent.update(usd=0.0, calls=0, unreported=0)
+
+
+def capped(cap_usd: float, call=None):
+    """`call_tool`, refusing to START a call once `cap_usd` has been spent.
+
+    Checked before each call, not after, so a run can overshoot by the one call
+    in flight (contract/evidence_feed.yaml `schedule`). The refusal is a
+    FeedModelUnavailable, so every caller already treats it as a call that did
+    not happen - and a BudgetSpent, so the run can stop rather than try the
+    next batch and be refused again."""
+    inner = call or call_tool
+
+    def call_within_cap(**kwargs):
+        if _spent["usd"] >= cap_usd:
+            raise BudgetSpent(f"the run's ${cap_usd:.2f} cap is spent (${_spent['usd']:.4f})")
+        return inner(**kwargs)
+
+    return call_within_cap
+
+
 def call_tool(
     *,
     model: str,
@@ -77,6 +123,7 @@ def call_tool(
         reported_usd=usage.get("cost"),
         run_id=run_id,
     )
+    count_spend(usage.get("cost"))
     if not served.startswith(model):
         raise FeedModelUnavailable(
             f"asked for {model}, OpenRouter served {served!r}; refusing the answer"

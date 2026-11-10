@@ -256,15 +256,15 @@
 .es-article h3{font-size:1.14rem;margin:2.1rem 0 .2rem;color:var(--es-text)}
 .es-article b{color:var(--es-text)}
 .essay code{font-family:var(--es-mono);font-size:.86em;background:var(--es-panel2);border:1px solid var(--es-line);
-  border-radius:6px;padding:.08rem .36rem;color:#dbe4ff}
-.essay q.es-iq{quotes:"\201C" "\201D";color:#e9eef8;font-style:italic}
+  border-radius:6px;padding:.08rem .36rem;color:var(--es-text)}
+.essay q.es-iq{quotes:"\201C" "\201D";color:var(--es-text);font-style:italic}
 .es-tldr{background:linear-gradient(180deg,var(--es-panel2),var(--es-panel));border:1px solid var(--es-line2);
   border-left:3px solid var(--es-accent);border-radius:var(--es-radius);padding:1.35rem 1.55rem;margin:0 0 2.2rem}
 .es-tldr .lbl{font-family:var(--es-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent)}
-.es-tldr p{margin:.55rem 0 0;color:#dde4ef;font-size:1.06rem}
+.es-tldr p{margin:.55rem 0 0;color:var(--es-text);font-size:1.06rem}
 .es-pq{margin:1.6rem 0;padding:1.1rem 1.35rem;background:var(--es-panel);border:1px solid var(--es-line);
   border-left:3px solid var(--es-accent2);border-radius:0 12px 12px 0}
-.es-pq blockquote{margin:0;font-size:1.05rem;line-height:1.62;color:#e9eef7}
+.es-pq blockquote{margin:0;font-size:1.05rem;line-height:1.62;color:var(--es-text)}
 .es-pq blockquote::before{content:"\201C";color:var(--es-dim);margin-right:.1rem}
 .es-pq figcaption{margin-top:.55rem;font-family:var(--es-mono);font-size:.72rem;color:var(--es-dim);letter-spacing:.04em}
 .es-tbl{border:1px solid var(--es-line);border-radius:12px;overflow:hidden;overflow-x:auto;margin:1.4rem 0 1.2rem}
@@ -578,7 +578,7 @@
 .essay .es-ihint{font-size:.82rem;color:var(--es-muted);border-left:2px solid var(--es-accent);padding:.35rem .7rem;margin:0 0 1.2rem}
 .essay a.es-ent{position:relative;color:inherit;text-decoration:underline dotted var(--es-accent);text-underline-offset:3px;cursor:pointer}
 .essay a.es-ent:hover,.essay a.es-ent:focus{text-decoration-style:solid;outline:none}
-.essay .es-pop{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;min-width:15rem;max-width:20rem;padding:.6rem .75rem;border:1px solid var(--es-line);border-radius:8px;background:var(--es-bg);box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:.8rem;font-style:normal;line-height:1.45;text-align:left;white-space:normal}
+.essay .es-pop{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;min-width:15rem;max-width:20rem;padding:.6rem .75rem;border:1px solid var(--es-line);border-radius:8px;background:var(--es-bg);box-shadow:0 8px 24px rgb(0 0 0 / calc(.35 * var(--shadow-k)));font-size:.8rem;font-style:normal;line-height:1.45;text-align:left;white-space:normal}
 .essay a.es-ent:hover .es-pop,.essay a.es-ent:focus .es-pop{display:flex;flex-direction:column;gap:.15rem}
 .essay .es-pop b{color:var(--es-text);font-size:.86rem}
 .essay .es-pop span{color:var(--es-muted)}
@@ -1022,3 +1022,64 @@
 .bl-pg{color:var(--es-muted)}
 .es-drawn img{background:var(--es-panel)}
 @media (max-width:640px){.bl-list{gap:2.6rem}.bl-fig img{max-height:260px}}
+
+/* LIGHT THEME (2026-10-28): the essay page's own palette. Its code blocks (.es-pre) stay dark on purpose; code reads best dark. The layout accents are darkened to read as text on white. */
+:root[data-theme="light"] .essay{--es-bg:#F7F7F8;--es-panel:#FFFFFF;--es-panel2:#F4F4F5;--es-line:#E4E4E7;--es-line2:#D4D4D8;--es-text:#0C0C0E;--es-body:#2E2E36;--es-muted:#52525B;--es-dim:#63636B;--es-accent:#2F5FD0;--es-accent2:#6B46C1;--es-good:#136B36;--es-warn:#8A5A00}
+:root[data-theme="light"] .essay.layout-report{--es-accent:#8A5A00;--es-accent2:#A14716}
+:root[data-theme="light"] .essay.layout-versus{--es-accent:#2F5FD0;--es-accent2:#B4235A}
+:root[data-theme="light"] .essay.layout-ledger{--es-accent:#136B36;--es-accent2:#2F7A2F}
+:root[data-theme="light"] .essay.layout-runbook{--es-accent:#0B6A8F;--es-accent2:#1F6E9A}
+:root[data-theme="light"] .essay.layout-blueprint{--es-accent:#6B46C1;--es-accent2:#5B45D6}
+:root[data-theme="light"] .essay.layout-brief{--es-accent:#B4235A;--es-accent2:#A12A4A}
+:root[data-theme="light"] .essay.layout-critique{--es-accent:#8A5A00;--es-accent2:#7A5D00}
+
+/* ── GUIDE BLOCKS (Guides phase B, 2026-10-30): official code with its source
+   and a copy button, the same step in more than one language as CSS-only tabs,
+   a recorded talk as a title card, and the "checked against" stamp. Tokens
+   only (the essay's --es-* set); every block wraps at phone width. */
+.es-ocode{margin:1.4rem 0 1.8rem;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel);overflow:hidden;max-width:100%}
+.es-ocode-head{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .7rem;padding:.6rem .9rem;border-bottom:1px solid var(--es-line);font-family:var(--es-mono);font-size:.72rem}
+.es-ocode-tag{letter-spacing:.12em;text-transform:uppercase;color:var(--es-good)}
+.es-ocode-label{color:var(--es-text);flex:1 1 12rem;min-width:0}
+.es-ocode-lang{color:var(--es-dim)}
+.es-ocode-pane{position:relative}
+.es-ocode .es-pre{margin:0;border:0;border-radius:0;max-width:100%}
+.es-ocode-pre{padding-right:4.5rem}
+.es-ocode-tabs .es-ocode-head{border-bottom:0}
+.es-ocode-text{background:none;border:0;padding:0;font-size:inherit;color:inherit}
+.es-copy{position:absolute;top:.5rem;right:.5rem;z-index:1;font:600 .7rem var(--es-mono);color:var(--es-text);background:var(--es-panel2);border:1px solid var(--es-line2);border-radius:6px;padding:.25rem .55rem;cursor:pointer}
+.es-copy:hover,.es-copy:focus-visible{border-color:var(--es-accent);color:var(--es-accent)}
+.es-ocode-src{padding:.55rem .9rem;border-top:1px solid var(--es-line);font-size:.76rem;color:var(--es-muted);overflow-wrap:anywhere}
+.es-ocode-repo{display:block;font-family:var(--es-mono);font-size:.7rem;color:var(--es-dim);margin-top:.15rem}
+.es-tabset{display:flex;flex-wrap:wrap}
+.es-tab-in{position:absolute;opacity:0;pointer-events:none}
+.es-tab-lbl{font:600 .72rem var(--es-mono);color:var(--es-muted);padding:.5rem .9rem;cursor:pointer;border-bottom:2px solid transparent}
+.es-tab-in:checked + .es-tab-lbl{color:var(--es-accent);border-bottom-color:var(--es-accent)}
+.es-tab-in:focus-visible + .es-tab-lbl{outline:2px solid var(--es-accent);outline-offset:-2px}
+.es-tab-pane{display:none;flex:0 0 100%;max-width:100%;border-top:1px solid var(--es-line)}
+.es-tabset > input:nth-of-type(1):checked ~ div:nth-of-type(1),
+.es-tabset > input:nth-of-type(2):checked ~ div:nth-of-type(2),
+.es-tabset > input:nth-of-type(3):checked ~ div:nth-of-type(3),
+.es-tabset > input:nth-of-type(4):checked ~ div:nth-of-type(4),
+.es-tabset > input:nth-of-type(5):checked ~ div:nth-of-type(5),
+.es-tabset > input:nth-of-type(6):checked ~ div:nth-of-type(6){display:block}
+.es-video{margin:1.6rem 0 2rem}
+.es-video-card{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr);gap:1rem;align-items:center;padding:.75rem;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel);color:var(--es-body)}
+.essay a.es-video-card:hover{text-decoration:none;border-color:var(--es-accent)}
+.es-video-pic{position:relative;display:block;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:var(--es-panel2);border:1px solid var(--es-line2)}
+.es-video-blank{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:.8rem;text-align:center;font-weight:600;font-size:.86rem;line-height:1.3;color:var(--es-text);overflow:hidden}
+.es-video-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.es-video-body{display:flex;flex-direction:column;gap:.25rem;min-width:0}
+.es-video-tag{font:600 .66rem var(--es-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent2)}
+.es-video-title{color:var(--es-text);font-size:1rem;line-height:1.35}
+.es-video-who{font-size:.84rem;color:var(--es-body)}
+.es-video-meta{font-family:var(--es-mono);font-size:.72rem;color:var(--es-dim)}
+.es-video-go{font-size:.8rem;color:var(--es-accent);margin-top:.2rem}
+.es-video-note{margin-top:.45rem;font-size:.74rem;color:var(--es-dim)}
+@media(max-width:620px){.es-video-card{grid-template-columns:1fr}}
+.es-stamp{margin:0 0 1.6rem;padding:.8rem 1rem;border:1px solid var(--es-line);border-left:3px solid var(--es-good);border-radius:10px;background:var(--es-panel);font-size:.82rem;color:var(--es-body)}
+.es-stamp-tag{font:600 .66rem var(--es-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--es-good);margin-bottom:.35rem}
+.es-stamp ul{margin:0;padding-left:1.1rem}
+.es-stamp li{margin:.2rem 0;overflow-wrap:anywhere}
+.es-stamp-what{color:var(--es-muted)}
+.es-stamp-note{margin:.45rem 0 0;font-size:.72rem;color:var(--es-dim)}

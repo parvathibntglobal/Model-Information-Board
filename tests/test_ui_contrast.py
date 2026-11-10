@@ -115,3 +115,44 @@ class TestNothingDimsTextTwice:
                         f"{css_file.name}: a rule dims --text-3 with opacity as "
                         f"well: {block.strip()[:120]}"
                     )
+
+
+# THE LIGHT THEME (2026-10-28): the same names, redefined under
+# :root[data-theme="light"] in tokens.css. Held to the same bar, so a light
+# value that drifts fails here just as --text-3 once did in the dark set.
+LIGHT_TYPE_TOKENS = (
+    "ty-text",
+    "ty-image",
+    "ty-video",
+    "ty-speech",
+    "ty-audio",
+    "ty-transcription",
+    "ty-decisions",
+)
+
+
+def _light_token(name: str) -> str:
+    css = TOKENS.read_text(encoding="utf-8")
+    block = re.search(r':root\[data-theme="light"\]\s*\{(.*?)\n\}', css, re.S)
+    if not block:
+        raise AssertionError('tokens.css has no :root[data-theme="light"] block')
+    m = re.search(rf"--{re.escape(name)}:\s*(#[0-9A-Fa-f]{{6}})", block.group(1))
+    if not m:
+        raise AssertionError(f"--{name} is not defined in the light theme")
+    return m.group(1)
+
+
+@pytest.mark.parametrize("text", TEXT_TOKENS + LIGHT_TYPE_TOKENS)
+@pytest.mark.parametrize("surface", SURFACE_TOKENS)
+def test_every_light_text_colour_is_readable_on_every_light_surface(text, surface):
+    ratio = contrast(_light_token(text), _light_token(surface))
+    assert ratio >= MINIMUM, (
+        f"light --{text} {_light_token(text)} on --{surface} {_light_token(surface)} "
+        f"is {ratio:.2f}:1, below {MINIMUM}:1"
+    )
+
+
+@pytest.mark.parametrize("state", ("pass", "warn", "fail", "info"))
+def test_a_light_state_colour_reads_on_its_own_tint(state):
+    ratio = contrast(_light_token(state), _light_token(f"{state}-dim"))
+    assert ratio >= MINIMUM, f"light --{state} on --{state}-dim is {ratio:.2f}:1"

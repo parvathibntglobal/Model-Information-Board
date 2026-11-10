@@ -1,0 +1,44 @@
+# How the benchmark scraper behaves (workflow doc 4, 4.1, 23).
+#
+# SCRAPING IS THE WAY DATA COMES IN (Parvathi, 2026-10-22): runs will be
+# scheduled later, and every source is read from its page - static HTML, or
+# the page rendered in a headless browser. No data-file downloads, no keys,
+# no accounts, nothing paid.
+
+# robots.txt is always respected - not a setting (CLAUDE.md, the Benchmarks exception).
+timeouts:
+  static_seconds: 30
+  browser_seconds: 45
+  run_minutes: 20
+retries: 3
+# Fetched pages are kept once per distinct content and never deleted (raw
+# payloads are immutable; PR #573 review). There is no keep-N setting.
+# A source naming "<model> (high)" creates a setting row under the model, unless
+# model_extras.yaml says otherwise for that model (auto_add_settings /
+# allowed_settings). Setting rows are how the table shows effort levels
+# (Parvathi, 2026-10-22). Required: no default in code (PR #573 review).
+auto_add_settings: true
+# CATALOGUE MODELS GET ROWS TOO (Parvathi, 2026-11-03). The registry seats few
+# image, video and speech models, so the catalogue's models whose outputs are
+# ONLY these types (no text) are matched as registry models are. A text model
+# still needs the registry. Required: no default in code.
+catalog_models:
+  output_modalities: [image, video, speech, transcription]
+# How much history the page lists at a time; "Show older" loads the next
+# batch. A display limit only: runs, logs and the changelog are never deleted
+# (Parvathi, 2026-10-27).
+page:
+  runs_shown: 30            # runs in the Runs history (~3-4 months at two a week)
+  changelog_runs_shown: 20  # runs whose changes the Changelog lists
+# THE PUBLIC AI BENCHMARKS PAGE (/ai-benchmarks, Parvathi, 2026-10-30). The
+# page's values are built once and kept until the table changes
+# (judge/benchmarks.py charts). Asking the database whether it changed costs a
+# connection - about 2.5 s from a laptop to the shared database - so it is asked
+# at most once in this many seconds; in between, the kept copy is served with
+# no database call. After that, the kept copy is still served while the check
+# runs in the background, so a run's new values show on the next load once the
+# check has finished. Only the first read after a restart waits for the build.
+charts:
+  recheck_seconds: 60
+log_dir: collect/benchmarks/logs     # one file per run (git-ignored)
+verbosity: normal                    # quiet | normal | verbose

@@ -58,6 +58,11 @@ THE_FOUR = {
 #: silent pass - and kept apart from THE_FOUR, which is a copy of the SQL.
 SEATED_AFTER_THE_MIGRATION = {
     "typesafe/jev-1.13",  # 2026-10-18; OpenRouter serves it, its list omits it
+    "openai/gpt-image-2.5-sunburst",  # 2026-11-05; media, outside the text poll
+    "bytedance/seedance-2.0",  # 2026-11-06; the video slot (Hailuo, Kling never loaded)
+    "bytedance/seedance-2.0-fast",  # 2026-11-06; seated so it is not filed as 2.0
+    "bytedance/seedance-2.0-mini",  # 2026-11-06; seated so it is not filed as 2.0
+    "elevenlabs/eleven-v3-conversational",  # 2026-11-06; seated so it is not filed as v3
 }
 
 AS_OF = date(2026, 8, 12)

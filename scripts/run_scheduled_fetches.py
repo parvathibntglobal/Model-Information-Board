@@ -87,29 +87,54 @@ LAST_SUCCESS = """
 """
 
 
-def due_rows(conn) -> list[dict]:
-    """The tracked, in-window models with their last SUCCESSFUL fetch.
+def due_rows(conn, which: str = "models") -> list[dict]:
+    """The tracked, in-window models (or agents) with their last SUCCESSFUL fetch.
 
-    Tracked comes from `contract/tracked_models.yaml`; the last success comes
+    `which` picks the list: `models` is `contract/tracked_models.yaml` plus
+    `auto_track` arrivals; `agents` is `contract/tracked_agents.yaml`, the agent
+    fetch's own list (#609-#611) - the two never mix. The last success comes
     from `fetch_log` (an `end` record with status ok). Matching the registry row
     by canonical id OR row id, as the models page does.
-    """
-    from judge.tracked import all_tracked
 
-    # Hand-written entries plus new arrivals the `auto_track` rule admits, so a
-    # model the poll inserts is due for a first fetch with no PR in between.
-    tracked = [m for m in all_tracked(conn) if m.registry]
+    A tracked entry that matches no row comes back as a row carrying
+    `registry_row_missing` instead of being dropped, so `main` can name it.
+    """
+    if which == "agents":
+        from judge.config import tracked_agents
+
+        tracked = list(tracked_agents())
+    elif which == "models":
+        from judge.tracked import all_tracked
+
+        # Hand-written entries plus new arrivals the `auto_track` rule admits, so
+        # a model the poll inserts is due for a first fetch with no PR between.
+        tracked = [m for m in all_tracked(conn) if m.registry]
+    else:
+        raise ValueError(f"which must be 'models' or 'agents', not {which!r}")
     ids = [m.registry for m in tracked]
-    reg = {r[0]: r for r in conn.execute(
-        "SELECT canonical_id, id, display_name, in_window FROM model_version "
-        "WHERE canonical_id = ANY(%s) OR id = ANY(%s)", (ids, ids)).fetchall()}
+    # KEYED BY BOTH IDS. The query matched either column, and this was keyed
+    # by `canonical_id` alone, so an entry naming the row id found its row in
+    # SQL and lost it here. Claude Fable 5.1 (`anthropic/claude-fable-5-1`,
+    # canonical `anthropic/claude-fable-5.1`) was dropped that way, without a
+    # word, for as long as those two differed; this keying dates from b42fc02
+    # (2026-09-28). Its last fetch of any kind was 2026-10-18 (fetch_log, read
+    # 2026-11-05).
+    reg = {}
+    for r in conn.execute(
+            "SELECT canonical_id, id, display_name, in_window FROM model_version "
+            "WHERE canonical_id = ANY(%s) OR id = ANY(%s)", (ids, ids)).fetchall():
+        reg[r[0]] = reg[r[1]] = r
     # last successful fetch per model_version_id
     last = {r[0]: r[1] for r in conn.execute(LAST_SUCCESS).fetchall()}
     rows = []
     for m in tracked:
         hit = reg.get(m.registry)
         if hit is None:
-            continue  # tracked but not yet a registry row - nothing to fetch
+            # Tracked but no registry row has that id: not polled yet, or the
+            # id moved. Nothing to fetch either way, and the run says so.
+            rows.append({"display_name": m.name, "registry": m.registry,
+                         "registry_row_missing": True})
+            continue
         canonical, mv_id, display, in_window = hit
         rows.append({
             "model_version_id": mv_id,
@@ -240,18 +265,40 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--development-write", action="store_true")
     ap.add_argument("--dry-run", action="store_true",
                     help="print what is due and exit; harvests nothing")
+    ap.add_argument("--list", choices=("models", "agents"), default="models",
+                    help="which tracked list to fetch: models (tracked_models.yaml + "
+                         "auto_track) or agents (tracked_agents.yaml). Never both.")
     args = ap.parse_args(argv)
 
     if not args.dry_run and not enabled():
         print("scheduler disabled: SCHEDULER_ENABLED is not set. Nothing harvested.")
         return 0
 
+    # THE AGENT RUN'S OWN SETTINGS (contract/tracked_agents.yaml `run`). Its spend
+    # ceiling keeps it from using the team-wide daily cap before the model fetch.
+    run_ceiling = None
+    if args.list == "agents":
+        from judge.config import agent_run_rule
+
+        rule = agent_run_rule()
+        if not rule.enabled:
+            print("agent fetch disabled: tracked_agents.yaml `run.enabled` is false. "
+                  "Nothing harvested.")
+            return 0
+        run_ceiling = rule.run_spend_ceiling_usd
+
     import psycopg
 
     from judge import scheduler
 
     with psycopg.connect(_read_only_dsn(), connect_timeout=20) as conn:
-        rows = due_rows(conn)
+        # The model path calls `due_rows(conn)` exactly as before, so nothing that
+        # reads or stands in for it changes; only the agent run names its list.
+        rows = due_rows(conn) if args.list == "models" else due_rows(conn, "agents")
+    # A TRACKED MODEL WITH NO REGISTRY ROW IS NAMED, NOT DROPPED (rule 4). It
+    # used to vanish here, so a model stopped being fetched and nothing said so.
+    missing = [r for r in rows if r.get("registry_row_missing")]
+    rows = [r for r in rows if not r.get("registry_row_missing")]
     due = scheduler.rank_due(rows, datetime.now(UTC))
     if args.max_models is not None:
         due = due[: args.max_models]
@@ -259,9 +306,17 @@ def main(argv: list[str] | None = None) -> int:
     print(f"due: {len(due)} model(s)")
     for d in due:
         print(f"  {d.display_name}  [{d.reason}, cap {d.thread_cap}]")
+    for m in missing:
+        print(f"  not due: {m['display_name']} is tracked as {m['registry']}, "
+              "and no registry row has that id")
     if args.dry_run:
         return 0
+    records = [{"model": m["display_name"],
+                "status": f"not run: tracked as `{m['registry']}`, which no registry row has"}
+               for m in missing]
     if not due:
+        if records:
+            post_summary(records)
         return 0
 
     # THE DAILY BUDGET IS ONE TEAM-WIDE FIGURE, so the runner checks it before
@@ -287,8 +342,9 @@ def main(argv: list[str] | None = None) -> int:
             )
         cap = float(raw_cap)
 
-    records = []
+    # `records` already names any tracked model with no registry row.
     started = time.monotonic()
+    spent_at_start = spend_ledger.spent_today() if (extracting and run_ceiling) else 0.0
     for i, d in enumerate(due):
         # ONE FETCH PER MODEL AT A TIME (2026-10-06). A manual run of the same
         # model and this batch would both select the same unread threads and
@@ -322,6 +378,17 @@ def main(argv: list[str] | None = None) -> int:
                                 "status": "not run: daily budget spent"})
             print(f"daily budget spent (${spent:.4f} of ${cap:.2f}); "
                   f"{len(due) - i} model(s) not run")
+            break
+        # THE AGENT RUN'S OWN CEILING: what has been spent SINCE THIS RUN STARTED
+        # (team-wide, so an Admin fetch meanwhile counts too - the safe side;
+        # checked before each launch, so one fetch can pass it by its own cost),
+        # so the agents cannot use up the shared daily cap before the model fetch.
+        if extracting and run_ceiling is not None and spent - spent_at_start >= run_ceiling:
+            for rest in due[i:]:
+                records.append({"model": rest.display_name,
+                                "status": "not run: this run's spend ceiling is reached"})
+            print(f"run spend ceiling reached (${spent - spent_at_start:.4f} of "
+                  f"${run_ceiling:.2f}); {len(due) - i} agent(s) not run")
             break
         timeout_s = None
         if args.job_limit_minutes is not None:

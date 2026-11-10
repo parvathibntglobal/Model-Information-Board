@@ -8,8 +8,11 @@ import { catalogModelHead } from '../seo/pages'
 import { DAYS_PER_MONTH, fmtUsd as fmtCost, workloadCost } from '../tokens/cost'
 import PersonaPicker from '../tokens/PersonaPicker'
 import { PERSONAS } from '../tokens/personas'
-import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
+import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUnitUsd, fmtUsd, modelPagePath, reportsPath } from './format'
 import FeedLink from '../components/FeedLink'
+import FollowButton from '../follow/FollowButton'
+import ModelPulse from '../follow/ModelPulse'
+import LaunchVerdict from '../follow/LaunchVerdict'
 import { typeLabel } from './types'
 
 /**
@@ -223,6 +226,34 @@ function Lifecycle({ m }) {
  * and context as listed, and how many engineers reported on it - each part
  * only where the catalogue has it (rule 6: nothing guessed).
  */
+/**
+ * A FALLBACK PRICE IN ITS OWN UNIT (#602): LiteLLM's community list, for a
+ * model OpenRouter does not price. Never shown as "per 1M tokens" and never
+ * as the maker's price - the source, the host and the date read beside it.
+ * No entry says so rather than leaving a blank (rule 6).
+ */
+function UnitPrice({ up, reason }) {
+  if (reason) return <p className="mp2-note">Fallback prices could not be read: {reason}.</p>
+  if (!up) return <p className="mp2-note">LiteLLM's community price list has no entry mapped to this model either.</p>
+  return (
+    <>
+      <dl className="mp2-dl">
+        {up.figures.map((f) => (
+          <div key={`${f.unit}-${f.direction}-${f.variant}`}>
+            <dt>{f.label[0].toUpperCase() + f.label.slice(1)}{f.variant === 'default' ? '' : `, ${f.variant}`}</dt>
+            <dd>{fmtUnitUsd(f.usd)}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mp2-note">
+        From <a href={up.source_url} target="_blank" rel="noreferrer">{up.source_label}</a>, for
+        the host <code>{up.source_key}</code>, read {fmtDate(up.retrieved_at)}. Community-maintained,
+        not the maker's price list; the figure without a resolution is LiteLLM's own base figure.
+      </p>
+    </>
+  )
+}
+
 function shortAnswer(m) {
   const price = m.price_state === 'free' ? 'free, as OpenRouter lists it'
     : m.price_state === 'priced' && m.price_in != null && m.price_out != null
@@ -272,9 +303,24 @@ export default function ModelPage({ id }) {
           <span className="cat-id">{m.id}</span>
         </div>
         <p className="mp2-answer" style={{ maxWidth: '78ch', margin: 0 }}>{shortAnswer(m)}</p>
-        {m.description && <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.description}</p>}
+        {/* OUR WORDING of the listing (judge/model_about.py, prototype): OpenRouter cuts
+            most descriptions mid-sentence. Sent only once a person approved it
+            (#597 review); otherwise OpenRouter's own words, labelled as theirs. */}
+        {m.about ? (
+          <div className="mp2-about">
+            <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.about.text}</p>
+            <span className="mp2-about-by">
+              Our wording of the <a href={m.source} target="_blank" rel="noopener noreferrer">OpenRouter listing</a>, checked against it and approved by a person
+            </span>
+          </div>
+        ) : m.description && (
+          <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>
+            {m.description} <span className="mp2-about-by">(the <a href={m.source} target="_blank" rel="noopener noreferrer">OpenRouter listing</a>, as written)</span>
+          </p>
+        )}
         <Freshness modelIds={[m.id]} style={{ margin: 0 }} />
         <div className="mp2-actions">
+          {m.in_registry && <FollowButton id={m.id} name={m.name} />}
           {m.in_registry
             ? <Link to={`/compare?ids=${encodeURIComponent(m.id)}`} className="btn btn-ghost">Compare with…</Link>
             : <span className="mp2-na" title="Comparisons are of what engineers report, so they cover the models we collect reports for">Not comparable yet</span>}
@@ -286,7 +332,10 @@ export default function ModelPage({ id }) {
         <section className="card stack stack-2">
           <h2 className="mp2-h">Price</h2>
           {m.price_state === 'not_published' ? (
-            <p className="mp2-na">OpenRouter publishes no per-token price for this model{m.type_price ? '' : ', and none we can show'}.</p>
+            <>
+              <p className="mp2-na">OpenRouter publishes no per-token price for this model{m.type_price || m.unit_price ? '' : ', and none we can show'}.</p>
+              <UnitPrice up={m.unit_price} reason={m.unit_price_reason} />
+            </>
           ) : (
             <dl className="mp2-dl">
               <div><dt>Input / 1M tokens</dt><dd>{m.price_state === 'free' ? 'Free' : m.price_in == null ? '—' : fmtUsd(m.price_in)}</dd></div>
@@ -312,6 +361,12 @@ export default function ModelPage({ id }) {
       </div>
 
       <Lifecycle m={m} />
+      {/* What no other page shows (2026-11-02, prototype): new since your last
+          look, and reports per week with the launch week marked. */}
+      {m.in_registry && <ModelPulse id={m.id} />}
+      {/* The launch verdict (2026-11-03, prototype): the listing's words beside
+          what engineers reported in each window after release. */}
+      {m.in_registry && <LaunchVerdict id={m.id} />}
 
       <Workload m={m} />
       <Voices m={m} />

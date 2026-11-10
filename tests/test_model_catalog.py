@@ -235,6 +235,29 @@ class TestTheEvidencePipelineNeverReadsIt:
             # and whether it has a model page. A tool page, not the evidence
             # pipeline: nothing there extracts, counts or weights.
             "judge/local_models.py",
+            # The News story page (2026-10-28) reads its names to say which
+            # models a story names, and whether each has a model page. A page,
+            # not the evidence pipeline: nothing there extracts, counts or weights.
+            "judge/news.py",
+            # The Benchmarks page's scraper (2026-11-03) gives the catalogue's
+            # image, video and speech models rows, matched by id and name. The
+            # benchmarks module, not the evidence pipeline: nothing there
+            # extracts, counts or weights.
+            "collect/benchmarks/host_adapter.py",
+            # #602, 2026-11-06. None of the three extracts, counts or weights:
+            # the tracked list reads `output_modalities` to give an auto-admitted
+            # model its kind (text, image, video, speech); the media subreddit
+            # sweep reads names only, to decide whose comments to fetch; the
+            # LiteLLM loader checks a mapped id is in the catalogue's listing.
+            "judge/tracked.py",
+            "collect/ops/sweep_reddit.py",
+            "collect/registry/litellm.py",
+            # #616, 2026-11-10. Reads names and `output_modalities` to seat a
+            # `catalogued` registry row for each in-scope catalogue model the
+            # poll never brings, so its claims are filed instead of held. A
+            # registry write, not the evidence pipeline: nothing there
+            # extracts, counts or weights, and no document or claim is read.
+            "collect/ops/catalogue_seat.py",
         }
 
     def test_the_nightly_chain_polls_it_without_depending_on_it(self):

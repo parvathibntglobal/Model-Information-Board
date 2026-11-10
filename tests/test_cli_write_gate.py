@@ -53,6 +53,10 @@ READ_ONLY = {
     # actively wrong here, because attesting a review is how somebody prepares to
     # FIX a database the checks would refuse.
     "_cmd_registry_attest_seats",
+    # Loads contract/benchmarks/*.yaml and tracked_models.yaml and prints the L1
+    # result. NO DATABASE AT ALL - the question it answers ("is the Benchmarks
+    # config valid before a run") is asked while editing YAML.
+    "_cmd_benchmarks_check",
     # Runs the checks AS its purpose, and reports instead of raising.
     "_cmd_ops_preflight",
     # Runs the chain, whose first stage is preflight.

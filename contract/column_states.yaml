@@ -87,6 +87,412 @@ columns:
     merged_at:
       reviewed: false
       state: reserved
+  bench_cell:
+    benchmark_key:
+      reviewed: true
+      state: read
+    benchmark_version:
+      reviewed: true
+      state: read
+    collected_at:
+      reviewed: true
+      state: read
+    metric:
+      reviewed: true
+      state: read
+    needs_review:
+      reviewed: true
+      state: read
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: 'The pipeline that wrote the row (collect/benchmarks/store.PIPELINE_VERSION), so a change to parsing, matching or merging is re-runnable and diffable (CLAUDE.md conventions; PR #573 review). Written by store.publish_cells(). Intended reader: a re-run diff. Migration 20261022T1200.'
+    rank_board:
+      reviewed: true
+      state: read
+    rank_high:
+      reviewed: true
+      state: read_not_by_query
+      why: 'The upper end of a tied rank range ("3-5"). Read by collect/benchmarks/store.py load_cells() through the _CELL_COLUMNS constant (a column list the audit cannot see in an f-string), so the next run compares it; the page shows the raw rank text instead, so the API no longer sends it (PR #573 review, rule 9). Migration 20261022T1200.'
+    rank_out_of:
+      reviewed: true
+      state: read
+    raw_model_name:
+      reviewed: true
+      state: read
+    raw_text:
+      reviewed: true
+      state: read
+    row_id:
+      reviewed: true
+      state: read
+    run_id:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_cells() through the _CELL_COLUMNS constant; the run that last decided the cell. Migration 20261022T1200.'
+    setting_not_stated:
+      reviewed: true
+      state: read
+    source_date:
+      reviewed: true
+      state: read
+    source_key:
+      reviewed: true
+      state: read
+    tied:
+      reviewed: true
+      state: read
+    updated_at:
+      reviewed: true
+      state: read
+      why: 'When the cell was last written. Written by collect/benchmarks/store.py publish_cells(); the page shows collected_at instead (when the source was read). READ since 2026-10-30 by judge/benchmarks.py charts(): max(updated_at) is part of the fingerprint that tells the public AI benchmarks page its kept build is stale - every cell write sets it, so a run that changes a value changes the fingerprint. Never shown. Migration 20261022T1200.'
+    url:
+      reviewed: true
+      state: read
+    value:
+      reviewed: true
+      state: read_not_by_query
+      why: 'The value in one unit, used by the checks only and never shown (the page shows raw_text). Read by collect/benchmarks/store.py load_cells() through the _CELL_COLUMNS constant, which the changes stage diffs. Migration 20261022T1200.'
+    variant:
+      reviewed: true
+      state: read
+  bench_change:
+    actor:
+      reviewed: true
+      state: read
+    benchmark_key:
+      reviewed: true
+      state: read
+    change_type:
+      reviewed: true
+      state: read
+    changed_at:
+      reviewed: true
+      state: defaulted
+      why: 'When the change was recorded; DEFAULT now(). Read by judge/benchmarks.py table() (recent badges) and changelog(). Migration 20261022T1200.'
+    direction:
+      reviewed: true
+      state: read
+    id:
+      reviewed: true
+      state: read
+    metric:
+      reviewed: true
+      state: read
+    needs_review:
+      reviewed: true
+      state: read
+    new_raw:
+      reviewed: true
+      state: read
+      why: 'The new value as its source printed it. Written by store.write_changes(), read by judge/benchmarks.py changelog() and shown in the Changelog tab. Migration 20261022T1200.'
+    new_source:
+      reviewed: true
+      state: read
+    new_value:
+      reviewed: true
+      state: read
+      why: 'The value in one unit, written by store.write_changes() so a change is comparable across sources that print differently. Read by judge/benchmarks.py changelog() to size a move (a score moving 1 point or more is a "mover"); the page still shows old_raw/new_raw (raw values only, 2026-10-22). Migration 20261022T1200.'
+    note:
+      reviewed: true
+      state: read
+    old_raw:
+      reviewed: true
+      state: read
+      why: 'The old value as its source printed it. Written by collect/benchmarks/store.py write_changes(), read by judge/benchmarks.py changelog() and shown in the Changelog tab. Migration 20261022T1200.'
+    old_source:
+      reviewed: true
+      state: read
+    old_value:
+      reviewed: true
+      state: read
+      why: 'The value in one unit, written by store.write_changes() so a change is comparable across sources that print differently. Read by judge/benchmarks.py changelog() to size a move (a score moving 1 point or more is a "mover"); the page still shows old_raw/new_raw (raw values only, 2026-10-22). Migration 20261022T1200.'
+    rank_out_of_new:
+      reviewed: true
+      state: read
+      why: 'How many entries the board had when the new rank was read; shown on the Changelog next to the rank. Migration 20261022T1200.'
+    rank_out_of_old:
+      reviewed: true
+      state: read
+      why: 'How many entries the board had, written by store.write_changes() and shown on the Changelog ("34 of 49 -> 16 of 30") so a rank change caused only by board growth can be told apart (doc 22.2 #12). Migration 20261022T1200.'
+    reason:
+      reviewed: true
+      state: read
+    row_id:
+      reviewed: true
+      state: read
+    source_date:
+      reviewed: true
+      state: read
+      why: 'The source''s own date for the new value, written by store.write_changes(); judge/benchmarks.py changelog() uses it to tag a fresh result (dated recently) apart from a backfill. Migration 20261022T1200.'
+    run_id:
+      reviewed: true
+      state: read
+  bench_name_decision:
+    action:
+      reviewed: true
+      state: read
+      why: 'alias | new_row | ignore. Written by judge/benchmarks.py decide(), read by collect/benchmarks/store.py load_name_decisions() which the runner applies, and by unmatched() for the Decisions list. Migration 20261022T1200.'
+    actor:
+      reviewed: true
+      state: read
+      why: 'Who decided. Written by decide(), read by unmatched() for the Decisions list. Migration 20261022T1200.'
+    created_at:
+      reviewed: true
+      state: read
+      why: 'When the decision was made. Written by decide() on update, read by unmatched() and load_name_decisions() for their order. Migration 20261022T1200.'
+    name:
+      reviewed: true
+      state: read
+      why: 'The name as shown in the Unmatched list. Written by decide(), read by load_name_decisions() (an alias or a new row is made from it) and unmatched(). Migration 20261022T1200.'
+    name_key:
+      reviewed: true
+      state: read
+      why: 'The normalised name, the key. Written by decide(), read by load_name_decisions(), unmatched() and undo_decision(). Migration 20261022T1200.'
+    target_model_id:
+      reviewed: true
+      state: read
+      why: 'For alias: the tracked or registry model the name is. Written by decide(), read by load_name_decisions() and unmatched(). Migration 20261022T1200.'
+  bench_observation:
+    benchmark_key:
+      reviewed: true
+      state: read
+    collected_at:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    metric:
+      reviewed: true
+      state: read
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: 'The pipeline that wrote the row (collect/benchmarks/store.PIPELINE_VERSION), so a change to parsing, matching or merging is re-runnable and diffable (CLAUDE.md conventions; PR #573 review). Written by store.replace_source_observations(). Intended reader: a re-run diff. Migration 20261022T1200.'
+    priority:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    rank_board:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    rank_high:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    rank_out_of:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    raw_model_name:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    raw_text:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    row_id:
+      reviewed: true
+      state: read
+    run_id:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    setting_not_stated:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    source_date:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    source_key:
+      reviewed: true
+      state: read
+    stale:
+      reviewed: true
+      state: read
+    tied:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    url:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    value:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    variant:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+  bench_review_item:
+    benchmark_key:
+      reviewed: true
+      state: read
+    check_code:
+      reviewed: true
+      state: read
+    created_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(). Read by judge/benchmarks.py review_items() for the Review tab. Migration 20261022T1200.'
+    id:
+      reviewed: true
+      state: read
+    message:
+      reviewed: true
+      state: read
+    metric:
+      reviewed: true
+      state: read
+    row_id:
+      reviewed: true
+      state: read
+    run_id:
+      reviewed: true
+      state: read
+    severity:
+      reviewed: true
+      state: read
+    source_key:
+      reviewed: true
+      state: read
+    status:
+      reviewed: true
+      state: read
+      why: 'DEFAULT ''open''; resolving an item (accept/override/suppress) is a phase-2 admin edit. Read by collect/benchmarks/store.py write_review_items() (an item already open is not added again) and count_open_review_items(), and by judge/benchmarks.py review_items() for the Review tab. Migration 20261022T1200.'
+  bench_row:
+    auto_created:
+      reviewed: true
+      state: write_only
+      why: 'True for a setting row the run created (doc 6.1). Written by collect/benchmarks/store.py ensure_row(); intended reader: the phase-2 admin row view (hide/merge rows). Migration 20261022T1200.'
+    dated:
+      reviewed: true
+      state: read
+      why: 'The release date as the source wrote it, for a dated release row. Written by collect/benchmarks/store.py ensure_row(), read by judge/benchmarks.py table() to nest the row under its model. Migration 20261022T1200.'
+    display_label:
+      reviewed: true
+      state: read
+    first_seen_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(): when a setting row was first created. Intended reader: the phase-2 admin row view; nothing reads it yet. Migration 20261022T1200.'
+    first_seen_source:
+      reviewed: true
+      state: write_only
+      why: 'The source that first published the setting. Written by store.ensure_row(); the changelog''s variant_added note carries the same fact for the page. Intended reader: the phase-2 admin row view. Migration 20261022T1200.'
+    host_model_id:
+      reviewed: true
+      state: read
+    row_id:
+      reviewed: true
+      state: read
+    setting:
+      reviewed: true
+      state: read
+  bench_run:
+    dry_run:
+      reviewed: true
+      state: read
+    finished_at:
+      reviewed: true
+      state: read
+    id:
+      reviewed: true
+      state: read
+    log_text:
+      reviewed: true
+      state: read
+    report:
+      reviewed: true
+      state: read
+    request_id:
+      reviewed: true
+      state: read
+    scope:
+      reviewed: true
+      state: read
+    started_at:
+      reviewed: true
+      state: read
+    status:
+      reviewed: true
+      state: read
+    trigger:
+      reviewed: true
+      state: read
+  bench_snapshot:
+    body_gz:
+      reviewed: true
+      state: read
+    content_hash:
+      reviewed: true
+      state: read
+    fetched_at:
+      reviewed: true
+      state: read
+    final_url:
+      reviewed: true
+      state: read
+    http_status:
+      reviewed: true
+      state: read
+    id:
+      reviewed: true
+      state: read
+    method:
+      reviewed: true
+      state: read
+    run_id:
+      reviewed: true
+      state: read
+    size_bytes:
+      reviewed: true
+      state: write_only
+      why: 'Size of the saved page before gzip. Written by store.save_snapshot(); the run report carries size_bytes per source for the page. Intended reader: a snapshot list in phase 2. Migration 20261022T1200.'
+    source_key:
+      reviewed: true
+      state: read
+    url:
+      reviewed: true
+      state: read
+  bench_unmatched:
+    base_key:
+      reviewed: true
+      state: read
+      why: 'base_name normalised, the key a decision is stored under. Written by store.replace_source_unmatched(), read by judge/benchmarks.py unmatched() to group names and hide decided ones. Migration 20261022T1200.'
+    base_name:
+      reviewed: true
+      state: read
+      why: 'The name without a setting or date at its end. Written by store.replace_source_unmatched(), read by judge/benchmarks.py unmatched() as the group name on the Unmatched tab. Migration 20261022T1200.'
+    first_seen:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(). Intended reader: the phase-2 alias-upkeep view; the Unmatched tab shows last_seen and seen_count. Migration 20261022T1200.'
+    last_seen:
+      reviewed: true
+      state: write_only
+      why: 'When a source last listed the name. Written by store.replace_source_unmatched(); the Unmatched tab shows the sources instead. Intended reader: an age filter on that tab. Migration 20261022T1200.'
+    raw_name:
+      reviewed: true
+      state: read
+    similar_to:
+      reviewed: true
+      state: read
+      why: 'For reason similar_to_registry, the registry/tracked model ids the name is very close to (match.Resolver.similar). Written by store.replace_source_unmatched(), read by judge/benchmarks.py unmatched() for the Same model as buttons. Migration 20261022T1200.'
+    reason:
+      reviewed: true
+      state: read
+    seen_count:
+      reviewed: true
+      state: read
+    source_key:
+      reviewed: true
+      state: read
   blog_generation_run:
     cost_usd:
       reviewed: false
@@ -954,7 +1360,40 @@ columns:
       reviewed: false
       state: read
       why: 'The paraphrase the feed shows. Written by judge/feed/paraphrase.py _store() after judge/feed/checks.py, read by items.py feed() and summary.py. Migration 20261021T1000 (PROPOSED).'
+  feed_paraphrase_refusal:
+    document_id:
+      reviewed: false
+      state: read
+      why: 'The report refused. Written by judge/feed/paraphrase.py _refuse(), read by paraphrase.pending(). Migration 20261027T1200 (PROPOSED).'
+    excerpts_digest:
+      reviewed: false
+      state: read
+      why: 'The excerpts it was asked from; a new digest means ask again. Written by paraphrase.py _refuse(), read by paraphrase.pending(). Migration 20261027T1200 (PROPOSED).'
+    model_version_id:
+      reviewed: false
+      state: read
+      why: 'The resolved registry id. Written by paraphrase.py _refuse(), read by paraphrase.pending(). Migration 20261027T1200 (PROPOSED).'
+    prompt_version:
+      reviewed: false
+      state: read
+      why: 'A new prompt version asks again. Written by paraphrase.py _refuse(), read by paraphrase.pending(). Migration 20261027T1200 (PROPOSED).'
+    reason:
+      reviewed: false
+      state: read
+      why: 'The last attempt''s reason. Written by paraphrase.py _refuse(), read by paraphrase.refusals() for the run report. Migration 20261027T1200 (PROPOSED).'
+    refused_at:
+      reviewed: false
+      state: write_only
+      why: 'When refused. Defaulted by the database; read by nothing yet - its intended reader is an Admin list of refused reports. Migration 20261027T1200 (PROPOSED).'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'The run that was refused, matching spend_ledger.run_id. Written by paraphrase.py _refuse(); read by nothing yet - its intended reader is a per-run cost report. Migration 20261027T1200 (PROPOSED).'
   feed_summary:
+    changes:
+      reviewed: false
+      state: read
+      why: 'Each edited point of a revision - before, after, the reports it adds, why. Written by judge/feed/revise.py revise(), read by summary.listing() and shown side by side in Admin (FeedSummaryPanel.jsx). Migration 20261027T1200 (PROPOSED).'
     flags:
       reviewed: false
       state: read
@@ -979,6 +1418,10 @@ columns:
       reviewed: false
       state: read
       why: '[{text, cites}] - the page''s text and what each paragraph rests on. Written by judge/feed/summary.py draft() after checks, read by current() and listing(). Migration 20261021T1000 (PROPOSED).'
+    parent_id:
+      reviewed: false
+      state: read
+      why: 'The approved summary a revision edits. Written by judge/feed/revise.py revise(), read by summary.review() (a revision of a summary no longer live is refused), listing() and current() (the page says revised). Migration 20261027T1200 (PROPOSED).'
     prompt_version:
       reviewed: false
       state: write_only
@@ -1011,6 +1454,55 @@ columns:
       reviewed: false
       state: read
       why: 'pending | approved | rejected | superseded. Written by summary.py draft()/review(), read by current(), listing(), counts(), models_due(). Migration 20261021T1000 (PROPOSED).'
+  feed_summary_attempt:
+    attempted_at:
+      reviewed: false
+      state: read
+      why: 'When attempted; the weekly cadence counts from it. Defaulted by the database, read by revise.revisions_due(). Migration 20261027T1200 (PROPOSED).'
+    detail:
+      reviewed: false
+      state: read
+      why: 'Why refused or why nothing changed. Written by summary.py record_attempt(), read by summary.attempts() for Admin and the run report. Migration 20261027T1200 (PROPOSED).'
+    id:
+      reviewed: true
+      state: read
+      why: 'bigserial. Read by judge/feed/summary.py attempts(), as the tiebreak in its ORDER BY so two attempts in the same instant list newest first; written by the database default. Migration 20261027T1200 (PROPOSED).'
+    kind:
+      reviewed: false
+      state: read
+      why: 'draft | revision. Written by summary.py record_attempt(), read by summary.attempts(). Migration 20261027T1200 (PROPOSED).'
+    model_version_id:
+      reviewed: false
+      state: read
+      why: 'The model. Written by summary.py record_attempt(), read by models_due(), revisions_due() and attempts(). Migration 20261027T1200 (PROPOSED).'
+    newest_report_at:
+      reviewed: false
+      state: read
+      why: 'The newest report the attempt considered; not asked again until a newer one arrives. Written by summary.py record_attempt(), read by summary.models_due() and revise.revisions_due(). Migration 20261027T1200 (PROPOSED).'
+    outcome:
+      reviewed: false
+      state: read
+      why: 'stored | refused | no_change. Written by summary.py record_attempt(), read by attempts(). Migration 20261027T1200 (PROPOSED).'
+    parent_id:
+      reviewed: false
+      state: read
+      why: 'The approved summary a revision started from. Written by summary.py record_attempt(), read by revise.revisions_due(). Migration 20261027T1200 (PROPOSED).'
+    prompt_version:
+      reviewed: false
+      state: write_only
+      why: 'contract/evidence_feed.yaml summary or revision prompt_version. Written by summary.py record_attempt(); read by nothing yet - its intended reader is a re-run after a prompt change. Migration 20261027T1200 (PROPOSED).'
+    reports_considered:
+      reviewed: false
+      state: read
+      why: 'How many reports it was given (rule 7). Written by summary.py record_attempt(), read by attempts(). Migration 20261027T1200 (PROPOSED).'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'Matching spend_ledger.run_id. Written by summary.py record_attempt(); read by nothing yet - its intended reader is a per-run cost report. Migration 20261027T1200 (PROPOSED).'
+    summary_id:
+      reviewed: false
+      state: read
+      why: 'The feed_summary row it stored, when stored. Written by summary.py record_attempt(), read by attempts(). Migration 20261027T1200 (PROPOSED).'
   fetch_log:
     at:
       reviewed: true
@@ -1324,17 +1816,20 @@ columns:
       state: read
   model_event:
     detected_at:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: defaulted
+      why: 'Defaulted by the database when the registry poll records the event. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. It is the update''s seen time.'
     id:
       reviewed: false
       state: write_only
     model_version_id:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'Written by collect/registry/events.py. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. Joins the event to its model_version row.'
     occurred_at:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'Written by collect/registry/events.py. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. The release day when model_version.release_date is empty.'
     payload:
       reviewed: false
       state: write_only
@@ -1342,8 +1837,9 @@ columns:
       reviewed: false
       state: reserved
     type:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'Written by collect/registry/events.py. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. Filtered to new-model.'
   model_catalog:
     canonical_id:
       reviewed: true
@@ -1422,8 +1918,9 @@ columns:
       reviewed: false
       state: read
     batch_discount:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: "read by judge/migrations.py since 2026-10-30 - the Batch discount row of a migration guide's verified-facts box (/guide-facts); NULL shown as not published"
     canonical_id:
       reviewed: false
       state: read
@@ -1438,8 +1935,9 @@ columns:
       reviewed: false
       state: read
     first_seen_at:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(): when the row was first written, i.e. when the model was seated. Read by collect/triage/retriage.py seated_since() (#613): a document fetched after it was triaged with the model already in the registry, so it cannot hold a stale verdict for it.'
     id:
       reviewed: false
       state: read
@@ -1492,8 +1990,9 @@ columns:
       reviewed: false
       state: write_only
     supports_batch:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: "read by judge/migrations.py since 2026-10-30 - the Batch API row of a migration guide's verified-facts box (/guide-facts); TRUE or NULL on every row (56 / 222, 2026-10-30), so NULL is shown as not published, never no"
     supports_caching:
       reviewed: false
       state: read
@@ -1509,6 +2008,355 @@ columns:
     updated_at:
       reviewed: false
       state: read
+  news_fetch:
+    detail:
+      reviewed: true
+      state: read
+      why: "why a source's last read was refused or failed, shown on its row on the News page (judge/news.py)"
+    fetched_at:
+      reviewed: true
+      state: read
+      why: "when each source was last read, shown on its row on the News page"
+    http_status:
+      reviewed: true
+      state: read
+      why: "the status a failed read got, shown beside its detail"
+    items_new:
+      reviewed: true
+      state: read
+      why: "how many items a source's last read added, shown on its row"
+    items_seen:
+      reviewed: true
+      state: read
+      why: "how many items a source's last read found, shown on its row"
+    outcome:
+      reviewed: true
+      state: read
+      why: "ok, refused by robots.txt or failed: what each source's last read did (judge/news.py)"
+    run_id:
+      reviewed: true
+      state: write_only
+      why: "groups one harvest's reads; the page shows each source's latest read, not runs"
+    source_key:
+      reviewed: true
+      state: read
+      why: "joins a read to its contract/news_sources.yaml source"
+  news_item:
+    author:
+      reviewed: true
+      state: read
+      why: "shown on the story card when the source gives one (web/src/routes/News.jsx)"
+    categories:
+      reviewed: true
+      state: read
+      why: "the source's own tags, shown as small chips on the item"
+    daily_count:
+      reviewed: true
+      state: read
+      why: "how many items a daily entry stands for (llama.cpp builds), shown in its title and badge"
+    feed_summary:
+      reviewed: true
+      state: read
+      why: "the brief as the feed gave it, kept unchanged; collect/news/preview.py better_brief chooses from it, so re-choosing is repeatable"
+    feed_summary_source:
+      reviewed: true
+      state: read
+      why: "which feed text feed_summary came from (feed or feed_content); read with it by preview.py better_brief"
+    first_seen_at:
+      reviewed: true
+      state: read
+      why: "orders an item with no published date, and is shown as 'seen' beside it (rule 6)"
+    id:
+      reviewed: true
+      state: read
+      why: "the item's key in the API payload; one row per link, or per source and day"
+    image_url:
+      reviewed: true
+      state: read
+      why: "the picture on the story card; NULL draws a card naming the source (web/src/routes/News.jsx)"
+    image_source:
+      reviewed: true
+      state: read
+      why: "feed or link_preview: shown in the picture's hover so a reader can tell a feed picture from an article's preview image (web/src/routes/News.jsx)"
+    llm_keywords:
+      reviewed: true
+      state: read
+      why: "the LLM badge and the reader's optional filter; never a default filter (rule 8)"
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "provenance of the write; no page needs it"
+    preview_attempts:
+      reviewed: true
+      state: read
+      why: "read by collect/news/preview.py _CANDIDATES: a transient failure is asked again until max_attempts"
+    preview_checked_at:
+      reviewed: true
+      state: read
+      why: "read by collect/news/preview.py _CANDIDATES: set when the answer is final, so a final answer is never asked again"
+    preview_outcome:
+      reviewed: true
+      state: write_only
+      why: "what the last link-preview ask did (found, none, refused, failed); kept so a failed read is never mistaken for 'no picture'. Intended reader: the News page's source table, not built yet"
+    preview_raw_ref:
+      reviewed: true
+      state: read
+      why: "the stored <head> a picture was read from; collect/news/preview.py rebrief_from_stored_heads reads it to re-check a brief without asking the page again. No page reads it"
+    published_at:
+      reviewed: true
+      state: read
+      why: "the source's own date, newest first; NULL shows 'date not given' (rule 6)"
+    raw_ref:
+      reviewed: true
+      state: write_only
+      why: "the stored feed response, for reprocessing without re-fetching; no page reads it"
+    slug:
+      reviewed: true
+      state: read
+      why: "the story's address, /news/<slug>; judge/news.py story_view looks a story up by it"
+    source_key:
+      reviewed: true
+      state: read
+      why: "which source the item came from: its label, group and filter"
+    summary:
+      reviewed: true
+      state: read
+      why: "the brief on the story card and page, the source's own words cut by code (collect/news/harvest.py choose_brief)"
+    summary_source:
+      reviewed: true
+      state: read
+      why: "which of the source's texts the brief came from, said under 'In brief' on the story page (web/src/routes/NewsStory.jsx)"
+    title:
+      reviewed: true
+      state: read
+      why: "the headline the page shows, linking to url"
+    updated_at:
+      reviewed: true
+      state: write_only
+      why: "when a daily entry last gained an item; the page shows first_seen_at and published_at instead"
+    url:
+      reviewed: true
+      state: read
+      why: "the headline's link"
+  official_doc:
+    blob_sha:
+      reviewed: true
+      state: read
+      why: "git's sha of the file as last fetched; read back by collect/official/harvest.py _known_docs so an unchanged file is not fetched again. Migration 20261030T1500 (PROPOSED)."
+    changed_at:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): the read date a guide's stamp falls back to when the repository was never read in full. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    doc_kind:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): picks the cookbook files and the changelogs a guide pack draws from. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    first_seen_at:
+      reviewed: true
+      state: write_only
+      why: "When the file was first stored. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): provenance of the harvest; no page or pack needs it. Migration 20261030T1500 (PROPOSED)."
+    format:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): names a pack source as a notebook or a guide. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    html_url:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): the link a guide's sources, code blocks and stamp credit. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    id:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): the id a pack cites a file by, and a tutorial's plan key. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    licence:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): the licence a guide's sources stamp states beside the attribution. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    path:
+      reviewed: true
+      state: read
+      why: "The file's path in its repository; read back by collect/official/harvest.py _known_docs to match the listing. Migration 20261030T1500 (PROPOSED)."
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "Provenance of the write (CLAUDE.md conventions); no page needs it. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): provenance of the write (CLAUDE.md conventions); no page or pack needs it. Migration 20261030T1500 (PROPOSED)."
+    provider:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): picks the provider's files for a guide subject. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    raw_ref:
+      reviewed: true
+      state: write_only
+      why: "Raw store ref of the file's bytes, for reprocessing without re-fetching. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): a notebook's raw JSON; a pack reads text_ref (the flattened text, which for markdown is the same blob). Migration 20261030T1500 (PROPOSED)."
+    repo_key:
+      reviewed: true
+      state: read
+      why: "contract/official_sources.yaml repos[].key; collect/official/harvest.py _known_docs selects a repository's stored files by it. Migration 20261030T1500 (PROPOSED)."
+    size_bytes:
+      reviewed: true
+      state: write_only
+      why: "The fetched file's size. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): a pack reads the text itself and records its own character count and any cut. Migration 20261030T1500 (PROPOSED)."
+    text_ref:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): the text a guide pack scores and the writer copies code from. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    title:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.docs / guide_official / tutorial_subjects / guide_export (Guides phase B, 2026-10-30): ranks files by term matching and names them in the pack and on the page. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    title_source:
+      reviewed: true
+      state: write_only
+      why: "h1 | file_name: so a file name is never shown as a title the author wrote (rule 6). Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): a pack shows the title however it was found; its reader would be a title-quality report, not built. Migration 20261030T1500 (PROPOSED)."
+    unlisted_at:
+      reviewed: true
+      state: read
+      why: "Set when a complete listing no longer has the file; read back by collect/official/harvest.py _known_docs to mark it again or clear it. Migration 20261030T1500 (PROPOSED)."
+  official_fetch:
+    api_calls:
+      reviewed: true
+      state: write_only
+      why: "Requests this source's read made. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    detail:
+      reviewed: true
+      state: write_only
+      why: "Every reason the outcome is not ok; NULL for ok. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    fetched_at:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.read_at (Guides phase B, 2026-10-30): the 'read <date>' on a guide's sources stamp (the repository's last full read). Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    files_changed:
+      reviewed: true
+      state: write_only
+      why: "Files stored before, now with different bytes. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_deferred:
+      reviewed: true
+      state: write_only
+      why: "Files left for a later run by the per-run cap or an early stop (rule 6: never silently skipped). Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_failed:
+      reviewed: true
+      state: write_only
+      why: "Files fetched or parsed and refused. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_fetched:
+      reviewed: true
+      state: write_only
+      why: "Files fetched this run. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_listed:
+      reviewed: true
+      state: write_only
+      why: "Files the listing had in scope: the denominator for every other files_ count (rule 7). Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_new:
+      reviewed: true
+      state: write_only
+      why: "Files stored for the first time. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_too_large:
+      reviewed: true
+      state: write_only
+      why: "Files over max_blob_bytes, not fetched. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_unchanged:
+      reviewed: true
+      state: write_only
+      why: "Files whose sha matched the stored row: not fetched. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_unlisted:
+      reviewed: true
+      state: write_only
+      why: "Stored files a complete listing no longer has. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    http_status:
+      reviewed: true
+      state: write_only
+      why: "The status that stopped a read; NULL otherwise. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    outcome:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.read_at (Guides phase B, 2026-10-30): only a full ('ok') read dates a guide's sources stamp. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    rate_remaining:
+      reviewed: true
+      state: write_only
+      why: "GitHub's x-ratelimit-remaining after the read; NULL when none was sent. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    releases_changed:
+      reviewed: true
+      state: write_only
+      why: "SDKs only (NULL otherwise): releases whose GitHub record changed. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    releases_new:
+      reviewed: true
+      state: write_only
+      why: "SDKs only (NULL otherwise): releases stored for the first time. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    releases_seen:
+      reviewed: true
+      state: write_only
+      why: "SDKs only (NULL otherwise): releases read. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    run_id:
+      reviewed: true
+      state: write_only
+      why: "Groups one harvest's reads. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    source_key:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.read_at (Guides phase B, 2026-10-30): matches a full read to the repository a guide's source came from. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    talks_before_min_year:
+      reviewed: true
+      state: write_only
+      why: "PyVideo only (NULL otherwise): talks in events before min_event_year. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    talks_no_year:
+      reviewed: true
+      state: write_only
+      why: "PyVideo only (NULL otherwise): talks in events whose name carries no year. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    talks_withdrawn:
+      reviewed: true
+      state: write_only
+      why: "PyVideo only (NULL otherwise): stored talks deleted because NO_PUBLISH.json now lists them. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    talks_withheld:
+      reviewed: true
+      state: write_only
+      why: "PyVideo only (NULL otherwise): talks fetched, listed in NO_PUBLISH.json, not stored. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+  official_release:
+    raw_ref:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.notes (Guides phase B, 2026-10-30): the release body a guide pack scores and the writer reads. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    changed_at:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.notes (Guides phase B, 2026-10-30): the read date a release note's stamp falls back to. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    first_seen_at:
+      reviewed: true
+      state: write_only
+      why: "When the release was first stored. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): provenance of the harvest; no page or pack needs it. Migration 20261030T1500 (PROPOSED)."
+    html_url:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.notes (Guides phase B, 2026-10-30): the link a guide credits a release note with. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    id:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.notes (Guides phase B, 2026-10-30): the id a pack cites a release note by. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    name:
+      reviewed: true
+      state: write_only
+      why: "The release's title; NULL when it has none. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): a guide names a release by its tag, which the stamp shows. Migration 20261030T1500 (PROPOSED)."
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "Provenance of the write (CLAUDE.md conventions); no page needs it. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): provenance of the write; no page or pack needs it. Migration 20261030T1500 (PROPOSED)."
+    prerelease:
+      reviewed: true
+      state: write_only
+      why: "As GitHub marks it; a guide names stable releases. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): a pre-release's notes are offered like any other; preferring stable releases is not decided, and would be this column's reader. Migration 20261030T1500 (PROPOSED)."
+    provider:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.notes (Guides phase B, 2026-10-30): picks the provider's SDK release notes for a guide subject. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    published_at:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.notes (Guides phase B, 2026-10-30): the release note's date in the pack, newest first. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    repo_key:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.notes (Guides phase B, 2026-10-30): maps a release to its repository for credit and the stamp. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    tag:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py GuideReader.notes (Guides phase B, 2026-10-30): the ref a guide's stamp names for a release note. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
   outcome:
     adopted:
       reviewed: false
@@ -2119,6 +2967,307 @@ columns:
     url:
       reviewed: true
       state: read
+  unit_price:
+    canonical_id:
+      reviewed: true
+      state: read
+      why: "joins the price to its model on the Models pages (judge/catalog.py)"
+    unit:
+      reviewed: true
+      state: read
+      why: "shown beside the figure - per second of video, per image"
+    direction:
+      reviewed: true
+      state: read
+      why: "shown beside the figure - input or output"
+    variant:
+      reviewed: true
+      state: read
+      why: "shown beside the figure - the resolution tier, or the source's base figure"
+    usd:
+      reviewed: true
+      state: read
+      why: "the figure the Models pages show"
+    source:
+      reviewed: true
+      state: read
+      why: "picks the newest snapshot per source, and labels the figure as LiteLLM's community list"
+    source_key:
+      reviewed: true
+      state: read
+      why: "shown as the host the price is for"
+    source_url:
+      reviewed: true
+      state: read
+      why: "linked from the figure so a reader can check it"
+    retrieved_at:
+      reviewed: true
+      state: read
+      why: "picks the newest snapshot, and shown so a stale price is visible"
+  unresolved_entry:
+    id:
+      reviewed: true
+      state: read
+      why: "the key a re-run conflicts on, and what attribution marks"
+    surface:
+      reviewed: true
+      state: read
+      why: "resolved again by scripts/attribute_unresolved_entries.py (its reader); counted per run in the fetch log"
+    document_id:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes"
+    thread_context_id:
+      reviewed: true
+      state: read
+      why: "which thread the quote was read in; read back by judge/store/unresolved_entries.py attribute_held (scripts/attribute_unresolved_entries.py) with the rest of the held row"
+    section:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    slug:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    name:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    definition:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    unit:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    value_verbatim:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    basis:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    parent_proposed:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    axis_verbatim:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    subject_verbatim:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    polarity:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    quote:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    proposer_model:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    pipeline_version:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    created_at:
+      reviewed: true
+      state: defaulted
+      why: "DEFAULT now(), never written by us - the INSERT does not name it - and read by scripts/attribute_unresolved_entries.py (through judge/store/unresolved_entries.py attribute_held) to file held rows oldest first"
+    attributed_at:
+      reviewed: true
+      state: read
+      why: "NULL selects the rows still held"
+    attributed_to:
+      reviewed: true
+      state: write_only
+      why: "the model the surface resolved to at attribution; recorded for audit"
+    attributed_entry:
+      reviewed: true
+      state: write_only
+      why: "the board_entry id the row became; recorded for audit"
+  update_review:
+    detail:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews() for listing(): a person''s own detail replaces the style''s. Migration 20261029T1200 (PROPOSED).'
+    headline:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews() for listing(): a person''s own headline replaces the style''s. Migration 20261029T1200 (PROPOSED).'
+    home_detail:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py review() action publish (POST /updates/review), cleared by unpublish and decline; read by updates._reviews() for listing(): the detail as published, kept fixed for the home page. Migration 20261029T1200 (PROPOSED).'
+    home_headline:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py review() action publish (POST /updates/review), cleared by unpublish and decline; read by updates._reviews() for listing(): the headline as published, kept fixed for the home page. Migration 20261029T1200 (PROPOSED).'
+    home_published_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py review() action publish (POST /updates/review), cleared by unpublish and decline; read by updates._reviews() for listing(): when it was published; NULL means not on the home page. Migration 20261029T1200 (PROPOSED).'
+    home_published_by:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py review() action publish (POST /updates/review), cleared by unpublish and decline; read by updates._reviews() for listing(): who published it, shown on the card. Migration 20261029T1200 (PROPOSED).'
+    kind:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._current() into the log''s before/after, so an undo puts it back. Migration 20261029T1200 (PROPOSED).'
+    reviewed_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews(); Manage shows when. Migration 20261029T1200 (PROPOSED).'
+    reviewed_by:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews(); Manage shows who (the part of the email before the @). Migration 20261029T1200 (PROPOSED).'
+    status:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews(): declined hides the update from News headlines. Migration 20261029T1200 (PROPOSED).'
+    style:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews(): the chosen contract/updates.yaml style. Migration 20261029T1200 (PROPOSED).'
+    update_key:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews() and _current(): which built update a decision is about. Migration 20261029T1200 (PROPOSED).'
+  update_review_log:
+    acted_at:
+      reviewed: false
+      state: defaulted
+      why: 'Written by updates._write() (defaulted), read by updates._reviews(): when the change Undo would take back was made. Migration 20261029T1200 (PROPOSED).'
+    acted_by:
+      reviewed: false
+      state: read
+      why: 'Written by updates._write(), read by updates._reviews(): who made the change Undo would take back. Migration 20261029T1200 (PROPOSED).'
+    action:
+      reviewed: false
+      state: read
+      why: 'Written by updates._write(), read by updates._reviews() and undo(): what Undo would take back. Migration 20261029T1200 (PROPOSED).'
+    after:
+      reviewed: false
+      state: write_only
+      why: 'The review row after the change. Written by updates._write(); read by nothing yet - its intended reader is a history view in Manage. Migration 20261029T1200 (PROPOSED).'
+    before:
+      reviewed: false
+      state: read
+      why: 'The review row before the change (NULL: none). Written by updates._write(), read by updates.undo(), which puts it back. Migration 20261029T1200 (PROPOSED).'
+    id:
+      reviewed: false
+      state: read
+      why: 'Generated; read by updates.undo() to mark the change it undid. Migration 20261029T1200 (PROPOSED).'
+    undone_at:
+      reviewed: false
+      state: read
+      why: 'Written by updates.undo(), read by updates._reviews() and undo(): an undone change is not undone again. Migration 20261029T1200 (PROPOSED).'
+    undone_by:
+      reviewed: false
+      state: write_only
+      why: 'Written by updates.undo(); read by nothing yet - its intended reader is a history view in Manage. Migration 20261029T1200 (PROPOSED).'
+    update_key:
+      reviewed: false
+      state: read
+      why: 'Written by updates._write(), read by updates._reviews() and undo(). Migration 20261029T1200 (PROPOSED).'
+  video_ref:
+    blob_sha:
+      reviewed: true
+      state: read
+      why: "As official_doc.blob_sha; read back by collect/official/harvest.py _known_talks. Migration 20261030T1500 (PROPOSED)."
+    changed_at:
+      reviewed: true
+      state: write_only
+      why: "When the stored record last changed. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): provenance of the harvest; no page or pack needs it. Migration 20261030T1500 (PROPOSED)."
+    copyright_text:
+      reviewed: true
+      state: write_only
+      why: "The video's own licence as PyVideo gives it (\"CC BY\"); NULL when not given. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): the talk's own licence text; the title card links to the host instead of reproducing the video. Its reader, if a card ever shows the licence, is views.js videoCard. Migration 20261030T1500 (PROPOSED)."
+    description:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): the only words a guide may describe a talk with; also ranked on. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    duration_seconds:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    event:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    event_year:
+      reviewed: true
+      state: write_only
+      why: "The year in the event's name; the scope rule (min_event_year). Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): a pack shows the recorded date; the year only scoped the harvest. Migration 20261030T1500 (PROPOSED)."
+    first_seen_at:
+      reviewed: true
+      state: write_only
+      why: "When the talk was first stored. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): provenance of the harvest; no page or pack needs it. Migration 20261030T1500 (PROPOSED)."
+    id:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    language:
+      reviewed: true
+      state: write_only
+      why: "ISO 639-3 code as given; NULL when not given. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): talks are not ranked by language yet; a non-English talk can be offered - its reader would be guide_videos. Migration 20261030T1500 (PROPOSED)."
+    llm_terms:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): ranks a guide pack's video references (a weight, blog_formats.yaml guides.llm_talk_weight). Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    path:
+      reviewed: true
+      state: read
+      why: "<event>/videos/<slug>.json; read back by collect/official/harvest.py _known_talks to match the listing. Migration 20261030T1500 (PROPOSED)."
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "Provenance of the write (CLAUDE.md conventions); no page needs it. Written by collect/official/harvest.py. Not read by phase B's guide packs (generate_sample_blogs.py, 2026-10-30): provenance of the write; no page or pack needs it. Migration 20261030T1500 (PROPOSED)."
+    pyvideo_id:
+      reviewed: true
+      state: read
+      why: "The record's own id (NULL when not given); read back by collect/official/harvest.py _known_talks to withdraw a talk NO_PUBLISH.json lists after it was stored. Migration 20261030T1500 (PROPOSED)."
+    raw_ref:
+      reviewed: true
+      state: read
+      why: "Raw store ref of the record; read back by collect/official/harvest.py _known_talks to tombstone a withdrawn talk's bytes. Migration 20261030T1500 (PROPOSED)."
+    recorded:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    speakers:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    thumbnail_url:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    title:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    unlisted_at:
+      reviewed: true
+      state: read
+      why: "As official_doc.unlisted_at; read back by collect/official/harvest.py _known_talks. Migration 20261030T1500 (PROPOSED)."
+    video_hosts:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
+    video_urls:
+      reviewed: true
+      state: read
+      why: "Read by generate_sample_blogs.py guide_videos / guide_export (Guides phase B, 2026-10-30): a guide pack's video reference: ranked on title/description, shown on the talk's title card. Written by collect/official/harvest.py. Migration 20261030T1500 (PROPOSED)."
   watermark:
     cursor:
       reviewed: false

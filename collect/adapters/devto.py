@@ -201,6 +201,10 @@ class DevtoRun:
     search_calls: int = 0
     fetch_calls: int = 0
     http_errors: int = 0
+    #: WHICH KIND each failed request was ("HTTP 500", "ConnectError"), so the
+    #: fetch line can tell throttling from timeouts from refusals (#602), as
+    #: the arXiv arm already does. `http_errors` stays the count.
+    failures: list = field(default_factory=list)
     #: Requests that timed out rather than answering. Counted separately from
     #: `http_errors` because a timeout on this platform is the observed answer
     #: to a zero-match query, and folding it in would hide that.
@@ -290,14 +294,17 @@ class DevtoHarvester:
             response = self._client.get(url, params=params)
         except httpx.TimeoutException:
             run.timeouts += 1
+            run.failures.append("timeout")
             log.warning("devto: timed out on %s %r", path, params)
             return None
         except httpx.HTTPError as error:
             run.http_errors += 1
+            run.failures.append(type(error).__name__)
             log.error("devto: request failed on %s %r: %s", path, params, error)
             return None
         if response.status_code != 200:
             run.http_errors += 1
+            run.failures.append(f"HTTP {response.status_code}")
             log.warning(
                 "devto: HTTP %s on %s %r. NOT an empty result set - a zero-match "
                 "query on this platform has been observed to answer 500.",

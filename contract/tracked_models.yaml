@@ -15,6 +15,13 @@
 # file replaces the constant with config, which is rule 5: configuration lives in
 # versioned YAML where a change is reviewable.
 #
+# ⚠ A MEDIA MODEL'S SEPARATELY PRICED VARIANTS ARE SEATED WITH IT (#602).
+#   The claim resolver reads extra words after a name it holds as a qualifier,
+#   so with only the base model seated, "Seedance 2.0 Fast | $0.20" filed as
+#   Seedance 2.0 - another model's price on its row. Each separately priced
+#   variant gets a registry-only seat in contract/unpolled_models.yaml (Seedance
+#   2.0 Fast and Mini, Eleven v3 Conversational), not an entry here.
+#
 # ⚠ A PRICE IS NEVER WRITTEN HERE.
 #
 #   `registry` names a row in `model_version` and every figure — price, context,
@@ -46,9 +53,10 @@
 #   is the UNIT, not the plumbing: wiring an ElevenLabs or Ideogram adapter would
 #   not help, because what it returned could not be expressed in per-million
 #   tokens without becoming a different quantity wearing that label. Pricing
-#   these needs its own unit-carrying shape, the way `board_entry` carries
-#   `unit` beside `value_verbatim`. Recorded here so the next reader knows it was
-#   decided rather than missed.
+#   these needed its own unit-carrying shape, the way `board_entry` carries
+#   `unit` beside `value_verbatim` - and since #602 that shape exists: the
+#   `unit_price` table holds a rate with its unit (per image, second or
+#   character), apart from `price_in`/`price_out`.
 #
 #   ⚠ AND IT IS NOT "THE REGISTRY HAS NO IMAGE MODELS", which is what an earlier
 #     draft of this note said. `google/gemini-3.1-flash-image` is in the poll and
@@ -58,7 +66,7 @@
 #     is the billing unit, not the medium.
 #
 #   THE FOURTH AND FIFTH WERE NOT SEATED, BECAUSE THEY DID NOT NEED TO BE.
-#   Wan 3.0 was dropped at Parvathi's request. GPT-5.5 Codex turned out to name
+#   Wan 3.0 was dropped at Parvathi's request. The list's "GPT-5.5 Codex" turned out to name
 #   a model the registry already holds under a different spelling - see the note
 #   on its entry below, which is the only place in this file where a `registry:`
 #   value is an INTERPRETATION of the source list rather than a lookup of it.
@@ -149,7 +157,7 @@
 #
 #   This note used to name five, and three of those names have since been
 #   resolved rather than left. Wan 3.0 and Qwen3.5 Omni Flash were dropped at
-#   Parvathi's request. GPT-5.5 Codex is NOT undiscussed - re-pointed at
+#   Parvathi's request. GPT-5.5 (listed as "GPT-5.5 Codex") is NOT undiscussed - re-pointed at
 #   `openai/gpt-5.5` it is the single most-discussed model in the whole corpus,
 #   228 attested mentions. It read as silent only because it was pointed at
 #   nothing.
@@ -192,6 +200,37 @@ auto_track:
   exclude_name_terms: [image, audio, tts, speech, voice, music, video, embed, embedding,
                        transcribe, realtime, moderation]
 
+# ── OPTIONAL PER ENTRY: `hf_repos:` (#602, 2026-11-05) ───────────────────────
+# A media model's official Hugging Face repo(s), as `owner/repo`, e.g.
+#     hf_repos: [black-forest-labs/FLUX.1-dev]
+# READ BY the Hugging Face arm of scripts/fetch_model.py (`harvest_uniform`,
+# through collect/adapters/huggingface.py `harvest(repo_ids=...)`): it walks
+# exactly these repos' discussions instead of searching the Hub by name, which
+# returns community re-uploads as often as the original.
+# ABSENT MEANS NOT CURATED - never "this model has no repo". The name search
+# then runs as it always has. No entry carries one yet: the three media models
+# seated on 2026-11-05 are closed models with no Hub repo.
+
+# ── THE SEATING BAR: when a held model is seated (#602, 2026-11-06) ──────────
+# A model OpenRouter lists but nobody has seated (GPT Image 2.6 Sunburst, from
+# 2026-11-05) has its claims HELD in `unresolved_entry`, not lost. This is the
+# count at which it is put to Parvathi to seat, so each model is decided the
+# same way. `scripts/attribute_unresolved_entries.py --dry-run` lists the held
+# names that meet it. READ BY that script and nothing else.
+#
+# WHERE THE NUMBERS COME FROM, stated honestly: GPT Image 2.5 Sunburst was
+# seated on 2026-11-05 on Parvathi's judgement ("enough discussion") BEFORE any
+# count existed. After its first fetch it held 3 board entries from 2 distinct
+# authors in 2 documents - so the bar is that first-fetch level, PROPOSED, for
+# review on the PR.
+#
+# ⚠ A LOWER BOUND, NOT THE DISCUSSION (Anooj, #602): an unseated model is not
+#   searched for, so its held count is only what threads found for OTHER
+#   models happened to say about it.
+seating_bar:
+  held_entries: 3
+  distinct_authors: 2
+
 models:
   # ── the four the board already holds evidence for ────────────────────────
   # These lead the page because a fetch has actually run against them. The
@@ -233,7 +272,13 @@ models:
     registry: moonshotai/kimi-k3
     kind: text
 
-  # ⚠ THE SOURCE LIST SAID "GPT-5.5 Codex". THIS ROW IS `openai/gpt-5.5`, AND
+  # ⚠ RENAMED "GPT-5.5 Codex" -> "GPT-5.5" (Parvathi, 2026-10-26). There is no
+  #   model called GPT-5.5 Codex: OpenAI released ONE model, GPT-5.5, which
+  #   supports Codex (the coding tool). The old name was our mistake, copied from
+  #   the source list on 2026-09-15; every page, the Benchmarks table included,
+  #   now names it GPT-5.5, and results written for it either way are its.
+  #
+  # THE SOURCE LIST SAID "GPT-5.5 Codex". THIS ROW IS `openai/gpt-5.5`, AND
   #   THE DIFFERENCE IS THE WHOLE NOTE.
   #
   #   It carried `registry: null` until 2026-09-15 and rendered as an
@@ -280,7 +325,7 @@ models:
   #   ⚠ THE PAGE WILL NOW SAY "OpenAI: GPT-5.5", NOT "GPT-5.5 Codex", because
   #     every displayed figure is read from the registry row. That is the point
   #     rather than a side effect: the board shows the model it actually has.
-  - name: GPT-5.5 Codex
+  - name: GPT-5.5
     registry: openai/gpt-5.5
     kind: text
 
@@ -374,24 +419,46 @@ models:
   # ── added 2026-10-18 ─────────────────────────────────────────────────────
   # Seated from contract/unpolled_models.yaml: OpenRouter serves it but its
   # model list does not carry it, so the poll never will (see that entry).
-  # `kind: text` for the billing unit - it is priced per token - although its
-  # output is a typed decision rather than prose.
+  # `kind: decision` (#602; back from a temporary `text`, 2026-11-10). Its output is
+  # a typed decision (OpenRouter lists `decisions`). It sat at `text` from
+  # 2026-11-09 because seo/keyword_plan.json, generated 2026-10-19 while Jev was
+  # text, paired it with text models in text-only keywords. The plan is
+  # regenerated from the SEO workbook in the same PR as this line, and the
+  # generator keeps non-text models out of those pairs (scripts/build_keyword_plan.py).
+  # A decision model keeps the text fetch arms (scripts/fetch_model.py MEDIA_KINDS).
   - name: Jev 1.13
     registry: typesafe/jev-1.13
-    kind: text
+    kind: decision
 
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is
   # worded the way it is. OpenRouter lists image GENERATION from the big LLM
-  # providers - this one is priced per million tokens like its text siblings -
-  # while the standalone image, video and speech vendors are absent entirely.
-  # So "the registry does not carry image models" would have been too strong.
+  # providers - this one is priced per million tokens like its text siblings.
+  # The standalone image, video and speech vendors are not in the POLL; they
+  # are in `model_catalog` (all modalities), and the ones tracked here are
+  # seated by hand from contract/unpolled_models.yaml.
   - name: Nano Banana 2
     registry: google/gemini-3.1-flash-image
     kind: image
   # Recraft V4.1 Pro was here until 2026-09-15. Dropped at Parvathi's request.
   # ⚠ REMOVED BEFORE IT WAS READ, NOT BECAUSE IT WAS READ - see the top of this
   #   file. That distinction is the whole reason this comment exists.
+
+  # Added 2026-11-05 at Parvathi's request. Seated from
+  # contract/unpolled_models.yaml (see the note there: no price, and why the
+  # name is spelled the way it is). Asked
+  # for as "GPT Image 2.6 Sunburst"; seated as 2.5, which has the discussion -
+  # 2.6 was released 2026-11-04 and is held until it meets `seating_bar`.
+  - name: GPT Image 2.5 Sunburst
+    registry: openai/gpt-image-2.5-sunburst
+    kind: image
+
+  # ── video ────────────────────────────────────────────────────────────────
+  # Added 2026-11-06 at Parvathi's request. See its seat in
+  # contract/unpolled_models.yaml for the measurement and the aliases.
+  - name: Seedance 2.0
+    registry: bytedance/seedance-2.0
+    kind: video
 
 
   # ── speech ───────────────────────────────────────────────────────────────

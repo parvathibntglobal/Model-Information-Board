@@ -454,6 +454,34 @@ export const outreachReopen = (id) =>
 export const outreachCheck = (id, text) =>
   request(`/admin/outreach/threads/${id}/check`, { method: 'POST', body: { text } })
 
+// THE BENCHMARKS PAGE (judge/benchmarks.py, 2026-10-22). Signed in: every call
+// carries the token. Values are the sources' own; the page formats, never computes.
+export const benchmarksTable = () => request('/benchmarks/table')
+// THE PUBLIC AI BENCHMARKS PAGE (/ai-benchmarks, 2026-10-30): built from the same table. Kept two
+// minutes per model like the board's reads, so going back to a model, or
+// reopening the page, is instant; a run's new values show within that window.
+export const aiBenchmarks = (model) =>
+  cached(`ai-benchmarks:${model || ''}`,
+    () => request(`/ai-benchmarks${model ? `?model=${encodeURIComponent(model)}` : ''}`),
+    { ttl: BOARD_TTL_MS })
+export const benchmarksChanges = (runId, kind, beforeRun) => {
+  const q = new URLSearchParams()
+  if (runId) q.set('run_id', runId)
+  if (kind && kind !== 'all') q.set('kind', kind)
+  if (beforeRun) q.set('before_run', beforeRun)
+  return request(`/benchmarks/changes${q.toString() ? `?${q}` : ''}`)
+}
+export const benchmarksRuns = (before) => request(`/benchmarks/runs${before ? `?before=${encodeURIComponent(before)}` : ''}`)
+export const benchmarksRunLog = ({ runId, requestId }) =>
+  request(`/benchmarks/run-log?${runId ? `run_id=${encodeURIComponent(runId)}` : `request_id=${encodeURIComponent(requestId)}`}`)
+export const benchmarksUnmatched = () => request('/benchmarks/unmatched')
+export const decideBenchmarkName = ({ key, name, action, target }) =>
+  request('/benchmarks/names/decide', { method: 'POST', body: { key, name, action, target: target || null } })
+export const undoBenchmarkName = (key) => request('/benchmarks/names/undo', { method: 'POST', body: { key } })
+export const benchmarksReview = () => request('/benchmarks/review')
+export const startBenchmarksRun = ({ dryRun = false, useSnapshot = false } = {}) =>
+  request('/benchmarks/run', { method: 'POST', body: { dry_run: dryRun, use_snapshot: useSnapshot } })
+
 // HOW A POST IS MADE, AND THE WRITING PACKS (judge/blog_method.py, 2026-10-16).
 export const blogMethod = () => request('/blog-posts/method')
 export const blogPacks = () => request('/blog-posts/packs')
@@ -493,6 +521,13 @@ export const seoIndexable = () => cached('seo-indexable', () => request('/seo/in
  * blurb) — so the page can say what is missing instead of quietly showing a
  * shorter table.
  */
+/* --------------------------------------------------------------- guides */
+
+// THE VERIFIED-FACTS BOX inside a migration guide (2026-10-30,
+// judge/migrations.py `guide`): the registry's published facts for the guide's
+// two models and a checklist worded by contract/migrations.yaml. Public read.
+export const guideFacts = (slug) => request(`/guide-facts?slug=${encodeURIComponent(slug)}`)
+
 export const comparePage = (ids) =>
   request(`/compare?ids=${encodeURIComponent((ids || []).join(','))}`)
 
@@ -552,6 +587,10 @@ export const boardEntries = () => request('/admin/board-entries')
 //: the gap between them.
 export const discussedModels = () => request('/admin/discussed-models')
 
+// Models the board holds entries about but has not seated (#602), against the
+// seating bar. NOT cached: a run adds held entries and a seat files them.
+export const adminHeldModels = () => request('/admin/held-models')
+
 // Every prompt this project sends to a model, COMPOSED by the backend from the
 // real builders rather than transcribed. A copy in the frontend would drift the
 // first time somebody edits a prompt and not this file, and then the page would
@@ -609,12 +648,47 @@ export const adminLostClaims = () => request('/admin/runs/lost-claims')
 
 // Admin -> Scheduler: workflow setup, policy, due queue, switch and GitHub runs. Read-only.
 export const adminScheduler = () => request('/admin/scheduler')
+// Admin -> Scheduler, under the nightly fetches: the Actions that feed AI benchmarks and AI updates.
+export const adminSchedules = () => request('/admin/schedules')
+// Admin -> Board & content: what the public AI benchmarks and AI updates pages hold now.
+export const adminSections = () => request('/admin/sections')
 
 // Keywords dashboard: which SEO keywords sit on which public page, and where. A dated snapshot.
 // (Not `adminKeywords` above - that is the search terms each platform is sent.)
 export const adminSeoKeywords = () => request('/admin/seo-keywords')
 // Keyword plan: which keywords to use on which public page, and pages/tools worth adding.
 export const adminSeoKeywordPlan = () => request('/admin/seo-keyword-plan')
+// Price changelog: OpenRouter list-price changes the registry poll has seen, with fixed flags.
+export const adminPriceChanges = (days) => request(`/admin/price-changes${days ? `?days=${days}` : ''}`)
+// The News page: fresh AI headlines (judge/news.py). Signed in.
+export const newsFeed = (days) => request(`/news${days ? `?days=${days}` : ''}`)
+// One story's page: what its source gave, the models it names, related stories.
+export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
+/** One model's pulse for its page (judge/watch.py, GET /watch): new since the last look, weekly trend. */
+export const watchModels = (ids, since) => request(
+  `/watch?ids=${encodeURIComponent(ids.join(','))}${since ? `&since=${encodeURIComponent(since)}` : ''}`)
+/** The launch verdict for a model's page (judge/verdict.py, GET /verdict): listing words beside reports per window. */
+export const launchVerdict = (id) => request(`/verdict?id=${encodeURIComponent(id)}`)
+/** One week of a model's reports for its "What's new" trend (judge/verdict.py, GET /verdict/week). */
+export const launchVerdictWeek = (id, week) => request(`/verdict/week?${new URLSearchParams({ id, week })}`)
+
+// THE UPDATES PAGE (judge/updates.py, 2026-10-29). Signed in. An edit that
+// brings in a number the update's facts do not hold is a 409 whose
+// `body.detail.numbers` names them; send it again with `confirm` to save.
+export const updatesList = (days) => request(`/updates${days ? `?days=${days}` : ''}`)
+export const reviewUpdate = ({ key, action, style, headline, detail, confirm = false, days }) =>
+  request('/updates/review', {
+    method: 'POST',
+    body: { key, action, style: style ?? null, headline: headline ?? null, detail: detail ?? null, confirm, days: days || null },
+  })
+export const approveAllUpdates = (keys, days) =>
+  request('/updates/approve-all', { method: 'POST', body: { keys, days: days || null } })
+export const undoUpdate = (key) => request('/updates/undo', { method: 'POST', body: { key } })
+// The home page's updates strip: published updates only. A public read.
+export const publishedUpdates = () => cached('updates-published', () => request('/updates/published'), { ttl: BOARD_TTL_MS })
+// THE PUBLIC AI UPDATES PAGE (/ai-news-headlines, 2026-10-30): every update a person
+// approved in Manage, in its words as Manage shows them. A public read.
+export const approvedUpdates = () => cached('updates-approved', () => request('/updates/approved'), { ttl: BOARD_TTL_MS })
 
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`

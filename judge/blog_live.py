@@ -49,6 +49,7 @@ SOURCE_LABEL = {
     "blog": "Blog",
     "huggingface": "Hugging Face",
     "forum": "Developer forum",
+    "bluesky": "Bluesky",
 }
 
 _SLUG = "COALESCE(be.ruling_target, be.slug)"

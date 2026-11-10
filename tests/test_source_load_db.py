@@ -70,20 +70,25 @@ def test_every_source_row_lands(conn):
     """
     report = load_source_rows(conn)
     # 17 until the 2026-09-21 class A re-review seated nine more blogs; 26
-    # until ten newsletters were seated on 2026-10-26, 36 until the Google AI forum.
-    assert (report.inserted, report.updated, report.unchanged) == (37, 0, 0)
+    # until ten newsletters were seated on 2026-10-26, 36 until the Google AI forum,
+    # 37 until Bluesky, 38 until three *.substack.com feeds left 2026-10-30,
+    # 35 until 18 Substack feeds were seated 2026-11-05, 16 manual (#599, #601),
+    # 53 until three Medium publications were seated later that day (#603).
+    assert (report.inserted, report.updated, report.unchanged) == (56, 0, 0)
 
     rows = _rows(conn)
-    assert len(rows) == 37
+    assert len(rows) == 56
     # THE SET, which the docstring says is the assertion that matters. A count
     # passes on a file that lost `reddit` and gained two others; this does not.
     assert {r["platform"] for r in rows.values()} == {
         "github", "blog", "reddit", "arxiv", "x",
-        "devto", "hackernews", "huggingface", "forum",
+        "devto", "hackernews", "huggingface", "forum", "bluesky",
     }
     # 10 until the 2026-09-21 class A re-review, 19 until the 2026-10-26
-    # newsletters; 29 = 28 feeds + umbrella.
-    assert sum(1 for r in rows.values() if r["platform"] == "blog") == 29
+    # newsletters; 29 = 28 feeds + umbrella; 26 until 18 Substack feeds were
+    # seated 2026-11-05; 44 until three Medium feeds that day (#603).
+    # 47 = 46 feeds + umbrella.
+    assert sum(1 for r in rows.values() if r["platform"] == "blog") == 47
 
 
 def test_a_second_load_changes_nothing(conn):
@@ -96,7 +101,7 @@ def test_a_second_load_changes_nothing(conn):
     conn.commit()
 
     again = load_source_rows(conn)
-    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 37)
+    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 56)
     assert again.changed_columns == {}
 
 
@@ -109,7 +114,8 @@ def test_a_changed_ruling_shows_up_as_one_updated_row(conn):
     conn.commit()
 
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 36)
+    # One updated, the other 55 unchanged (52 until three Medium feeds, #603).
+    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 55)
     assert report.changed_columns == {"blog:hamel.dev": ["tos_notes"]}
 
 

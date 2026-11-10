@@ -17,6 +17,11 @@ dependencies = [
   "simhash>=2.1",          # long-form dedupe
   "feedparser>=6.0",       # blog RSS
   "boto3>=1.34",           # the shared raw store: an S3-compatible bucket (collect/rawstore_remote.py)
+  # The Benchmarks page's scraper (collect/benchmarks/, 2026-10-22) reads
+  # leaderboard tables. The headless browser for the boards built by JavaScript
+  # is the optional `benchmarks-browser` extra below.
+  "beautifulsoup4>=4.12",
+  "lxml>=5.0",
 
   # PINNED TO A MAJOR. Extraction output is load-bearing for quote
   # verification and offset stability: `thread_context.offset_map` maps
@@ -41,6 +46,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Only where a Benchmarks run happens (PR #573 review: as a hard dependency it
+# went into the backend image, which never runs one and has no browser).
+# Then: `playwright install --with-deps chromium`. Without it, the four browser
+# sources report "playwright is not installed" and the rest still run.
+benchmarks-browser = [
+  "playwright>=1.47",
+]
 dev = [
   "pytest>=8.2",
   "pytest-asyncio>=0.23",

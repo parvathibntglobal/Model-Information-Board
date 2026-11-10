@@ -122,6 +122,7 @@ _PLATFORM_LABELS = {
     "devto": "dev.to",
     "huggingface": "Hugging Face",
     "forum": "developer forums",
+    "bluesky": "Bluesky",
     "github": "GitHub",
     "x": "X",
     "reddit": "Reddit",
@@ -461,7 +462,15 @@ def evidence_feed_settings() -> dict:
                              "none, low, medium or high")
         return v
 
+    def dollars(b: dict, where: str, key: str) -> float:
+        v = b.get(key)
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 < v <= 50:
+            raise ValueError(f"contract/evidence_feed.yaml: {where}.{key} must be a dollar "
+                             "figure above 0 and at most 50")
+        return float(v)
+
     p, s, pg = block("paraphrase"), block("summary"), block("page")
+    rv, sc = block("revision"), block("schedule")
     words = s.get("quantity_words")
     if not isinstance(words, list) or not all(isinstance(w, str) and w.strip() for w in words):
         raise ValueError(
@@ -490,6 +499,18 @@ def evidence_feed_settings() -> dict:
             "attempts": count(s, "summary", "attempts", 1, 5),
             "max_copied_words": count(s, "summary", "max_copied_words", 2, 20),
             "quantity_words": [w.strip().lower() for w in words],
+        },
+        "revision": {
+            "prompt_version": text(rv, "revision", "prompt_version"),
+            "every_days": count(rv, "revision", "every_days", 1, 90),
+            "min_new_reports": count(rv, "revision", "min_new_reports", 1, 100),
+            "max_changes": count(rv, "revision", "max_changes", 1, 10),
+            "max_point_sentences": count(rv, "revision", "max_point_sentences", 1, 5),
+            "attempts": count(rv, "revision", "attempts", 1, 5),
+        },
+        "schedule": {
+            "nightly_feed_usd": dollars(sc, "schedule", "nightly_feed_usd"),
+            "weekly_summary_usd": dollars(sc, "schedule", "weekly_summary_usd"),
         },
         "page": {"per_page": count(pg, "page", "per_page", 5, 200)},
     }
@@ -564,7 +585,9 @@ def evidence_tier_rules() -> dict[str, str | dict[str, str]]:
 class TrackedModel:
     """One row of the registry page, and where its figures come from.
 
-    `registry` is a `model_version.canonical_id` or None. NONE IS A
+    `registry` names a `model_version` row by `canonical_id` OR by row `id`
+    (Claude Fable 5.1 uses its row id), so compare it with
+    `judge.tracked.tracked_keys`, never with one column. Or it is None. NONE IS A
     MEASUREMENT, not a gap: the OpenRouter poll has run and this model is not in
     it. Six of these are image models, five video, four speech, and
     `model_version.price_in` is USD per 1M TOKENS - so there is no number that
@@ -578,6 +601,11 @@ class TrackedModel:
     #: True when the row came from `auto_track` (judge/tracked.py) rather than
     #: from a hand-written entry in `contract/tracked_models.yaml`.
     auto: bool = False
+    #: The model's official Hugging Face repo(s), `owner/repo` (#602). Read by
+    #: the Hugging Face arm of `scripts/fetch_model.py`, which walks exactly
+    #: these instead of searching by name. EMPTY MEANS NOT CURATED, never "has
+    #: no repo": the name search then runs as it always has.
+    hf_repos: tuple[str, ...] = ()
 
 
 @lru_cache(maxsize=1)
@@ -599,6 +627,7 @@ def tracked_models() -> tuple[TrackedModel, ...]:
             registry=e.get("registry") or None,
             kind=e.get("kind", "text"),
             absent_because=e.get("absent_because"),
+            hf_repos=tuple(str(r) for r in e.get("hf_repos") or ()),
         )
         for e in raw["models"]
     )
@@ -651,6 +680,91 @@ def auto_track_rule() -> AutoTrackRule:
         include_pro_tier=need("include_pro_tier", bool),
         exclude_name_terms=tuple(str(t).strip().lower() for t in terms),
     )
+
+
+# ── the AGENT fetch's list (contract/tracked_agents.yaml, #609-#611) ─────────
+# A SEPARATE LIST from `tracked_models()`, read only by the agent fetch and by
+# `scripts/fetch_model.py` (for an agent's kind, search terms and subreddits).
+# Nothing that reads `tracked_models()` - the model fetch, the models page,
+# `auto_track` - can see an agent.
+
+class AgentConfigError(RuntimeError):
+    """`contract/tracked_agents.yaml` is missing a key or carries a wrong value."""
+
+
+@dataclass(frozen=True)
+class TrackedAgent:
+    name: str
+    registry: str
+    #: Extra SEARCH queries only - never aliases, so they decide nothing about
+    #: what a claim is filed under.
+    search_terms: tuple[str, ...]
+    #: The agent's own subreddits, lower-cased: a post there counts as naming it
+    #: for the comment-reading check. Empty means none known.
+    subreddits: frozenset[str]
+    kind: str = "agent"
+
+
+@dataclass(frozen=True)
+class AgentRunRule:
+    enabled: bool
+    run_spend_ceiling_usd: float
+
+
+@lru_cache(maxsize=1)
+def _agents_raw() -> dict:
+    raw = _read("tracked_agents.yaml")
+    if not isinstance(raw, dict):
+        raise AgentConfigError("contract/tracked_agents.yaml is not a mapping")
+    return raw
+
+
+@lru_cache(maxsize=1)
+def agent_run_rule() -> AgentRunRule:
+    """The agent run's settings. Every key required, nothing defaulted (rule 12)."""
+    run = _agents_raw().get("run")
+    if not isinstance(run, dict):
+        raise AgentConfigError("contract/tracked_agents.yaml has no `run` block")
+    enabled, ceiling = run.get("enabled"), run.get("run_spend_ceiling_usd")
+    if not isinstance(enabled, bool):
+        raise AgentConfigError(f"`run.enabled` must be true or false, not {enabled!r}")
+    if isinstance(ceiling, bool) or not isinstance(ceiling, (int, float)) or ceiling <= 0:
+        raise AgentConfigError(
+            f"`run.run_spend_ceiling_usd` must be a positive number, not {ceiling!r}")
+    return AgentRunRule(enabled=enabled, run_spend_ceiling_usd=float(ceiling))
+
+
+@lru_cache(maxsize=1)
+def tracked_agents() -> tuple[TrackedAgent, ...]:
+    """The agents the agent fetch searches for, in the file's order."""
+    agents = _agents_raw().get("agents")
+    if not isinstance(agents, list) or not agents:
+        raise AgentConfigError("contract/tracked_agents.yaml `agents` must be a non-empty list")
+    out, seen = [], set()
+    for i, e in enumerate(agents):
+        where = f"agents[{i}]"
+        for key in ("name", "registry", "search_terms", "subreddits"):
+            if key not in e:
+                raise AgentConfigError(f"{where}: `{key}` is required ([] for none)")
+        if not isinstance(e["name"], str) or not e["name"].strip():
+            raise AgentConfigError(f"{where}: `name` must be a non-empty string")
+        if not isinstance(e["registry"], str) or "/" not in e["registry"]:
+            raise AgentConfigError(
+                f"{where}: `registry` must be a canonical id like 'meta/meta-muse'")
+        for key in ("search_terms", "subreddits"):
+            values = e[key]
+            if not isinstance(values, list) or not all(isinstance(v, str) and v.strip()
+                                                       for v in values):
+                raise AgentConfigError(f"{where}: `{key}` must be a list of non-empty strings")
+        if e["registry"] in seen:
+            raise AgentConfigError(f"{where}: `{e['registry']}` is listed twice")
+        seen.add(e["registry"])
+        out.append(TrackedAgent(
+            name=e["name"].strip(), registry=e["registry"],
+            search_terms=tuple(t.strip().lower() for t in e["search_terms"]),
+            subreddits=frozenset(s.strip().lower() for s in e["subreddits"]),
+        ))
+    return tuple(out)
 
 
 #: The ceiling on headings per board section (2026-10-14). Kept in code, not the

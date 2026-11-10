@@ -93,8 +93,13 @@ CREATE TABLE model_version (
   -- models to track is a scoping decision — issue #33.
   last_swept_at               timestamptz,
 
+  -- `catalogued` (#616, 2026-11-10): a row seated from OpenRouter's CATALOGUE for a
+  -- model the poll never brings, so its evidence can be filed. Written only by
+  -- collect/ops/catalogue_seat.py, which never touches an existing row; the poll
+  -- upgrades it to `polled` if it later brings the model. Never tracked: `auto_track`
+  -- requires `polled`. Order: polled > seed / unpolled > catalogued.
   CONSTRAINT model_version_provenance_ck
-    CHECK (provenance IN ('seed', 'polled', 'unpolled'))
+    CHECK (provenance IN ('seed', 'polled', 'unpolled', 'catalogued'))
 );
 
 -- ============================================================================
@@ -223,6 +228,32 @@ CREATE TABLE model_catalog (
 );
 
 CREATE INDEX model_catalog_seen_idx ON model_catalog (last_seen_at);
+
+-- ── unit_price - a price in its own unit, for models not priced per token ──
+-- (2026-11-05, #602). NEVER compared with price_in / price_out, which are USD
+-- per 1M tokens: nothing that ranks or sorts token prices reads this table.
+-- Append-only snapshots; the reader takes the newest per model and source.
+-- Writer: scripts/load_litellm_prices.py. Reader: judge/catalog.py. Column
+-- meanings in migrations/20261105T1200_unit_price.sql.
+CREATE TABLE unit_price (
+  canonical_id  text NOT NULL,                    -- as model_catalog lists it
+  unit          text NOT NULL,                    -- second_of_video | image
+  direction     text NOT NULL,                    -- input | output
+  variant       text NOT NULL DEFAULT 'default',  -- the source's tier (720p, 4k ...) or default
+  usd           numeric(14,8) NOT NULL,           -- US dollars per one unit
+  source        text NOT NULL,                    -- litellm
+  source_key    text NOT NULL,                    -- the source's id, host-prefixed
+  source_url    text NOT NULL,
+  retrieved_at  timestamptz NOT NULL,
+  PRIMARY KEY (canonical_id, unit, direction, variant, source, retrieved_at),
+  CONSTRAINT unit_price_unit_ck CHECK (unit IN ('second_of_video', 'image')),
+  CONSTRAINT unit_price_direction_ck CHECK (direction IN ('input', 'output')),
+  CONSTRAINT unit_price_source_ck CHECK (source IN ('litellm')),
+  CONSTRAINT unit_price_usd_ck CHECK (usd >= 0)
+);
+
+CREATE INDEX unit_price_latest_idx ON unit_price (canonical_id, source, retrieved_at DESC);
+
 
 -- The measured GGUF files behind the local VRAM tool (2026-10-23,
 -- migrations/20261023T1000_local_model_file.sql says what each column means).
@@ -1989,13 +2020,546 @@ CREATE TABLE IF NOT EXISTS feed_summary (
   generated_at       timestamptz NOT NULL DEFAULT now(),
   reviewed_at        timestamptz,
   review_note        text,
+  -- A REVISION IS A SUMMARY WITH A PARENT (2026-10-27, PROPOSED,
+  -- 20261027T1200_feed_agent.sql): the approved summary it edits, and each
+  -- edited point - before, after, the reports it adds, why. A draft has neither.
+  parent_id          text REFERENCES feed_summary (id),
+  changes            jsonb,
   CONSTRAINT feed_summary_state_ck
     CHECK (state IN ('pending', 'approved', 'rejected', 'superseded')),
   -- A decision has a time; a pending draft has none.
   CONSTRAINT feed_summary_reviewed_ck CHECK ((state = 'pending') = (reviewed_at IS NULL)),
   CONSTRAINT feed_summary_paragraphs_ck
     CHECK (jsonb_typeof(paragraphs) = 'array' AND jsonb_array_length(paragraphs) > 0),
-  CONSTRAINT feed_summary_reports_ck CHECK (0 < reports_used AND reports_used <= reports_available)
+  CONSTRAINT feed_summary_reports_ck CHECK (0 < reports_used AND reports_used <= reports_available),
+  CONSTRAINT feed_summary_revision_ck CHECK ((parent_id IS NULL) = (changes IS NULL))
 );
 
 CREATE INDEX IF NOT EXISTS feed_summary_model_state_idx ON feed_summary (model_version_id, state, generated_at DESC);
+
+-- ── The Benchmarks page (2026-10-22) ─────────────────────────────────────────
+-- contract/migrations/20261022T1200_bench_tables.sql, which says what each table
+-- is for. Separate from the board: nothing here is evidence or read into a count.
+
+-- One execution of the pipeline: its trigger, status, report and log.
+CREATE TABLE IF NOT EXISTS bench_run (
+  id            bigserial PRIMARY KEY,
+  -- Set by the page's Run button so it can find the run it started.
+  request_id    text,
+  trigger       text NOT NULL,
+  scope         text NOT NULL,
+  dry_run       boolean NOT NULL DEFAULT false,
+  status        text NOT NULL DEFAULT 'running',
+  started_at    timestamptz NOT NULL DEFAULT now(),
+  finished_at   timestamptz,
+  -- Per-source results, totals and alerts (doc 14 "per-source run report", 20.5).
+  report        jsonb,
+  -- The run's whole terminal output at verbose level (doc 23.1 rule 7), so a
+  -- run can be read on the page after the log file is gone.
+  log_text      text,
+  CONSTRAINT bench_run_status_ck CHECK (status IN ('running', 'ok', 'partial', 'error', 'dry_run')),
+  CONSTRAINT bench_run_trigger_ck CHECK (trigger IN ('manual_run', 'page_button', 'scheduled')),
+  CONSTRAINT bench_run_finished_ck CHECK ((status = 'running') = (finished_at IS NULL))
+);
+CREATE INDEX IF NOT EXISTS bench_run_started_idx ON bench_run (started_at DESC);
+CREATE INDEX IF NOT EXISTS bench_run_request_idx ON bench_run (request_id);
+
+-- One line of the table: a seed model's base row, or a setting row under it
+-- ("GPT 6 Astra (max)") created the first time a source publishes that setting.
+CREATE TABLE IF NOT EXISTS bench_row (
+  -- "<registry id>" for the base row, "<registry id>:<setting>" for a setting row.
+  row_id             text PRIMARY KEY,
+  host_model_id      text NOT NULL,
+  setting            text,
+  -- A dated release of the model, as the source wrote the date ("(12/25)",
+  -- "0813", "2025-12-11"): its own row, never filled from the model's row.
+  dated              text,
+  display_label      text NOT NULL,
+  auto_created       boolean NOT NULL DEFAULT false,
+  first_seen_source  text,
+  first_seen_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS bench_row_model_idx ON bench_row (host_model_id);
+
+-- The saved copy of each fetched page or file, gzip-compressed, so a source
+-- can be re-parsed without fetching it again (doc 4, use_snapshot).
+CREATE TABLE IF NOT EXISTS bench_snapshot (
+  id            bigserial PRIMARY KEY,
+  run_id        bigint NOT NULL REFERENCES bench_run (id),
+  source_key    text NOT NULL,
+  method        text NOT NULL,
+  url           text NOT NULL,
+  final_url     text,
+  http_status   integer,
+  content_hash  text NOT NULL,
+  size_bytes    integer NOT NULL,
+  body_gz       bytea NOT NULL,
+  fetched_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS bench_snapshot_source_idx ON bench_snapshot (source_key, fetched_at DESC);
+
+-- One source's value for one cell. Several sources can hold one; merge picks
+-- which is published. Kept while the source lists it; `stale` once it stops.
+CREATE TABLE IF NOT EXISTS bench_observation (
+  source_key          text NOT NULL,
+  row_id              text NOT NULL REFERENCES bench_row (row_id),
+  benchmark_key       text NOT NULL,
+  metric              text NOT NULL,
+  value               double precision NOT NULL,
+  rank_high           integer,
+  tied                boolean NOT NULL DEFAULT false,
+  rank_out_of         integer,
+  rank_board          text,
+  -- The test setup ("mini-SWE-agent", "Claude Code"); NULL = none stated.
+  variant             text,
+  raw_text            text NOT NULL,
+  raw_model_name      text NOT NULL,
+  url                 text NOT NULL,
+  -- The source's own date for the value (a run date, an entry date), as given.
+  source_date         text,
+  setting_not_stated  boolean NOT NULL DEFAULT false,
+  priority            integer NOT NULL,
+  run_id              bigint NOT NULL REFERENCES bench_run (id),
+  collected_at        timestamptz NOT NULL,
+  stale               boolean NOT NULL DEFAULT false,
+  -- The pipeline that read it (collect/benchmarks/store.PIPELINE_VERSION): a
+  -- change to parsing, matching or merging is re-runnable and diffable.
+  pipeline_version    text NOT NULL,
+  PRIMARY KEY (source_key, row_id, benchmark_key, metric),
+  CONSTRAINT bench_observation_metric_ck CHECK (metric IN ('score', 'rank', 'rating'))
+);
+
+-- The published table: one value per (row, benchmark, metric), with where it came from.
+CREATE TABLE IF NOT EXISTS bench_cell (
+  row_id              text NOT NULL REFERENCES bench_row (row_id),
+  benchmark_key       text NOT NULL,
+  metric              text NOT NULL,
+  value               double precision NOT NULL,
+  rank_high           integer,
+  tied                boolean NOT NULL DEFAULT false,
+  rank_out_of         integer,
+  rank_board          text,
+  variant             text,
+  benchmark_version   text,
+  source_key          text NOT NULL,
+  url                 text NOT NULL,
+  raw_text            text NOT NULL,
+  raw_model_name      text NOT NULL,
+  source_date         text,
+  setting_not_stated  boolean NOT NULL DEFAULT false,
+  collected_at        timestamptz NOT NULL,
+  needs_review        boolean NOT NULL DEFAULT false,
+  run_id              bigint NOT NULL REFERENCES bench_run (id),
+  updated_at          timestamptz NOT NULL DEFAULT now(),
+  -- As on bench_observation: the pipeline that published it.
+  pipeline_version    text NOT NULL,
+  PRIMARY KEY (row_id, benchmark_key, metric),
+  CONSTRAINT bench_cell_metric_ck CHECK (metric IN ('score', 'rank', 'rating'))
+);
+
+-- The changelog: every cell added, changed or removed, by run. Never pruned.
+CREATE TABLE IF NOT EXISTS bench_change (
+  id               bigserial PRIMARY KEY,
+  run_id           bigint NOT NULL REFERENCES bench_run (id),
+  changed_at       timestamptz NOT NULL DEFAULT now(),
+  row_id           text NOT NULL,
+  benchmark_key    text,
+  metric           text,
+  -- added | updated | removed | source_changed | variant_added
+  change_type      text NOT NULL,
+  old_value        double precision,
+  new_value        double precision,
+  -- The values as the sources printed them ("88.0", "0.9577", "#3"): what the
+  -- page shows. old_value/new_value are the same values in one unit, for the checks.
+  old_raw          text,
+  new_raw          text,
+  old_source       text,
+  new_source       text,
+  rank_out_of_old  integer,
+  rank_out_of_new  integer,
+  -- The source's own date for the new value (an entry or release date), as
+  -- given; NULL when the source states none. Tells a fresh result from a backfill.
+  source_date      text,
+  -- better | worse | same, worked out from the column's direction (ranks: lower is better).
+  direction        text,
+  reason           text NOT NULL,
+  actor            text NOT NULL,
+  note             text,
+  needs_review     boolean NOT NULL DEFAULT false,
+  CONSTRAINT bench_change_type_ck CHECK (change_type IN
+    ('added', 'updated', 'removed', 'source_changed', 'variant_added')),
+  CONSTRAINT bench_change_direction_ck CHECK (direction IN ('better', 'worse', 'same'))
+);
+CREATE INDEX IF NOT EXISTS bench_change_run_idx ON bench_change (run_id);
+CREATE INDEX IF NOT EXISTS bench_change_at_idx ON bench_change (changed_at DESC);
+
+-- A flagged problem waiting for a person (doc 20.3).
+CREATE TABLE IF NOT EXISTS bench_review_item (
+  id             bigserial PRIMARY KEY,
+  run_id         bigint NOT NULL REFERENCES bench_run (id),
+  -- The check that raised it: disagreement, large_jump, ambiguous_duplicate, unknown_setting, ...
+  check_code     text NOT NULL,
+  severity       text NOT NULL DEFAULT 'flag',
+  source_key     text,
+  row_id         text,
+  benchmark_key  text,
+  metric         text,
+  message        text NOT NULL,
+  status         text NOT NULL DEFAULT 'open',
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  -- resolved: a later run that read the same source no longer raised it
+  -- (the name now matches, the duplicate is decided, ...). Set by the run.
+  CONSTRAINT bench_review_status_ck CHECK (status IN ('open', 'accepted', 'overridden', 'rejected', 'resolved')),
+  CONSTRAINT bench_review_severity_ck CHECK (severity IN ('flag', 'block'))
+);
+CREATE INDEX IF NOT EXISTS bench_review_status_idx ON bench_review_item (status, created_at DESC);
+
+-- Names a source lists that match no tracked model (doc 6, B6). The list
+-- a person reads to add an alias. No "closest model" is stored: a similar
+-- name is a different model (2026-10-22).
+CREATE TABLE IF NOT EXISTS bench_unmatched (
+  source_key        text NOT NULL,
+  raw_name          text NOT NULL,
+  -- unmatched | similar_to_registry | unknown_setting | setting_not_allowed
+  reason            text NOT NULL,
+  -- The name without a setting or date at its end ("GPT-5.2 (xhigh)" -> "GPT-5.2"),
+  -- and the same normalised: what a decision in bench_name_decision is keyed on.
+  base_name         text,
+  base_key          text,
+  -- reason similar_to_registry: the registry/tracked models this name is very
+  -- close to (same numbers, only filler words differ). Shown for a person to
+  -- confirm with Same model as; never matched automatically.
+  similar_to        text[],
+  seen_count        integer NOT NULL DEFAULT 1,
+  first_seen        timestamptz NOT NULL DEFAULT now(),
+  last_seen         timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (source_key, raw_name)
+);
+
+-- What a person decided about a name in the Unmatched list (Benchmarks page ->
+-- Unmatched names). The next run, or a re-parse of the saved pages, applies it:
+--   alias    the name is the same model as `target_model_id`, written differently
+--   new_row  the name is a model of its own: it gets a row below the tracked ones
+--   ignore   leave it out of the Unmatched list
+-- Stored here, not in YAML, so a decision needs no code change (2026-10-23).
+CREATE TABLE IF NOT EXISTS bench_name_decision (
+  -- The name normalised the way matching compares names (bench_unmatched.base_key).
+  name_key          text PRIMARY KEY,
+  name              text NOT NULL,
+  action            text NOT NULL,
+  target_model_id   text,
+  actor             text NOT NULL,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT bench_name_decision_action_ck CHECK (action IN ('alias', 'new_row', 'ignore')),
+  CONSTRAINT bench_name_decision_target_ck CHECK ((action = 'alias') = (target_model_id IS NOT NULL))
+);
+
+-- THE FEED AGENT'S MEMORY OF REFUSALS (2026-10-27, PROPOSED,
+-- 20261027T1200_feed_agent.sql). Nothing is scheduled until a refusal is
+-- remembered (Parvathi, #558): an unstored refusal is paid for again every run.
+-- A paraphrase the checks refused, for the excerpts it was asked from; asked
+-- again only when the excerpts or the prompt version change.
+CREATE TABLE IF NOT EXISTS feed_paraphrase_refusal (
+  document_id       text NOT NULL REFERENCES document (id),
+  model_version_id  text NOT NULL REFERENCES model_version (id),
+  prompt_version    text NOT NULL,
+  excerpts_digest   text NOT NULL,
+  reason            text NOT NULL,
+  run_id            text NOT NULL,
+  refused_at        timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (document_id, model_version_id, prompt_version)
+);
+
+-- Every summary attempt and its outcome: stored, refused, or no change. The
+-- weekly cadence counts from `attempted_at`; a model is not asked again until a
+-- report newer than `newest_report_at` arrives.
+CREATE TABLE IF NOT EXISTS feed_summary_attempt (
+  id                  bigserial PRIMARY KEY,
+  model_version_id    text NOT NULL REFERENCES model_version (id),
+  kind                text NOT NULL,
+  outcome             text NOT NULL,
+  parent_id           text REFERENCES feed_summary (id),
+  summary_id          text REFERENCES feed_summary (id),
+  newest_report_at    timestamptz,
+  reports_considered  integer NOT NULL,
+  detail              text,
+  prompt_version      text NOT NULL,
+  run_id              text NOT NULL,
+  attempted_at        timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT feed_summary_attempt_kind_ck CHECK (kind IN ('draft', 'revision')),
+  CONSTRAINT feed_summary_attempt_outcome_ck CHECK (outcome IN ('stored', 'refused', 'no_change')),
+  CONSTRAINT feed_summary_attempt_stored_ck CHECK ((outcome = 'stored') = (summary_id IS NOT NULL)),
+  CONSTRAINT feed_summary_attempt_parent_ck CHECK ((kind = 'revision') = (parent_id IS NOT NULL)),
+  CONSTRAINT feed_summary_attempt_reports_ck CHECK (reports_considered >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS feed_summary_attempt_model_idx ON feed_summary_attempt (model_version_id, attempted_at DESC);
+
+-- Fresh AI news for the News page, /news (2026-10-28, contract/news_sources.yaml;
+-- migrations/20261028T1200_news_item.sql says what each column means).
+-- WHO WRITES: collect/news/harvest.py. WHO READS: judge/news.py.
+-- Never evidence: no claim, quote or board entry is made from a news item.
+CREATE TABLE IF NOT EXISTS news_item (
+  id                text PRIMARY KEY,
+  slug              text NOT NULL UNIQUE,
+  source_key        text NOT NULL,
+  url               text NOT NULL,
+  title             text NOT NULL,
+  published_at      timestamptz,
+  summary           text,
+  summary_source    text,
+  feed_summary      text,
+  feed_summary_source text,
+  author            text,
+  categories        text[] NOT NULL DEFAULT '{}',
+  image_url         text,
+  image_source      text,
+  preview_checked_at timestamptz,
+  preview_outcome   text,
+  preview_attempts  integer NOT NULL DEFAULT 0,
+  preview_raw_ref   text,
+  llm_keywords      text[] NOT NULL DEFAULT '{}',
+  daily_count       integer,
+  raw_ref           text NOT NULL,
+  first_seen_at     timestamptz NOT NULL,
+  updated_at        timestamptz NOT NULL,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0),
+  CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%'),
+  CONSTRAINT news_item_image_source_ck CHECK (image_source IN ('feed', 'link_preview')),
+  CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL)),
+  CONSTRAINT news_item_summary_source_ck
+    CHECK (summary_source IN ('feed', 'feed_content', 'page_description')),
+  CONSTRAINT news_item_summary_has_source_ck CHECK ((summary IS NULL) = (summary_source IS NULL)),
+  CONSTRAINT news_item_feed_summary_source_ck CHECK (feed_summary_source IN ('feed', 'feed_content')),
+  CONSTRAINT news_item_feed_summary_has_source_ck
+    CHECK ((feed_summary IS NULL) = (feed_summary_source IS NULL)),
+  CONSTRAINT news_item_preview_outcome_ck CHECK (preview_outcome IN
+    ('found', 'none', 'robots_refused', 'robots_no_answer', 'not_https', 'not_html',
+     'http_error', 'error')),
+  CONSTRAINT news_item_preview_attempts_ck CHECK (preview_attempts >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS news_item_published_idx ON news_item (published_at DESC);
+CREATE INDEX IF NOT EXISTS news_item_seen_idx ON news_item (first_seen_at DESC);
+
+-- What each source's read did in each run (ok, refused by robots.txt, failed),
+-- so the page says a source is quiet or failing rather than show nothing.
+CREATE TABLE IF NOT EXISTS news_fetch (
+  run_id            text NOT NULL,
+  source_key        text NOT NULL,
+  fetched_at        timestamptz NOT NULL,
+  outcome           text NOT NULL,
+  http_status       integer,
+  detail            text,
+  items_seen        integer,
+  items_new         integer,
+  PRIMARY KEY (run_id, source_key),
+  CONSTRAINT news_fetch_outcome_ck
+    CHECK (outcome IN ('ok', 'robots_refused', 'http_error', 'error')),
+  CONSTRAINT news_fetch_detail_ck CHECK ((outcome = 'ok') = (detail IS NULL))
+);
+
+CREATE INDEX IF NOT EXISTS news_fetch_source_idx ON news_fetch (source_key, fetched_at DESC);
+
+-- THE UPDATES PAGE'S DECISIONS (2026-10-29, PROPOSED,
+-- 20261029T1200_update_review.sql). An update is rebuilt from the registry on
+-- every read and never stored; what a person decides about it is, by its key.
+-- No row: shown, not reviewed yet. declined hides it from News headlines.
+CREATE TABLE IF NOT EXISTS update_review (
+  update_key   text PRIMARY KEY,
+  kind         text NOT NULL,
+  status       text NOT NULL,
+  style        text,
+  headline     text,
+  detail       text,
+  reviewed_by  text NOT NULL,
+  reviewed_at  timestamptz NOT NULL DEFAULT now(),
+  home_headline      text,
+  home_detail        text,
+  home_published_by  text,
+  home_published_at  timestamptz,
+  CONSTRAINT update_review_home_ck CHECK (
+    (home_published_at IS NULL) = (home_headline IS NULL)
+    AND (home_published_at IS NULL) = (home_published_by IS NULL)),
+  CONSTRAINT update_review_status_ck CHECK (status IN ('pending', 'approved', 'declined')),
+  CONSTRAINT update_review_kind_ck CHECK (
+    kind IN ('launch', 'price_cut', 'price_rise', 'price_change', 'retiring', 'benchmark',
+      'roundup'))
+);
+
+-- Every change to a decision, so it can be undone; `before` is the row as it
+-- was (NULL: none). Undo puts it back and marks the change undone.
+CREATE TABLE IF NOT EXISTS update_review_log (
+  id           bigserial PRIMARY KEY,
+  update_key   text NOT NULL,
+  action       text NOT NULL,
+  before       jsonb,
+  after        jsonb,
+  acted_by     text NOT NULL,
+  acted_at     timestamptz NOT NULL DEFAULT now(),
+  undone_by    text,
+  undone_at    timestamptz,
+  CONSTRAINT update_review_log_action_ck CHECK (
+    action IN ('approve', 'decline', 'restore', 'style', 'edit', 'publish', 'unpublish')),
+  CONSTRAINT update_review_log_undone_ck CHECK ((undone_by IS NULL) = (undone_at IS NULL))
+);
+
+CREATE INDEX IF NOT EXISTS update_review_log_key_idx ON update_review_log (update_key, id DESC);
+
+CREATE INDEX IF NOT EXISTS update_review_home_idx ON update_review (home_published_at DESC)
+  WHERE home_published_at IS NOT NULL;
+
+-- OFFICIAL DEVELOPER SOURCES AND A VIDEO INDEX, for the Guides (2026-10-30,
+-- PROPOSED; contract/official_sources.yaml; migrations/
+-- 20261030T1500_official_sources.sql says what each column means).
+-- WHO WRITES: collect/official/harvest.py. WHO READS: generate_sample_blogs.py's
+-- guide packs (--guide-pack, phase B, 2026-10-30); which columns, in
+-- contract/column_states.yaml.
+-- Never evidence: no claim, quote or board entry is made from these rows.
+CREATE TABLE IF NOT EXISTS official_doc (
+  id                text PRIMARY KEY,
+  repo_key          text NOT NULL,
+  provider          text NOT NULL,
+  doc_kind          text NOT NULL,
+  path              text NOT NULL,
+  format            text NOT NULL,
+  blob_sha          text NOT NULL,
+  size_bytes        integer NOT NULL,
+  licence           text NOT NULL,
+  html_url          text NOT NULL,
+  title             text NOT NULL,
+  title_source      text NOT NULL,
+  raw_ref           text NOT NULL,
+  text_ref          text,
+  first_seen_at     timestamptz NOT NULL,
+  changed_at        timestamptz NOT NULL,
+  unlisted_at       timestamptz,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT official_doc_path_uq UNIQUE (repo_key, path),
+  CONSTRAINT official_doc_kind_ck CHECK (doc_kind IN ('cookbook', 'changelog', 'spec')),
+  CONSTRAINT official_doc_provider_ck
+    CHECK (provider IN ('openai', 'anthropic', 'google', 'mistral')),
+  CONSTRAINT official_doc_title_source_ck CHECK (title_source IN ('h1', 'file_name')),
+  CONSTRAINT official_doc_size_ck CHECK (size_bytes >= 0),
+  CONSTRAINT official_doc_spec_has_no_text_ck CHECK (doc_kind <> 'spec' OR text_ref IS NULL)
+);
+CREATE INDEX IF NOT EXISTS official_doc_repo_idx ON official_doc (repo_key, doc_kind);
+
+CREATE TABLE IF NOT EXISTS official_release (
+  id                text PRIMARY KEY,
+  repo_key          text NOT NULL,
+  provider          text NOT NULL,
+  tag               text NOT NULL,
+  name              text,
+  published_at      timestamptz,
+  html_url          text NOT NULL,
+  prerelease        boolean NOT NULL,
+  raw_ref           text NOT NULL,
+  first_seen_at     timestamptz NOT NULL,
+  changed_at        timestamptz NOT NULL,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT official_release_tag_uq UNIQUE (repo_key, tag),
+  CONSTRAINT official_release_provider_ck
+    CHECK (provider IN ('openai', 'anthropic', 'google', 'mistral'))
+);
+CREATE INDEX IF NOT EXISTS official_release_published_idx ON official_release (repo_key, published_at DESC);
+
+CREATE TABLE IF NOT EXISTS video_ref (
+  id                text PRIMARY KEY,
+  path              text NOT NULL UNIQUE,
+  blob_sha          text NOT NULL,
+  event             text NOT NULL,
+  event_year        integer NOT NULL,
+  pyvideo_id        bigint,
+  title             text NOT NULL,
+  recorded          date,
+  speakers          text[] NOT NULL DEFAULT '{}',
+  description       text,
+  video_urls        text[] NOT NULL DEFAULT '{}',
+  video_hosts       text[] NOT NULL DEFAULT '{}',
+  thumbnail_url     text,
+  duration_seconds  integer,
+  language          text,
+  copyright_text    text,
+  llm_terms         text[] NOT NULL DEFAULT '{}',
+  raw_ref           text NOT NULL,
+  first_seen_at     timestamptz NOT NULL,
+  changed_at        timestamptz NOT NULL,
+  unlisted_at       timestamptz,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT video_ref_hosts_match_urls_ck
+    CHECK (cardinality(video_urls) = cardinality(video_hosts)),
+  CONSTRAINT video_ref_duration_ck CHECK (duration_seconds IS NULL OR duration_seconds >= 0)
+);
+CREATE INDEX IF NOT EXISTS video_ref_event_idx ON video_ref (event_year DESC, event);
+
+CREATE TABLE IF NOT EXISTS official_fetch (
+  run_id                 text NOT NULL,
+  source_key             text NOT NULL,
+  fetched_at             timestamptz NOT NULL,
+  outcome                text NOT NULL,
+  http_status            integer,
+  detail                 text,
+  files_listed           integer NOT NULL,
+  files_unchanged        integer NOT NULL,
+  files_fetched          integer NOT NULL,
+  files_new              integer NOT NULL,
+  files_changed          integer NOT NULL,
+  files_deferred         integer NOT NULL,
+  files_too_large        integer NOT NULL,
+  files_failed           integer NOT NULL,
+  files_unlisted         integer NOT NULL,
+  talks_no_year          integer,
+  talks_before_min_year  integer,
+  talks_withheld         integer,
+  talks_withdrawn        integer,
+  releases_seen          integer,
+  releases_new           integer,
+  releases_changed       integer,
+  api_calls              integer NOT NULL,
+  rate_remaining         integer,
+  PRIMARY KEY (run_id, source_key),
+  CONSTRAINT official_fetch_outcome_ck CHECK (outcome IN
+    ('ok', 'partial', 'licence_mismatch', 'rate_limited', 'http_error', 'error')),
+  CONSTRAINT official_fetch_detail_ck CHECK ((outcome = 'ok') = (detail IS NULL))
+);
+CREATE INDEX IF NOT EXISTS official_fetch_source_idx ON official_fetch (source_key, fetched_at DESC);
+
+-- ── unresolved_entry - board entries whose model is not in the registry yet ──
+-- (2026-11-05, #602). Held, never shown: no page reads it. Filed onto the board
+-- by scripts/attribute_unresolved_entries.py once the model is seated, with no
+-- second model call. Writer: judge/pipeline.py. Column meanings in
+-- migrations/20261105T1300_unresolved_entry.sql.
+CREATE TABLE unresolved_entry (
+  id                 text PRIMARY KEY,
+  surface            text NOT NULL,
+  document_id        text NOT NULL REFERENCES document(id),
+  thread_context_id  text,
+  section            text NOT NULL,
+  slug               text NOT NULL,
+  name               text NOT NULL,
+  definition         text NOT NULL,
+  unit               text,
+  value_verbatim     text,
+  basis              text,
+  parent_proposed    text,
+  axis_verbatim      text,
+  subject_verbatim   text,
+  polarity           text NOT NULL,
+  quote              text NOT NULL,
+  proposer_model     text NOT NULL,
+  pipeline_version   text NOT NULL,
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  attributed_at      timestamptz,
+  attributed_to      text REFERENCES model_version(id),
+  attributed_entry   text,
+  CONSTRAINT unresolved_entry_section_ck
+    CHECK (section IN ('best_for', 'capability', 'metric')),
+  CONSTRAINT unresolved_entry_polarity_ck
+    CHECK (polarity IN ('positive', 'negative', 'neutral')),
+  CONSTRAINT unresolved_entry_attributed_ck
+    CHECK ((attributed_at IS NULL) = (attributed_to IS NULL))
+);
+
+CREATE INDEX unresolved_entry_held_idx ON unresolved_entry (surface) WHERE attributed_at IS NULL;

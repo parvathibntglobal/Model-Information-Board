@@ -36,7 +36,9 @@ def _fresh(monkeypatch):
 
 class TestTheList:
     def test_the_contract_withholds_reddit_arxiv_and_x(self):
-        assert set(publication.withheld_sources()) == {"reddit", "arxiv", "x"}
+        # Bluesky is HELD (2026-10-26, #567) until its contact address and
+        # request log are named in its ruling; it leaves this set then.
+        assert set(publication.withheld_sources()) == {"reddit", "arxiv", "x", "bluesky"}
 
     def test_an_empty_list_refuses_rather_than_publishing_everything(self, monkeypatch):
         import judge.config as config
@@ -68,8 +70,9 @@ class TestTheView:
 
     def test_the_notice_names_no_platform(self):
         note = publication.notice(4)
-        assert note == {"view": "public", "sources_withheld": 3, "entries": 4}
-        assert not any(p in str(note) for p in ("reddit", "arxiv", "x'"))
+        assert note == {"view": "public",
+                        "sources_withheld": len(publication.withheld_sources()), "entries": 4}
+        assert not any(p in str(note) for p in ("reddit", "arxiv", "x'", "bluesky"))
 
 
 @pytest.fixture

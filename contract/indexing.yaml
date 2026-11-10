@@ -125,3 +125,7 @@ never:
   - /board
   - /models
   - /seo-keywords
+  - /benchmarks
+  - /price-changes
+  - /news
+  - /updates

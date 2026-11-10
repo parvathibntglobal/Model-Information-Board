@@ -1,0 +1,71 @@
+name: News harvest
+
+# ADMIN -> NEWS (2026-10-28): fresh AI headlines from the feeds
+# contract/news_sources.yaml lists, every 6 hours. TechCrunch AI's feed holds
+# about 2 days, so a daily read would miss stories (probe, 2026-10-28).
+#
+# OFF UNTIL SWITCHED ON. Set the repository variable NEWS_HARVEST_ENABLED to 1
+# once 20261028T1200_news_item.sql has been applied to the shared database -
+# the writer must not reach a schema that does not have its tables (#260).
+#
+# Writes only `news_item` and `news_fetch`. No model call, no evidence.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: news-harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      USER_AGENT: ${{ vars.USER_AGENT || secrets.USER_AGENT }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RAW_STORE_PATH: raw_store
+      RAW_STORE_REMOTE: postgres
+      NEWS_HARVEST_ENABLED: ${{ vars.NEWS_HARVEST_ENABLED }}
+    steps:
+      - name: Is the news harvest switched on?
+        id: gate
+        run: |
+          if [ "$NEWS_HARVEST_ENABLED" != "1" ]; then
+            echo "::notice::NEWS_HARVEST_ENABLED is not 1 - nothing read or written. This is the switch, not a failure."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=""
+          [ -n "$DATABASE_URL" ] || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$USER_AGENT" ]   || missing="$missing USER_AGENT"
+          if [ -n "$missing" ]; then
+            echo "::error::news harvest switched on but not configured:$missing"
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v5
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - if: steps.gate.outputs.enabled == 'true'
+        run: pip install -e .
+
+      # One source failing turns this red and names it; the others are still
+      # read and stored (collect/news/harvest.py).
+      - name: Read every news source once
+        if: steps.gate.outputs.enabled == 'true'
+        run: python -m collect.cli news harvest

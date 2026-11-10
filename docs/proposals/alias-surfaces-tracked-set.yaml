@@ -828,6 +828,25 @@ proposals:
     variants:
       - gemini-3.1-flash-image        # mechanical, 0 documents
       - gemini3.1flashimage           # mechanical, 0 documents
+      # THE RULING ABOVE IS REVERSED, 2026-11-09 (Parvathi, #602). Declining the
+      # one name people use left this model with almost no evidence: a fetch of
+      # it that day stored 0 board entries about it from 155 verified claims,
+      # and 57 of 66 Reddit hits were kept without comments for not containing
+      # "gemini 3.1 flash image". The two risks named above, and how each is
+      # now held:
+      #   - Nano Banana 2 Lite: the claim resolver reads both halves of a
+      #     bracketed display name (ruled on #602, 2026-11-09), so "Nano Banana
+      #     2 Lite" is Lite's own name and wins the LONGEST match - a Lite claim
+      #     files under Lite (tests/test_bracketed_names_and_previews.py). The
+      #     search and the Reddit comment check may still bring Lite threads,
+      #     which costs a read, not an attribution.
+      #   - the preview row (`-preview`) carries no alias, and its display name
+      #     also reads "Nano Banana 2": the resolver gives a name shared by a
+      #     model and exactly its `-preview` row to the released model (same
+      #     ruling), so the two no longer cancel each other out.
+      - nano banana 2                 # hand-added 2026-11-09, the name people use
+      - nano-banana-2
+      - nanobanana2
     incomplete: [family_surface]
 
   - canonical_id: minimax/minimax-m3

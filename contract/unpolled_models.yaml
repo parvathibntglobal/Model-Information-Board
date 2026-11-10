@@ -56,7 +56,22 @@ models:
       # written both ways and the generator only sees the surface it is given,
       # so this is a person's spelling rather than a derivation — named here
       # because it is the single judgement call in the set.
-      variants: ['eleven-v3', 'elevenv3', 'elevenlabs v3']
+      variants: ['eleven-v3', 'elevenv3', 'elevenlabs v3', 'elevenlabs eleven v3']
+
+  # ELEVEN V3 CONVERSATIONAL: SEATED SO IT IS NOT FILED AS V3, NOT TRACKED.
+  # OpenRouter lists it as its own model (`elevenlabs/eleven-v3-conversational`,
+  # $40 per million characters against v3's $80, checked 2026-11-06). With only
+  # v3 seated, the resolver reads "Conversational" as a qualifier and files its
+  # claims and price on v3's row - the Seedance 2.0 Fast case again. Seated, it
+  # wins the longest match. Not in contract/tracked_models.yaml: no fetch of its own.
+  - canonical_id: 'elevenlabs/eleven-v3-conversational'
+    provider: 'elevenlabs'
+    family: 'eleven'
+    display_name: 'ElevenLabs v3 Conversational'
+    aliases:
+      surface: 'eleven v3 conversational'
+      variants: ['eleven-v3-conversational', 'elevenv3conversational',
+                 'elevenlabs v3 conversational']
 
   - canonical_id: 'qwen/qwen3.5-omni-flash'
     provider: 'qwen'
@@ -93,3 +108,81 @@ models:
     aliases:
       surface: 'jev 1.13'
       variants: ['jev-1.13', 'jev1.13', 'jev113']
+
+  # ── media models, added 2026-11-05 and 2026-11-06 at Parvathi's request ──
+  # UNPOLLED IN THE SAME SENSE AS THE THREE ABOVE: the registry poll reads
+  # OpenRouter's default (text) model list, and these are not on it. They ARE
+  # in `model_catalog`, which reads the same API with `output_modalities=all`
+  # (collect/registry/catalog.py) - so OpenRouter does carry them now, and the
+  # header's "OpenRouter lists no standalone image or speech vendor" is out of
+  # date. What still holds is the claim that matters here: the POLL will not
+  # bring them. If the poll is ever widened to all modalities, DELETE THESE -
+  # `_refuse_provenance_downgrade` will refuse this whole file once it owns them.
+  #
+  # NO PRICE, as above: a media model is priced per image, second or character,
+  # not per token, and those rates live in `unit_price`, not here.
+  #
+  # ALIASES. Each carries one DISTINCT surface besides the three renderings, so
+  # the harvest's first queries are not one phrase spelled three ways (the
+  # Qwen3.5 Omni Flash failure, see contract/tracked_models.yaml). Bare short
+  # forms were left out on purpose, because they name something else as often
+  # as the model: `sunburst` is a word, and `gpt image 2.5` is also 2.5 Flare.
+
+  # Asked for as "GPT Image 2.6 Sunburst" and seated as 2.5 Sunburst (listed
+  # 2026-09-09): the catalogue polled on 2026-11-04 had no 2.6. OpenAI released
+  # 2.6 Sunburst and Flare that day and OpenRouter listed them on 2026-11-05;
+  # Parvathi kept 2.5, which has the discussion. Claims naming 2.6 are held in
+  # `unresolved_entry` until 2.6 meets `seating_bar` (tracked_models.yaml).
+  - canonical_id: 'openai/gpt-image-2.5-sunburst'
+    provider: 'openai'
+    family: 'gpt-image'
+    display_name: 'GPT Image 2.5 Sunburst'
+    aliases:
+      surface: 'gpt image 2.5 sunburst'
+      # `image 2.5 sunburst`, not `gpt image sunburst`: a surface with no
+      # version token is filed at FAMILY specificity, and family rows are never
+      # searched (scripts/fetch_model.py `_variants_for`) - found on the local
+      # run, 2026-11-05, where the first two queries were one name spelled twice.
+      variants: ['gpt-image-2.5-sunburst', 'gptimage2.5sunburst', 'gptimage25sunburst',
+                 'image 2.5 sunburst']
+
+  # Seedance 2.0 (ByteDance), listed 2026-04-15, seated 2026-11-06 for the
+  # video slot (Parvathi). Measured on Hacker News, exact phrase, twelve months
+  # to 2026-11-06: "seedance 2.0" 123 hits.
+  #
+  # THIS CATALOGUE ROW IS THE PLAIN VERSION. Its variants are separate rows
+  # people name when they mean them (`seedance-2.0-fast`, `seedance-2.0-mini`:
+  # "seedance 2.0 mini" 4 hits, "seedance 2.0 pro" 3, "seedance 2.0 fast" 0),
+  # so one row never carries two tiers' prices. A bare "seedance 2" is LEFT
+  # OUT: it also names Seedance 2.5, a separate model (43 hits).
+  - canonical_id: 'bytedance/seedance-2.0'
+    provider: 'bytedance'
+    family: 'seedance'
+    display_name: 'Seedance 2.0'
+    aliases:
+      surface: 'seedance 2.0'
+      variants: ['seedance-2.0', 'seedance2.0', 'seedance20', 'bytedance seedance 2.0']
+
+  # SEEDANCE 2.0 FAST AND MINI: SEATED SO THEY ARE NOT FILED AS 2.0, NOT TRACKED.
+  # The claim resolver reads extra words after a name it holds as a qualifier
+  # ("Opus 4.8 (xhigh)" -> Opus 4.8), so with only 2.0 seated, "Seedance 2.0
+  # Fast+ | $0.20" was filed as Seedance 2.0 - a separately priced model's
+  # price on 2.0's row (first local run, 2026-11-06).
+  # Seated, they win the longest match and their claims land on their own rows.
+  # Neither is in contract/tracked_models.yaml: they have a registry identity
+  # so the board files them correctly, and no fetch of their own.
+  - canonical_id: 'bytedance/seedance-2.0-fast'
+    provider: 'bytedance'
+    family: 'seedance'
+    display_name: 'Seedance 2.0 Fast'
+    aliases:
+      surface: 'seedance 2.0 fast'
+      variants: ['seedance-2.0-fast', 'seedance2.0fast', 'seedance20fast']
+
+  - canonical_id: 'bytedance/seedance-2.0-mini'
+    provider: 'bytedance'
+    family: 'seedance'
+    display_name: 'Seedance 2.0 Mini'
+    aliases:
+      surface: 'seedance 2.0 mini'
+      variants: ['seedance-2.0-mini', 'seedance2.0mini', 'seedance20mini']

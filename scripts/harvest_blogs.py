@@ -46,6 +46,10 @@ from collect.http import build_client  # noqa: E402
 from collect.ids import stable_id  # noqa: E402
 from collect.ops.ledger import close_harvest_run, open_harvest_run  # noqa: E402
 from collect.rawstore import RawStore  # noqa: E402
+from collect.registry.assertions import (  # noqa: E402
+    TermsNotReviewedError,
+    assert_terms_reviewed,
+)
 from collect.registry.sources import load_sources  # noqa: E402
 
 #: `FeedRun.outcome` AND `harvest_run.outcome` ARE DIFFERENT VOCABULARIES, and
@@ -123,11 +127,42 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-new-articles", type=int, default=None,
                         help="request at most N articles per feed, newest first; the "
                              "rest are counted as deferred and asked for next run")
+    parser.add_argument("--scheduled", action="store_true",
+                        help="the nightly run: leave out feeds marked `harvest: manual`, "
+                             "before any request, and say which")
     args = parser.parse_args(argv)
 
     contract = load_sources()
     store = RawStore(Path(settings().raw_store_path))
-    feeds = contract.feeds[: args.limit] if args.limit else contract.feeds
+    feeds = contract.feeds
+
+    # ── A FEED HARVESTED BY HAND IS NOT THE SCHEDULED RUN'S TO TRY (2026-11-05) ──
+    #
+    # Substack refuses robots.txt to GitHub's runners at *.substack.com addresses,
+    # not on newsletters' own domains (#601 review) (`refused`, 401/403, every
+    # night 2026-10-26 to 10-29) and answers a developer machine normally, so its
+    # feeds are seated with `harvest: manual` (#599) and read from a developer
+    # machine. The nightly run passes --scheduled and leaves them out HERE,
+    # before any request - named and counted, never counted as refused, because
+    # the run did not try them. A run started by hand includes them.
+    # Any value other than `manual` is refused rather than read as "scheduled":
+    # a typo would otherwise put a manual feed back on the runner, where it is
+    # refused every night (rule 12).
+    unknown = sorted({str(f["harvest"]) for f in feeds if f.get("harvest") not in (None, "manual")})
+    if unknown:
+        print(f"contract/sources.yaml: unknown `harvest:` value(s) {', '.join(unknown)}; "
+              "the only one is `manual`", file=sys.stderr)
+        return 1
+    if args.scheduled:
+        by_hand = [f["id"] for f in feeds if f.get("harvest") == "manual"]
+        feeds = [f for f in feeds if f.get("harvest") != "manual"]
+        if by_hand:
+            print(f"  {len(by_hand)} feed(s) are harvested by hand and left to a manual run: "
+                  + ", ".join(by_hand))
+    # AFTER the filter, so `--scheduled --limit 5` tries five feeds, not five minus
+    # however many manual ones sat among the first five (#601 review).
+    if args.limit:
+        feeds = feeds[: args.limit]
 
     # ── OBSERVE BEFORE PREFLIGHT, BECAUSE PREFLIGHT ASKS WHAT WAS OBSERVED ──
     #
@@ -156,6 +191,31 @@ def main(argv: list[str] | None = None) -> int:
         for feed_id, observed in observations.items():
             print(f"  {feed_id:38s} robots={observed.get('robots_status')} "
                   f"feed_allowed={observed.get('feed_path_allowed')}")
+
+        # ── ONE FEED THAT FAILS ITS TERMS NO LONGER STOPS THE OTHERS ─────────
+        #
+        # The terms check ran over every feed at once, so one refusal refused
+        # the whole harvest. On 2026-10-27 the nightly run harvested NONE of 28
+        # feeds because Substack refused robots.txt to GitHub's runners for 3
+        # newsletters (`robots=refused`), which their ruling correctly does not
+        # accept. The check is unchanged and still applies to every feed that is
+        # harvested: it now runs per feed first, a feed that fails is named and
+        # left out, and the preflight runs over the rest. The exit code is 1 when
+        # any feed was refused, as for a feed with no `source` row below, so the
+        # nightly step still goes red and says which.
+        refused_terms: dict[str, str] = {}
+        for feed in feeds:
+            try:
+                assert_terms_reviewed([feed], rulings=contract.rulings,
+                                      observations=observations)
+            except TermsNotReviewedError as error:
+                lines = str(error).splitlines()
+                refused_terms[feed["id"]] = (
+                    "; ".join(x.strip(" -") for x in lines[1:]) or lines[0]
+                )
+        for feed_id, why in refused_terms.items():
+            print(f"  {feed_id:38s} REFUSED by its terms check, left out: {why}")
+        feeds = [f for f in feeds if f["id"] not in refused_terms]
 
         if not args.dry_run:
             from collect.db import connect
@@ -330,11 +390,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {key:20s} {value}")
     if args.dry_run:
         print("\ndry run: nothing was written")
+    if refused_terms:
+        print(f"\n{len(refused_terms)} feed(s) refused by their terms check and not "
+              "harvested: " + ", ".join(sorted(refused_terms)), file=sys.stderr)
     if unloaded:
         print(f"\n{len(unloaded)} feed(s) refused for want of a `source` row: "
               + ", ".join(sorted(unloaded)), file=sys.stderr)
-        return 1
-    return 0
+    return 1 if (unloaded or refused_terms) else 0
 
 
 if __name__ == "__main__":

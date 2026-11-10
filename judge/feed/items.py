@@ -87,6 +87,7 @@ PLATFORMS = {
     "blog": "Blog",
     "huggingface": "Hugging Face",
     "forum": "Developer forum",
+    "bluesky": "Bluesky",
     "arxiv": "arXiv",
     "reddit": "Reddit",
     "x": "X",
@@ -137,12 +138,9 @@ def _seated_names(conn) -> list[str]:
 
 def seated_keys(conn) -> set[str]:
     """Every id, in both shapes, of a model the models page lists."""
-    names = _seated_names(conn)
-    rows = conn.execute(
-        "SELECT id, canonical_id FROM model_version WHERE id = ANY(%s) OR canonical_id = ANY(%s)",
-        (names, names),
-    ).fetchall()
-    return {key for row in rows for key in row if key}
+    from judge.tracked import row_keys
+
+    return row_keys(conn, _seated_names(conn))
 
 
 def require_seated(conn, model: dict) -> None:
@@ -351,7 +349,6 @@ def feed(
     if page < 1:
         raise ValueError("page starts at 1")
 
-    terms = publication.evidence_feed_terms()
     model = resolve_model(conn, model_id)
     require_seated(conn, model)
     category_name = None
@@ -406,9 +403,7 @@ def feed(
         # LISTED EVEN WHEN NOT SHOWN (rule 4). If the terms ever stop the feed
         # drawing on a withheld source, its reports stay in the list - they are
         # in the count - and say why they carry no text, never just vanish.
-        hidden = (
-            publication.withheld_publicly(first["source"]) and not terms["may_draw_on_withheld"]
-        )
+        hidden = publication.feed_hides(first["source"])
         found = None if hidden else paraphrases.get(doc_id)
         current = found is not None and found[1] == excerpts_digest(full.get(doc_id, es))
         # ONE TAG PER NAME AS THE READER SEES IT. Two slugs, or two sections,

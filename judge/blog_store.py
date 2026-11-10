@@ -157,6 +157,15 @@ def published(conn) -> list[dict]:
                    for doc, at in rows])
 
 
+def approved_plan(conn, slug: str) -> tuple[str | None, str] | None:
+    """(plan_key, title) of one APPROVED post, or None when no approved post
+    has this slug. For a page part that depends on what the post is about
+    (judge/migrations.py `guide`)."""
+    rows = _read(conn, "SELECT plan_key, doc->>'title' FROM blog_post "
+                       "WHERE slug = %s AND state = 'approved'", (slug,))
+    return (rows[0][0], rows[0][1] or "") if rows else None
+
+
 def for_review(conn) -> list[dict]:
     """Every stored post, whatever its state, for Admin -> Blogs and its preview:
     the post itself plus its `review` state and the latest decision's reason."""

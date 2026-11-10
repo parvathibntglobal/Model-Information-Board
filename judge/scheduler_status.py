@@ -130,6 +130,10 @@ def setup() -> dict:
         "one_at_a_time": bool((wf.get("concurrency") or {}).get("group")),
         "secrets": [s for s in secrets if s != "GITHUB_TOKEN"],
         "variables": variables,
+        # EACH NIGHT'S STEPS, in order, by their names in the workflow file:
+        # the feeds, the forums, the media subreddit sweep, then the models.
+        "steps": [str(s["name"]) for s in (job.get("steps") or [])
+                  if isinstance(s, dict) and s.get("name")],
     }
 
 
@@ -209,8 +213,10 @@ def _gh(path: str) -> tuple[int, Any]:
     return out
 
 
-def runs(slug: str, limit: int = 15) -> dict:
-    code, body = _gh(f"/repos/{slug}/actions/workflows/{WORKFLOW_FILE}/runs?per_page={limit}")
+def runs(slug: str, limit: int = 15, *, workflow_file: str = WORKFLOW_FILE) -> dict:
+    """A workflow's recent runs; the nightly fetches' unless another file is
+    named (judge/sections_status.py reads the benchmarks and registry poll)."""
+    code, body = _gh(f"/repos/{slug}/actions/workflows/{workflow_file}/runs?per_page={limit}")
     if code != 200:
         return {"runs": [], "unreadable": f"GitHub answered {code or 'nothing'}"}
     out = []
@@ -231,16 +237,18 @@ def runs(slug: str, limit: int = 15) -> dict:
     return {"runs": out}
 
 
-def switch(slug: str) -> dict:
-    """The repository variable SCHEDULER_ENABLED: what actually turns the
-    nightly run on (the workflow's gate wants exactly `1`).
+def switch(slug: str, *, variable: str = "SCHEDULER_ENABLED") -> dict:
+    """The repository variable `variable` (SCHEDULER_ENABLED by default, or a
+    workflow's own, such as BENCHMARKS_SCHEDULE_ENABLED): what actually turns
+    that workflow's scheduled run on (its gate wants exactly `1`).
 
     SHOWN SINCE 2026-10-21 - it was left out on 2026-10-06 because reading it
     needs a token allowed to read repository variables. Where the backend's
     GITHUB_TOKEN is not, this says so: "unreadable" is never shown as "off"
     (rule 6), because a switch nobody can read is not a switch that is off.
+    `variable` names another workflow's switch (BENCHMARKS_SCHEDULE_ENABLED).
     """
-    code, body = _gh(f"/repos/{slug}/actions/variables/SCHEDULER_ENABLED")
+    code, body = _gh(f"/repos/{slug}/actions/variables/{variable}")
     if code == 200 and isinstance(body, dict):
         value = str(body.get("value") or "")
         return {"state": "on" if value.strip() == "1" else "off", "value": value,
@@ -252,7 +260,10 @@ def switch(slug: str) -> dict:
 #: The runner's summary comment (judge/scheduler.summarise_runs) starts with this.
 SUMMARY_HEAD = "**Scheduled fetch:"
 SUMMARY_COLUMNS = ("model", "outcome", "documents_appended", "threads_read",
-                   "quotes_verified", "unreadable_here", "harvest_errors")
+                   "quotes_verified", "unreadable_here", "harvest_errors",
+                   "e6_rejected", "e6_unvetted")
+#: Summaries posted before the two E6 columns (#608) have the first seven only.
+_E6_COLUMNS = 2
 
 
 def parse_summary(body: str) -> list[dict]:
@@ -261,8 +272,11 @@ def parse_summary(body: str) -> list[dict]:
     rows = []
     for line in (body or "").splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if not line.startswith("|") or len(cells) != len(SUMMARY_COLUMNS):
+        if not line.startswith("|") or len(cells) not in (
+                len(SUMMARY_COLUMNS), len(SUMMARY_COLUMNS) - _E6_COLUMNS):
             continue
+        # An older summary has no E6 cells: unreported, which is not zero.
+        cells += ["-"] * (len(SUMMARY_COLUMNS) - len(cells))
         if cells[0] in ("Model", "") or set(cells[0]) <= {"-"}:
             continue
         row = {}

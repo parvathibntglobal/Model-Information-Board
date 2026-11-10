@@ -654,6 +654,14 @@ class PipelineResult:
     #: a count says only that something went missing. Every one is a deliberate
     #: refusal to invent specificity; this is the record of what was refused.
     unresolved_surfaces: list[str] = field(default_factory=list)
+    #: Board entries of those claims HELD in `unresolved_entry` rather than lost
+    #: (#602): new rows this extraction wrote. Filed onto the board later by
+    #: `scripts/attribute_unresolved_entries.py` once the model is seated.
+    unresolved_held: int = 0
+    #: Why held entries could not be written this extraction, or None. An
+    #: unmigrated database (no `unresolved_entry` yet) is a state, not a crash:
+    #: the board rows are written first and stand (#612 review, point 1).
+    unresolved_held_unavailable: str | None = None
 
     #: document_id -> (trigger, detail) for documents E6 hard-rejected. Their
     #: claims are dropped rather than weighted; kept here so a rejection is
@@ -833,6 +841,8 @@ class Pipeline:
         rejected = self._vet(result, facts, release_dates or {})
 
         board_rows: list[dict] = []
+        #: Entries of verified claims whose model resolved to nothing (#602).
+        held_rows: list[dict] = []
         #: id -> what that write said, for THIS extraction only. A re-run over
         #: rows an earlier run wrote is still an upsert, as `claim_id_for`
         #: intends; only two claims from one read colliding is refused.
@@ -884,6 +894,31 @@ class Pipeline:
                     "claim references %r which resolves to no tracked model",
                     claim.model_ref.surface,
                 )
+                # HELD, NOT LOST (#602). The refusal above is unchanged - this
+                # claim is filed against no model - but the entries it proposed
+                # are kept with the name as written, so a model seated later can
+                # claim them without a second model call. A 2026-11-05 run lost
+                # 47 of 50 verified claims here, most about a model released the
+                # day before and not yet in the registry.
+                if claim.model_ref.surface:
+                    for _held in claim.board_entries:
+                        held_rows.append({
+                            "surface": claim.model_ref.surface,
+                            "document_id": quote.document_id,
+                            "thread_context_id": thread.thread_context_id,
+                            "section": _held.section,
+                            "slug": _held.slug,
+                            "name": _held.name,
+                            "definition": _held.definition,
+                            "unit": _held.unit,
+                            "value_verbatim": _held.value_verbatim,
+                            "basis": _held.basis,
+                            "parent_proposed": _held.parent,
+                            "axis_verbatim": _held.axis_verbatim,
+                            "subject_verbatim": _held.subject_verbatim,
+                            "polarity": claim.polarity,
+                            "quote": quote.display_text,
+                        })
                 continue
 
             if claim.has_numbers != document.has_numbers:
@@ -1169,6 +1204,26 @@ class Pipeline:
                     t["subject_quoted"], t["subject_absent"],
                     t["subject_unsupported"],
                 )
+
+        # HELD ROWS AFTER THE BOARD ROWS, IN THEIR OWN SAVEPOINT (#612 review,
+        # point 1). Written first and unguarded, an unmigrated database raised
+        # `UndefinedTable` and took the night's board rows with it, after the
+        # extraction had been paid for. Now a failure here rolls back only the
+        # held rows and is named on the E5 line; the board rows stand.
+        if held_rows:
+            import psycopg
+
+            from judge.store.unresolved_entries import hold_entries
+
+            try:
+                with self._conn.transaction():
+                    result.unresolved_held = hold_entries(
+                        self._conn, held_rows, proposer_model=self._extractor_model)
+            except psycopg.errors.UndefinedTable:
+                result.unresolved_held_unavailable = (
+                    "unresolved_entry does not exist on this database yet "
+                    "(migration 20261105T1300 not run)")
+                log.warning("held entries not written: %s", result.unresolved_held_unavailable)
 
         if result.stored_claim_ids and rebuild_cells:
             # Whole-table, for the reason in cells.py: a cell is a view of the
@@ -1457,6 +1512,27 @@ class Pipeline:
             #     retries included, which is exactly what `charge` is handed
             #     below - so there is nothing to difference and no order to get
             #     right.
+            #
+            # ⚠ ONE COST PER THREAD, USED BY THE LINE AND THE CHARGE (#381 step 2).
+            #   What OpenRouter billed for this thread's calls, when every call
+            #   reported a figure; None sends both to the token price, discount
+            #   included. Before 2026-11-09 the line priced tokens WITHOUT the
+            #   cache discount and the charge priced them WITH it, and the billed
+            #   figure was neither: 95 calls read $0.0670 / $0.0521 / $0.0646.
+            #   PARTLY BILLED (some calls reported, some did not) is priced
+            #   wholly from tokens - conservative - while `_record_spend` writes
+            #   the reporting calls' ledger rows at their billed figure. The
+            #   run's total and the ledger's then differ, so it is counted and
+            #   the cost line says "mixed" (#617 review, point 3).
+            billed_each = result.extraction.reported_costs
+            billed = (
+                sum(billed_each)
+                if billed_each and all(c is not None for c in billed_each)
+                else None
+            )
+            if (budget is not None and billed is None
+                    and any(c is not None for c in billed_each or [])):
+                budget.partly_billed += 1
             if on_result is not None:
                 thread_in = result.extraction.input_tokens
                 thread_out = result.extraction.output_tokens
@@ -1468,8 +1544,11 @@ class Pipeline:
                     # moves nothing. Without a Budget there is no pricing, so
                     # the cost is UNKNOWN rather than zero (rule 6).
                     usd=(
-                        budget.cost_of(thread_in or 0, thread_out or 0)
-                        if budget is not None else None
+                        billed if billed is not None
+                        else budget.cost_of(
+                            thread_in or 0, thread_out or 0,
+                            result.extraction.cached_input_tokens or 0,
+                        ) if budget is not None else None
                     ),
                     posts=len(thread.raw_text_of),
                     index=len(results) + 1,
@@ -1500,6 +1579,7 @@ class Pipeline:
                         output_tokens=result.extraction.output_tokens,
                         cached_input_tokens=result.extraction.cached_input_tokens,
                         model=self._extractor_model,
+                        reported_cost_usd=billed,
                     )
                 )
             # ⚠ NO SHARED-LEDGER WRITE HERE. `judge/extract/client.py` records

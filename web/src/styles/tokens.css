@@ -65,9 +65,72 @@
   --r-sharp: 2px;      /* Aerith-style technical elements — bars, stage rows */
   --r-pill: 9999px;
 
-  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px -12px rgba(0,0,0,.6);
-  --shadow-lift: 0 2px 4px rgba(0,0,0,.4), 0 20px 44px -16px rgba(0,0,0,.75);
+  /* THEME-AWARE HELPERS (2026-10-28). The dark design lights things with white
+     ("rgba(255,255,255,.05)") and lifts them with heavy black shadows. Both are
+     written through these so the light theme can turn them around:
+       --hi        the highlight colour as "r g b"   rgb(var(--hi) / .05)
+       --shadow-k  how strong black shadows are      rgb(0 0 0 / calc(.6 * var(--shadow-k)))
+       --on-accent text on an --accent fill (a primary button, a selected chip) */
+  --hi: 255 255 255;
+  --shadow-k: 1;
+  --on-accent: #0C0C0E;
+  --orb-1: #2b2b31;        /* the landing's lit orb, centre to edge */
+  --orb-2: #101013;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / calc(.4 * var(--shadow-k))), 0 8px 28px -12px rgb(0 0 0 / calc(.6 * var(--shadow-k)));
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / calc(.4 * var(--shadow-k))), 0 20px 44px -16px rgb(0 0 0 / calc(.75 * var(--shadow-k)));
 
   --maxw: 1240px;
   --ease: cubic-bezier(.22,.61,.36,1);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------
+   LIGHT THEME (2026-10-28, Parvathi). Chosen with the switch in the top bar,
+   or by the visitor's device until they choose (index.html sets data-theme
+   before the page paints). Same token names; only the values change.
+
+   CONTRAST, MEASURED (WCAG ratio, worst of the five light backgrounds):
+     --text 16.4   --text-2 6.5   --text-3 5.0
+     --pass 5.5    --warn 5.0     --fail 5.5    --info 5.6
+   and each state colour on its own -dim tint stays above 5.2. Every one
+   clears 4.5:1 for body text; --text-2 to --text-3 is a 1.3:1 step, the
+   same idea as the dark tiers.
+------------------------------------------------------------------- */
+:root[data-theme="light"]{
+  --bg:            #F7F7F8;
+  --bg-elev:       #FFFFFF;
+  --surface:       #FFFFFF;
+  --surface-2:     #F4F4F5;
+  --surface-3:     #EBEBEE;
+  --border:        #E4E4E7;
+  --border-soft:   #EDEDF0;
+  --border-strong: #D4D4D8;
+
+  --text:          #0C0C0E;
+  --text-2:        #52525B;
+  --text-3:        #63636B;
+  --accent:        #0C0C0E;
+
+  --pass:          #136B36;
+  --pass-dim:      #E3F5EA;
+  --warn:          #8A5A00;
+  --warn-dim:      #FBF1D6;
+  --fail:          #B42318;
+  --fail-dim:      #FDE7E2;
+  --info:          #1D4ED8;
+  --info-dim:      #E3ECFC;
+
+  --hi: 0 0 0;
+  --shadow-k: .35;
+  --on-accent: #FFFFFF;
+  --orb-1: #FFFFFF;
+  --orb-2: #E6E6EA;
+
+  /* The model-type colours (app.css .t-*): the dark set is pastel, too pale
+     to read on white. Each of these is 4.7:1 or more on every light surface. */
+  --ty-text: #2F5FD0; --ty-image: #A14716; --ty-video: #A23B92; --ty-speech: #1A6E50;
+  --ty-audio: #7A5D00; --ty-transcription: #1F6E9A; --ty-decisions: #6B46C1;
+
+  color-scheme: light;
 }

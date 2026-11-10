@@ -358,6 +358,11 @@ CLUSTERS = {
     "video-indexing": (MG, ["video-processing"]),
     "vision": (MG, ["carb-counting", "hazard-spotting"]),
     "voice-pipeline": (MG, ["voice-agent", "voice-input-tool"]),
+    # Added 2026-11-05 (#602, item 5): no rows carry it yet, so it is named
+    # from the slug. Speech-to-text has no job of its own otherwise, and a
+    # transcription report would be filed under `voice-pipeline`, which is the
+    # whole voice agent rather than the one task.
+    "transcription": (MG, []),
     # ── Cost, volume and local use ─────────────────────────────────────────
     "local-inference": (
         CV,

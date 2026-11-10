@@ -1,0 +1,85 @@
+# GitHub repos searched for a MEDIA model's issues, by the model's kind (#602).
+#
+# WHY. For a text model the Fetch button's GitHub arm searches each name
+# variant x six capability phrases (tool calling, summarisation, context) in
+# five text-agent repos (scripts/fetch_model.py SCOPE). For a media model that
+# is a search that cannot succeed: on 2026-11-05 it spent 30 calls on GPT Image
+# 2.5 Sunburst and found 0 documents. A media model is fetched instead with
+# each name variant ON ITS OWN, `"<variant>" type:issue repo:<repo>`, over the
+# repos below for its kind - the places its users report problems.
+#
+# SPEECH IS TWO LISTS (Anooj's review on #602). `speech` is text-to-speech and
+# `transcription` is speech-to-text, matching the tracked kinds: whisper repos
+# cannot mention a text-to-speech model, so searching them for MAI-Voice-2.1
+# would spend calls on a repo that cannot answer.
+#
+# THE CAP. `max_requests_per_fetch` bounds one fetch's calls here, under the
+# arm's existing 60-search guard and GitHub's 30 searches a minute. Requests
+# are planned variant by variant (distinct surfaces first), every repo for each,
+# and cut at the cap.
+#
+# CHECKED 2026-11-06, both halves of the check #602 asked for:
+#   - every repo exists under the name written here. One had moved:
+#     `comfyanonymous/ComfyUI` is now `Comfy-Org/ComfyUI`. GitHub's search does
+#     NOT follow a rename - the old name answered 422 - so a moved repo would
+#     have cost its query on every fetch, counted as an HTTP error;
+#   - `repo:` narrows: `"nano banana" type:issue` returned 6,227 issues, and
+#     the same with `repo:Comfy-Org/ComfyUI` returned 13. The qualifier is
+#     applied, not silently dropped (rule 6).
+#   Re-run the check when a repo is added here.
+#
+# CLOSED MODELS ARE SEARCHED TOO (2026-11-06, replacing #602's fix 5, which
+# would have skipped GitHub for them). Open-source repos rarely mention a closed
+# API model - MAI-Voice-2.1's 15 calls in text-to-speech repos found nothing -
+# but the repos that CALL those APIs do. Checked 2026-11-06, every repo below
+# exists under its name, and the closed models are in their issues:
+#   "gpt-image" 48 in vercel/ai, 20 in openai/openai-python;
+#   "nano banana" 14 in BerriAI/litellm, 3 in googleapis/python-genai;
+#   "kling" 21 in Comfy-Org/ComfyUI, 5 in BerriAI/litellm, 3 in vercel/ai;
+#   "elevenlabs" 23 in BerriAI/litellm.
+# So each kind lists its API-integration repos FIRST - the cap is spent repo by
+# repo for the first name before the second - then the open-model repos.
+#
+# Read by collect/adapters/queries/github.py `load_media_repos`, for
+# scripts/fetch_model.py `harvest_github`. Two eyes, like every file here.
+
+version: 1
+max_requests_per_fetch: 15
+
+kinds:
+  image:
+    - vercel/ai
+    - openai/openai-python
+    - BerriAI/litellm
+    - googleapis/python-genai
+    - Comfy-Org/ComfyUI
+    - huggingface/diffusers
+    - AUTOMATIC1111/stable-diffusion-webui
+    - lllyasviel/Fooocus
+    - ostris/ai-toolkit
+  video:
+    - Comfy-Org/ComfyUI
+    - BerriAI/litellm
+    - vercel/ai
+    - kijai/ComfyUI-WanVideoWrapper
+    - Wan-Video/Wan2.2
+    - huggingface/diffusers
+  speech:            # text-to-speech
+    - BerriAI/litellm
+    - elevenlabs/elevenlabs-js
+    - hexgrad/kokoro
+    - remsky/Kokoro-FastAPI
+    - fishaudio/fish-speech
+    - elevenlabs/elevenlabs-python
+  transcription:     # speech-to-text
+    - openai/whisper
+    - ggml-org/whisper.cpp
+    - SYSTRAN/faster-whisper
+  # PERSONAL AGENTS (#609-#611, 2026-11-10): EMPTY ON PURPOSE, so an agent's GitHub
+  # arm plans 0 requests instead of falling into the text path (name x capability
+  # phrase in text-agent repos), which is what this file exists to prevent. Most
+  # agents are closed products with no public tracker (Muse, Dots, Duet, Cowork,
+  # ChatGPT Work, Gemini Spark, Grok Bot, Siri AI). The open-source ones (OpenClaw,
+  # Hermes Agent) are added here once each repo's name is checked, as above - a
+  # renamed repo answers 422 on every fetch.
+  agent: []

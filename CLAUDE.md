@@ -574,6 +574,53 @@ These are the rules a helpful refactor will otherwise quietly violate.
 - One adapter class per platform. **Official APIs and public feeds only** -
   no scraping, no paywall circumvention, `robots.txt` respected, identifying
   User-Agent with a contact URL.
+
+  **The one exception: the Benchmarks page (`collect/benchmarks/`, Parvathi,
+  2026-10-22; recorded with PR #573).** Published benchmark leaderboards have no
+  API or feed, so their public pages are fetched - a plain request, or a headless
+  browser for a page built in JavaScript. Its conditions are not settings:
+
+  1. Only the pages listed in `contract/benchmarks/sources.yaml`, each with its
+     license and attribution; nothing is crawled or discovered.
+  2. `robots.txt` is always asked, for every page a redirect leads to as well;
+     there is no switch to turn it off. Identifying User-Agent, as above.
+  3. No logins, paywalls, API keys, language models or data-file downloads.
+  4. Values are shown exactly as the page prints them, with source, link and
+     date (rule 3 holds: ranks are the board's own - printed, its row order
+     checked against its scores, or its order by its own sort field).
+  5. Every distinct fetched page is kept, content-hash addressed, as the raw
+     payload; none is deleted.
+
+  **The second exception: link-preview pictures on the News page
+  (`collect/news/preview.py`, anooj, 2026-10-28).** Most news feeds carry no
+  picture (TechCrunch, AIWire, OpenAI, OpenRouter, Mistral, TLDR AI: none,
+  measured 2026-10-28) and TechCrunch's API is disallowed by its robots.txt, so
+  a story whose feed has no picture has its article page asked once for the
+  picture its publisher sets for link previews (`og:image`, else
+  `twitter:image`). Its conditions are not settings:
+
+  1. Only the article links the feeds in `contract/news_sources.yaml` give,
+     only for a story whose feed gave no picture, until it has a final answer:
+     a failure that may pass (a timeout, a 5xx, a 429, or a `robots.txt` that
+     gave no answer - only an actual refusal is final) is asked again, at most
+     `link_preview.max_attempts` times in all, and every outcome is recorded.
+     Nothing is crawled or discovered.
+  2. `robots.txt` is always asked, for every redirect hop too; identifying
+     User-Agent, as above.
+  3. Only the page's `<head>` is read - streamed, closed at `</head>`, https
+     only for the page and every hop. The article's text is never read, kept
+     or shown. Two things are taken from the `<head>`: the picture's LINK (the
+     picture is never downloaded - the reader's browser loads it from the
+     publisher, as a link preview does), and the page's own DESCRIPTION tag,
+     which becomes the story's brief when it is the fuller complete one
+     (`summary_source = 'page_description'`; the feed's brief is kept beside
+     it, in `feed_summary`).
+  4. No logins, paywalls, API keys or language models.
+  5. Each `<head>` read is kept in the raw store, content-hash addressed.
+
+  `link_preview.enabled: false` in the contract switches it off as a whole.
+
+  Anything else that wants to scrape needs its own recorded exception here.
 - The evidence pipeline is a **nightly batch**. The answer path reads a
   materialised view and never touches the pipeline.
 - Published content is *quote + attribution + link*, never full text.

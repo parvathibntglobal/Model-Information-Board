@@ -61,6 +61,10 @@ def _observations(source, *, allowed=True):
         # that has to know which platform it is describing drifts from the
         # adapters it is modelling.
         **_PLATFORM_OBSERVATIONS,
+        # A SEARCH ENDPOINT IS PER PLATFORM since Bluesky (2026-10-26) became
+        # the second source to rule on one: each observes its own, as recorded.
+        **({"search_endpoint": evidence["search_endpoint"]}
+           if evidence.get("search_endpoint") else {}),
     }
 
 
@@ -100,9 +104,9 @@ def test_every_declared_platform_is_the_expected_one():
     here means the preconditions hold, never that the terms were cleared.
     """
     ids = {s["id"] for s in _contract()["sources"]}
-    # The Google AI Developers Forum added 2026-10-26.
-    assert ids == {"github", "blogs", "reddit", "arxiv", "x",
-                   "devto", "hackernews", "huggingface", "forum:discuss.ai.google.dev"}
+    # The Google AI Developers Forum and Bluesky added 2026-10-26.
+    assert ids == {"github", "blogs", "reddit", "arxiv", "x", "devto", "hackernews",
+                   "huggingface", "forum:discuss.ai.google.dev", "bluesky"}
 
 
 def test_base_trust_matches_the_documented_weights():
@@ -134,6 +138,8 @@ def test_base_trust_matches_the_documented_weights():
       forum:discuss.ai.google.dev 0.80  added 2026-10-26: first-hand developer
                        reports, attributable to an account, often operational.
                        Level with Hacker News.
+      bluesky 0.60     added 2026-10-26: short social posts, with price and
+                       release bots among the engineers. Level with X.
     """
     trust = {s["id"]: s["base_trust"] for s in _contract()["sources"]}
     assert trust == {
@@ -146,6 +152,7 @@ def test_base_trust_matches_the_documented_weights():
         "x": 0.60,
         "devto": 0.60,
         "forum:discuss.ai.google.dev": 0.80,
+        "bluesky": 0.60,
     }
 
 
@@ -159,19 +166,25 @@ def test_every_source_and_feed_has_tos_notes():
 # ── the seeded feeds ──────────────────────────────────────────────────────
 
 
-def test_twenty_eight_feeds_are_seeded():
-    """Twenty-eight. Dropbox is dropped on data quality, not terms.
+def test_the_seeded_feeds_are_the_reviewed_list():
+    """Forty-three. Dropbox is dropped on data quality, not terms.
 
     Was nine until 2026-09-21, when the class A re-review seated three feeds
     proposed in #372 and six probed the same day; eighteen until 2026-10-26,
     when ten newsletters were seated (one class A, nine on the two newsletter
-    platform rulings). The count is asserted rather than derived because a
+    platform rulings); twenty-five from 2026-10-30, when three *.substack.com
+    feeds left because the runner is refused; forty-three from 2026-11-05, when
+    eighteen Substack newsletters (those three among them) were seated, the
+    sixteen on *.substack.com as `harvest: manual` (#599, #601); forty-six from
+    later that day, when three Medium publications were seated (#603). The count is
+    asserted rather than derived because a
     feed arriving without a re-reading of the ruling is exactly what the
     `RE-REVIEW REQUIRED BEFORE` clause exists to stop, and a test that counts
     whatever it finds would not notice.
     """
     feeds = _contract()["feeds"]
-    assert len(feeds) == 28
+    assert len(feeds) == 46
+    assert sum(1 for f in feeds if f.get("harvest") == "manual") == 16
     assert not any("dropbox" in f["id"] for f in feeds)
 
 
@@ -287,15 +300,21 @@ def test_the_two_classes_split_self_hosted_from_platform_hosted():
         ruling = contract.rulings[feed["terms_ruling"]]
         by_class.setdefault(ruling.klass, []).append(feed["id"])
 
+    # Two until three Medium publications were seated on 2026-11-05 (#603).
     assert sorted(by_class["B"]) == [
         "blog:medium.com/airbnb-engineering",
+        "blog:medium.com/google-developer-experts",
+        "blog:medium.com/mongodb",
+        "blog:medium.com/pinterest-engineering",
         "blog:netflixtechblog.com",
     ]
     # 7 until 2026-09-21, 16 after the re-review seated nine more, 17 when
     # Latent Space (self-hosted) was seated with the newsletters, 2026-10-26.
     assert len(by_class["A"]) == 17
-    # Class C: newsletter platforms, feed only. Eight on Substack, one on beehiiv.
-    assert len(by_class["C"]) == 9
+    # Class C: newsletter platforms, feed only. Twenty-three on Substack, one on
+    # beehiiv (eight on Substack until three *.substack.com feeds left
+    # 2026-10-30; five until eighteen were seated on 2026-11-05, #599 and #601).
+    assert len(by_class["C"]) == 24
 
 
 def test_the_medium_ruling_is_feed_only_and_says_why():
@@ -410,11 +429,17 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 37  # nine platforms + twenty-eight feeds. 12 before
+    assert len(rows) == 56  # ten platforms + forty-six feeds. 53 from
+    #                        2026-11-05 until three Medium publications were
+    #                        seated later that day (#603). 35 from
+    #                        2026-10-30 until eighteen Substack newsletters were
+    #                        seated on 2026-11-05; 38 until
+    #                        three *.substack.com feeds left 2026-10-30. 12 before
     #                        2026-09-08, 14 after arXiv and X, 17 after dev.to
     #                        / HN / Hugging Face, 26 after the 2026-09-21
     #                        class A re-review seated nine blogs, 36 after the
-    #                        2026-10-26 newsletters, 37 with the Google AI forum.
+    #                        2026-10-26 newsletters, 37 with the Google AI forum,
+    #                        38 with Bluesky.
     assert rows["blog:simonwillison.net"]["provenance"] == "seed"
     assert rows["blog:simonwillison.net"]["terms_checked_on"] == REVIEWED_ON
     assert all(row["base_trust"] for row in rows.values())

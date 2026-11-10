@@ -456,6 +456,7 @@ sections:
       - voice-pipeline
       - voice-agent
       - voice-input-tool
+      - transcription
     cost-volume-local:
       - local-inference
       - local-ai
@@ -1566,6 +1567,7 @@ sections:
     media-benchmarks:
       - mmmu-pro
       - audio-mc
+      - word-error-rate
       - chartography-no-tools
       - charxiv-rq
       - charxiv-rq-python

@@ -58,6 +58,52 @@ def test_a_summary_parses_and_a_dash_is_not_zero():
     assert rows[1]["documents_appended"] is None and rows[1]["harvest_errors"] == "reddit"
 
 
+def test_the_summary_carries_e6_and_an_older_one_still_parses():
+    """E6's counts reach the public summary (#608 review); a summary posted
+    before those columns reads them as unreported, never as zero."""
+    from judge import scheduler
+    from judge import scheduler_status as s
+
+    body = scheduler.summarise_runs([scheduler.safe_record({
+        "model": "Seedance 2.0", "status": "ok", "e6_rejected": 2, "e6_unvetted": 0,
+        "detail": "the database is 203.0.113.5"})])
+    assert "| E6 rejected | E6 unvetted |" in body and "203.0.113.5" not in body
+    new_row = s.parse_summary(body)[0]
+    assert new_row["e6_rejected"] == 2 and new_row["e6_unvetted"] == 0
+    old_row = s.parse_summary(SUMMARY)[0]
+    assert old_row["e6_rejected"] is None and old_row["e6_unvetted"] is None
+
+
+def test_the_media_line_counts_media_kinds_only():
+    """`decision` keeps the text arms and `agent` has its own run: neither is media
+    (#618/#620 review). An image run is."""
+    from judge import scheduler
+
+    runs = [{"model": "Jev 1.13", "status": "ok", "model_kind": "decision", "threads_read": 4},
+            {"model": "Claude Code", "status": "ok", "model_kind": "agent", "threads_read": 6},
+            {"model": "GPT Image 2.6", "status": "ok", "model_kind": "image", "threads_read": 3},
+            {"model": "GPT-6 Sol", "status": "ok", "model_kind": "text", "threads_read": 9}]
+    body = scheduler.summarise_runs([scheduler.safe_record(r) for r in runs])
+    assert "Media models: 1 of 4 run(s), 3 of 22 thread(s) read." in body
+    only_agents = scheduler.summarise_runs([scheduler.safe_record(runs[1])])
+    assert "Media models" not in only_agents
+
+
+def test_the_summary_media_kinds_follow_the_fetch_media_kinds():
+    """Every fetch media kind but `agent` (a search path, not a model kind) is
+    counted as media in the summary - a new one cannot go uncounted silently."""
+    import importlib.util
+    from pathlib import Path
+
+    from judge import scheduler
+
+    spec = importlib.util.spec_from_file_location(
+        "fetch_model_kinds", Path(__file__).resolve().parents[1] / "scripts" / "fetch_model.py")
+    fetch_model = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fetch_model)
+    assert fetch_model.MEDIA_KINDS - {"agent"} == scheduler.MEDIA_SUMMARY_KINDS
+
+
 def test_a_run_gets_the_summary_posted_while_it_ran_and_none_otherwise():
     from judge import scheduler_status as s
 

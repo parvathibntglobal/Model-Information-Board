@@ -739,3 +739,76 @@ def plan_searches(
                 by_key[key] = rendered
 
     return SearchPlan(requests=tuple(by_key.values()), refusals=tuple(refusals))
+
+
+# ── MEDIA MODELS: one name, one repo, no capability phrase (#602) ───────────
+
+
+class MediaReposError(ValueError):
+    """`contract/media_github_repos.yaml` is missing a key or has a wrong shape."""
+
+
+def load_media_repos(path=None) -> tuple[dict[str, tuple[str, ...]], int]:
+    """`({kind: (owner/repo, ...)}, max_requests_per_fetch)`, read strictly (rule 12)."""
+    from pathlib import Path
+
+    import yaml
+
+    p = path or Path(__file__).resolve().parents[3] / "contract" / "media_github_repos.yaml"
+    raw = yaml.safe_load(Path(p).read_text(encoding="utf-8")) or {}
+    kinds = raw.get("kinds")
+    cap = raw.get("max_requests_per_fetch")
+    if not isinstance(kinds, dict) or not isinstance(cap, int) or isinstance(cap, bool):
+        raise MediaReposError("media_github_repos.yaml needs `kinds:` and an integer "
+                              "`max_requests_per_fetch:`")
+    out = {}
+    for kind, repos in kinds.items():
+        repos = tuple(str(r) for r in repos or ())
+        bad = [r for r in repos if r.count("/") != 1]
+        if bad:
+            raise MediaReposError(f"{kind}: write repos as owner/repo, not {bad}")
+        out[str(kind)] = repos
+    return out, cap
+
+
+@dataclass(frozen=True)
+class MentionRequest(SearchRequest):
+    """A media model's search: the name in one repo, read for the name alone.
+
+    `sieve` passes a document that names the model in any of its spellings. The
+    capability sieve would fail every one - its topic group is empty here, and
+    `sieve` rightly treats an empty group as failed - while the QUERY is
+    already the exact name inside one repo, which is the narrowing.
+    """
+
+    def sieve(self, text: str):
+        from collect.adapters.queries.sieve import SieveVerdict, names_folded
+
+        for variant in self.variants:
+            if variant.subject and all(names_folded(t, text) for t in variant.subject):
+                return SieveVerdict(passed=True, subject=variant.subject)
+        return SieveVerdict(passed=False, missing=("subject",))
+
+
+def plan_mention_searches(aliases, repos, *, max_requests: int) -> SearchPlan:
+    """`"<alias>" type:issue repo:<repo>` for each alias then each repo, cut at the cap.
+
+    Aliases are taken in the order given - the fetch passes them distinct
+    surfaces first - so the cap spends itself on different names before it
+    spends itself on spellings of one.
+    """
+    forms = tuple(RenderedTerms(subject=(a,), topic=(), signal=(), alias=a) for a in aliases)
+    requests = []
+    seen = set()
+    for alias in aliases:
+        for repo in repos:
+            query = f'"{alias}" type:issue repo:{repo}'
+            if query in seen:
+                continue
+            seen.add(query)
+            if len(requests) >= max_requests:
+                break
+            requests.append(MentionRequest(
+                query=query, entry_label="media.mention", variants=forms,
+                narrowing_token=None, scope=(f"repo:{repo}",)))
+    return SearchPlan(requests=tuple(requests), refusals=())

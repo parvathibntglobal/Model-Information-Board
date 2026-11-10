@@ -137,7 +137,10 @@ def rank_due(
 _SAFE_FIELDS = (
     "status", "documents_appended", "harvest_arms_errored", "harvest_http_errors",
     "threads_read", "claims_verified", "claims_stored", "threads_unreadable_here",
-    "extract_skipped",
+    "extract_skipped", "model_kind", "arxiv_queries_throttled",
+    # E6, counted (#608 review): counts only, no host. Without them a run that
+    # sent every document back to `unvetted` looks like any other night.
+    "e6_rejected", "e6_unvetted",
 )
 
 
@@ -153,8 +156,9 @@ def summarise_runs(records: list[dict]) -> str:
     lines = [f"**Scheduled fetch: {len(records)} model(s).** "
              "Counts only; no quotes, authors or hosts.", "",
              "| Model | Outcome | Docs appended | Threads read "
-             "| Quotes verified (count) | Unreadable here | Harvest errors |",
-             "|---|---|---|---|---|---|---|"]
+             "| Quotes verified (count) | Unreadable here | Harvest errors "
+             "| E6 rejected | E6 unvetted |",
+             "|---|---|---|---|---|---|---|---|---|"]
 
     def cell(rec, key):
         v = rec.get(key)
@@ -179,18 +183,46 @@ def summarise_runs(records: list[dict]) -> str:
             # Threads this run could not read because their payloads are on
             # another machine: a reason for a low count, not a count of zero.
             f"| {cell(rec, 'threads_unreadable_here')} "
-            f"| {', '.join(errored) if errored else '-'} |"
+            f"| {', '.join(errored) if errored else '-'} "
+            # E6 LAST, so a summary posted before these columns still parses.
+            f"| {cell(rec, 'e6_rejected')} | {cell(rec, 'e6_unvetted')} |"
         )
     ok = sum(1 for r in records if r.get("status") == "ok")
     lines += ["", f"{ok} of {len(records)} ended ok. "
               "A model absent from this list was not due; a count shown as `-` was "
               "not reported by that run, which is not the same as zero."]
+    # MEDIA'S SHARE OF THE NIGHT (#602 item 8), in counts only - no spend on a
+    # public issue; each run's `cost_usd` stays in its own fetch log.
+    # ONLY THE KINDS THAT ARE MEDIA (#618/#620 review, Parvathi). It counted
+    # "everything but text and unknown", so `decision` (Jev, which keeps the text
+    # arms) and `agent` (its own nightly run) would both have read as media.
+    media = [r for r in records if r.get("model_kind") in MEDIA_SUMMARY_KINDS]
+    if media:
+        read = sum(int(r.get("threads_read") or 0) for r in media)
+        total = sum(int(r.get("threads_read") or 0) for r in records)
+        lines += ["", f"Media models: {len(media)} of {len(records)} run(s), "
+                  f"{read} of {total} thread(s) read."]
+    # THROTTLED, NOT FAILED (#602): a rate-limited arm is `skipped`, so the run
+    # stays green - and this line is what keeps the gap from going quiet.
+    throttled = [r for r in records if r.get("arxiv_queries_throttled")]
+    if throttled:
+        lines += ["", f"arXiv throttled (HTTP 429) on {len(throttled)} of {len(records)} "
+                  f"run(s): {sum(int(r['arxiv_queries_throttled']) for r in throttled)} "
+                  "query(ies) not run. Not a failure; the next fetch asks again."]
     collect_only = sum(1 for r in records if r.get("extract_skipped"))
     if collect_only:
         lines += ["", f"{collect_only} of {len(records)} ran collect-only "
                   "(`FETCH_EXTRACT=off`): harvested and stored, nothing extracted. "
                   "Their threads stay unread until an extracting run reads them."]
     return "\n".join(lines) + "\n"
+
+
+#: The kinds the summary's "Media models" line counts. Deliberately NOT
+#: scripts/fetch_model.py MEDIA_KINDS, which also holds `agent` because an agent
+#: takes the same name-only SEARCH path - a search choice, not a kind of model.
+#: tests/test_scheduler_status.py pins the two together, so a media kind added to
+#: the fetch cannot silently go uncounted here (rule 12).
+MEDIA_SUMMARY_KINDS = frozenset({"image", "video", "speech", "transcription"})
 
 
 def safe_record(end_record: dict) -> dict:

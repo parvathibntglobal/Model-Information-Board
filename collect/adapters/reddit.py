@@ -496,6 +496,19 @@ class RedditRun:
     #: docstring turned out to be — the header says 2,064,366s, i.e. 23.9 days.
     quota_reset_seconds: int | None = None
 
+    #: Posts Reddit flags `over_18`, left out before they become a document
+    #: (#602 item 9: the board is public and media venues carry adult posts).
+    #: Counted so the gap is one we caused and say so (rule 4). Two limits:
+    #: the flag is set by posters and moderators, so an unflagged adult post
+    #: still gets through; and the raw listing PAGE is still stored whole,
+    #: because the store keeps what the platform sent and `discovery_refs`
+    #: is provenance - only the post-level document is refused. That blob is
+    #: raw input, never published: no page reads the raw store, and a flagged
+    #: post never becomes a document, a thread or a claim. Editing the stored
+    #: page instead would break content addressing, which reprocessing relies
+    #: on (agreed on #602, item 5). It is not a leak.
+    adult_skipped: int = 0
+
     @property
     def items_fetched(self) -> int:
         return len(self.posts)
@@ -647,8 +660,12 @@ class RedditHarvester:
         clock=lambda: datetime.now(UTC),
         sleeper=time.sleep,
         host: str | None = None,
+        read_by: str = "harvest",
     ) -> None:
         """`host` defaults to `RAPIDAPI_HOST` and may be supplied explicitly.
+
+        `read_by` is who spent the request on the API usage panel: `harvest`
+        for a model's fetch, `sweep` for a subreddit listing (#602).
 
         THE DEFAULT IS THE PRODUCTION PATH AND THE ARGUMENT IS THE TESTABLE ONE.
         Reading the setting here and only here meant a test of the CONSTRUCTOR
@@ -679,6 +696,7 @@ class RedditHarvester:
                 "x-rapidapi-host header, so a full URL addresses no route."
             )
         self._base = f"https://{self._host}"
+        self._read_by = read_by
 
     # ── one page ─────────────────────────────────────────────────────────
 
@@ -713,6 +731,7 @@ class RedditHarvester:
             # WHOSE COUNTER, hashed on the way in and never stored. The reading
             # is of a SUBSCRIPTION; `machine` beside it is only who saw it.
             api_key=settings().rapidapi_key,
+            read_by=getattr(self, "_read_by", "harvest"),
             # WHEN THIS METER ROLLS. Parsed here since the first probe and
             # dropped at the writer until 2026-09-16, which is why the window
             # LENGTH is still unmeasured while the panel says "monthly".
@@ -736,15 +755,19 @@ class RedditHarvester:
             return None
         return response
 
-    def search(self, query: str, *, sort: str = "RELEVANCE") -> RedditRun:
-        """Page the search, storing each page before anything is sieved."""
+    def search(self, query: str, *, sort: str = "RELEVANCE",
+               pages: int | None = None) -> RedditRun:
+        """Page the search, storing each page before anything is sieved.
+
+        `pages` overrides the harvester's `max_pages` for this one call: the
+        media search sweep sets its own (`pages_per_query`)."""
         if sort not in SEARCH_SORTS:
             raise ValueError(f"sort must be one of {sorted(SEARCH_SORTS)}, got {sort!r}")
 
         run = RedditRun(query=query, sort=sort, started_at=self._clock())
         cursor: str | None = None
 
-        for page in range(1, self._max_pages + 1):
+        for page in range(1, (self._max_pages if pages is None else pages) + 1):
             params = {"query": query, "sort": sort}
             if cursor:
                 params["cursor"] = cursor
@@ -783,7 +806,7 @@ class RedditHarvester:
                 run.pages_stored += 1
 
             items = data.get("posts") or []
-            run.posts.extend(_post_of(item) for item in items)
+            run.posts.extend(_admit(items, run))
             cursor = data.get("cursor")
 
             if not items or not cursor:
@@ -862,7 +885,7 @@ class RedditHarvester:
                 run.pages_stored += 1
 
             items = data.get("posts") or []
-            run.posts.extend(_post_of(item) for item in items)
+            run.posts.extend(_admit(items, run))
             cursor = data.get("cursor")
 
             if not items or not cursor:
@@ -1123,6 +1146,22 @@ def _quota_sink(fetch: ThreadFetch):
             fetch.backoff_seconds = value
 
     return _Sink()
+
+
+def _admit(items: list[dict[str, Any]], run: RedditRun) -> list[RedditPost]:
+    """The page's posts minus the ones Reddit flags adult, counted on `run`.
+
+    Only an explicit `over_18: true` is skipped. A missing flag is not read as
+    "adult" or as "safe" - the post is kept, as it was before this filter.
+    """
+    out = []
+    for item in items:
+        post = _post_of(item)
+        if post.raw.get("over_18") is True:
+            run.adult_skipped += 1
+            continue
+        out.append(post)
+    return out
 
 
 def _post_of(item: dict[str, Any]) -> RedditPost:

@@ -955,20 +955,26 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
         print("contract/sources.yaml has no `reddit` source row", file=sys.stderr)
         return 2
 
-    block = contract.sweep_subreddits
+    # `--media` picks the MEDIA block (#602): its own population and budget.
+    block_key = "sweep_media_subreddits" if args.media else "sweep_subreddits"
+    block = getattr(contract, block_key)
     if not block:
         print(
-            "contract/sources.yaml has no `sweep_subreddits:` block, so there is "
+            f"contract/sources.yaml has no `{block_key}:` block, so there is "
             "nothing to list. Refusing rather than sweeping zero subreddits, which "
             "would report as nobody discussing anything.",
             file=sys.stderr,
         )
         return 2
 
-    members = list(block.get("members") or [])
+    # THE MEDIA BLOCK SEARCHES (2026-11-09): `queries` in place of `members`.
+    queries = [str(q["query"] if isinstance(q, dict) else q) for q in block.get("queries") or []]
+    unit = "query" if queries else "subreddit"
+    members = queries or list(block.get("members") or [])
     if args.subreddits:
         members = [m for m in members if m in set(args.subreddits)]
-    pages = args.pages if args.pages is not None else int(block["pages_per_subreddit"])
+    pages = args.pages if args.pages is not None else int(
+        block["pages_per_query" if queries else "pages_per_subreddit"])
     per_page = int(block["posts_per_page"])
     limit = args.limit_subreddits
 
@@ -976,11 +982,13 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
     population = pages * per_page
     print(
         f"plan     : {len(members) if limit is None else min(limit, len(members))} "
-        f"subreddit(s) x {pages} page(s) = {planned} request(s)"
+        f"{unit}(s) x {pages} page(s) = {planned} request(s)"
     )
     print(
-        f"           DENOMINATOR: the newest {population} posts per subreddit "
-        f"(sort {block.get('sort') or 'NEW'}). A RECENCY cut, not a ranking cut."
+        f"           DENOMINATOR: the newest {population} posts per {unit} "
+        f"(sort {block.get('sort') or 'NEW'}). "
+        + ("A recency cut within each query's matches." if queries
+           else "A RECENCY cut, not a ranking cut.")
     )
 
     if args.dry_run:
@@ -1000,6 +1008,7 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
             client=client,
             store=RawStore(Path(args.store)),
             max_pages=pages,
+            read_by="sweep",
         )
         print("gate     : reddit terms reviewed and re-verified, harvest permitted")
         report = sweep_reddit(
@@ -1011,6 +1020,7 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
             subreddits=args.subreddits,
             limit_subreddits=limit,
             provenance=LISTING,
+            block_key=block_key,
         )
     print(report.summary())
     return 0
@@ -1241,6 +1251,129 @@ def _report_seat(report: dict) -> int:
     return 0
 
 
+def _cmd_news_harvest(args: argparse.Namespace) -> int:
+    """Admin -> News: read every source in contract/news_sources.yaml once into
+    `news_item`, recording each read in `news_fetch` (collect/news/harvest.py).
+    Never evidence: no claim, quote or board entry. Gated."""
+    from collect.db import transaction
+    from collect.http import build_client
+    from collect.news.harvest import harvest
+
+    only = set(args.only.split(",")) if args.only else None
+    with transaction() as conn:
+        _gate(conn)
+        # Redirects are followed by hand so that every hop is asked of robots.txt.
+        with build_client(follow_redirects=False) as client:
+            counts = harvest(conn, client, only=only)
+    print(f"news: {counts['sources']} sources read, {counts['ok']} ok, {counts['refused']} "
+          f"refused by robots.txt, {counts['failed']} failed; {counts['items_new']} new items")
+    for key, what in counts["by_source"].items():
+        print(f"  {key:20s} {what}")
+    p = counts["previews"]
+    print(f"link-preview pictures: {p['asked']} articles asked, {p['found']} found, "
+          f"{p['none']} without one, {p['refused']} refused by robots.txt, {p['failed']} failed")
+    return 0 if counts["failed"] == 0 else 1
+
+
+def _cmd_official_harvest(args: argparse.Namespace) -> int:
+    """The Guides' raw material: official cookbooks, SDK releases and changelogs,
+    the OpenAI spec and PyVideo's talk index, through the GitHub REST API, into
+    official_doc / official_release / video_ref, each read recorded in
+    official_fetch (collect/official/harvest.py). Never evidence. Gated.
+
+    --dry-run makes every read (within the same caps) and writes nothing: no
+    database is opened, so no gate is needed and every file counts as new - and
+    is fetched, so a dry run costs as many API calls as a first real run."""
+    from collect.http import build_client
+    from collect.official.harvest import check_github_terms, harvest
+
+    # An empty or unknown key reaches harvest(), which refuses it (rule 12).
+    only = {k.strip() for k in args.only.split(",")} if args.only is not None else None
+    if args.dry_run:
+        with build_client() as client:
+            counts = harvest(None, client, terms=check_github_terms, only=only, dry_run=True)
+    else:
+        from collect.db import transaction
+
+        with transaction() as conn:
+            _gate(conn)
+            with build_client() as client:
+                counts = harvest(conn, client, terms=check_github_terms, only=only)
+    label = "DRY RUN, nothing written" if counts["dry_run"] else "written"
+    print(f"official: {len(counts['by_source'])} sources, {counts['api_calls']} API calls, "
+          f"{counts['rate_remaining']} core requests left ({label})")
+    if counts["stopped"]:
+        print(f"  STOPPED EARLY: {counts['stopped']}")
+    for key, t in counts["by_source"].items():
+        line = (f"  {key:22s} {t['outcome']:16s} listed {t['files_listed']}, unchanged "
+                f"{t['files_unchanged']}, fetched {t['files_fetched']} (new {t['files_new']}, "
+                f"changed {t['files_changed']}), deferred {t['files_deferred']}, too large "
+                f"{t['files_too_large']}, failed {t['files_failed']}, unlisted "
+                f"{t['files_unlisted']}")
+        if t["releases_seen"] is not None:
+            line += (f"; releases {t['releases_seen']} (new {t['releases_new']}, changed "
+                     f"{t['releases_changed']})")
+        if t["talks_withheld"] is not None:
+            line += (f"; talks: {t['talks_no_year']} in events with no year, "
+                     f"{t['talks_before_min_year']} before the minimum year, "
+                     f"{t['talks_withheld']} withheld and {t['talks_withdrawn']} withdrawn "
+                     f"under NO_PUBLISH.json")
+        print(line)
+        if t["detail"]:
+            print(f"  {'':22s} {t['detail']}")
+    return 0 if all(t["outcome"] == "ok" for t in counts["by_source"].values()) else 1
+
+
+def _cmd_benchmarks_run(args: argparse.Namespace) -> int:
+    """The Benchmarks page's scraper: fetch, parse, match, merge, publish.
+
+    Writes only `bench_` tables. Started by hand or by the page's Run button,
+    which spawns this command in the background (judge/benchmarks.py).
+    """
+    from collect.benchmarks.runner import RunRefused, run
+    from collect.db import connect
+
+    conn = connect()
+    try:
+        if not args.dry_run:
+            _gate(conn)
+        return run(
+            conn=conn, trigger=args.trigger, scope=args.scope, dry_run=args.dry_run,
+            use_snapshot=args.use_snapshot, verbosity=args.verbosity,
+            request_id=args.request_id, actor=args.actor,
+        )
+    except RunRefused as refusal:
+        print(str(refusal), file=sys.stderr)
+        return 2
+    finally:
+        conn.close()
+
+
+def _cmd_benchmarks_check(args: argparse.Namespace) -> int:
+    """L1: load and check contract/benchmarks/*.yaml. No database, no network."""
+    from collect.benchmarks.config import ConfigError, load
+    from collect.benchmarks.host_adapter import get_seed_models
+    from collect.benchmarks.match import Resolver
+
+    try:
+        config = load()
+    except ConfigError as error:
+        print("contract/benchmarks/ failed its checks:")
+        for problem in error.problems:
+            print(f"  - {problem}")
+        return 1
+    seeds = get_seed_models()
+    resolver = Resolver(config, seeds)
+    for problem in resolver.problems:
+        print(f"  - {problem}")
+    enabled = [s.key for s in config.sources if s.enabled]
+    disabled = [s.key for s in config.sources if not s.enabled]
+    print(f"ok: {len(config.benchmarks)} benchmarks in {len(config.categories)} sections, "
+          f"{len(enabled)} enabled sources ({', '.join(enabled)}), {len(disabled)} disabled, "
+          f"{len(seeds)} seed models")
+    return 1 if resolver.problems else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="collect", description=__doc__)
     sub = parser.add_subparsers(dest="group", required=True)
@@ -1262,6 +1395,50 @@ def build_parser() -> argparse.ArgumentParser:
     db_migrate = db_sub.add_parser(
         "migrate", help="apply pending migrations from contract/migrations/")
     db_migrate.set_defaults(func=_cmd_db_migrate)
+
+    benchmarks = sub.add_parser("benchmarks", help="the Benchmarks page's scraper (bench_ tables)")
+    bench_sub = benchmarks.add_subparsers(dest="command", required=True)
+    bench_run = bench_sub.add_parser("run", help="fetch every enabled source and publish the table")
+    bench_run.add_argument("--scope", default="all",
+                           help="all (default), one source key, or one benchmark key")
+    bench_run.add_argument("--dry-run", action="store_true",
+                           help="everything except publish: print what would change")
+    bench_run.add_argument("--use-snapshot", action="store_true",
+                           help="re-parse each source's last saved copy instead of fetching")
+    bench_run.add_argument("--verbosity", choices=("quiet", "normal", "verbose"), default=None,
+                           help="terminal detail (default from module_settings.yaml; "
+                                "the log file is always verbose)")
+    bench_run.add_argument("--trigger", default="manual_run",
+                           choices=("manual_run", "page_button", "scheduled"))
+    bench_run.add_argument("--request-id", default=None, help="set by the page's Run button")
+    bench_run.add_argument("--actor", default="admin")
+    bench_run.set_defaults(func=_cmd_benchmarks_run)
+    bench_check = bench_sub.add_parser(
+        "check", help="check contract/benchmarks/*.yaml (L1); no database")
+    bench_check.set_defaults(func=_cmd_benchmarks_check)
+
+    news = sub.add_parser("news", help="Admin -> News: fresh AI headlines (news_ tables)")
+    news_sub = news.add_subparsers(dest="command", required=True)
+    news_harvest = news_sub.add_parser(
+        "harvest", help="read every source in contract/news_sources.yaml once")
+    news_harvest.add_argument("--only", default=None,
+                              help="comma-separated source keys; default every source")
+    news_harvest.set_defaults(func=_cmd_news_harvest)
+
+    official = sub.add_parser(
+        "official", help="Guides: official cookbooks, SDK releases, the OpenAI spec, PyVideo")
+    official_sub = official.add_subparsers(dest="command", required=True)
+    official_harvest = official_sub.add_parser(
+        "harvest", help="read every source in contract/official_sources.yaml once")
+    official_harvest.add_argument("--only", default=None,
+                                  help="comma-separated source keys; default every source")
+    official_harvest.add_argument("--dry-run", action="store_true",
+                                  help="read and report; write nothing, open no database. "
+                                       "NOT A QUICK CHECK: nothing stored means every file is "
+                                       "fetched - 2,529 API calls on 2026-10-30 for every "
+                                       "source, on the token the evidence harvest shares. "
+                                       "Use --only to bound it")
+    official_harvest.set_defaults(func=_cmd_official_harvest)
 
     registry = sub.add_parser("registry", help="the model registry")
     reg_sub = registry.add_subparsers(dest="command", required=True)
@@ -1352,6 +1529,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="restrict to these contracted subreddits",
     )
     ops_sweep_reddit.add_argument("--cap", type=int, default=None)
+    ops_sweep_reddit.add_argument(
+        "--media", action="store_true",
+        help="run the media search sweep, `sweep_media_subreddits` (the brand "
+             "searches listed there), instead of the text block (#602). "
+             "Runs weekly in scheduled-fetches.yml; by hand for a local run")
     ops_sweep_reddit.add_argument("--dry-run", action="store_true")
     ops_sweep_reddit.set_defaults(func=_cmd_ops_sweep_reddit)
 

@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0C0C0E" />
+    <!-- THEME, BEFORE THE FIRST PAINT (2026-10-28). The visitor's choice from
+         the switch in the top bar (localStorage "mb-theme"), else their
+         device's setting. Here, not in React, so a light page never flashes
+         dark while the app loads. Storage can be blocked: the device's
+         setting still applies. -->
+    <script>
+      (function () {
+        var t = null
+        try { t = localStorage.getItem('mb-theme') } catch (e) { /* blocked: use the device */ }
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        }
+        document.documentElement.setAttribute('data-theme', t)
+        var meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.setAttribute('content', t === 'light' ? '#F7F7F8' : '#0C0C0E')
+      })()
+    </script>
 
     <!-- SEARCH. The title and description lead with the searches the landing
          targets: "best AI model" and "AI model comparison" (Keyword Planner,

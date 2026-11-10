@@ -1,0 +1,118 @@
+# The agents the AGENT fetch searches for every night (#609-#611, anooj 2026-11-09).
+#
+# A SEPARATE LIST, A SEPARATE FETCH. Read by `scripts/run_scheduled_fetches.py
+# --list agents` in `.github/workflows/agent-fetches.yml` (15:00 UTC), never by
+# the model fetch: `judge/tracked.py all_tracked` reads `tracked_models.yaml`
+# only, so nothing here reaches the model fetch, the models page or
+# `auto_track` (whose providers come from `tracked_models.yaml` - which is what
+# keeps Meta's polled models from being auto-admitted because Muse is tracked).
+# `scripts/fetch_model.py` reads it to give an agent the `agent` kind (the
+# name-only media search path), its search terms and its subreddits.
+#
+# Every agent's registry row is in `agent_models.yaml`.
+#
+# RUN SETTINGS (every key required; a missing one raises - rule 12)
+#   enabled                false stops the agent fetch without deleting the list
+#   run_spend_ceiling_usd  the agent run stops LAUNCHING once this much extraction
+#                          has been spent SINCE THE RUN STARTED (spend_ledger's
+#                          team-wide total, less its value at the start). That
+#                          includes anything else spent meanwhile - an Admin
+#                          fetch, the Ask box - which errs on the safe side. It
+#                          is checked before each launch, so the fetch running
+#                          when it is crossed can pass it by its own cost. The daily cap is ONE team-wide figure
+#                          (EXTRACTION_DAILY_BUDGET_USD) shared with the model
+#                          fetch at 20:30 UTC, so the agents must not use it up
+#                          first. Test B's first fetches of nine agents cost $0.12
+#                          in all (2026-11-09, tokens x rate - the basis before
+#                          #617; the ledger now records OpenRouter's billed
+#                          figure, about 19% higher on one measured fetch) - a first night with
+#                          backlogs is the expensive one. Claude Code's backlog is the
+#                          largest by far (1,208 HN stories since 2026-08-01), so
+#                          its first nights will meet this ceiling; the run stops
+#                          launching and the rest waits for the next night.
+#
+# PER AGENT
+#   name           shown in the run summary
+#   registry       its `agent_models.yaml` canonical id
+#   search_terms   EXTRA SEARCH QUERIES, never aliases: they widen what is
+#                  searched and do not decide what a claim is filed under. A hit
+#                  that names only a bare short name ("Muse") is held, counted
+#                  and not filed (#610, decision 4). From the probe on #611.
+#   subreddits     the agent's OWN subreddits: a post there counts as naming the
+#                  agent for the comment-reading check, so its comments are read.
+#                  Only a subreddit test B found to be about that agent alone
+#                  (r/openclaw 25 of OpenClaw's Reddit entries, r/GrokBot 10 of
+#                  Grok Bot's 17); shared ones (r/AskClaw, r/ChatGPTPro) are not.
+#                  [] means none known, not "none exist".
+version: 1
+
+run:
+  enabled: true
+  run_spend_ceiling_usd: 0.40
+
+agents:
+  - name: Meta Muse
+    registry: meta/meta-muse
+    # 35 of 50 Bluesky, 19 of 38 Reddit and 16 of 22 X results were the bare
+    # "Muse" beside WhatsApp - first-hand reports the compound form misses.
+    search_terms: ['muse whatsapp']
+    subreddits: []
+  - name: OpenAI Dots
+    registry: openai/openai-dots
+    # `dots chatgpt` sorted only 3 of 40 on Hacker News: too noisy to search.
+    search_terms: []
+    subreddits: []
+  - name: Claude Duet
+    registry: anthropic/claude-duet
+    search_terms: []          # `anthropic duet`: 0 on HN, 3 on Reddit - dropped
+    subreddits: []
+  - name: Claude Cowork
+    registry: anthropic/claude-cowork
+    search_terms: []          # bare `cowork` is stemmed to "coworkers" - dropped
+    subreddits: []
+  - name: Grok Bot
+    registry: xai/grok-bot
+    # A Reddit post about someone's "Grok Bots" setup missed `grok bot` (#611).
+    search_terms: ['grok bots']
+    subreddits: [GrokBot]
+  - name: ChatGPT Work
+    registry: openai/chatgpt-work
+    search_terms: []
+    subreddits: []
+  - name: Gemini Spark
+    registry: google/gemini-spark
+    search_terms: []
+    subreddits: []
+  - name: OpenClaw
+    registry: openclaw/openclaw
+    search_terms: []
+    subreddits: [openclaw]
+  - name: Hermes Agent
+    registry: nousresearch/hermes-agent
+    search_terms: ['hermes agents']
+    subreddits: []
+  # CODING AGENTS (2026-11-10). Counts and the name rulings: agent_models.yaml.
+  # Subreddits are [] until a probe shows one is about that agent alone, as
+  # test B did for r/openclaw and r/GrokBot.
+  - name: Claude Code
+    registry: anthropic/claude-code
+    search_terms: []
+    subreddits: []
+  - name: OpenAI Codex
+    registry: openai/openai-codex
+    # Most people write bare "Codex", which is held (agent_models.yaml); this
+    # widens the search. A hit naming only bare "Codex" is counted, not filed.
+    search_terms: ['codex cli']
+    subreddits: []
+  - name: Gemini CLI
+    registry: google/gemini-cli
+    search_terms: []
+    subreddits: []
+  - name: GitHub Copilot
+    registry: github/github-copilot
+    search_terms: []
+    subreddits: []
+  - name: Google Antigravity
+    registry: google/google-antigravity
+    search_terms: []
+    subreddits: []

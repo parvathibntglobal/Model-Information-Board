@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Polarity = Literal["positive", "negative", "neutral"]
 Severity = Literal["mild", "clear", "severe"]
@@ -569,6 +569,10 @@ class ExtractedClaim(BaseModel):
     given — NOT into the raw source document. Resolution to the source happens
     in verify.py, step 2.
     """
+
+    #: `model_` FIELD NAMES ARE OURS (2026-11-05): pydantic 2 reserves the prefix
+    #: for its own methods and warns at startup; none of ours collides with one.
+    model_config = ConfigDict(protected_namespaces=())
 
     source_comment_id: str = Field(
         description="which comment inside the flattened thread this came from"

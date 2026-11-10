@@ -44,6 +44,7 @@ NO MODEL PARTICIPATES.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -74,7 +75,7 @@ LISTING_WITHOUT_LEDGER = "not_recorded"
 
 @dataclass
 class SubredditSweep:
-    """One subreddit's share of a listing sweep."""
+    """One subreddit's (or, for the media search sweep, one query's) share."""
 
     name: str
     requests: int = 0
@@ -136,6 +137,40 @@ class RedditSweepReport:
     http_errors: int = 0
     rate_limited: int = 0
 
+    #: Posts the listings carried with Reddit's `over_18` flag, skipped before
+    #: they became documents (#602 item 9). Not in `candidates`.
+    adult_skipped: int = 0
+    #: "subreddit" for a listing, "query" for the media search sweep: what one
+    #: entry in `subreddits` and `unreached` names, so the summary says so.
+    unit: str = "subreddit"
+    #: Search hits in a subreddit `sweep_subreddits.search_excluded` names,
+    #: skipped before storing - the per-model search's rule, counted.
+    search_excluded_skipped: int = 0
+    #: Comment reads NOT spent: the thread's comments are already stored and its
+    #: comment count has not grown since. Run 2 of the media search sweep
+    #: (2026-11-09) re-read 29 such threads for nothing, because a weekly brand
+    #: search keeps returning posts an earlier run already read.
+    comments_already_stored: int = 0
+    #: Posts naming a known model whose comments THIS run fetched.
+    comments_read_this_run: int = 0
+
+    #: THE MEDIA BLOCK'S CAP COUNTS COMMENT REQUESTS TOO (#602). A comment
+    #: request the cap stopped is DEFERRED - counted here and taken first by the
+    #: next run - never silently dropped. `deferred_taken` is how many earlier
+    #: deferrals this run fetched.
+    comments_counted_in_cap: bool = False
+    comments_deferred: int = 0
+    deferred_taken: int = 0
+    block: str = "sweep_subreddits"
+
+    #: THE MEDIA BLOCK STORES EVERY POST (#602, Anooj's A). The pages are bought
+    #: already, so the posts cost nothing; comments are fetched only for the
+    #: posts that name a model the registry OR the catalogue knows. Both counts
+    #: are said, so a hand run shows what the filter costs (rule 8).
+    stores_every_post: bool = False
+    posts_naming_a_known_model: int = 0
+    posts_stored_without_comments: int = 0
+
     #: Set when the MONTHLY quota ran out. Deliberately not `truncated_by`.
     quota_exhausted: bool = False
     quota_remaining: int | None = None
@@ -146,7 +181,13 @@ class RedditSweepReport:
 
     @property
     def offered(self) -> int:
-        """Posts the listing could have shown us. The rate denominator."""
+        """Posts the listing could have shown us. The rate denominator.
+
+        A SEARCH'S IS WHAT IT RETURNED: a page's size is the endpoint's, not the
+        contract's (22 on all 21 searches of 2026-11-09, against 25 assumed), so
+        pages x 25 printed "225 offered" for 198 posts."""
+        if self.unit == "query":
+            return self.candidates
         return self.population_per_subreddit * len(self.subreddits)
 
     @property
@@ -161,18 +202,39 @@ class RedditSweepReport:
         return {g: h / self.candidates for g, h in sorted(self.group_hits.items())}
 
     def summary(self) -> str:
+        searched = self.unit == "query"
         lines = [
-            f"sweep    : {len(self.subreddits)} subreddit(s) listed, "
+            f"sweep    : {len(self.subreddits)} {self.unit}(s) "
+            f"{'searched' if searched else 'listed'}, "
             f"{len(self.unreached)} unreached, "
             f"{self.requests_issued} of {self.requests_planned} planned request(s)",
             f"           DENOMINATOR: the newest {self.population_per_subreddit} posts "
-            f"per subreddit ({self.pages_per_subreddit} pages x 25, sort {self.sort}) "
+            f"per {self.unit} ({self.pages_per_subreddit} page(s) x "
+            f"{self.population_per_subreddit // max(self.pages_per_subreddit, 1)}, "
+            f"sort {self.sort}) "
             f"= {self.offered} offered",
-            "           A RECENCY CUT, NOT A RANKING CUT. No index chose these posts, "
-            "so a rate over them estimates the population rather than ceilings it.",
+            ("           A RECENCY CUT WITHIN EACH QUERY'S MATCHES: the search chose "
+             "which posts match, the sort chose the newest of them."
+             if searched else
+             "           A RECENCY CUT, NOT A RANKING CUT. No index chose these posts, "
+             "so a rate over them estimates the population rather than ceilings it."),
             f"           {self.candidates} candidate(s) of {self.offered} offered, "
             f"{self.kept} kept, {self.stored} document(s) stored",
             f"           DISTINCT THREADS: {self.distinct_threads}   <- the result",
+            f"           adult-flagged (over_18) post(s) skipped before storing: "
+            f"{self.adult_skipped}",
+            (f"           media posts: every {'post found' if searched else 'listed post'} stored; "
+             # READ IS WHAT WAS FETCHED (2026-11-09): a thread already read, or
+             # deferred by the cap, named a model and was not read this run.
+             f"{self.posts_naming_a_known_model} named a known model "
+             f"({self.comments_read_this_run} had their comments read, "
+             f"{self.comments_already_stored} already read), "
+             f"{self.posts_stored_without_comments} stored without comments"
+             if self.stores_every_post else "           media posts: -"),
+            f"           block: {self.block}"
+            + (f"; comment requests count against the cap - {self.comments_deferred} "
+               f"deferred to the next run, {self.deferred_taken} earlier deferral(s) "
+               f"taken this run" if self.comments_counted_in_cap else ""),
             f"           comments: {self.comment_requests} request(s) for {self.kept} "
             f"kept post(s); {self.threads_with_comments} thread(s) with comments "
             f"({self.comments_stored} comment document(s) stored), "
@@ -198,14 +260,25 @@ class RedditSweepReport:
             lines.append(
                 "           sieve: NO CANDIDATES SEEN, so no rate. Not a rate of 0."
             )
+        comments_in_cap = self.comment_requests if self.comments_counted_in_cap else 0
+        if self.search_excluded_skipped or self.comments_already_stored:
+            lines.append(
+                f"           skipped: {self.search_excluded_skipped} post(s) in excluded "
+                f"subreddits, never stored; {self.comments_already_stored} thread(s) "
+                f"whose comments were already stored and had not grown, not re-read")
         lines += [
             f"           harvest_run: {self.harvest_runs_opened} opened, "
             f"{self.harvest_runs_closed} closed",
             f"           documents carrying harvest_run_id: {self.documents_with_run_id} "
             f"of {self.stored}",
-            f"           budget: {self.requests_issued}/{self.cap} requests, and that cap "
-            f"is {self.cap_borrowed_from.upper()}'S -- harvest.yaml has no platform "
-            f"dimension (PR #161)",
+            # THE SAME COUNT THE CAP ENFORCES (2026-11-09). This printed pages
+            # only, so a media run read "16/100" after spending 60 (16 pages, 44
+            # comment reads), while `spent()` had counted all 60 against the cap.
+            f"           budget: {self.requests_issued + comments_in_cap}/{self.cap} requests"
+            + (f" ({self.requests_issued} page(s) + {self.comment_requests} comment read(s))"
+               if self.comments_counted_in_cap else "")
+            + f", and that cap is {self.cap_borrowed_from.upper()}'S -- harvest.yaml has "
+            f"no platform dimension (PR #161)",
         ]
         if self.quota_exhausted:
             lines.append(
@@ -238,6 +311,7 @@ def sweep_reddit(
     source_id: str = "reddit",
     provenance: str = LISTING,
     fallback: str = LISTING_WITHOUT_LEDGER,
+    block_key: str = "sweep_subreddits",
 ) -> RedditSweepReport:
     """List every contracted subreddit, sieve what comes back, store what passes.
 
@@ -262,15 +336,15 @@ def sweep_reddit(
     deprioritisation it causes is invisible because it looks considered.
     """
 
-    from collect.adapters.queries.sieve import matches, normalize, sieve
+    from collect.adapters.queries.sieve import matches, names_folded, normalize, sieve
     from collect.adapters.reddit_write import write_documents
     from collect.ops.ledger import close_harvest_run, open_harvest_run
     from collect.rawstore import RAW
 
-    block = contract.sweep_subreddits
+    block = getattr(contract, block_key, None)
     if not block:
         raise RuntimeError(
-            "no `sweep_subreddits:` in contract/sources.yaml, so there is nothing to "
+            f"no `{block_key}:` in contract/sources.yaml, so there is nothing to "
             "list. A sweep over an empty subreddit list retrieves nothing and reports "
             "it as nobody discussing anything, which is rule 4 where nobody is looking."
         )
@@ -280,12 +354,20 @@ def sweep_reddit(
     # an unchosen subreddit is a population nobody signed, and the chosen_on date
     # on the block would then describe something else.
     members = [str(m) for m in block.get("members") or []]
+    #: THE MEDIA SEARCH SWEEP (2026-11-09): `queries` in place of `members`. A
+    #: listing returns titles only; a search returns the body, wherever it was
+    #: posted. Everything below - the cap, the comment rule, the ledger - is the
+    #: same; only what one entry fetches changes.
+    queries = [str(q["query"] if isinstance(q, dict) else q) for q in block.get("queries") or []]
+    by_query = bool(queries)
+    if by_query:
+        members = queries
     if subreddits:
         wanted = set(subreddits)
         unknown = sorted(wanted - set(members))
         if unknown:
             raise RuntimeError(
-                f"{unknown} are not in contract/sources.yaml's sweep_subreddits. "
+                f"{unknown} are not in contract/sources.yaml's {block_key}. "
                 f"The contract is the population; an argument may only narrow it."
             )
         members = [m for m in members if m in wanted]
@@ -295,18 +377,50 @@ def sweep_reddit(
     # smoke run, and it must reach the report -- an override that changed what was
     # fetched while the report kept quoting the contract's 175 would print a
     # denominator the run did not use, which is the exact failure rule 7 is about.
-    pages = int(block["pages_per_subreddit"]) if pages is None else int(pages)
+    pages = (int(block["pages_per_query" if by_query else "pages_per_subreddit"])
+             if pages is None else int(pages))
     per_page = int(block["posts_per_page"])
     sort = str(block.get("sort") or "NEW")
     contract_cap, _minutes = sweep_budget("daily")
-
+    #: THE MEDIA BLOCK CARRIES ITS OWN BUDGET (#602 item 7), and it covers the
+    #: comment requests as well as the listing pages. The text block keeps the
+    #: borrowed GitHub cap, unchanged.
+    own_cap = block.get("max_requests")
+    subject_only = bool(block.get("subject_only"))
+    # THE MEDIA BLOCK MUST STATE ITS CAP (#612 review, point 9). Missing, it
+    # fell back to harvest.yaml's daily GitHub budget - 900 - silently (rule 12).
+    if block_key == "sweep_media_subreddits" and own_cap is None:
+        raise RuntimeError(
+            "contract/sources.yaml `sweep_media_subreddits` has no `max_requests`. "
+            "The media sweep spends its own budget and refuses to borrow another's.")
     report = RedditSweepReport(
         population_per_subreddit=pages * per_page,
         pages_per_subreddit=pages,
         sort=sort,
-        cap=contract_cap if cap is None else cap,
+        cap=(int(own_cap) if own_cap is not None else contract_cap) if cap is None else cap,
         requests_planned=len(members) * pages,
+        comments_counted_in_cap=own_cap is not None,
+        block=block_key,
+        stores_every_post=subject_only,
+        unit="query" if by_query else "subreddit",
     )
+    #: The per-model search's exclusions apply to the search sweep too.
+    excluded = {str(e.get("id")).lower() for e in
+                ((getattr(contract, "sweep_subreddits", None) or {}).get("search_excluded") or [])
+                if e.get("id")} if by_query else set()
+    #: The names a media post must carry for its comments to be read: every
+    #: model the registry or the catalogue knows, as the E4b weight counts
+    #: them - so a post about a model nobody has seated yet still has its
+    #: comments read, and their claims are held rather than never seen.
+    known_names = _known_model_names(conn) if subject_only else ()
+    comment_worthy: set[str] = set()
+    if own_cap is not None:
+        report.cap_borrowed_from = block_key
+
+    def spent() -> int:
+        """Requests against the cap: pages, plus comments where the block says so."""
+        return report.requests_issued + (
+            report.comment_requests if report.comments_counted_in_cap else 0)
 
     by_surface = _seated_term_sets(conn)
     if not by_surface:
@@ -321,13 +435,23 @@ def sweep_reddit(
 
     roots: set[str] = set()
 
+    # EARLIER DEFERRALS FIRST, before any new page is bought (#602).
+    if report.comments_counted_in_cap:
+        _take_deferred(conn, harvester, harvester_store, members, report, spent,
+                       fallback=fallback, known_names=known_names, by_query=by_query)
+
     for name in members:
-        if report.requests_issued + pages > report.cap:
+        if spent() + pages > report.cap:
             report.unreached.append(name)
             continue
 
         seat = SubredditSweep(name=name)
-        run = harvester.list_subreddit(name, pages=pages, sort=sort)
+        run = (harvester.search(name, sort=sort.upper(), pages=pages) if by_query
+               else harvester.list_subreddit(name, pages=pages, sort=sort))
+        # COUNTED AS SOON AS BOUGHT, so the comment fetches below see them
+        # against the cap. Added after the subreddit was done, the media
+        # cap let one comment request too many through.
+        report.requests_issued += run.pages_fetched
 
         # The row exists before anything is written, so a process killed
         # mid-subreddit leaves `finished_at IS NULL` -- the only carrier of
@@ -365,6 +489,17 @@ def sweep_reddit(
         # post survives iff some (surface, entry) pair passes.
         for post in run.posts:
             text = post.sieve_text
+            if excluded and (post.subreddit or "").lower() in excluded:
+                report.search_excluded_skipped += 1
+                continue
+            if subject_only:
+                # STORED WHATEVER IT NAMES; its comments only if it names a
+                # known model (Anooj's A on #602).
+                run.survivors.append(post)
+                if any(names_folded(name, text) for name in known_names):
+                    comment_worthy.add(post.external_id)
+                    report.group_hits["subject"] = report.group_hits.get("subject", 0) + 1
+                continue
             haystack = normalize(text)
             passed = False
             groups_hit: set[str] = set()
@@ -516,6 +651,21 @@ def sweep_reddit(
             report.comments_stored += int(wrote_comments.get("documents_inserted", 0) or 0)
 
         for post in run.survivors:
+            if subject_only and post.external_id not in comment_worthy:
+                # NAMES NO KNOWN MODEL: stored above, no comment request spent.
+                report.posts_stored_without_comments += 1
+                continue
+            if subject_only:
+                report.posts_naming_a_known_model += 1
+            if subject_only and _comments_already_read(conn, post):
+                report.comments_already_stored += 1
+                continue
+            if report.comments_counted_in_cap and spent() >= report.cap:
+                # DEFERRED, NOT DROPPED: the post is stored, its comments are
+                # not, and `_take_deferred` finds it first on the next run.
+                report.comments_deferred += 1
+                continue
+            report.comments_read_this_run += 1
             # ONE POST'S FAILURE IS ONE POST'S (review of #503). An exception
             # here - a malformed response, a dropped connection on the write -
             # used to propagate out of the sweep: the harvest_run was never
@@ -539,7 +689,7 @@ def sweep_reddit(
         seat.hit_page_ceiling = run.truncated_by == "result-ceiling"
         roots.update(post.external_id for post in run.survivors)
 
-        report.requests_issued += run.pages_fetched
+        report.adult_skipped += run.adult_skipped
         report.candidates += seat.candidates
         report.kept += seat.kept
         report.stored += seat.stored
@@ -581,6 +731,189 @@ def sweep_reddit(
 
     return report
 
+
+#: Stored posts of a block's subreddits whose platform comment count is above
+#: zero and which have no stored comment: the deferrals of an earlier run.
+DEFERRED = """
+    SELECT d.id, d.text_ref FROM document d
+     WHERE d.source = 'reddit' AND d.thread_root_id IS NULL
+       AND coalesce((d.engagement->>'comments')::int, 0) > 0
+       AND d.url ~* %s
+       AND NOT EXISTS (SELECT 1 FROM document c WHERE c.thread_root_id = d.id)
+       AND d.fetched_at > now() - interval '30 days'
+     ORDER BY d.fetched_at, d.id
+"""
+
+#: The same, for the media search sweep: posts stored by one of its queries' runs.
+DEFERRED_BY_QUERY = """
+    SELECT d.id, d.text_ref FROM document d
+      JOIN harvest_run hr ON hr.id = d.harvest_run_id
+     WHERE d.source = 'reddit' AND d.thread_root_id IS NULL
+       AND coalesce((d.engagement->>'comments')::int, 0) > 0
+       AND hr.query_key = ANY(%s)
+       AND NOT EXISTS (SELECT 1 FROM document c WHERE c.thread_root_id = d.id)
+       AND d.fetched_at > now() - interval '30 days'
+     ORDER BY d.fetched_at, d.id
+"""
+
+
+def _comments_already_read(conn, post) -> bool:
+    """True when this post's comments are stored and its count has not grown.
+
+    The stored post row keeps the comment count the platform showed when it was
+    first written (`engagement.comments`; a re-write conflicts away), so a count
+    no higher than that means nothing new to read. A count that grew is read
+    again. Unreadable here, or never stored: False, so the old behaviour - read
+    it - is the fallback, never a silent skip.
+    """
+    try:
+        row = conn.execute(
+            "SELECT (SELECT count(*) FROM document c WHERE c.thread_root_id = d.id), "
+            "       (d.engagement->>'comments')::int "
+            "FROM document d WHERE d.id = %s",
+            (f"reddit:{post.external_id}",),
+        ).fetchone()
+    except Exception:  # noqa: BLE001 - a fake or unmigrated connection: read it
+        with contextlib.suppress(Exception):
+            conn.rollback()
+        return False
+    if not row or not row[0]:
+        return False
+    stored_count, seen_then = row
+    now = getattr(post, "num_comments", None)
+    # AGAINST WHAT WE HOLD, NOT ONLY THE FIRST COUNT (#612 review, point 6).
+    # `seen_then` never updates - `document` is append-only and a re-write
+    # conflicts away - so a thread that grew once was re-read every run. The
+    # comment documents we hold DO grow when a re-read stores the new ones, so
+    # the higher of the two is the count already covered. A thread whose count
+    # stays above what the platform ever returns (removed comments) is still
+    # re-read each run: bounded by the thread count, and said here.
+    covered = max(seen_then or 0, stored_count)
+    return now is not None and now <= covered
+
+
+def _known_model_names(conn) -> tuple[str, ...]:
+    """Every model name the registry or the catalogue knows, "Provider: " dropped.
+
+    The media sweep's comment test (#602). A catalogue that cannot be read
+    leaves the registry's names, and the sweep summary is not quieter for it -
+    the count of posts that named a known model is printed either way.
+    """
+    names = {r[0] for r in conn.execute(
+        "SELECT display_name FROM model_version WHERE display_name IS NOT NULL").fetchall()}
+    try:
+        names |= {r[0] for r in conn.execute(
+            "SELECT name FROM model_catalog WHERE canonical_id NOT LIKE '~%%'").fetchall()}
+    except Exception:  # noqa: BLE001 - an unmigrated database is a state
+        conn.rollback()
+    # THE SEATED SPELLINGS TOO (2026-11-06). The registry's display name is one
+    # spelling; people write "Eleven v3" for ElevenLabs v3 and "seedance-2.0"
+    # for Seedance 2.0. Every live alias surface and variant is a known name.
+    try:
+        for surface, variants in conn.execute(
+                "SELECT surface, variants FROM model_alias "
+                "WHERE valid_until IS NULL OR valid_until > now()").fetchall():
+            names.add(surface)
+            names.update(v for v in (variants or []) if v)
+    except Exception:  # noqa: BLE001 - an unmigrated database is a state
+        conn.rollback()
+    from collect.adapters.queries.sieve import name_forms
+
+    out = {form for n in names if n for form in name_forms(n)}
+    # A slug ("elevenlabs/eleven-v3") is not how a post names a model.
+    return tuple(sorted(n for n in out if n and "/" not in n))
+
+
+def _take_deferred(conn, harvester, store, members, report, spent, *, fallback,
+                   known_names=(), by_query=False) -> None:
+    """Fetch the comments of posts an earlier run stored but could not afford.
+
+    ONLY POSTS THAT NAME A KNOWN MODEL. The media block stores every post and
+    reads comments only for those, so a stored post with no comments is usually
+    one it chose not to read - not a deferral. Re-testing the name here keeps
+    the next sweep's cap for the posts a cap really stopped.
+
+    NO LIMIT, A WINDOW (#612 review, point 4). The queries used to stop at
+    `cap - spent()` rows, oldest first, and about 71% of a search sweep's posts
+    are stored without comments on purpose - so within a week or two the oldest
+    rows were all of that kind and a real deferral was never reached. Now every
+    candidate from the last 30 days is looked at, the deliberate ones are passed
+    over BEFORE the cap is consulted, and the cap stops only real reads.
+
+    THE TRADE, SAID (#612 review): a genuinely deferred thread older than the
+    30-day window is no longer reached at all - it stays stored, with no
+    comments. The window lives in the two SQL constants above (`DEFERRED`,
+    `DEFERRED_BY_QUERY`), not in contract/ (rule 5); moving it there is a
+    follow-up, not part of this change.
+
+    COUNTED LIKE THE MAIN LOOP (point 5): a failed or rate-limited read is a
+    failure, the quota reading is kept, and one post's error is that post's -
+    rolled back and named, never the end of the sweep.
+    """
+    import re
+
+    from collect.adapters.queries.sieve import names_folded
+    from collect.adapters.reddit import _post_of
+    from collect.adapters.reddit_write import write_documents
+    from collect.rawstore import RAW
+
+    if not members:
+        return
+    if by_query:
+        # A search sweep's posts are in any subreddit, so its deferrals are the
+        # posts its own runs stored, found by the run's query.
+        rows = conn.execute(DEFERRED_BY_QUERY, (list(members),)).fetchall()
+    else:
+        pattern = "reddit\\.com/r/(" + "|".join(re.escape(m) for m in members) + ")/"
+        rows = conn.execute(DEFERRED, (pattern,)).fetchall()
+    for doc_id, text_ref in rows:
+        try:
+            post = _post_of(json.loads(store.get_text(text_ref)))
+        except Exception:  # noqa: BLE001 - its payload is not here; named
+            report.comment_fetch_failures.append(doc_id)
+            continue
+        if known_names and not any(names_folded(n, post.sieve_text) for n in known_names):
+            continue  # stored without comments on purpose, not deferred
+        if spent() >= report.cap:
+            report.comments_deferred += 1
+            continue
+        try:
+            fetch = harvester.fetch_comments(post)
+            report.comment_requests += 0 if fetch.not_a_thread else 1
+            report.http_errors += fetch.http_errors
+            report.rate_limited += fetch.rate_limited
+            if fetch.quota_remaining is not None:
+                report.quota_remaining = fetch.quota_remaining
+            if fetch.quota_limit is not None:
+                report.quota_limit = fetch.quota_limit
+            if fetch.not_a_thread:
+                report.threads_not_a_thread += 1
+                continue
+            if (fetch.http_errors or fetch.rate_limited) and not fetch.comments:
+                report.comment_fetch_failures.append(post.external_id)
+                continue
+            if not fetch.comments:
+                report.threads_without_comments += 1
+                continue
+            refs = {}
+            for comment in fetch.comments:
+                blob = json.dumps(comment.raw, ensure_ascii=False, sort_keys=True).encode("utf-8")
+                stored = store.put(blob, namespace=RAW)
+                refs[comment.external_id] = (stored.ref, stored.content_hash)
+            # No run of its own: a deferred read belongs to no harvest_run opened
+            # this sweep, so it is written with `fallback` provenance and no id.
+            wrote = write_documents(conn, list(fetch.comments), retrieval_provenance=fallback,
+                                    harvest_run_id=None, refs=refs)
+            conn.commit()
+        except Exception as error:  # noqa: BLE001 - one post's failure is one post's
+            log.warning("deferred comments for %s failed: %s", post.external_id, error)
+            report.comment_fetch_failures.append(post.external_id)
+            with contextlib.suppress(Exception):
+                conn.rollback()
+            continue
+        report.deferred_taken += 1
+        report.threads_with_comments += 1
+        report.comments_stored += int(wrote.get("documents_inserted", 0) or 0)
 
 def _seated_term_sets(conn):
     """`{surface: (subject_terms, term_sets)}` -- grouped so subject tests once.

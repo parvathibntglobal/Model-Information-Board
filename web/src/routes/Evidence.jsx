@@ -6,6 +6,7 @@ import { PolarityChip, Posted, Report, SourceLine } from '../evidence/parts'
 import { useHead } from '../seo/head'
 import { evidenceHead } from '../seo/pages'
 import '../styles/evidence.css'
+import { useFollowed } from '../follow/follow'
 
 /**
  * THE EVIDENCE FEED (2026-10-21, PROPOSED): every report behind a model's
@@ -50,10 +51,13 @@ function Picker() {
       .catch((e) => alive && setState({ models: null, err: e.message || 'The models could not be read.' }))
     return () => { alive = false }
   }, [])
+  // The models this visitor follows come first, marked (follow/follow.js).
+  const [mine] = useFollowed()
   const ql = q.trim().toLowerCase()
   const shown = useMemo(() => (state.models || [])
     .filter((m) => !ql || `${m.name} ${m.id}`.toLowerCase().includes(ql))
-    .sort((a, b) => b.voices - a.voices || b.reports - a.reports || a.name.localeCompare(b.name)), [state.models, ql])
+    .sort((a, b) => (mine.includes(b.id) - mine.includes(a.id)) || b.voices - a.voices
+      || b.reports - a.reports || a.name.localeCompare(b.name)), [state.models, ql, mine])
   return (
     <section className="stack stack-2">
       <input className="ev-search" type="search" value={q} onChange={(e) => setQ(e.target.value)}
@@ -66,7 +70,7 @@ function Picker() {
             {shown.map((m) => (
               <li key={m.id}>
                 <Link to={evidencePath(m.id)}>
-                  <span className="ev-pick-name">{m.name}</span>
+                  <span className="ev-pick-name">{m.name}{mine.includes(m.id) && <span className="fl-tag">Following</span>}</span>
                   <span className="ev-dim">{plural(m.voices, 'voice')} · {plural(m.reports, 'report')}</span>
                 </Link>
               </li>
@@ -233,7 +237,11 @@ function Summary({ id }) {
             report count, and must not read as if it were (rule 7). */}
         Written from the newest {s.reports_used} of {plural(s.reports_available, 'paraphrased report')}, up to {day(s.newest_report_at)}.
         {' '}{d.reports_since} {d.reports_since === 1 ? 'report' : 'reports'} posted since {d.reports_since === 1 ? 'is' : 'are'} not in it.
-        {' '}Drafted by a language model and approved by a person on {day(s.reviewed_at)}.
+        {/* A WEEKLY REVISION SAYS SO (2026-10-27): its newest points were added by a
+            model from newer reports and approved by a person, like the draft. */}
+        {' '}{s.revised
+          ? `Drafted by a language model, last revised from newer reports, and approved by a person on ${day(s.reviewed_at)}.`
+          : `Drafted by a language model and approved by a person on ${day(s.reviewed_at)}.`}
       </p>
       <h3 className="ev-h3">The reports it cites</h3>
       <ol className="ev-cites">

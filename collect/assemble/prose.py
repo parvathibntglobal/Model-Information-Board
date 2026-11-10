@@ -335,6 +335,22 @@ def forum_topic_prose(blob: str) -> str:
     return text
 
 
+def bluesky_post_prose(blob: str) -> str:
+    """A Bluesky post (one `searchPosts` item) -> `record.text`, what was written.
+
+    The search RESPONSE carries `posts` and covers up to a hundred posts, so it
+    is refused by name rather than flattened: a quote would otherwise verify
+    against a field of somebody else's post (collect/adapters/bluesky.py).
+    """
+    payload = _loaded(blob, what="bluesky post payload")
+    if "posts" in payload:
+        raise NotAPayload("bluesky payload: a search response (`posts`), not one post")
+    text = (payload.get("record") or {}).get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise NotAPayload("bluesky post payload: `record.text` is missing or empty")
+    return text
+
+
 def x_post_prose(blob: str) -> str:
     """An X post payload -> its text. THREE PLACES IT CAN BE, in one order.
 
@@ -411,6 +427,7 @@ PROSE_BY_SOURCE = {
     "huggingface": huggingface_prose,
     "x": x_post_prose,
     "forum": forum_topic_prose,
+    "bluesky": bluesky_post_prose,
 }
 
 

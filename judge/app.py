@@ -29,7 +29,7 @@ from typing import NamedTuple
 from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from judge import fetch_reaper, login
 from judge.ask import requirements, spend
@@ -157,6 +157,9 @@ async def _lifespan(_app: FastAPI):
     0.139, which is what is installed here.
     """
     _log_database_target()
+    # The public updates reads, built now so the first visitor does not wait
+    # (in the background: startup is not held up, and a failure only logs).
+    _warm_public_updates()
     yield
 
 
@@ -1889,6 +1892,10 @@ def model_page(model_version_id: str) -> dict:
 
 
 class FetchRequest(BaseModel):
+    #: `model_` FIELD NAMES ARE OURS (2026-11-05): pydantic 2 reserves the prefix
+    #: for its own methods and warns at startup; none of ours collides with one.
+    model_config = ConfigDict(protected_namespaces=())
+
     model_version_id: str
 
 
@@ -2567,6 +2574,22 @@ def _glossary(fn, *args):
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
+# MIGRATION GUIDES: VERIFIED FACTS (2026-10-30). A migration guide is a written
+# blog post; this is the box inside it - the registry's published facts for the
+# guide's two models and a checklist worded by contract/migrations.yaml. Public:
+# no quote, post text or source (judge/migrations.py `guide`).
+
+
+@app.get("/guide-facts")
+def guide_facts(slug: str) -> dict:
+    """The verified facts for one approved migration guide. 404 when the slug
+    is not an approved migration guide."""
+    from judge import migrations
+
+    with _conn() as conn:
+        return _or_404(migrations.guide(conn, slug), "no approved migration guide has this slug")
+
+
 @app.get("/glossary-terms")
 def glossary_terms() -> dict:
     from judge import glossary
@@ -2983,12 +3006,15 @@ def evidence_feed_summary(model: str) -> dict:
 @app.get("/feed/summaries")
 def evidence_feed_summaries(state: str = "pending") -> dict:
     """Admin: summary drafts in one state, with what each paragraph cites and
-    the soft-check flags, for the person who approves them."""
+    the soft-check flags, for the person who approves them - and the newest
+    draft and revision attempts, so a refusal or a week with nothing to change
+    shows as such rather than as nothing (2026-10-27)."""
     from judge.feed import summary
 
     try:
         with _conn() as conn:
-            return {"counts": summary.counts(conn), "items": summary.listing(conn, state)}
+            return {"counts": summary.counts(conn), "items": summary.listing(conn, state),
+                    "attempts": summary.attempts(conn)}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
 
@@ -3053,6 +3079,10 @@ def discussions_page() -> dict:
 
 
 class DiscussionPostRequest(BaseModel):
+    #: `model_` FIELD NAMES ARE OURS (2026-11-05): pydantic 2 reserves the prefix
+    #: for its own methods and warns at startup; none of ours collides with one.
+    model_config = ConfigDict(protected_namespaces=())
+
     topic: str = ""
     title: str = ""
     body: str = ""
@@ -3238,6 +3268,148 @@ def admin_outreach_check(thread_id: int, req: OutreachCheckRequest) -> dict:
     return _kp_call(lambda kp, conn: kp.check_reply(conn, thread_id, req.text))
 
 
+# THE BENCHMARKS PAGE (2026-10-22, Parvathi): signed in only (every route here
+# needs the token - none is in judge/gate.py's public lists). Published
+# benchmark results for the tracked text models, scraped by collect/benchmarks/
+# into the bench_ tables. See judge/benchmarks.py.
+
+
+def _bench(read):
+    from judge import benchmarks
+
+    try:
+        with benchmarks.connection() as conn:
+            return read(benchmarks, conn)
+    except benchmarks.BenchmarksUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+
+
+@app.get("/benchmarks/table")
+def benchmarks_table() -> dict:
+    """The wide table: sections, columns, model rows with their setting rows."""
+    return _bench(lambda b, conn: b.table(conn))
+
+
+@app.get("/ai-benchmarks")
+def ai_benchmarks(model: str | None = None) -> dict:
+    """The public AI benchmarks page (/ai-benchmarks): the models with public values, and
+    `model`'s values from the signed-in table with source, link and date
+    (judge/benchmarks.py charts). A public read (judge/gate.py).
+
+    Served from the kept copy with no database call when the table was checked
+    within `charts.recheck_seconds` (contract/benchmarks/module_settings.yaml).
+    Older than that, the kept copy is still served and the check runs on a
+    thread of its own; only the first read after a start waits for the build."""
+    from judge import benchmarks
+
+    fresh = benchmarks.charts_if_fresh(model)
+    if fresh is not None:
+        return fresh
+    kept = benchmarks.charts_kept(model)
+    if kept is not None:
+        benchmarks.refresh_charts_in_background()
+        return kept
+    return _bench(lambda b, conn: b.charts(conn, model))
+
+
+@app.get("/benchmarks/changes")
+def benchmarks_changes(
+    run_id: int | None = None, kind: str | None = None, before_run: int | None = None
+) -> dict:
+    """The changelog, newest first, a batch of runs at a time (`before_run` for
+    older ones); one run's entries with `run_id`, one kind with `kind`."""
+    return _bench(
+        lambda b, conn: b.changelog(conn, run_id=run_id, kind=kind, before_run=before_run)
+    )
+
+
+@app.get("/benchmarks/runs")
+def benchmarks_runs(before: int | None = None) -> dict:
+    """Run history with each run's per-source status, a batch at a time."""
+    return _bench(lambda b, conn: b.runs(conn, before=before))
+
+
+@app.get("/benchmarks/run-log")
+def benchmarks_run_log(run_id: int | None = None, request_id: str | None = None) -> dict:
+    """One run's terminal output: live from its log file while it runs."""
+    if run_id is None and not request_id:
+        raise HTTPException(status_code=422, detail="run_id or request_id is required")
+    return _bench(lambda b, conn: b.run_detail(conn, run_id=run_id, request_id=request_id))
+
+
+@app.get("/benchmarks/unmatched")
+def benchmarks_unmatched() -> dict:
+    """Names sources list that match no tracked model, with close suggestions."""
+    return _bench(lambda b, conn: b.unmatched(conn))
+
+
+class BenchmarkNameDecision(BaseModel):
+    key: str
+    name: str
+    action: str
+    target: str | None = None
+
+
+@app.post("/benchmarks/names/decide")
+def benchmarks_name_decide(req: BenchmarkNameDecision) -> dict:
+    """A person's decision about an unmatched name: same model as / new row /
+    ignore. Stored in bench_name_decision; the next run or re-parse applies it."""
+    from judge import benchmarks
+
+    try:
+        benchmarks.refuse_unsafe_decision()
+        with benchmarks.connection() as conn:
+            return benchmarks.decide(
+                conn, key=req.key, name=req.name, action=req.action, target=req.target
+            )
+    except benchmarks.BenchmarksUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+    except benchmarks.DecisionRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+
+
+class BenchmarkNameUndo(BaseModel):
+    key: str
+
+
+@app.post("/benchmarks/names/undo")
+def benchmarks_name_undo(req: BenchmarkNameUndo) -> dict:
+    """Remove a decision; the name returns to the Unmatched list on the next run."""
+    from judge import benchmarks
+
+    try:
+        benchmarks.refuse_unsafe_decision()
+    except benchmarks.DecisionRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    return _bench(lambda b, conn: b.undo_decision(conn, key=req.key))
+
+
+@app.get("/benchmarks/review")
+def benchmarks_review() -> dict:
+    """Open review items (flags from the checks)."""
+    return _bench(lambda b, conn: b.review_items(conn))
+
+
+class BenchmarkRunRequest(BaseModel):
+    dry_run: bool = False
+    use_snapshot: bool = False
+
+
+@app.post("/benchmarks/run")
+def benchmarks_run(req: BenchmarkRunRequest) -> dict:
+    """Start a run in the background; poll /benchmarks/run-log with the
+    returned request_id. 409 while another run is going."""
+    from judge import benchmarks
+
+    try:
+        with benchmarks.connection() as conn:
+            return benchmarks.start_run(conn, dry_run=req.dry_run, use_snapshot=req.use_snapshot)
+    except benchmarks.BenchmarksUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+    except benchmarks.RunRefused as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+
 class BlogGenerateRequest(BaseModel):
     count: int = 3
 
@@ -3396,6 +3568,28 @@ def admin_scheduler() -> dict:
         return scheduler_status.overview(conn)
 
 
+@app.get("/admin/schedules")
+def admin_schedules() -> dict:
+    """Admin -> Scheduler, under the nightly fetches: the GitHub Actions that
+    feed AI benchmarks and AI updates - set-up, switch, next firing and recent
+    runs, plus what the last benchmarks runs did. Read-only; variable NAMES
+    only. See judge/sections_status.py."""
+    from judge import sections_status
+
+    return sections_status.schedules()
+
+
+@app.get("/admin/sections")
+def admin_sections() -> dict:
+    """Admin -> Board & content: what the public AI benchmarks and AI updates
+    pages hold now, and the contract timing values behind them. Read-only; no
+    build is started from here. See judge/sections_status.py."""
+    from judge import sections_status
+
+    with _conn() as conn:
+        return sections_status.sections(conn)
+
+
 @app.get("/admin/seo-keywords")
 def admin_seo_keywords() -> dict:
     """Keywords dashboard: which SEO keywords sit on which public page and where
@@ -3416,6 +3610,358 @@ def admin_seo_keyword_plan() -> dict:
     from judge import keyword_plan
 
     return keyword_plan.load()
+
+
+@app.get("/news")
+def news_page(days: int | None = None) -> dict:
+    """The News page: fresh AI headlines from contract/news_sources.yaml, newest
+    first, each with a code-written summary and the feed's own picture when it
+    has one, and every source's last read (ok, refused, failed). Never evidence.
+    Nothing is filtered server-side; the LLM badge travels on each item.
+    Signed-in only (not a public read: judge/gate.py). See judge/news.py."""
+    from judge import news
+
+    try:
+        with _conn() as conn:
+            return news.news_view(conn, days=days)
+    except news.NewsRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/news/{item_id}")
+def news_story(item_id: str) -> dict:
+    """One story's page: what its source gave (title, summary, picture), the
+    models it names - matched by code on exact registry names, each with the
+    site's own engineer counts - and related stories. Never evidence; no model
+    writes anything. Signed-in only. See judge/news.py story_view."""
+    from judge import news
+
+    try:
+        with _conn() as conn:
+            return news.story_view(conn, item_id)
+    except news.NewsNotFound as exc:
+        raise HTTPException(status_code=404, detail="no such story") from exc
+
+
+@app.get("/admin/price-changes")
+def admin_price_changes(days: int | None = None) -> dict:
+    """Price changelog: every OpenRouter list-price change the registry poll has
+    seen in the window, newest first, with fixed flags (cut, rise, free, wave,
+    settling, bounced) and `newsworthy`. One source and unconfirmed: every row
+    says so. Thresholds from contract/price_changes.yaml. Signed-in only. See
+    judge/price_changes.py."""
+    from judge import price_changes
+
+    with _conn() as conn:
+        return price_changes.changes(conn, days=days)
+
+
+# THE UPDATES PAGE (2026-10-29, Parvathi): signed in. Headlines built from the
+# registry, the price history and the benchmarks changelog, published as they
+# are built; Manage stores what a person decides about each. See
+# judge/updates.py and contract/updates.yaml.
+
+
+@contextmanager
+def _updates_conns():
+    """The board's connection, and the benchmarks one when it is readable."""
+    from judge import benchmarks
+
+    with _conn() as conn, contextlib.ExitStack() as stack:
+        try:
+            bench = stack.enter_context(benchmarks.connection())
+        except benchmarks.BenchmarksUnavailable:
+            bench = None
+        yield conn, bench
+
+
+def _signed_in_email(authorization: str | None) -> str:
+    """Who is acting, from their own token. The shared API_TOKEN carries no
+    identity and is recorded as such."""
+    supplied = (authorization or "").removeprefix("Bearer ").strip()
+    return (login.read(supplied) if supplied else None) or "api-token"
+
+
+def _update(updates, conn, bench, key: str, days: int | None) -> dict:
+    built = updates.build(conn, bench_conn=bench, days=days)["updates"]
+    found = next((u for u in built if u["key"] == key), None)
+    if found is None:
+        # A published update no longer built can still come off the home page.
+        found = updates.stored_update(conn, key)
+    if found is None:
+        raise HTTPException(status_code=404, detail="no update with that key in this window")
+    return found
+
+
+def _updates_errors(write):
+    from judge import updates
+
+    try:
+        saved = write(updates)
+        # CLEARED AGAIN, NOW THAT IT IS COMMITTED (#592 review): the clear inside
+        # the write ran before `_conn()` committed, so a build reading in that gap
+        # could keep the old rows under the new generation. Then build both reads
+        # again in the background, so the next visitor does not wait.
+        updates.clear_published_cache()
+        _rebuild_after_save()
+        return saved
+    except updates.EditNeedsConfirm as e:
+        raise HTTPException(
+            status_code=409, detail={"message": str(e), "numbers": e.numbers}
+        ) from None
+    except updates.ReviewRefused as e:
+        raise HTTPException(status_code=e.status, detail=str(e)) from None
+    except updates.SavingUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+
+
+# THE TWO PUBLIC UPDATES READS, NEVER A WAIT (2026-10-30, Parvathi). Each one
+# rebuilds the updates from the whole price history and the benchmarks data:
+# measured from a developer machine against the shared database, ~12 s. Kept
+# `home_cache_seconds`; when that runs out, the last answer is still sent at
+# once and a fresh one is built in the background (one build per read at a
+# time). Both are built at startup and after every save in Manage; a request
+# that finds nothing kept waits on that one build rather than starting another.
+_PUBLIC_REBUILDING: set[str] = set()
+_PUBLIC_REBUILD_LOCK = threading.Lock()
+#: Each read's running build, set when it ends - what a request with nothing
+#: kept waits on, instead of starting a build of its own (#592 review, point 4).
+_PUBLIC_DONE: dict[str, threading.Event] = {}
+# How long such a request waits before building for itself is
+# contract/updates.yaml `cold_wait_seconds`.
+
+
+def _public_build(name: str):
+    from judge import updates
+
+    return updates.published if name == "v" else updates.approved
+
+
+def _rebuild_in_background(name: str) -> threading.Event:
+    """Start a build of `name` unless one is running; either way, the event
+    that is set when the running build ends."""
+    with _PUBLIC_REBUILD_LOCK:
+        if name in _PUBLIC_REBUILDING:
+            return _PUBLIC_DONE[name]
+        _PUBLIC_REBUILDING.add(name)
+        done = _PUBLIC_DONE[name] = threading.Event()
+
+    def run() -> None:
+        from judge import updates
+
+        # A SAVE DURING THE BUILD IS NOT LOST (#592 review): that build read the
+        # old rows, so `_keep` refuses it, and the save's own rebuild was turned
+        # away because this one was running. So build again while the generation
+        # moved under us; the check and the release share the lock, so a save
+        # either lands before it (and is built here) or starts its own rebuild.
+        try:
+            for _ in range(3):
+                generation = updates._published_generation[0]
+                try:
+                    with _updates_conns() as (conn, bench):
+                        _public_build(name)(conn, bench_conn=bench)
+                except Exception:  # noqa: BLE001 - a failed rebuild leaves the last answer served
+                    log.exception("updates: background rebuild of %r failed", name)
+                    return
+                with _PUBLIC_REBUILD_LOCK:
+                    if updates._published_generation[0] == generation:
+                        _PUBLIC_REBUILDING.discard(name)
+                        return
+        finally:
+            with _PUBLIC_REBUILD_LOCK:
+                _PUBLIC_REBUILDING.discard(name)
+            done.set()
+
+    threading.Thread(target=run, name=f"updates-rebuild-{name}", daemon=True).start()
+    return done
+
+
+def _public_updates(name: str, fresh) -> dict:
+    """A kept answer without connecting (the benchmarks connection is not
+    pooled, #586 review); else the last one while a fresh one is built; else -
+    nothing kept, at startup or straight after a save - the one running build,
+    waited on by every request that arrives meanwhile (#592 review, point 4), so
+    N visitors cost one build and one benchmarks connection, not N. A request
+    builds for itself only when that build failed or outran `cold_wait_seconds`
+    (contract/updates.yaml)."""
+    from judge import updates
+
+    if (kept := fresh()) is not None:
+        return kept
+    if (old := updates.stale(name)) is not None:
+        _rebuild_in_background(name)
+        return old
+    _rebuild_in_background(name).wait(updates.rules()["cold_wait_seconds"])
+    if (kept := fresh()) is not None:
+        return kept
+    with _updates_conns() as (conn, bench):
+        return _public_build(name)(conn, bench_conn=bench)
+
+
+def _warm_public_updates() -> None:
+    """Build both public reads at startup, so the first visitor does not wait."""
+    for name in ("v", "approved"):
+        _rebuild_in_background(name)
+
+
+def _rebuild_after_save() -> None:
+    """After a save in Manage (which cleared both reads): build them again in
+    the background. Its own name so tests can switch it off."""
+    _warm_public_updates()
+
+
+@app.get("/updates/published")
+def updates_published() -> dict:
+    """The home page's updates strip: the updates a person published, newest
+    first, in their published words. PUBLIC (judge/gate.py) - it sends only
+    those words, the kind and the publish time."""
+    from judge import updates
+
+    return _public_updates("v", updates.cached_published)
+
+
+@app.get("/updates/approved")
+def updates_approved() -> dict:
+    """The public AI updates page (/ai-news-headlines): every update a person
+    approved in Manage, in its words as Manage shows them. PUBLIC
+    (judge/gate.py) - words, kind, label, date, the verify mark and the models'
+    public ids only."""
+    from judge import updates
+
+    return _public_updates("approved", updates.cached_approved)
+
+
+@app.get("/watch")
+def watch_models(ids: str = "", since: str | None = None) -> dict:
+    """Watch my models (a prototype, feat/hooks-prototype): one card per model a
+    visitor runs - listed prices and price moves, lifecycle dates, reports
+    counted by polarity, the newest quotes and a weekly trend. `ids` is a
+    comma-separated list of canonical ids; `since` the browser's last look.
+    PUBLIC (judge/gate.py, PROPOSED). See judge/watch.py."""
+    from judge import watch
+
+    try:
+        when = watch.parse_since(since)
+        with _conn() as conn:
+            return watch.watch(conn, ids.split(","), since=when)
+    except watch.WatchRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/verdict")
+def launch_verdict(id: str = "") -> dict:  # noqa: A002 - the query parameter's name
+    """The launch verdict (a prototype, feat/hooks-prototype): one model's
+    listing words beside what engineers reported in each window after release,
+    counted and quoted. PUBLIC (judge/gate.py, PROPOSED). See judge/verdict.py."""
+    from judge import verdict
+
+    try:
+        with _conn() as conn:
+            return verdict.verdict(conn, id)
+    except verdict.VerdictRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/verdict/week")
+def launch_verdict_week(id: str = "", week: str = "") -> dict:  # noqa: A002 - the query name
+    """One week of a model's reports, for the trend on its page: counts by
+    polarity, the most-named topics and the newest quotes. PUBLIC (judge/gate.py,
+    PROPOSED). See judge/verdict.py."""
+    from judge import verdict
+
+    try:
+        start = verdict.parse_week(week)
+        with _conn() as conn:
+            return verdict.week(conn, id, start)
+    except verdict.VerdictRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/updates")
+def updates_list(days: int | None = None) -> dict:
+    """Every update in the window, newest first, with its words, its styles and
+    what people decided about it. `saving` is false when the review tables are
+    not in this database."""
+    from judge import updates
+
+    with _updates_conns() as (conn, bench):
+        return updates.listing(conn, bench_conn=bench, days=days)
+
+
+class UpdateReviewRequest(BaseModel):
+    key: str
+    action: str
+    style: str | None = None
+    headline: str | None = None
+    detail: str | None = None
+    # True once the person has seen the numbers warning and saves anyway.
+    confirm: bool = False
+    days: int | None = None
+
+
+@app.post("/updates/review")
+def updates_review(
+    req: UpdateReviewRequest, authorization: str | None = Header(default=None)
+) -> dict:
+    """Approve, decline, restore, restyle or edit one update. An edit that
+    brings in a number the update's facts do not hold is refused with 409 and
+    the numbers, until it is sent again with `confirm`."""
+    who = _signed_in_email(authorization)
+
+    def write(updates):
+        with _updates_conns() as (conn, bench):
+            return updates.review(
+                conn,
+                _update(updates, conn, bench, req.key, req.days),
+                action=req.action,
+                by=who,
+                style=req.style,
+                headline=req.headline,
+                detail=req.detail,
+                confirm=req.confirm,
+            )
+
+    return _updates_errors(write)
+
+
+class UpdatesApproveAllRequest(BaseModel):
+    keys: list[str]
+    days: int | None = None
+
+
+@app.post("/updates/approve-all")
+def updates_approve_all(
+    req: UpdatesApproveAllRequest, authorization: str | None = Header(default=None)
+) -> dict:
+    """Approve every listed update not reviewed yet (the ones shown in Manage).
+    A declined update stays declined."""
+    who = _signed_in_email(authorization)
+
+    def write(updates):
+        with _updates_conns() as (conn, bench):
+            wanted = set(req.keys)
+            every = updates.build(conn, bench_conn=bench, days=req.days)["updates"]
+            built = [u for u in every if u["key"] in wanted]
+            return updates.approve_all(conn, built, by=who)
+
+    return _updates_errors(write)
+
+
+class UpdateUndoRequest(BaseModel):
+    key: str
+
+
+@app.post("/updates/undo")
+def updates_undo(req: UpdateUndoRequest, authorization: str | None = Header(default=None)) -> dict:
+    """Put an update back as it was before its last change."""
+    who = _signed_in_email(authorization)
+
+    def write(updates):
+        with _updates_conns() as (conn, bench):
+            gone = updates.is_gone(conn, req.key, bench_conn=bench)
+            return updates.undo(conn, req.key, by=who, gone=gone)
+
+    return _updates_errors(write)
 
 
 @app.get("/changelog")
@@ -3874,6 +4420,14 @@ _ACCESS = {
         "uses_credential": False,
         "credential_note": "No key. Public pages only.",
         "evidence": "contract/sources.yaml `access_path: discourse-json`",
+        "metered": False,
+    },
+    "bluesky": {
+        "method": "free API",
+        "detail": "Bluesky's public AppView search (searchPosts), not the site.",
+        "uses_credential": False,
+        "credential_note": "No key. The public endpoints take no credential.",
+        "evidence": "contract/sources.yaml `access_path: api`",
         "metered": False,
     },
     "blogs": {
@@ -4453,20 +5007,18 @@ def admin_runs(limit: int = 60) -> dict:
     try:
         with _conn() as conn:
             # `fetch_log.model_version_id` holds an `mv_` id on newer runs and a
-            # bare canonical name on older ones, so BOTH spellings of every
-            # tracked model are matched. Resolved by query rather than by
+            # bare canonical name on older ones, and a tracked entry may name
+            # either, so BOTH spellings of every tracked model are matched, in
+            # both directions (`tracked_keys`). Resolved by query rather than by
             # recomputing the id: the hash lives in `collect/ids.py` and the
-            # lane boundary forbids importing it.
+            # lane boundary forbids importing it. Adding row ids by
+            # `canonical_id` alone missed a run filed under the canonical
+            # spelling of an entry that names the row id (#605 review).
             # Auto-admitted models are tracked too (judge/tracked.py).
-            from judge.tracked import auto_tracked
+            from judge.tracked import auto_tracked, tracked_keys
 
             wanted = wanted | {t.registry for t in auto_tracked(conn)}
-            ids = {
-                row[0] for row in conn.execute(
-                    "SELECT id FROM model_version WHERE canonical_id = ANY(%s)",
-                    (list(wanted),),
-                ).fetchall()
-            } | wanted
+            ids = tracked_keys(conn)
             runs_raw = conn.execute(
                 "SELECT run_id, min(at), max(at), count(*), "
                 "       max(model_version_id) "
@@ -4680,6 +5232,8 @@ def admin_database() -> dict:
         "claim", "board_entry", "cell", "capability_candidate",
         "harvest_run", "job_run", "fetch_log", "spend_ledger", "rapidapi_quota",
         "blog_generation_run", "blog_post_review",
+        # #602: media prices in their own unit, and entries held for unseated models.
+        "unit_price", "unresolved_entry",
     )
     counts: dict[str, object] = dict.fromkeys(tables)
     # DOCUMENTS THAT REACHED THE BOARD, beside the table counts rather than in
@@ -4954,6 +5508,52 @@ def _the_rules() -> list[dict]:
             for n, headline in _RULE_LINE.findall(body)]
 
 
+def _contract_limits() -> list[dict]:
+    """The #602 limits that live in contract files, not environment variables.
+
+    Shown beside the caps so Admin -> Settings answers "how much can one run
+    spend" for the media arms too. Read from the same files the harvest reads;
+    a file that cannot be read says so instead of showing a number.
+    """
+    import yaml
+
+    def load(rel: str) -> dict | None:
+        try:
+            return yaml.safe_load((_REPO_ROOT / rel).read_text(encoding="utf-8")) or {}
+        except (OSError, ValueError, yaml.YAMLError):
+            # A malformed file is a state of this page, not its failure (#612
+            # review, point 20): the limits it holds read as unknown ("-").
+            return None
+
+    out: list[dict] = []
+    sweep = (load("contract/sources.yaml") or {}).get("sweep_media_subreddits") or {}
+    pages, per = sweep.get("pages_per_query"), sweep.get("posts_per_page")
+    out.append({"name": "media search sweep (weekly): requests per run",
+                "value": sweep.get("max_requests"),
+                "file": "contract/sources.yaml (sweep_media_subreddits.max_requests)",
+                "why": "search pages and comment reads together; the rest wait for the next run"})
+    out.append({"name": "media search sweep (weekly): posts per query",
+                "value": (pages * per) if pages and per else None,
+                "file": "contract/sources.yaml (pages_per_query x posts_per_page)",
+                "why": f"newest posts per search, {len(sweep.get('queries') or [])} queries"})
+    media = load("contract/media_github_repos.yaml") or {}
+    out.append({"name": "media GitHub searches per fetch",
+                "value": media.get("max_requests_per_fetch"),
+                "file": "contract/media_github_repos.yaml (max_requests_per_fetch)",
+                "why": "a media model's name searched in its kind's repos, at most this many"})
+    bar = (load("contract/tracked_models.yaml") or {}).get("seating_bar") or {}
+    out.append({"name": "seating bar for a held model",
+                "value": (f"{bar['held_entries']} entries, {bar['distinct_authors']} authors"
+                          if bar.get("held_entries") and bar.get("distinct_authors") else None),
+                "file": "contract/tracked_models.yaml (seating_bar)",
+                "why": "when a held, unseated model is put to a person to seat"})
+    out.append({"name": "price fallback",
+                "value": "LiteLLM, only where OpenRouter publishes no price",
+                "file": "contract/litellm_prices.yaml",
+                "why": "shown labelled as LiteLLM's community list, never as the maker's price"})
+    return out
+
+
 @app.get("/admin/settings")
 def admin_settings(authorization: str | None = Header(default=None)) -> dict:
     """Who is signed in, what this is built on, and every operational cap.
@@ -5176,6 +5776,8 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
             "askable — not that there is no commit."
         ),
         "caps": caps,
+        # #602: the media limits, which are contract values, not env vars.
+        "contract_limits": _contract_limits(),
         "models_in_use": models_in_use,
         "credentials": credentials,
         "credentials_note": (
@@ -5192,6 +5794,76 @@ def _public_shown(source_id: str) -> bool | None:
         return not publication.withheld(source_id)
     except Exception:  # noqa: BLE001
         return None
+
+
+def _media_sources(doc: dict) -> dict:
+    """The media additions of #602, from the same contract files the harvest reads.
+
+    Returned beside `sources` so Admin -> Sources shows them: the two listing
+    sweeps (text and media), the subreddits the per-model search never stores,
+    the GitHub repos a media model is searched in, and LiteLLM as the price
+    fallback. Each file that cannot be read is said by name, never left blank.
+    """
+    import yaml
+
+    out: dict = {"unreadable": []}
+
+    def block(key: str, label: str, runs: str) -> dict | None:
+        b = doc.get(key) or {}
+        if not b:
+            return None
+        queries = [str(q.get("query")) for q in b.get("queries") or [] if isinstance(q, dict)]
+        pages = b.get("pages_per_query" if queries else "pages_per_subreddit")
+        per = b.get("posts_per_page")
+        return {
+            "block": key, "label": label, "runs": runs,
+            # A SEARCH SWEEP NAMES QUERIES, A LISTING NAMES SUBREDDITS (2026-11-09).
+            "queries": queries,
+            "subreddits": [] if queries else [str(m) for m in b.get("members") or []],
+            "posts_per_subreddit": (pages * per) if pages and per else None,
+            "max_requests": b.get("max_requests"),
+            "filter": ("names a model the registry or the catalogue knows; every post "
+                       "is stored, comments read only for those"
+                       if b.get("subject_only") else
+                       "names a seated model AND matches a topic or signal phrase "
+                       "from contract/queries.yaml"),
+        }
+
+    out["listing_sweeps"] = [s for s in (
+        # Only the media sweep: the text block's listing is run by no workflow,
+        # so the page does not show it as a source (2026-11-09).
+        block("sweep_media_subreddits", "Media search (weekly)",
+              "weekly, Mondays UTC, before the model fetches (step `Search Reddit "
+              "for media models (weekly)` in scheduled-fetches.yml)"),
+    ) if s]
+    out["search_excluded"] = [
+        {"id": str(e.get("id")), "reason": str(e.get("reason") or "").strip()}
+        for e in ((doc.get("sweep_subreddits") or {}).get("search_excluded") or [])
+    ]
+    try:
+        media = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "media_github_repos.yaml").read_text(encoding="utf-8")) or {}
+        out["media_github_repos"] = {
+            "kinds": {str(k): list(v or []) for k, v in (media.get("kinds") or {}).items()},
+            "max_requests_per_fetch": media.get("max_requests_per_fetch"),
+        }
+    except (OSError, ValueError, AttributeError, yaml.YAMLError) as exc:
+        out["media_github_repos"] = None
+        out["unreadable"].append(f"contract/media_github_repos.yaml: {exc}")
+    try:
+        lite = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "litellm_prices.yaml").read_text(encoding="utf-8")) or {}
+        out["price_fallback"] = {
+            "source": "LiteLLM's community price list",
+            "source_url": lite.get("source_url"),
+            "models_mapped": len(lite.get("models") or {}),
+            "excluded": {str(k): str(v) for k, v in (lite.get("excluded") or {}).items()},
+            "rule": "used only where OpenRouter publishes no price; never the maker's price",
+        }
+    except (OSError, ValueError, AttributeError, yaml.YAMLError) as exc:
+        out["price_fallback"] = None
+        out["unreadable"].append(f"contract/litellm_prices.yaml: {exc}")
+    return out
 
 
 @app.get("/admin/sources")
@@ -5391,6 +6063,8 @@ def admin_sources() -> dict:
     return {
         "sources": rows,
         "count": len(rows),
+        # THE MEDIA ADDITIONS (#602): sweeps, exclusions, media repos, price fallback.
+        "media": _media_sources(doc),
         # UNDER THEIR OWN KEY, not appended to `sources`. A feed is not a
         # platform: it has no access method, no credential and no quota, and
         # eighteen of them in a list of eight platforms would make the
@@ -5418,6 +6092,86 @@ def admin_sources() -> dict:
             "fingerprint or prefix is returned by this endpoint."
         ),
     }
+
+
+
+#: How many held names `/admin/held-models` returns; the rest are counted.
+HELD_MODELS_SHOWN = 200
+
+
+@app.get("/admin/held-models")
+def admin_held_models() -> dict:
+    """Models the board holds evidence about but has not seated (#602).
+
+    Verified claims whose model resolves to no registry row are HELD in
+    `unresolved_entry`, by the name as written, instead of lost. This lists each
+    held name with its entries and distinct authors against `seating_bar` in
+    contract/tracked_models.yaml - the count at which it is put to a person to
+    seat. A LOWER BOUND: a model nobody has seated is not searched for, so its
+    held count is only what threads found for other models said about it.
+    `scripts/attribute_unresolved_entries.py` files held rows once a model is seated.
+    """
+    import yaml
+
+    # THE BAR IS KNOWN OR SAID TO BE UNKNOWN (#612 review, points 17 and 20). An
+    # unreadable file used to leave `bar = {}` with no reason, so every row read
+    # `meets_bar: false` and the panel said "0 meet the bar" (rule 6).
+    bar: dict = {}
+    bar_reason = None
+    try:
+        raw = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "tracked_models.yaml").read_text(encoding="utf-8")) or {}
+        bar = raw.get("seating_bar") or {}
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        bar_reason = f"contract/tracked_models.yaml could not be read ({type(exc).__name__})"
+    need_entries, need_authors = bar.get("held_entries"), bar.get("distinct_authors")
+    if bar_reason is None and not (isinstance(need_entries, int) and isinstance(need_authors, int)):
+        bar_reason = "contract/tracked_models.yaml has no complete `seating_bar`"
+    try:
+        with _conn() as conn:
+            # ONE NAME, ITS SPELLINGS TOGETHER (#612 review, point 18):
+            # "GPT Image 2.6 Sunburst" and "gpt-image-2.6 sunburst" each stayed
+            # under the bar when counted apart. And a quote held again after a
+            # `pipeline_version` change is ONE entry, not two: the bar counts
+            # what people said, not how many times we re-read it.
+            rows = conn.execute(
+                "WITH h AS ("
+                "  SELECT lower(regexp_replace(u.surface, '[^0-9A-Za-z]+', '', 'g')) AS k, "
+                "         u.surface, u.document_id, u.section, u.slug, u.quote, "
+                "         u.created_at, d.author_id "
+                "  FROM unresolved_entry u JOIN document d ON d.id = u.document_id "
+                "  WHERE u.attributed_at IS NULL) "
+                "SELECT mode() WITHIN GROUP (ORDER BY surface), "
+                "       count(DISTINCT (document_id, section, slug, quote)), "
+                "       count(DISTINCT author_id), count(DISTINCT document_id), "
+                "       min(created_at), max(created_at), array_agg(DISTINCT surface), "
+                "       count(*) OVER () "
+                "FROM h GROUP BY k "
+                "ORDER BY 2 DESC, 1 LIMIT %s",
+                (HELD_MODELS_SHOWN,),
+            ).fetchall()
+            filed = conn.execute(
+                "SELECT count(*) FROM unresolved_entry WHERE attributed_at IS NOT NULL"
+            ).fetchone()[0]
+    except Exception as exc:  # noqa: BLE001 - an unmigrated database is a state
+        return {"held": [], "filed": None, "seating_bar": bar, "bar_reason": bar_reason,
+                "names_total": None, "truncated": False,
+                "reason": f"held entries could not be read ({_safe_detail(exc)})"}
+    held = []
+    for surface, n, authors, docs, first, last, spellings, _total in rows:
+        # None, not False, when the bar is unknown: "does not meet" would be a
+        # definite answer to a question this page cannot ask.
+        meets = (None if bar_reason else
+                 bool(n >= need_entries and authors >= need_authors))
+        held.append({"surface": surface, "spellings": sorted(spellings or []),
+                     "entries": int(n), "authors": int(authors),
+                     "documents": int(docs), "meets_bar": meets,
+                     "first_held": first.date().isoformat() if first else None,
+                     "last_held": last.date().isoformat() if last else None})
+    names_total = int(rows[0][7]) if rows else 0
+    return {"held": held, "filed": int(filed), "seating_bar": bar, "bar_reason": bar_reason,
+            "names_total": names_total, "truncated": names_total > len(held),
+            "reason": None}
 
 
 @app.get("/admin/keywords")
@@ -6084,21 +6838,20 @@ def admin_discussed_models() -> dict:
       travel with it. #464 adds three models by hand; this is where that
       decision should be made from rather than from memory of what looked busy.
 
-    `tracked` is matched on `registry`, the `model_version.canonical_id`, not
-    on the display name: two models can share a name and one model's name
-    changes when a provider renames it, so a name match would both over- and
-    under-count and neither would be visible.
+    `tracked` is matched on `registry` in both of its shapes, row id and
+    `canonical_id` (`judge.tracked.tracked_keys`), not on the display name: two
+    models can share a name and one model's name changes when a provider
+    renames it, so a name match would both over- and under-count and neither
+    would be visible. Matching `canonical_id` alone listed Claude Fable 5.1
+    here as untracked, because its entry named the row id.
     """
-    from judge.config import tracked_models
-
-    tracked = {t.registry for t in tracked_models() if t.registry}
-
     try:
         with _conn() as conn:
-            # A model the rule admits is on the page, so it is not "untracked".
-            from judge.tracked import auto_tracked
+            # Hand-written entries and the rule's admissions: a model the rule
+            # admits is on the page, so it is not "untracked".
+            from judge.tracked import tracked_keys
 
-            tracked |= {t.registry for t in auto_tracked(conn)}
+            tracked = tracked_keys(conn)
             rows = conn.execute(
                 "SELECT mv.canonical_id, mv.display_name, mv.provider, "
                 "       count(*) AS entries, "

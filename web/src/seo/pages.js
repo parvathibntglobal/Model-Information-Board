@@ -182,6 +182,27 @@ export function localVram() {
   }
 }
 
+/**
+ * AI BENCHMARKS (2026-10-30, Parvathi): one model's published benchmark scores
+ * and leaderboard positions, from the signed-in Benchmarks table. ONE PAGE: the
+ * address names the model a reader picked (/ai-benchmarks/<id>) so a shared link
+ * opens on it, and the title names it too - there is no page built per model.
+ * Not on contract/indexing.yaml's `always` list, so noindex: the sources' terms
+ * are not yet checked for a page search engines list.
+ */
+export function aiBenchmarks(model) {
+  const path = model ? `/ai-benchmarks/${model.id}` : '/ai-benchmarks'
+  return {
+    title: fullTitle(model ? `${model.label} Benchmarks: Scores & Rankings` : 'AI Model Benchmarks: Scores & Leaderboard Rankings'),
+    description: model
+      ? `${model.label}'s published benchmark scores and leaderboard positions, each with the leaderboard it came from and that board's date.`
+      : "Pick an AI model and see its published benchmark scores and leaderboard positions, each with the leaderboard it came from and that board's date.",
+    canonical: path,
+    // The Insights menu has no page of its own yet, so the trail starts at home.
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'AI benchmarks', path: '/ai-benchmarks' }],
+  }
+}
+
 export function modelFinder() {
   return {
     title: fullTitle('AI Model Pricing & Specs Table'),
@@ -383,6 +404,21 @@ export function discussionsIndex() {
   }
 }
 
+/**
+ * `/ai-news-headlines` (2026-10-30, Parvathi; the address names what people search): short headlines on what changed in AI
+ * models - launches, price changes, retirements, benchmark results - each one
+ * approved by a person on /updates. Not on contract/indexing.yaml's `always`
+ * list, so noindex until that is decided.
+ */
+export function aiUpdates() {
+  return {
+    title: fullTitle('AI Updates: Launches, Price Changes & Retirements'),
+    description: 'What changed in AI models: new launches, price cuts and rises, retirements and benchmark results, in short news headlines.',
+    canonical: '/ai-news-headlines',
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'AI updates', path: '/ai-news-headlines' }],
+  }
+}
+
 export function blogIndex() {
   return {
     title: fullTitle('Notes on AI models'),
@@ -448,6 +484,19 @@ export function aiGlossaryTermHead(t) {
     canonical: path,
     breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Glossary', path: '/glossary' }, { name: t.term, path }],
     definedTerm: { name: t.term, description: t.definition, path, aka: t.aka || [] },
+  }
+}
+
+/**
+ * GUIDES (2026-10-30): `/blogs/guides`, the hub of written guides - migration
+ * guides now; developer guides and tutorials once their sources are collected.
+ */
+export function guidesHead() {
+  return {
+    title: fullTitle('AI model migration guides and developer guides'),
+    description: 'Written guides for moving between AI models: what changes in price, context window, output limit and features, verified against published figures, and what engineers hit when they switched.',
+    canonical: '/blogs/guides',
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Blogs', path: '/blogs' }, { name: 'Guides', path: '/blogs/guides' }],
   }
 }
 
@@ -540,6 +589,10 @@ export const PRIVATE = {
   admin: { title: fullTitle('Admin'), noindex: true },
   blogLogs: { title: fullTitle('Blog run logs'), noindex: true },
   keywords: { title: fullTitle('SEO keywords'), noindex: true },
+  benchmarks: { title: fullTitle('Benchmarks'), noindex: true },
+  priceChanges: { title: fullTitle('Price changelog'), noindex: true },
+  news: { title: fullTitle('AI news'), noindex: true },
+  updates: { title: fullTitle('Updates'), noindex: true },
   notFound: { title: fullTitle('Page not found'), noindex: true },
 }
 
