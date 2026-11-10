@@ -1,0 +1,254 @@
+# What an outreach reply may say about Kite Pulse, and what it must never say.
+#
+# SOURCE: "Kite Pulse Website Content — Master Source of Truth"
+# (web/src/kitepulse/docs/), dated 2026-10-28, @Neenu. Every approved sentence
+# names the section it rests on. Section 1 (verified) is the only source of a
+# capability; a few sentences state a LIMIT from Section 2, because saying what
+# Kite Pulse does not do is how a reply stays honest.
+#
+# WRITTEN 2026-11-09 from that document. NOT YET REVIEWED: `reviewed_by` is
+# null until the product owner has read every sentence and confirmed it is true
+# today and may be said in public. When the Source of Truth changes, this file
+# changes with it, and `source.dated` says which version it was built from.
+#
+# HOW THE REPLY CHECK USES IT (reply_check.py, ARCHITECTURE.md 5.4b):
+#   approved  every mention of Kite Pulse in a reply, other than the
+#             disclosure line, must sit inside one of these texts, copied
+#             whole (whitespace and curly quotes are normalised). A sentence
+#             is used as written or not at all.
+#   refused   none of these phrases may appear ANYWHERE in a reply,
+#             case-insensitive, matched on whole words. Kept to phrases that
+#             would be a false statement about Kite Pulse in almost any reply,
+#             because a refused phrase blocks the reply even when the sentence
+#             is about something else; the reviewer then rewords it.
+#
+# READ BY reply_check.py (approved texts, refused phrases, the disclosure
+# line, reviewed_by) and tests/test_kp_outreach_claims.py. `problems` and `id`
+# are for the Reply Writer, not built: it offers a thread only the claims
+# tagged with that thread's problems (rule 9: declared, not unread by accident).
+
+source:
+  document: web/src/kitepulse/docs/Kite Pulse Website Content — Master Source of Truth.md
+  dated: 2026-10-28
+
+reviewed_by: null
+reviewed_on: null
+
+disclosure:
+  line: "Disclosure: I work on Kite Pulse"
+  decided_by: aloysiuspellissery
+  decided_on: 2026-11-09
+
+# `problems` are keys of each Finder's queries.yaml, or `any`: the Reply Writer
+# offers a claim only for a thread matched on one of its problems.
+approved:
+  # --- Claude plan limits -----------------------------------------------------
+  - id: plan-headroom
+    problems: [claude-limits]
+    source: "§1.2 Plan headroom (Claude Code)"
+    text: >-
+      Kite Pulse shows who on a team is close to a Claude Code plan limit: the
+      5-hour window, the weekly window and each model's weekly window.
+
+  - id: plan-figures-source
+    problems: [claude-limits]
+    source: "§1.2 Where plan figures come from"
+    text: >-
+      Kite Pulse reads plan usage from the figures Claude Code saves on each
+      developer's computer, and it reads no login or password.
+
+  - id: plan-usage-report
+    problems: [claude-limits]
+    source: "§1.3 Plan usage report"
+    text: >-
+      Kite Pulse's plan usage report shows each developer's weekly peaks and
+      the weeks and 5-hour windows they spent at the limit.
+
+  - id: plan-limits-claude-only
+    problems: [claude-limits]
+    source: "§2.3 Plan limits for tools other than Claude Code (a limit)"
+    text: >-
+      Kite Pulse reports plan limits for Claude Code only, not for other tools.
+
+  # --- What AI coding tools cost ----------------------------------------------
+  - id: token-use
+    problems: [ai-cost-per-developer, ai-usage-visibility]
+    source: "§1.2 Team AI Usage"
+    text: >-
+      Kite Pulse shows token use per developer, tool, model, project and day.
+
+  - id: estimated-cost
+    problems: [ai-cost-per-developer]
+    source: "§1.2 Estimated cost per tool"
+    text: >-
+      Kite Pulse estimates cost per tool from the vendor's published list
+      prices, so it is an estimate and not billed spend.
+
+  - id: which-tools-priced
+    problems: [ai-cost-per-developer]
+    source: "§1.2 Estimated cost per tool; Website corrections"
+    text: >-
+      Kite Pulse prices Claude and Gemini models and uses the cost that Aider,
+      Cline, Roo Code, Kilo Code and OpenCode report themselves; Codex, Cursor
+      and Copilot usually show no cost.
+
+  - id: budgets
+    problems: [ai-cost-per-developer]
+    source: "§1.2 AI Budgets"
+    text: >-
+      Kite Pulse lets admins set a monthly budget per team or project, in
+      tokens or estimated US dollars, with alerts at 80% and 100%.
+
+  # --- Agents that loop or get stuck --------------------------------------------
+  - id: work-problems
+    problems: [agent-stuck]
+    source: "§1.2 Work Problems"
+    text: >-
+      Kite Pulse's Work Problems page uses fixed rules, not AI, to find failed
+      commands, error messages and repeated retries.
+
+  - id: agents-in-parallel
+    problems: [agent-stuck, ai-usage-visibility]
+    source: "§1.4 Agents in parallel"
+    text: >-
+      Kite Pulse shows how many AI agents and sub-agents a developer has
+      running, and whether each is working, waiting for the developer or
+      waiting for permission.
+
+  # --- Seeing how a team uses AI tools ----------------------------------------
+  - id: ten-tools
+    problems: [any]
+    source: "§1.1 Ten AI coding tools"
+    text: >-
+      Kite Pulse reads the session history that ten AI coding tools already
+      keep: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS
+      Code, Cline, Roo Code, Kilo Code, OpenCode and Aider.
+
+  - id: copilot-scope
+    problems: [any]
+    source: "§2.3 GitHub Copilot outside VS Code Chat (a limit)"
+    text: >-
+      Kite Pulse reads GitHub Copilot Chat in VS Code only; inline
+      completions, JetBrains and Copilot CLI are not collected.
+
+  - id: counts-only
+    problems: [any]
+    source: "§1.1 Counts-only mode"
+    text: >-
+      Kite Pulse can collect token counts only, without sending the
+      conversations.
+
+  # --- Where the data goes ----------------------------------------------------
+  - id: self-hosted
+    problems: [any]
+    source: "§1.7 No vendor cloud; §1.8 Deployment"
+    text: >-
+      Kite Pulse is self-hosted: data goes only to a server the team runs,
+      with no vendor cloud in between.
+
+  - id: secrets-masked
+    problems: [any]
+    source: "§1.7 Secrets masked twice"
+    text: >-
+      Kite Pulse masks secrets on the developer's computer before upload, and
+      again on the server.
+
+  - id: not-surveillance
+    problems: [ai-usage-visibility]
+    source: "§1.7 Reads session records, not source files"
+    text: >-
+      Kite Pulse does not log keystrokes, take screenshots, track websites or
+      open project source files.
+
+  - id: no-ai-needed
+    problems: [any]
+    source: "§1.5 (Kite Pulse runs fully without any AI service)"
+    text: >-
+      Kite Pulse runs without any AI service; AI labelling is optional and off
+      until an admin sets it up.
+
+  - id: platforms
+    problems: [any]
+    source: "§1.1 Windows and macOS"
+    text: >-
+      Kite Pulse's desktop program runs on Windows and macOS.
+
+  - id: licence
+    problems: [any]
+    source: "§1.8 Licence"
+    text: >-
+      Kite Pulse is proprietary software from NTGLOBAL SOLUTIONS, not open
+      source.
+
+# Each phrase is refused with the reason and the section that refuses it.
+refused:
+  # §2.4 Not built — do not claim
+  - phrase: single sign-on
+    why: SSO is not built
+    source: "§2.4"
+  - phrase: SAML
+    why: SSO is not built
+    source: "§2.4"
+  - phrase: two-factor
+    why: two-factor sign-in is not built
+    source: "§2.4"
+  - phrase: 2FA
+    why: two-factor sign-in is not built
+    source: "§2.4"
+  - phrase: encrypted at rest
+    why: no app-level encryption of stored data
+    source: "§2.4; Website corrections"
+  - phrase: encryption at rest
+    why: no app-level encryption of stored data
+    source: "§2.4; Website corrections"
+  - phrase: SaaS version
+    why: there is no vendor-hosted version
+    source: "§2.4"
+  - phrase: hosted version
+    why: there is no vendor-hosted version
+    source: "§2.4"
+  - phrase: signed releases
+    why: releases are not signed
+    source: "§2.4; §2.3 Signed updates"
+  - phrase: signed updates
+    why: signature checking is inert until the team signs its builds
+    source: "§2.3"
+
+  # §2.5 Business facts the owner must supply
+  - phrase: SOC 2
+    why: no certification exists
+    source: "§2.5"
+  - phrase: ISO 27001
+    why: no certification exists
+    source: "§2.5"
+  - phrase: free trial
+    why: no pricing or trial terms exist yet
+    source: "§2.5"
+  - phrase: ROI
+    why: no ROI figure is reachable in the product
+    source: "§2.5; §2.2 Cost & ROI"
+
+  # Website corrections and §2.2 Hidden
+  - phrase: billable view
+    why: hidden, and it was Kite Pulse's own labelling spend
+    source: "§2.2; Website corrections"
+  - phrase: markup
+    why: the markup claim is dropped
+    source: "Website corrections"
+  - phrase: shadow AI detection
+    why: only two partial signals exist; nothing finds tools not switched on
+    source: "§2.3; Website corrections"
+  - phrase: plan limits across tools
+    why: plan limits cover Claude Code only
+    source: "§2.3; Website corrections"
+
+  # Old page names (Website corrections, "Page names to update")
+  - phrase: Org Overview
+    why: renamed Team Overview
+    source: "Page names to update"
+  - phrase: Error & Command Stats
+    why: renamed Work Problems
+    source: "Page names to update"
+  - phrase: Transparency page
+    why: renamed Privacy
+    source: "Page names to update"

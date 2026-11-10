@@ -24,14 +24,24 @@ problems:
         - claude limit
         - claude usage
         - usage limit
+        # added 2026-11-10 from the Product Overview §2 (plan limits); untested.
+        # The forums are each vendor's own, so a limit here is that vendor's.
+        - weekly limit
+        - limit reached
+        - rate limit
 
   ai-cost-per-developer:
-    description: Teams trying to see what AI coding tools cost, per developer or project
+    description: Teams trying to see what AI coding tools cost, per developer, project or seat
     phrases:
       discourse:
         - cost per developer
         - team cost
         - team spend
+        # added 2026-11-10 (spend, budgets, seats); untested
+        - token cost
+        - token usage
+        - team billing
+        - seat license
 
   agent-stuck:
     description: Coding agents that loop, stall or get stuck
@@ -40,11 +50,17 @@ problems:
         - agent stuck
         - stuck loop
         - agent loop
+        # added 2026-11-10 (stuck agents, repeated retries); untested
+        - going in circles
+        - infinite loop
 
   ai-usage-visibility:
-    description: Managers wanting visibility into how their team uses AI coding tools
+    description: Managers wanting visibility into how their team uses AI coding tools, and whether they pay off
     phrases:
       discourse:
         - team usage
         - usage dashboard
         - usage analytics
+        # added 2026-11-10 (productivity, adoption); untested
+        - track usage
+        - team adoption

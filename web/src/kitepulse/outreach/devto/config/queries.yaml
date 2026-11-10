@@ -23,15 +23,22 @@ problems:
         - claude limit
         - usage limit
         - rate limit claude
+        # added 2026-11-10 from the Product Overview §2 (plan limits); untested
+        - weekly limit
+        - 5 hour limit
 
   ai-cost-per-developer:
-    description: Teams trying to see what AI coding tools cost, per developer or project
+    description: Teams trying to see what AI coding tools cost, per developer, project or seat
     phrases:
       devto:
         - claude cost
         - token cost
         - AI spend
         - cost per developer
+        # added 2026-11-10 (spend, budgets, seats); untested
+        - AI coding cost
+        - token usage
+        - AI budget
 
   agent-stuck:
     description: Coding agents that loop, stall or get stuck
@@ -40,11 +47,17 @@ problems:
         - agent stuck
         - agent loop
         - claude code stuck
+        # added 2026-11-10 (stuck agents, repeated retries); untested
+        - going in circles
 
   ai-usage-visibility:
-    description: Managers wanting visibility into how their team uses AI coding tools
+    description: Managers wanting visibility into how their team uses AI coding tools, and whether they pay off
     phrases:
       devto:
         - team usage
         - measure AI productivity
         - track AI usage
+        # added 2026-11-10 (productivity, adoption, one view across tools); untested
+        - AI coding ROI
+        - AI adoption
+        - multiple AI tools

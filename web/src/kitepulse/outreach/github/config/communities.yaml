@@ -11,16 +11,25 @@
 #
 # One entry for all of GitHub. Each repo can add its own code of conduct, and
 # the reviewer reads that per thread; the Finder does not.
+#
+# The conditions in `note` are read by the reviewer, not by code: nothing in
+# the Finder or the review screen enforces them yet.
 
 communities:
   github:
     name: GitHub Discussions
-    vendor_replies: pending_review
+    vendor_replies: allowed
     rules_url: https://docs.github.com/en/site-policy/acceptable-use-policies/github-acceptable-use-policies
-    decided_by: null
-    decided_on: null
+    decided_by: aloysiuspellissery
+    decided_on: 2026-11-09
     note: >-
-      Read the Acceptable Use Policies, in particular the section on spam and
-      inauthentic activity (unsolicited promotion), then decide whether a
-      disclosed, useful comment fits, and set vendor_replies, decided_by and
-      decided_on.
+      Allowed at a very low pace, and only after reading the repo's own code of
+      conduct for each thread. The Acceptable Use Policies say "We do not
+      generally prohibit use of GitHub for advertising" but also "You may not
+      advertise in other Users' Accounts, such as by posting monetized or
+      excessive bulk content in issues", and forbid "automated excessive bulk
+      activity" and "misrepresentation or deception related to your
+      promotion". An answer in someone else's repo that names our product is
+      close to that line, so the help comes first and the disclosure is
+      always there. Not read on 2026-11-09: GitHub's Community Guidelines, and
+      the spam page (it returned not found).

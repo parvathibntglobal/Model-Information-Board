@@ -39,7 +39,7 @@ shares **no evidence tables**: it never writes `document`, `claim` or
 | C3 | An unmeasured check ships as a weight, not a gate. | rule 8 | The model's relevance label **orders** the review list. It does not remove threads from it (section 5.2). |
 | C4 | Official APIs and public feeds only; identifying User-Agent. | Stack decisions | Each source uses its documented API. No scraping, no logged-in browsing, no search-engine scraping. |
 | C5 | Config in versioned YAML, not code. | rule 5 | Queries, community allowlist, approved claims, pace limits are YAML files in the outreach package (section 4), **not** in `contract/` (KP config stays out of `contract/`, SEO architecture §3.3). |
-| C6 | Migrations live in `contract/migrations/` and get two eyes. | `CLAUDE.md` | The outreach tables (section 6) arrive as one reviewed migration PR whose body says who runs it and when. |
+| C6 | ~~Migrations live in `contract/migrations/` and get two eyes.~~ | `CLAUDE.md` | **Superseded 2026-11-09:** outreach has its own database (section 6), so its migrations live in `outreach/migrations/`, applied by `setup_db.py` with their own ledger. They are not a `contract/` change. |
 | C7 | Product claims come from MSoT Section 1 only. | SEO architecture §2.3 | The Reply Writer's approved-claims list is built from MSoT Section 1. The MSoT's "Website corrections" become refused phrasings. |
 | C8 | Disclosure is mandatory. | Strategy, "ground rule"; FTC / ASCI | A code check refuses any draft without a disclosure line. The reviewer cannot approve it without one either (section 5.4). |
 
@@ -137,19 +137,47 @@ web/src/kitepulse/outreach/
 │   ├── client.py                     GraphQL queries only (the one POST in outreach), KP_GITHUB_TOKEN
 │   ├── parse.py                      search node → Thread
 │   └── config/                       one community entry for all of GitHub
-├── reddit/  x/                       to build, same shape (Reddit: shared-key
-│                                     conflict with MIB, decided 2026-11-06 to skip for now)
+├── reddit/                           BUILT 2026-11-10 (phase 1 Finder, same shape as discourse/)
+│   ├── find.py                       py -3.12 web/src/kitepulse/outreach/reddit/find.py
+│   ├── finder.py                     list each subreddit's week → match phrases (titles) → filter
+│   ├── client.py                     RapidAPI reddit34, GET only, MIB's RAPIDAPI_KEY (shared quota)
+│   ├── parse.py                      listing post → Thread
+│   └── config/                       communities.yaml has one entry per subreddit
+├── x/                                to build, same shape
 │
 │   to build in phase 2 and 3, location to settle then (see below):
-├── shortlist, writer, checks         model proposal, REPLY CHECK (5.2b–5.4)
+├── writer                            Reply Writer (5.4a)
 ├── articles, sharer, reporter        article index, Article Sharer, Reporter
-├── llm                               OpenRouter call → spend_ledger stage `outreach`
 ├── api                               FastAPI router, mounted under /admin/outreach
 ├── OutreachPanel.jsx, outreach.css   Admin → Kite Pulse Outreach (review screen)
 └── claims.yaml, disclosure.yaml      approved product sentences, disclosure lines
 
+├── common/db.py                      connect to the outreach database; refuses MIB's
+├── common/store.py                   every Finder inserts its threads into kp_outreach_thread
+│                                     (new only; a known thread is never overwritten).
+│                                     --no-db skips it; a --phrase run never writes
+├── common/spend.py                   phase-2 model spend: record a call, daily cap (UTC)
+├── config/claims.yaml                approved product sentences, refused phrases, disclosure
+│                                     line (from the MSoT, 2026-10-28; product owner review pending)
+├── config/reply_rules.yaml           the REPLY CHECK's links and lengths per source
+├── reply_check.py                    the REPLY CHECK (5.4b), plain code. BUILT 2026-11-09;
+│                                     ADVISORY in phase 1 (review screen "Check my reply",
+│                                     POST /admin/outreach/threads/{id}/check), not a gate
+├── shortlist.py                      the SHORTLISTER (5.2). BUILT 2026-11-09.
+│                                     py -3.12 web/src/kitepulse/outreach/shortlist.py --limit N
+│                                     (--dry-run prints the prompt and the counts, sends nothing)
+├── config/shortlist.yaml             model, limits, the set-aside rules (with their measurement)
+├── prompts/shortlist/                system.md, user.md, tool.json: every word the model is sent;
+│                                     the hash of the three is each row's prompt_version
+├── common/llm.py                     one forced tool call to OpenRouter; cost as reported or NULL.
+│                                     The one POST to a model provider (guard test pins it)
+├── common/match.py: span()           fewest words holding a phrase (the words_far_apart rule)
+├── spend_report.py                   py -3.12 web/src/kitepulse/outreach/spend_report.py
+├── kp_review.py                      phase-1 review queue: list, skip, mark posted, reopen
+├── setup_db.py                       py -3.12 web/src/kitepulse/outreach/setup_db.py
+├── migrations/<ts>_*.sql             the outreach database's tables (section 6)
+
 var/outreach/                         Finder output today (gitignored)
-contract/migrations/<ts>_kp_outreach.sql      the tables (two eyes, C6)
 tests/test_kp_outreach_*.py                   checks, filters, no-posting guard
 ```
 
@@ -160,9 +188,14 @@ GitHub Discussions, Discourse and X, but every adapter's job ends in a
 `collect.config` for the User-Agent, and `tests/test_kp_outreach_guards.py`
 enforces that, and the no-posting rule, over every folder (section 10).
 
-**What this layout defers.** The phase-2 API router must be importable by `judge/app.py`, which runs from the
-repository root; a script folder under `web/src/` is not on that path. Decide
-how (a path entry, or moving the backend to the root) when phase 2 starts.
+**How the backend reaches this folder (decided 2026-11-09, phase-1 review
+screen).** `judge/app.py:_kp_review` APPENDS this folder to `sys.path` (never
+prepends, so it cannot shadow a board module) and imports `kp_review.py`, which
+fails if `common` resolved anywhere else. The routes are
+`/admin/outreach/threads` (GET) and `.../{id}/skip`, `/posted`, `/reopen`
+(POST), all behind the app-wide token gate, all on outreach's own database,
+never `_conn()`. The panel is `web/src/kitepulse/admin/OutreachPanel.jsx`,
+section `kite-outreach` of the Kite Pulse project in Admin.
 
 **Hooks outside these folders** (keep to three, as the SEO site did):
 
@@ -180,7 +213,7 @@ how (a path entry, or moving the backend to the root) when phase 2 starts.
 
 | | |
 |---|---|
-| **Runs** | Cron, every 4 hours (`python -m kitepulse_outreach find`) |
+| **Runs** | Once a day (decided 2026-11-10, aloysiuspellissery; was every 4 hours). Each run re-reads the 7-day window, so every 4 hours would read each week six times over; on Reddit that is roughly 150-300 RapidAPI calls a run (estimated; 32 measured for r/ClaudeCode alone). No scheduler exists yet: each Finder's `find.py` is run by hand |
 | **Input** | `queries.yaml`: each problem has phrases per source, e.g. problem `claude-limits` → `"hit my claude limit"`, `"claude code usage limit"`, `"5 hour limit claude"` |
 | **Does** | Calls each source's search API for posts from the last 7 days; normalises to `Thread {source, ext_id, community, url, title, body, author, created_at, is_open, reply_count}`; upserts on `(source, ext_id)` |
 | **Output** | `kp_outreach_thread` rows, `status='found'`, `matched_problem`, `matched_phrase` |
@@ -190,7 +223,7 @@ Source notes (each is an open item in section 11 until confirmed):
 
 | Source | API | Note |
 |---|---|---|
-| Reddit | Data API (OAuth, read scope only) | Commercial use needs Reddit's approval. Read-only app; no `submit` scope requested. |
+| Reddit | RapidAPI `reddit34` `/getPostsBySubreddit?sort=new`, phrases matched in code | **Built 2026-11-10** (aloysiuspellissery), not the planned Data API. Uses MIB's `RAPIDAPI_KEY`, so it spends the board's monthly quota and shares its per-minute limit (paced at 20/min against MIB's 25; 429 at 32). The 2026-11-06 skip was for exactly this shared key; accepted rather than resolved. **Not search**: `/getSearchPosts` has no phrase operator (1 of 22 NEW and 0 of 22 TOP-week results held `claude code usage limit`, 2026-11-10) and takes `time` only with TOP. **Titles only**: neither endpoint sends `selftext`. First run, r/ClaudeCode: 650 posts in the week, 27 pages, 18 matched. Subreddits in `reddit/config/communities.yaml`, all `pending_review`. **Terms open**: MIB's `reddit-via-rapidapi` ruling covers internal development, not marketing; decision 2 below is still open. |
 | Hacker News | Algolia HN Search | Free, no key |
 | dev.to | Forem API `/api/articles?tag=<tag>&top=7&per_page=1000`, phrases matched in code | Free, no key. robots.txt disallows `/search?q=*` and the API has no text search, so each tag's week is listed (paged until a page is short) and title + description matched. Tags in `devto/config/tags.yaml`. Built 2026-11-06 |
 | GitHub Discussions | GraphQL `search(type: DISCUSSION)`, `"<phrase>" in:title,body created:>=<date>`, hits confirmed in code | Kite Pulse's own `KP_GITHUB_TOKEN` (fine-grained, public read-only), never MIB's `GITHUB_TOKEN`; GitHub counts a personal token's limit per account, so use a different account to keep MIB's budget separate. Quoted phrases: 73 vs 268 unquoted for `usage limit` in one week. Pages of 25 (100 with body text exceeded GitHub's resource limit). Built 2026-11-06 |
@@ -199,6 +232,32 @@ Source notes (each is an open item in section 11 until confirmed):
 | Stack Overflow / Stack Exchange | API 2.3 `/search/advanced`, `/questions?tagged=` | **Measured, not built (2026-11-09).** Free, no key (300 requests/day per IP), robots.txt is a 404 (no rules). Too quiet to be worth a Finder: all of stackoverflow.com received 289 new questions in the 7 days to 2026-11-09. In that week, tags `claude`, `claude-code`, `anthropic`, `openai-api` and `cursor-ide` had 0 questions each; `claude-code` had 1 in 90 days. Phrase search over the same week: `usage limit` 2, `claude code` 1, `claude limit` 0, `token cost` 0. For comparison, GitHub Discussions had 73 for quoted `usage limit` in one week (2026-11-06). The AI-specific sites are small too: ai.stackexchange.com 6 and genai.stackexchange.com 7 questions that week, on any topic. Re-measure before building. |
 
 ### 5.2 Shortlister
+
+> **BUILT 2026-11-09, and how it differs from the plan below** (`shortlist.py`):
+>
+> - **Step a is split.** The Finders already apply the five gates at fetch
+>   time. The Shortlister adds three checks of its own that **set a thread
+>   aside without dropping it**: `too_old` (re-checked, a thread ages while it
+>   waits), `hiring_thread`, and `words_far_apart` (no matched phrase has its
+>   words within `closeness_window_words`). A set-aside thread stays in To
+>   review, collapsed at the bottom, saying why (C3, rule 8). Measured on the
+>   280 threads waiting on 2026-11-09: 190 set aside, 90 sendable; a hand read
+>   of 20 set-aside threads found 17 right and 3 misses, all on Hacker News.
+>   Numbers and method in `config/shortlist.yaml`.
+> - **The thread's status does not change.** A shortlisted thread stays
+>   `found`; the answer is a row in `kp_outreach_shortlist` (not the
+>   `kp_outreach_proposal` table section 6 drew), one per thread per prompt
+>   version. `kp_review.listing` orders To review by it, in six groups named in
+>   words on the page: high, medium, not sorted yet, low, none, set aside.
+> - **`reason` says why the thread fits the problem**, not why an article
+>   answers it: there is no article index yet, so `article_slug` is always null.
+> - **Spend is `kp_outreach_spend`, step `shortlist`** (decision #10), not
+>   `spend_ledger`. First 10 calls, 2026-11-09: $0.0011 in all, $0.00006 to
+>   $0.00016 each, about 1,050-1,180 tokens in and 115 out per call.
+> - **The prompt was revised once after reading the first 5 answers**: two
+>   dev.to tutorials were rated high, one about agents spending money and one
+>   whose title was a question. The same 5 re-run under the revision all read
+>   right. 5 is a spot check, not a measured error rate.
 
 Three steps, in this order. **The model never sees a thread that code has
 already ruled out, and code makes every keep/drop decision.**
@@ -351,8 +410,30 @@ signal that a community does not welcome us.
 
 ## 6. Data model
 
-Proposed tables, one migration in `contract/migrations/`. Prefix `kp_` keeps
-them visibly apart from MIB's tables.
+**Outreach has its own database (decided 2026-11-09)**, named by
+`KP_OUTREACH_DATABASE_URL`; locally `kite_pulse_outreach_local`, on the same
+Postgres server as MIB's but a separate database. `common/db.py` never falls
+back to `DATABASE_URL` and refuses any database holding an MIB table, read
+from the open connection. `setup_db.py` creates the database (local hosts
+only) and applies `migrations/*.sql` in order, each file and its
+`kp_outreach_migration` ledger row in one transaction.
+
+**Spend (decided 2026-11-09, decision #10):** this supersedes "shares the
+spend ledger" in section 1. Every phase-2 model call is a row in
+`kp_outreach_spend` in this database: step (`shortlist` | `draft`), model,
+tokens, the cost OpenRouter reported (NULL when it reports none, never 0) and
+the machine. `common/spend.py:check` runs before each call against
+`OUTREACH_DAILY_BUDGET_USD` per UTC day, and also stops the day when a call had
+no reported cost, since the total is then only a floor.
+`py -3.12 web/src/kitepulse/outreach/spend_report.py` shows today against the
+cap and the last 14 days. MIB's Admin → API usage does not show this spend.
+
+**Built so far:** `kp_outreach_thread` only
+(`migrations/20261109T0000_kp_outreach_thread.sql`). It has the Thread
+record's columns, so `matched_problems`, `matched_phrases` and `flags` are
+arrays where the sketch below has single values. The other tables arrive with
+the phase that writes them. Prefix `kp_` stays, so a misdirected query is
+obvious.
 
 ```sql
 kp_outreach_thread
@@ -447,7 +528,7 @@ Cron plus the jobs table (stack decision; no workflow engine).
 
 | Job | When | Needs a model |
 |---|---|---|
-| `find` | every 4 h | no |
+| `find` | daily (was every 4 h; changed 2026-11-10, see 5.1) | no |
 | `shortlist` | after each `find` | yes (phase 2+; phase 1 runs filters only) |
 | `draft` | after each `shortlist` | yes |
 | `daily-list` | 08:00 IST | no — phase 1's emailed/Slack list of shortlisted threads |
@@ -488,14 +569,16 @@ the team actually replies to.
 | # | Decision | Who | Blocks |
 |---|---|---|---|
 | 1 | Rule-2 agreement for a new model stage `outreach` (propose-only, person approves, code checks, spend recorded) | Both MIB engineers | Phase 2 |
-| 2 | Reddit Data API: apply for commercial read access | Product owner | Reddit in phase 1 |
+| 2 | Reddit Data API: apply for commercial read access. **Still open**; the Finder was built 2026-11-10 on RapidAPI without it (section 5.1), so this now blocks relying on it, not building it | Product owner | Reddit in phase 1 |
 | 3 | X API: pay for search access, or leave X out | Product owner | X source |
 | 4 | Who reviews and posts, from which accounts; list them in `pace.yaml: team_accounts` | Product owner | Phase 1 |
 | 5 | The first `communities.yaml`: which communities, each checked against its own self-promotion rules | Reviewer(s) | Phase 1 |
 | 6 | The approved-claims list (from MSoT §1) and the disclosure wording | Product owner | Phase 2 |
-| 7 | `OUTREACH_DAILY_BUDGET_USD` value | Product owner | Phase 2 |
+| 6a | ~~Disclosure wording~~ Decided 2026-11-09 (aloysiuspellissery): every reply carries the line **`Disclosure: I work on Kite Pulse`**, matched by the REPLY CHECK with any trailing punctuation. The claims list is still open. | — | — |
+| 7 | ~~`OUTREACH_DAILY_BUDGET_USD` value~~ Decided 2026-11-09 (aloysiuspellissery): **$0.10 a day**. This equals the section 7 estimate (an extrapolation, not a measurement), so a busy day may reach it and leave threads waiting for the next day; revisit after the first week's measured spend. In `.env.example`; read by `common/spend.py:daily_budget`, no default. | — | — |
 | 8 | Phase-1 daily list delivery: email, Slack, or the admin screen only | Team | Phase 1 |
-| 9 | Proposed migration (section 6) reviewed as a `contract/` change | Both MIB engineers | Phase 1 |
+| 9 | ~~Proposed migration (section 6) reviewed as a `contract/` change~~ Resolved 2026-11-09: outreach has its own database and migrations (section 6) | — | — |
+| 10 | ~~Where phase-2 model spend is recorded~~ Decided 2026-11-09 (aloysiuspellissery): outreach's own `kp_outreach_spend` table (`migrations/20261109T1800_kp_outreach_spend.sql`), cap checked by `common/spend.py`, read by `spend_report.py`. Not in MIB's `spend_ledger`, so not in Admin → API usage; this supersedes C2 and the `judge/spend_ledger.py` hook in section 4. | — | — |
 
 ---
 

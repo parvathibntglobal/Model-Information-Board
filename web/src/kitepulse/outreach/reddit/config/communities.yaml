@@ -1,0 +1,145 @@
+# The subreddits the Finder reads, one entry per subreddit, keyed by its name
+# as Reddit spells it (the Finder lists /r/<key>). Adding a subreddit is adding
+# an entry here; every listed one costs pages of the SHARED RapidAPI quota on
+# every run, so list only where the problems are discussed.
+#
+# vendor_replies is one of:
+#   allowed         a person has read the subreddit's rules and they permit it
+#   pending_review  nobody has decided yet. Posts are KEPT and FLAGGED, so a
+#                   reviewer sees them and knows the question is open.
+#   not_allowed     every post from here is dropped, with that reason
+#
+# Each entry is a person's reading of that subreddit's own rules, ON TOP OF
+# Reddit's site-wide ones (https://redditinc.com/policies/reddit-rules, and
+# the self-promotion guidance in Reddit's help pages). Set it only after
+# reading rules_url, and record who decided and when. Many subreddits ban
+# self-promotion outright or limit it to a weekly thread; expect strict rules.
+#
+# EVERY ENTRY IS pending_review, 2026-11-10: chosen as where users of the tools
+# Kite Pulse reads, and their managers, post, and NOT YET READ. No
+# decided_by/decided_on until a person has read each one.
+#
+# The conditions in `note` are read by the reviewer, not by code: nothing in
+# the Finder or the review screen enforces them yet.
+
+communities:
+  ClaudeCode:
+    name: r/ClaudeCode
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/ClaudeCode/about/rules
+    note: >-
+      Rules NOT READ YET. 650 posts in the 7 days to 2026-11-10 (27 listing
+      pages); 18 titles matched the shipped phrases, mostly usage limits.
+
+  ClaudeAI:
+    name: r/ClaudeAI
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/ClaudeAI/about/rules
+    note: Rules NOT READ YET.
+
+  cursor:
+    name: r/cursor
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/cursor/about/rules
+    note: Rules NOT READ YET.
+
+  ChatGPTCoding:
+    name: r/ChatGPTCoding
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/ChatGPTCoding/about/rules
+    note: Rules NOT READ YET.
+
+  GithubCopilot:
+    name: r/GithubCopilot
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/GithubCopilot/about/rules
+    note: Rules NOT READ YET.
+
+  # ── Added 2026-11-10: the other tools Kite Pulse reads, and managers ──────
+  # Each name confirmed with /getSubredditInfo on 2026-11-10 (23 calls for 14
+  # candidates, 9 of them retries of the transient "data not found").
+  # Subscriber counts are from that call and are not post volumes: what a
+  # subreddit costs per run is unmeasured until the first run.
+  #
+  # Checked and NOT added: r/GeminiAI (403,520; the Gemini chatbot, mostly
+  # consumers), r/LocalLLaMA (871,306; local models, off-target and costly to
+  # list), r/aiderChat (1 subscriber). r/opencodeCLI returned "data not found"
+  # on 3 of 3 tries: UNCONFIRMED, not shown to be absent; OpenCode's subreddit
+  # name is still to find.
+  #
+  # "restricted" (r/RooCode, r/cto): only approved users start posts;
+  # anyone can reply. The sidebar text held no self-promotion rule for any of
+  # them, which says nothing: Reddit keeps rules separately, at rules_url.
+
+  codex:
+    name: r/codex
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/codex/about/rules
+    note: Rules NOT READ YET. OpenAI Codex CLI, IDE extension and cloud. 229,999 subscribers.
+
+  GeminiCLI:
+    name: r/GeminiCLI
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/GeminiCLI/about/rules
+    note: Rules NOT READ YET. 6,968 subscribers.
+
+  CLine:
+    name: r/CLine
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/CLine/about/rules
+    note: >-
+      Rules NOT READ YET. Calls itself the official Cline community, so the
+      vendor moderates it. 21,074 subscribers.
+
+  RooCode:
+    name: r/RooCode
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/RooCode/about/rules
+    note: Rules NOT READ YET. Restricted (replies open). 18,736 subscribers.
+
+  kilocode:
+    name: r/kilocode
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/kilocode/about/rules
+    note: Rules NOT READ YET. 13,173 subscribers.
+
+  windsurf:
+    name: r/windsurf
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/windsurf/about/rules
+    note: >-
+      Rules NOT READ YET. Kite Pulse lists Windsurf but has no parser for it
+      yet (Field Guide), so a reply here cannot say Kite Pulse reads Windsurf.
+      16,199 subscribers.
+
+  EngineeringManagers:
+    name: r/EngineeringManagers
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/EngineeringManagers/about/rules
+    note: >-
+      Rules NOT READ YET. For the manager phrases (AI ROI, adoption, spend).
+      38,165 subscribers.
+
+  ExperiencedDevs:
+    name: r/ExperiencedDevs
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/ExperiencedDevs/about/rules
+    note: >-
+      Rules NOT READ YET; expected to be strict about promotion. Large
+      (425,602 subscribers), so it may cost many pages a run.
+
+  cto:
+    name: r/cto
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/cto/about/rules
+    note: >-
+      Rules NOT READ YET. "The subreddit for engineering managers - especially
+      CTOs and VPs of Engineering." Restricted (replies open). 3,826 subscribers.
+
+  vibecoding:
+    name: r/vibecoding
+    vendor_replies: pending_review
+    rules_url: https://www.reddit.com/r/vibecoding/about/rules
+    note: >-
+      Rules NOT READ YET. Large (394,675 subscribers), so it may cost many
+      pages a run.

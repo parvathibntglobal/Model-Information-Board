@@ -29,7 +29,7 @@ for _p in (str(HERE.parent), str(REPO_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from common import config  # noqa: E402
+from common import config, store  # noqa: E402
 
 from hackernews import SOURCE as HN  # noqa: E402
 from hackernews.client import HackerNewsClient  # noqa: E402
@@ -117,7 +117,9 @@ def cmd_find(args: argparse.Namespace) -> int:
     }, indent=2), encoding="utf-8")
 
     _print(result, now=now, out_files=[jsonl, run])
-    return 0
+    saved = store.save_and_report(result.threads, skip_reason=store.skip_reason(
+        no_db=args.no_db, phrase=args.phrase))
+    return 0 if saved else 1
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -128,7 +130,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--problem", help="only this problem key from queries.yaml")
     parser.add_argument("--phrase", help="search this one phrase instead of queries.yaml")
-    parser.add_argument("--max-pages", type=int, default=1, help="pages of 50 per phrase")
+    # 4: the busiest shipped phrase, 'claude code stuck', had 67 hits over 2
+    # pages on 2026-11-09, and the default of 1 dropped 17 without a word.
+    # A phrase still cut off is named under "Checks NOT run".
+    parser.add_argument("--max-pages", type=int, default=4, help="pages of 50 per phrase")
+    parser.add_argument("--no-db", action="store_true",
+                        help="write the JSONL only, not the outreach database")
     parser.add_argument("--out", default=str(DEFAULT_OUT))
     return cmd_find(parser.parse_args(argv))
 

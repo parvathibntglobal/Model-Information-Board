@@ -20,6 +20,7 @@ import QuizPanel from '../components/QuizPanel'
 import FeedSummaryPanel from '../components/FeedSummaryPanel'
 import DiscussionsPanel from '../components/DiscussionsPanel'
 import KitePulsePanel from '../kitepulse/admin/KitePulsePanel'
+import OutreachPanel from '../kitepulse/admin/OutreachPanel'
 import { KITE_PULSE_OPEN } from '../kitepulse/shared/status'
 import { IconAlert, IconArrow, IconClock, IconFilter, IconGrid, IconHeart, IconSearch } from '../components/Icons'
 import { useHead } from '../seo/head'
@@ -196,7 +197,7 @@ function CollectEvidence() {
 // ONE ICON PER GROUP, the same ones the section headers use.
 const GROUP_ICONS = {
   Health: IconHeart, Evidence: IconFilter, 'Board & content': IconGrid, Operations: IconClock,
-  SEO: IconSearch,
+  SEO: IconSearch, Outreach: IconArrow,
 }
 
 const SECTIONS = [
@@ -369,6 +370,15 @@ const KITE_SECTIONS = [
     blurb: 'Open the Kite Pulse website',
     href: '/kite-pulse',
   },
+  {
+    // Threads the outreach Finders saved, from outreach's own database
+    // (web/src/kitepulse/outreach/). Skip, or answer by hand and record it.
+    id: 'kite-outreach',
+    group: 'Outreach',
+    title: 'Outreach',
+    blurb: 'Threads to answer by hand, with disclosure',
+    render: () => <OutreachPanel />,
+  },
 ]
 
 /**
@@ -391,7 +401,7 @@ const PROJECTS = [
   {
     id: 'kite-pulse',
     name: 'Kite Pulse',
-    blurb: 'Kite Pulse SEO: pages, keywords and AI-answer tracking',
+    blurb: 'Kite Pulse SEO and outreach: pages, keywords, AI-answer tracking and threads to answer',
     sections: KITE_SECTIONS,
     // LOCKED while its team works inside it (kitepulse/shared/status.js): the card
     // shows and cannot be opened, and no URL reaches its sections.

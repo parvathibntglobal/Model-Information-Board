@@ -32,7 +32,7 @@ for _p in (str(HERE.parent), str(REPO_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from common import config  # noqa: E402
+from common import config, store  # noqa: E402
 
 from discourse import SOURCE  # noqa: E402
 from discourse.client import DiscourseClient  # noqa: E402
@@ -145,7 +145,9 @@ def cmd_find(args: argparse.Namespace) -> int:
     }, indent=2), encoding="utf-8")
 
     _print(result, now=now, out_files=[jsonl, run])
-    return 1 if result.errors else 0
+    saved = store.save_and_report(result.threads, skip_reason=store.skip_reason(
+        no_db=args.no_db, phrase=args.phrase))
+    return 1 if result.errors or not saved else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -159,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--phrase", help="match this one phrase instead of queries.yaml")
     parser.add_argument("--max-pages", type=int, default=DEFAULT_MAX_PAGES,
                         help="most listing pages (30 topics each) per forum")
+    parser.add_argument("--no-db", action="store_true",
+                        help="write the JSONL only, not the outreach database")
     parser.add_argument("--out", default=str(DEFAULT_OUT))
     return cmd_find(parser.parse_args(argv))
 

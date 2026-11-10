@@ -1,0 +1,13 @@
+# Limits on what the Finder keeps.
+
+# Posts created before this are not read (each subreddit's newest-first listing
+# is paged until it passes this age). Old threads have moved on, and a late
+# reply that links to a product reads as advertising.
+max_thread_age_days: 7
+
+# Reddit usernames of team members who reply. NOT YET USED: the already-answered
+# check needs one comment fetch per thread on the shared RapidAPI quota and is
+# not built for Reddit. The Finder says so in its output whether or not names
+# are listed here; it never reads as "nobody on the team has replied".
+team_accounts:
+  reddit: []

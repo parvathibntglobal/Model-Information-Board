@@ -57,10 +57,13 @@ class HackerNewsClient:
 
     def search_recent(
         self, phrase: str, *, since_epoch: int, max_pages: int = 1
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], int, bool]:
         """Stories and comments matching `phrase`, newest first, created after
-        `since_epoch`."""
+        `since_epoch`: (hits, Algolia's reported nbHits, whether every page was
+        read). nbHits is an estimate (Algolia marks it non-exhaustive), so it is
+        reported as Algolia's figure, never as a count of what exists."""
         hits: list[dict[str, Any]] = []
+        total = 0
         for page in range(max_pages):
             data = self._get(
                 SEARCH_BY_DATE,
@@ -73,9 +76,10 @@ class HackerNewsClient:
                 },
             )
             hits.extend(data.get("hits") or [])
+            total = int(data.get("nbHits") or len(hits))
             if page + 1 >= int(data.get("nbPages") or 0):
-                break
-        return hits
+                return hits, total, True
+        return hits, total, False
 
     def thread_authors(self, story_id: str) -> set[str]:
         """Every author who has posted anywhere in the story's thread."""

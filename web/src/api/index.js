@@ -433,6 +433,27 @@ export const reviewDiscussion = (id, decision, note) =>
   request('/discussions/review', { method: 'POST', body: { id, decision, note: note || null } })
 export const deleteDiscussion = (id) => request('/discussions/delete', { method: 'POST', body: { id } })
 
+// KITE PULSE OUTREACH REVIEW (web/src/kitepulse/outreach/kp_review.py,
+// 2026-11-09). Threads the outreach Finders saved, in outreach's own database.
+// Skip, or answer by hand and record the reply's URL. Nothing here posts.
+export const outreachThreads = ({ tab = 'found', source = '', problem = '', view = '' } = {}) => {
+  const q = new URLSearchParams({ tab })
+  if (source) q.set('source', source)
+  if (problem) q.set('problem', problem)
+  if (view) q.set('view', view)
+  return request(`/admin/outreach/threads?${q}`)
+}
+export const outreachSkip = (id, reason, note) =>
+  request(`/admin/outreach/threads/${id}/skip`, { method: 'POST', body: { reason, note: note || null } })
+export const outreachPosted = (id, url, account) =>
+  request(`/admin/outreach/threads/${id}/posted`, { method: 'POST', body: { url, account } })
+export const outreachReopen = (id) =>
+  request(`/admin/outreach/threads/${id}/reopen`, { method: 'POST' })
+// The REPLY CHECK (outreach/reply_check.py) on a reply about to be posted.
+// Advisory in phase 1; writes nothing.
+export const outreachCheck = (id, text) =>
+  request(`/admin/outreach/threads/${id}/check`, { method: 'POST', body: { text } })
+
 // HOW A POST IS MADE, AND THE WRITING PACKS (judge/blog_method.py, 2026-10-16).
 export const blogMethod = () => request('/blog-posts/method')
 export const blogPacks = () => request('/blog-posts/packs')

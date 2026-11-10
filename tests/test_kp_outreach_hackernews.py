@@ -164,6 +164,25 @@ def test_every_request_carries_the_user_agent_and_the_age_window():
     assert req.url.params["tags"] == "(story,comment)"
 
 
+def test_a_phrase_cut_off_at_the_page_limit_is_named():
+    def two_pages(request):
+        if request.url.path.endswith("/robots.txt"):
+            return httpx.Response(404, text="")
+        page = int(request.url.params["page"])
+        return httpx.Response(200, json={"hits": [comment(f"{page}01")], "nbHits": 67,
+                                         "nbPages": 2})
+    client = HackerNewsClient(UA, http=httpx.Client(transport=httpx.MockTransport(two_pages)),
+                              sleep=lambda _s: None)
+    result = find_hackernews(client, queries=[Query("claude-limits", "claude code stuck")],
+                             pace=NO_TEAM, community=ALLOWED, now=NOW, max_pages=1)
+    assert any("'claude code stuck': stopped at the page limit" in line
+               and "read 1 of about 67" in line for line in result.checks_not_run)
+    full = find_hackernews(client, queries=[Query("claude-limits", "claude code stuck")],
+                           pace=NO_TEAM, community=ALLOWED, now=NOW, max_pages=2)
+    assert len(full.threads) == 2
+    assert not any("page limit" in line for line in full.checks_not_run)
+
+
 def test_an_empty_user_agent_is_refused():
     with pytest.raises(HackerNewsError):
         HackerNewsClient("  ")

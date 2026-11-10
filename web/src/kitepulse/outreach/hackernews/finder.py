@@ -14,7 +14,7 @@ from common import filters
 from common import thread as t
 from common.config import Community, Pace, Query
 
-from .client import HackerNewsClient
+from .client import PER_PAGE, HackerNewsClient
 from .parse import thread_of
 
 
@@ -47,8 +47,17 @@ def find_hackernews(
     # 1. Search every phrase; one Thread per HN item, recording every phrase
     #    and problem that found it.
     by_id: dict[str, t.Thread] = {}
+    checks_not_run: list[str] = []
     for q in queries:
-        for hit in client.search_recent(q.phrase, since_epoch=since, max_pages=max_pages):
+        hits, reported, complete = client.search_recent(
+            q.phrase, since_epoch=since, max_pages=max_pages)
+        if not complete:
+            checks_not_run.append(
+                f"phrase {q.phrase!r}: stopped at the page limit ({max_pages} page(s) of "
+                f"{PER_PAGE}); read {len(hits)} of about {reported} hits Algolia reported. "
+                "The rest are NOT in the output; raise --max-pages to read them"
+            )
+        for hit in hits:
             th = by_id.get(str(hit["objectID"])) or thread_of(hit, fetched_at=now)
             by_id.setdefault(th.ext_id, th)
             if q.problem not in th.matched_problems:
@@ -68,8 +77,6 @@ def find_hackernews(
             th.drop(reason)
         elif flag := filters.community_flag(community):
             th.flags.append(flag)
-
-    checks_not_run: list[str] = []
 
     # 3. Already answered by us: one thread read per story, kept threads only.
     if not pace.team_accounts:
