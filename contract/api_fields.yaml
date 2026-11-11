@@ -810,7 +810,7 @@ fields:
     reviewed: false
     routes:
     - /admin/usage
-    state: no_consumer
+    state: consumed
   total_labels:
     reviewed: false
     routes:
