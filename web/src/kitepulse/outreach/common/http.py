@@ -9,7 +9,7 @@ robots.txt is read once per client, before the first other request:
 
     200            its rules apply to every later request
     401, 403       everything is disallowed (Python's robotparser convention)
-    other 4xx      no rules: everything is allowed (RFC 9309, section 2.3.1.3)
+    other 4xx      no rules: everything is allowed (RFC 9309, section 2.3.1, subsection 3)
     5xx, network   an error. Never read as "no rules".
 
 Python's `urllib.robotparser` does not expand a `*` inside a path. The wildcard

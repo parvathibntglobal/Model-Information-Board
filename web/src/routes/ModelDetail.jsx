@@ -6,6 +6,7 @@ import ModelEvidence from '../components/ModelEvidence'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
 import Freshness from '../components/Freshness'
+import { agoDays } from '../dates'
 import { useHead } from '../seo/head'
 import { modelPage as modelHead } from '../seo/pages'
 
@@ -20,12 +21,12 @@ import { modelPage as modelHead } from '../seo/pages'
  *                        run" and "the last successful run" usually differ
  * Every line ends "as recorded in the shared log": a run whose database write
  * failed exists only in its own machine's file. */
+// UTC CALENDAR DAYS, so "today" and the date beside it always agree
+// (web/src/dates.js). Counted in 24-hour windows, a fetch at 23:00 UTC
+// yesterday read "today (2026-11-09)" on 10 Nov.
 function ago(iso) {
-  const at = Date.parse(iso)
-  if (Number.isNaN(at)) return null
-  const days = Math.floor((Date.now() - at) / 86400000)
-  const when = days <= 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`
-  return `${when} (${iso.slice(0, 10)})`
+  const when = agoDays(iso)
+  return when && `${when} (${iso.slice(0, 10)})`
 }
 
 const OUTCOME = {

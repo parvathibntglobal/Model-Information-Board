@@ -456,6 +456,7 @@ def table(conn) -> dict[str, Any]:
         "sections": sections,
         "rows": out_rows,
         "last_run": _last_run(conn),
+        "updated_at": _last_update(conn),
         # Attribution and licence live on the Sources tab only (2026-10-26);
         # `in_table` there marks the sources whose values the table shows.
         "sources": _sources_view(conn, sources, columns, used_sources),
@@ -555,6 +556,23 @@ def _sources_view(
             }
         )
     return out
+
+
+def _last_update(conn) -> str | None:
+    """When the table last CHANGED: the newest non-dry run that ended `ok` or
+    `partial` (a partial run still wrote the sources that answered).
+
+    WHY NOT `_last_run` (2026-11-11). The public "Updated <date>" read the latest
+    run whatever its status, so a run that ended `error` and wrote nothing still
+    moved the date, and while a run was in progress (`finished_at` NULL) the
+    date vanished instead of showing the last good one. `_last_run` stays as it
+    is: Admin wants the latest attempt, failed or not.
+    """
+    row = conn.execute(
+        "SELECT finished_at FROM bench_run WHERE NOT dry_run AND status IN ('ok', 'partial') "
+        "ORDER BY finished_at DESC LIMIT 1"
+    ).fetchone()
+    return _iso(row[0]) if row else None
 
 
 def _last_run(conn) -> dict[str, Any] | None:
@@ -991,6 +1009,9 @@ def _build_charts(conn) -> dict[str, Any]:
             if t["last_run"]
             else None
         ),
+        # The public "Updated <date>": the last run that changed the table, not
+        # the last attempt (`_last_update`). None until one has.
+        "updated_at": t.get("updated_at"),
     }
 
 

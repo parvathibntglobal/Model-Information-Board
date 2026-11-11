@@ -38,7 +38,7 @@ def test_the_url_is_kite_pulses_own_with_no_fallback(monkeypatch):
 
 @pytest.mark.parametrize("same", [
     MIB,
-    "postgresql://other:pw@127.0.0.1/model_information_board_local",   # default port, IP
+    "postgresql://someone:pw@127.0.0.1/model_information_board_local",   # default port, IP
     "host=LOCALHOST port=5432 dbname=model_information_board_local",
 ])
 def test_a_url_naming_mibs_database_is_refused(same):

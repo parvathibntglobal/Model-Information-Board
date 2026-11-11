@@ -91,3 +91,34 @@ def read(conn, model_version_id: str) -> dict[str, Any]:
         (model_version_id,),
     ).fetchall()
     return summarise([RunLine(*row) for row in rows])
+
+
+def read_many(conn, model_version_ids: list[str]) -> dict[str, dict[str, Any]]:
+    """`read` for several models in one query: id -> the same summary.
+
+    ONE ANSWER TO "WHEN WAS THIS LAST FETCHED" (2026-11-11). Admin's model list
+    worked it out from the newest 300 runs in `/admin/runs`, keyed by display
+    name, while a model page read this module. The two could disagree, and a
+    model whose last good run was older than the newest 300 showed no date in
+    Admin. Both now read the same rule from the same log. Every id asked for
+    gets a summary; one with no runs gets `runs_recorded: 0`, as `read` does.
+    """
+    ids = list(dict.fromkeys(i for i in model_version_ids if i))
+    if not ids:
+        return {}
+    rows = conn.execute(
+        "SELECT r.model_version_id, r.run_id, r.at, e.payload->>'status', "
+        "e.payload->>'detail', e.at "
+        "FROM fetch_log r "
+        "LEFT JOIN LATERAL ("
+        "  SELECT payload, at FROM fetch_log e "
+        "  WHERE e.run_id = r.run_id AND e.kind = 'end' "
+        "  ORDER BY e.at DESC, e.seq DESC LIMIT 1"
+        ") e ON true "
+        "WHERE r.kind = 'run' AND r.model_version_id = ANY(%s)",
+        (ids,),
+    ).fetchall()
+    by_id: dict[str, list[RunLine]] = {i: [] for i in ids}
+    for mv_id, *line in rows:
+        by_id.setdefault(mv_id, []).append(RunLine(*line))
+    return {i: summarise(lines) for i, lines in by_id.items()}

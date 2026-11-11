@@ -1,39 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useInView } from './ui'
+import { reportsPage } from '../api'
+import { examplesFrom } from './reportPicks'
+import { fmtDayUtc } from '../dates'
 
 /**
  * THREE EXAMPLES FROM REPORTS (2026-10-15), for the landing's "LLM
  * leaderboard alternative" section: one model reported working, one disputed,
  * one with problems, each with a small positive / negative / neutral chart.
  *
- * REAL COUNTS, FIXED AT A DATE: the three were picked from `/reviews` on the
- * team's 2026-10-15 database (newest report 12 Oct) as real cases with all
- * three bars, so the chart reads at a glance; the panel names that date on its
- * face, because the live counts move on. They replaced sample figures that had
- * GPT-6 Astra "mixed" on reasoning and DeepSeek V4 Flash failing on long
- * context - neither true of the data. The verdicts follow the Reports rule
- * (`verdict` below).
+ * READ LIVE (2026-11-11). They were real counts FIXED from the 2026-10-15
+ * database, captioned with that fixed date, and a month later no longer matched the
+ * Reports page a click away. They are now picked from the same `/reports`
+ * payload by the same rule (components/reportPicks.js `examplesFrom`): the
+ * case with the most people of each kind, preferring cases with all three
+ * bars, and the caption names the newest report's date. Nothing is drawn
+ * until the counts are read; if they cannot be read the panel is left out.
  */
-
-/** The same fixed rule over the counts the Reports pages use - never a score. */
-function verdict(s) {
-  const p = s.positive, n = s.negative
-  if (!p && !n) return { t: 'No side taken', c: 'neutral' }
-  if (!n) return { t: 'Reported working', c: 'working' }
-  if (!p) return { t: 'Problems reported, none working', c: 'problems' }
-  if (p >= 3 * n) return { t: 'Mostly working', c: 'working' }
-  if (n >= 3 * p) return { t: 'Mostly problems', c: 'problems' }
-  return { t: 'Mixed reports', c: 'mixed' }
-}
-
-const SAMPLES = [
-  { label: 'Working', axis: 'Coding agents', model: 'GPT-6 Astra', people: 10, reports: 10,
-    split: { positive: 8, negative: 1, neutral: 1 } },
-  { label: 'Disputed', axis: 'Reasoning', model: 'Kimi K3', people: 7, reports: 7,
-    split: { positive: 4, negative: 2, neutral: 1 } },
-  { label: 'Problems', axis: 'Vision', model: 'DeepSeek V4 Flash', people: 9, reports: 10,
-    split: { positive: 1, negative: 8, neutral: 1 } },
-].map((ex) => ({ ...ex, v: verdict(ex.split) }))
 
 function CountCard({ ex }) {
   const s = ex.split
@@ -72,7 +55,13 @@ const SLIDE_MS = 3200
  * are drawn at full height (styles in app.css, `prefers-reduced-motion`).
  */
 export default function ReportExamples() {
-  const examples = SAMPLES
+  const [view, setView] = useState(null)
+  useEffect(() => {
+    let alive = true
+    reportsPage().then((d) => alive && setView(d)).catch(() => alive && setView({}))
+    return () => { alive = false }
+  }, [])
+  const examples = view ? examplesFrom(view) : []
   const n = examples.length
   const [at, setAt] = useState(0)
   // it slides only while on screen (components/ui.jsx: useInView)
@@ -80,12 +69,15 @@ export default function ReportExamples() {
   const inView = useInView(el)
   useEffect(() => {
     if (!inView) return undefined
+    if (!n) return undefined
     const t = setInterval(() => setAt((i) => (i + 1) % n), SLIDE_MS)
     return () => clearInterval(t)
   }, [n, inView])
+  if (!n) return null
+  const asOf = fmtDayUtc(view?.newest_report)
   return (
     <figure className="hc-set" ref={setEl}>
-      <figcaption className="entry-cap">Examples from Reports · as of 12 Oct</figcaption>
+      <figcaption className="entry-cap">Examples from Reports{asOf ? ` · newest report ${asOf}` : ''}</figcaption>
       <div className="hc-stage" aria-live="polite">
         <div className="hc-track" style={{ transform: `translateX(-${at * 100}%)` }}>
           {examples.map((ex, i) => (

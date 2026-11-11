@@ -94,7 +94,9 @@ function countdown(iso) {
   if (d === 1) return 'Tomorrow'
   return `In ${d} days`
 }
-const today = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+// UTC, the same clock as the cards' "Today / Yesterday" (`todayIso` above):
+// in the reader's timezone the header and the cards could name different days.
+const today = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 const inSection = (u, s) => !s.of || s.of.includes(u.kind)
 
 /** The Monday that starts a date's week (UTC), as an ISO date. */

@@ -12,6 +12,7 @@ import { nameIndex, nameKey, namePattern, shortName } from './modelnames.js'
 import { sourceName } from '../sourceName.js'
 import { isGuide, isMigrationGuide, isOfficialGuide } from '../blogs/guideKinds.js'
 import { currentTheme } from '../theme.js'
+import { fmtDayUtc } from '../dates.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
 // Every builder below returns an HTML STRING and BoardView renders it through
@@ -36,7 +37,8 @@ function freshLine() {
 // board payload carries per section and per model. Nothing when undated.
 function datesLine(updated, newest) {
   if (!updated) return ''
-  const day = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  // UTC, as on every other page (web/src/dates.js).
+  const day = (iso) => fmtDayUtc(iso) || ''
   const tail = newest
     ? ` · newest report written <time datetime="${esc(newest)}">${day(newest)}</time>`
     : ''

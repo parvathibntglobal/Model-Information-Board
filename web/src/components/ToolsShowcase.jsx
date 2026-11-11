@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listRegistry, fetchAll, fmtPrice, fmtTokens } from '../api'
+import { listRegistry, fetchAll, fmtPrice, fmtTokens, reportsPage } from '../api'
+import { topForJob } from './reportPicks'
+import { fmtDayUtc } from '../dates'
 import { useInView } from './ui'
 
 /**
@@ -14,9 +16,11 @@ import { useInView } from './ui'
  *   - Model specs finder and Token counter read the live registry (`/models`):
  *     the counts after each filter, the rows, and each model's input rate are
  *     what the tools themselves would show. Nothing is drawn until it is read.
- *   - Best AI model picker shows the top three for coding agents from
- *     `/reviews` as of 12 Oct (the team's 2026-10-15 database), fixed so the
- *     preview always plays the same; it says the date on its face.
+ *   - Best AI model picker shows the top three for coding agents, read live
+ *     from `/reports` (components/reportPicks.js `topForJob`) since 2026-11-11.
+ *     They were fixed from the 2026-10-15 database and labelled with that date,
+ *     which a month later no longer matched the picker itself. The label now
+ *     names the newest report's date; nothing plays until the counts are read.
  *   - The token figure in the counter preview is an estimate (about four
  *     characters a token) and says "≈"; the tool counts with o200k exactly.
  */
@@ -50,12 +54,8 @@ function useTyped(text, ms = 38, startAfter = 300) {
 
 // The picker's own flow, played out: "Search by" Jobs, type, choose the
 // suggestion, and the models engineers reported working arrive - the three
-// with the most people on coding agents in `/reviews` as of 12 Oct.
-const PICKS = [
-  { name: 'DeepSeek V4 Flash', by: 'DeepSeek', people: 13, pos: 15, neg: 0 },
-  { name: 'GPT-6 Astra', by: 'OpenAI', people: 10, pos: 8, neg: 1 },
-  { name: 'Claude Fable 5.1', by: 'Anthropic', people: 9, pos: 8, neg: 2 },
-]
+// with the most people on coding agents, read live (`picks`, from /reports).
+const PICK_JOB = 'Coding agents'
 const SEARCH_BY = ['Jobs', 'Capabilities', 'AI models']
 // real job names on Reports that start with what is typed
 const SUGGEST = ['Coding agents', 'Code review', 'Code refactoring']
@@ -114,7 +114,7 @@ function PickRing({ p, on, i }) {
   )
 }
 
-function PickerPreview() {
+function PickerPreview({ picks = [], asOf = null }) {
   const [stage, setStage] = useTimeline(PICK_WAITS)
   const [typed, done] = useTyped(stage >= 2 ? TYPED : '', 110, 120)
   useEffect(() => { if (stage === 2 && done && typed) setStage(3) }, [stage, done, typed, setStage])
@@ -153,10 +153,10 @@ function PickerPreview() {
       </div>
       <div className={`ts-pk-head${results ? ' ts-in' : ''}`}>
         <span><b>Most people</b> reported working for coding agents</span>
-        <span className="ts-note">as of 12 Oct</span>
+        {asOf && <span className="ts-note">newest report {asOf}</span>}
       </div>
       <div className="ts-pk-cards">
-        {PICKS.map((p, i) => (
+        {picks.map((p, i) => (
           <div key={p.name} className={`ts-pk-card${results ? ' ts-in' : ''}${i === 0 && stage >= 7 ? ' ts-top' : ''}`} style={{ '--i': i }}>
             {i === 0 && <span className="ts-pk-badge">Top pick</span>}
             <PickRing p={p} on={results} i={i} />
@@ -249,11 +249,11 @@ function TokenPreview({ models }) {
 
 const TOOLS = [
   { key: 'picker', to: '/best-ai-model/coding-agent', path: '/best-ai-model', icon: '◎', name: 'Best AI model picker',
-    line: 'Type a job, see which models engineers reported working.', cta: 'Open the picker', App: PickerPreview, live: false, ms: 9000 },
+    line: 'Type a job, see which models engineers reported working.', cta: 'Open the picker', App: PickerPreview, needs: 'picks', ms: 9000 },
   { key: 'specs', to: '/ai-model-pricing', path: '/ai-model-pricing', icon: '▤', name: 'AI model pricing & specs table',
-    line: 'Tick what you need: context, price, tools. Watch the list narrow.', cta: 'Open the pricing & specs table', App: SpecsPreview, live: true },
+    line: 'Tick what you need: context, price, tools. Watch the list narrow.', cta: 'Open the pricing & specs table', App: SpecsPreview, needs: 'models' },
   { key: 'tokens', to: '/token-counter', path: '/token-counter', icon: '#', name: 'LLM cost calculator',
-    line: 'Paste a prompt, see what it costs on each model.', cta: 'Open token counter', App: TokenPreview, live: true },
+    line: 'Paste a prompt, see what it costs on each model.', cta: 'Open token counter', App: TokenPreview, needs: 'models' },
 ]
 
 export default function ToolsShowcase() {
@@ -264,6 +264,15 @@ export default function ToolsShowcase() {
     fetchAll((l, o) => listRegistry(l, o)).then((d) => alive && setModels(d.models || [])).catch(() => alive && setModels([]))
     return () => { alive = false }
   }, [])
+  // THE PICKER'S RESULTS, live from /reports (components/reportPicks.js).
+  const [reports, setReports] = useState(null)
+  useEffect(() => {
+    let alive = true
+    reportsPage().then((d) => alive && setReports(d)).catch(() => alive && setReports({}))
+    return () => { alive = false }
+  }, [])
+  const picks = useMemo(() => (reports ? topForJob(reports, PICK_JOB) : []), [reports])
+  const asOf = fmtDayUtc(reports?.newest_report)
   // it turns only while on screen, and a preview starts when it comes into
   // view rather than playing out unseen (components/ui.jsx: useInView)
   const [el, setEl] = useState(null)
@@ -275,7 +284,9 @@ export default function ToolsShowcase() {
   }, [at, inView])
 
   const tool = TOOLS[at]
-  const ready = !tool.live || (models && models.length > 0)
+  // NOTHING PLAYS UNTIL ITS DATA IS READ: the registry for the two live tools,
+  // the /reports counts for the picker.
+  const ready = tool.needs === 'picks' ? picks.length > 0 : (models && models.length > 0)
   return (
     <div className="ts" ref={setEl}>
       <div className="ts-tabs" role="tablist" aria-label="Tools">
@@ -297,7 +308,7 @@ export default function ToolsShowcase() {
           <span className="ts-url">{tool.path}</span>
         </div>
         <div className="ts-body" key={`${tool.key}${inView ? '' : '-off'}`}>
-          {ready && inView ? <tool.App models={models || []} /> : <div className="ts-wait" aria-hidden="true" />}
+          {ready && inView ? <tool.App models={models || []} picks={picks} asOf={asOf} /> : <div className="ts-wait" aria-hidden="true" />}
         </div>
         <div className="ts-cta">{tool.cta} <span aria-hidden="true">→</span></div>
       </Link>
