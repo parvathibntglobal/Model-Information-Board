@@ -38,7 +38,7 @@ def dsn_from_env() -> str:
     if not dsn:
         raise OutreachDbError(
             f"{ENV} is not set. Put the outreach database's URL in .env, e.g. "
-            f"{ENV}=postgresql://postgres:<password>@localhost:5432/kite_pulse_outreach_local "
+            f"{ENV}=postgresql://postgres:password@localhost:5432/kite_pulse_outreach_local "
             f"(see .env.example). It never falls back to {MIB_ENV}."
         )
     return dsn
