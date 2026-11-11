@@ -18,8 +18,10 @@
 #                          team-wide total, less its value at the start). That
 #                          includes anything else spent meanwhile - an Admin
 #                          fetch, the Ask box - which errs on the safe side. It
-#                          is checked before each launch, so the fetch running
-#                          when it is crossed can pass it by its own cost. The daily cap is ONE team-wide figure
+#                          is checked before each launch, and each agent fetch
+#                          is launched with its daily budget lowered to where
+#                          the ceiling falls, so a running fetch stops at it
+#                          between threads too (#618 review follow-up). The daily cap is ONE team-wide figure
 #                          (EXTRACTION_DAILY_BUDGET_USD) shared with the model
 #                          fetch at 20:30 UTC, so the agents must not use it up
 #                          first. Test B's first fetches of nine agents cost $0.12
@@ -28,8 +30,8 @@
 #                          figure, about 19% higher on one measured fetch) - a first night with
 #                          backlogs is the expensive one. Claude Code's backlog is the
 #                          largest by far (1,208 HN stories since 2026-08-01), so
-#                          its first nights will meet this ceiling; the run stops
-#                          launching and the rest waits for the next night.
+#                          its first nights will meet this ceiling: its fetch
+#                          stops at it, and the rest waits for the next night.
 #
 # PER AGENT
 #   name           shown in the run summary

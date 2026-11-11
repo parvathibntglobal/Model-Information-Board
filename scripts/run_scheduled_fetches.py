@@ -168,16 +168,23 @@ def in_progress(conn, now: datetime) -> set[str]:
 
 
 def run_one(due, *, sources: str | None, development_write: bool,
-            timeout_s: float | None = None) -> dict:
+            timeout_s: float | None = None, budget_usd: float | None = None) -> dict:
     """Launch one `fetch_model` and return its host-free end record.
 
     A subprocess, not an import, so one model's crash cannot end the batch and
     each run gets a clean process - the same isolation the admin page's button
     uses. FETCH_MAX_THREADS carries the model's cap.
+
+    `budget_usd`, when given, replaces the child's EXTRACTION_DAILY_BUDGET_USD.
+    `Budget.from_env` reads it and checks it before EVERY call against today's
+    team-wide ledger total, so the fetch stops itself between threads at that
+    figure. The agent run passes its ceiling here; the model run passes nothing.
     """
     from judge import scheduler
 
     env = dict(os.environ, FETCH_MAX_THREADS=str(due.thread_cap), FETCH_QUIET="1")
+    if budget_usd is not None:
+        env["EXTRACTION_DAILY_BUDGET_USD"] = f"{budget_usd:.6f}"
     # THE RUNNER NAMES THE RUN, THE SAME WAY THE ADMIN BUTTON DOES (#494 fix,
     # 2026-10-05). This read the id back from the child's first stdout line,
     # and `fetch_model` stopped printing it (its own comment says nothing else
@@ -380,9 +387,10 @@ def main(argv: list[str] | None = None) -> int:
                   f"{len(due) - i} model(s) not run")
             break
         # THE AGENT RUN'S OWN CEILING: what has been spent SINCE THIS RUN STARTED
-        # (team-wide, so an Admin fetch meanwhile counts too - the safe side;
-        # checked before each launch, so one fetch can pass it by its own cost),
-        # so the agents cannot use up the shared daily cap before the model fetch.
+        # (team-wide, so an Admin fetch meanwhile counts too - the safe side), so
+        # the agents cannot use up the shared daily cap before the model fetch.
+        # Checked here before each launch, AND inside each fetch through the
+        # child's lowered budget (below), so a running fetch stops at it too.
         if extracting and run_ceiling is not None and spent - spent_at_start >= run_ceiling:
             for rest in due[i:]:
                 records.append({"model": rest.display_name,
@@ -394,8 +402,18 @@ def main(argv: list[str] | None = None) -> int:
         if args.job_limit_minutes is not None:
             left = args.job_limit_minutes - 10 - (time.monotonic() - started) / 60
             timeout_s = max(60.0, left * 60)
+        # THE CEILING HOLDS INSIDE A FETCH TOO (#618 review, Parvathi). Checked only
+        # before each launch, it let one fetch run past it to the team-wide daily
+        # cap - and an agent's FIRST fetch reads its whole backlog (Claude Code's
+        # is the largest), so one 15:00 fetch could spend what the 20:30 model
+        # fetch needs. The child's own cap is lowered to where this run's ceiling
+        # falls on today's ledger, never above the daily cap. The model run's
+        # children keep the daily cap exactly as before.
+        budget_usd = None
+        if extracting and run_ceiling is not None:
+            budget_usd = min(cap, spent_at_start + run_ceiling)
         result = run_one(d, sources=args.sources, development_write=args.development_write,
-                         timeout_s=timeout_s)
+                         timeout_s=timeout_s, budget_usd=budget_usd)
         end = result["_end"]
         if result.get("timed_out"):
             rec = {"status": "stopped at the job time limit; threads read so far are "
