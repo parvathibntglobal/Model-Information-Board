@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { freshness } from '../api'
+import { fmtDayUtc } from '../dates'
 
 /**
  * How fresh this page's evidence is - two dates, never merged into one:
@@ -19,9 +20,9 @@ import { freshness } from '../api'
  * wrong one.
  */
 
-const fmt = (iso) => (iso
-  ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-  : null)
+// UTC, like every other date on the page (web/src/dates.js): in the reader's
+// timezone this line and the footer could name different days near midnight.
+const fmt = (iso) => fmtDayUtc(iso)
 
 const latest = (values) => values.filter(Boolean).sort().at(-1) || null
 

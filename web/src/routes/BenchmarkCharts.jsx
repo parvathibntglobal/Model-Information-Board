@@ -565,7 +565,10 @@ export default function BenchmarkCharts() {
             <ul className="bc-stats">
               <li><strong className="tnum">{model.benchmarks_scored}</strong> {model.benchmarks_scored === 1 ? 'benchmark' : 'benchmarks'}</li>
               {model.series.length > 1 && <li><strong className="tnum">{model.series.length}</strong> variants</li>}
-              {data.last_run?.finished_at && <li>Updated <strong>{fmtDay(data.last_run.finished_at)}</strong></li>}
+              {/* The last run that CHANGED the table (`updated_at`), not the last
+                  attempt: a failed run no longer moves the date, and a run in
+                  progress no longer hides it (judge/benchmarks.py _last_update). */}
+              {data.updated_at && <li>Updated <strong>{fmtDay(data.updated_at)}</strong></li>}
             </ul>
             {/* The way down to the positions table, so it is not missed under the chart. */}
             <a href="#leaderboard-positions" className="bc-jump" onClick={jumpTo}>

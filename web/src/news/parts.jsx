@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '../components/ui'
+import { agoShort, fmtDayUtc } from '../dates'
 
 /**
  * WHAT THE NEWS LIST AND A STORY'S PAGE SHARE (2026-10-28): the picture, the
@@ -11,12 +12,11 @@ import { Badge } from '../components/ui'
 export const GROUPS = [['all', 'All'], ['selected', 'News'], ['lab', 'AI labs'], ['writer', 'Writers'], ['release', 'Releases']]
 export const groupLabel = (group) => GROUPS.find(([k]) => k === group)?.[1]
 
+// Whole hours, never rounded up: 23.5 hours read "24 h ago" (2026-11-11).
+// Past a day, the UTC date, like every other date on the site (web/src/dates.js).
 export function ago(iso) {
   if (!iso) return ''
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
-  if (mins < 60) return `${Math.max(mins, 1)} min ago`
-  if (mins < 24 * 60) return `${Math.round(mins / 60)} h ago`
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return agoShort(iso) || fmtDayUtc(iso, { day: 'numeric', month: 'short' }) || ''
 }
 
 /** "3 h ago", or "on 26 Oct" - for use inside a sentence. */

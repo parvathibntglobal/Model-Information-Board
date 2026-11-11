@@ -95,7 +95,8 @@ export function AiBenchmarksPanel() {
                     sub="on the signed-in table only until a person decides" />
               <Cell k="Last benchmarks run" v={k.last_run ? at(k.last_run.finished_at) || 'running' : 'none'}
                     sub={k.last_run?.status} />
-              <Cell k="Table last checked" v={`${secs(k.checked_seconds_ago)} ago`}
+              {/* No reading yet says so, rather than "— ago" (2026-11-11). */}
+              <Cell k="Table last checked" v={k.checked_seconds_ago == null ? 'not yet' : `${secs(k.checked_seconds_ago)} ago`}
                     sub={`rechecked at most every ${secs(b.recheck_seconds)}`} />
             </div>
           ) : (

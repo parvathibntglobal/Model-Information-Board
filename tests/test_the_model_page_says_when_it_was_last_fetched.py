@@ -120,3 +120,22 @@ class TestAgainstTheTable:
 
     def test_a_model_with_no_run_reads_as_none_recorded(self, db):
         assert read(db, "mv_never")["runs_recorded"] == 0
+
+    def test_read_many_gives_each_model_what_read_gives_it(self, db):
+        """Admin's list and a model page read one rule from one log (2026-11-11).
+        Admin used to work the date out from the newest 300 runs, keyed by
+        display name, so the two pages could disagree."""
+        from judge.fetch_history import read_many
+
+        _line(db, "r1", 0, T0, "run", {"kind": "run"})
+        _line(db, "r1", 6, T0 + timedelta(minutes=9), "end", {"status": "ok"})
+        _line(db, "r2", 0, T0 + timedelta(days=2), "run", {"kind": "run"})
+        _line(db, "r2", 3, T0 + timedelta(days=2, minutes=3), "end", {"status": "error"})
+        _line(db, "r3", 0, T0, "run", {"kind": "run"}, mv="mv_other")
+        _line(db, "r3", 4, T0 + timedelta(minutes=4), "end", {"status": "ok"}, mv="mv_other")
+        many = read_many(db, ["mv_x", "mv_other", "mv_never", "mv_x"])
+        assert set(many) == {"mv_x", "mv_other", "mv_never"}
+        for mv in many:
+            assert many[mv] == read(db, mv)
+        assert many["mv_never"]["runs_recorded"] == 0
+        assert read_many(db, []) == {}

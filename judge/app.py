@@ -1616,6 +1616,20 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
         # Hand-written entries plus new arrivals `auto_track` admits
         # (judge/tracked.py), read while the connection is open.
         listed = all_tracked(conn) if tracked else ()
+        # WHEN EACH TRACKED MODEL WAS LAST FETCHED, by the same rule and from
+        # the same log as a model page (judge/fetch_history.py), so Admin and
+        # the model page cannot disagree (2026-11-11). A read failure leaves
+        # it None, rendered as no date - never as "never fetched" (rule 12).
+        last_fetch = None
+        if tracked:
+            from judge import fetch_history
+            wanted = {w.registry for w in listed if w.registry}
+            try:
+                last_fetch = fetch_history.read_many(conn, [
+                    m["model_version_id"] for m in roster.models
+                    if m["model_version_id"] in wanted or m["canonical_id"] in wanted])
+            except Exception:
+                last_fetch = None
 
     models = roster.models
     summary = roster.summary
@@ -1646,8 +1660,13 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
                 # Unconsumed (rule 9): intended reader is the models page, to
                 # mark new arrivals. Not in api_fields.yaml because the audit
                 # cannot see keys merged into a row - nor `tracked_kind` beside it.
+                # `last_fetch` (2026-11-11): read by Admin's model list
+                # (web/src/routes/Admin.jsx), the same summary `/models/{id}`
+                # carries. None when the log could not be read.
                 models.append({**found, "tracked_kind": want.kind,
-                               "auto_tracked": want.auto})
+                               "auto_tracked": want.auto,
+                               "last_fetch": (last_fetch or {}).get(found["model_version_id"])
+                               if last_fetch is not None else None})
                 continue
             # NOT IN THE REGISTRY, AND SHOWN ANYWAY. Dropping it would make the
             # page silently shorter than the list it is built from, and a

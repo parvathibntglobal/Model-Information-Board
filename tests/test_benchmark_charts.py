@@ -389,3 +389,20 @@ def test_the_fresh_path_reads_no_file(monkeypatch):
     for _ in range(3):
         assert benchmarks.charts_if_fresh("m/a") is not None
     assert reads == []
+
+
+def test_updated_is_the_last_run_that_changed_the_table(monkeypatch):
+    """2026-11-11: the public "Updated <date>" reads `updated_at`, the last run
+    that ended ok or partial - not `last_run`, which a failed run or one in
+    progress would move or blank."""
+    def table(conn):
+        t = _table([_row("m/a", "Model A", {"gpqa_diamond_score": _cell("81", 81.0)})])
+        t["last_run"] = {"id": 10, "status": "error", "started_at": "2026-11-10T01:30:00+00:00",
+                         "finished_at": "2026-11-10T01:31:00+00:00"}
+        t["updated_at"] = "2026-10-28T01:40:00+00:00"
+        return t
+
+    monkeypatch.setattr(benchmarks, "table", table)
+    out = benchmarks.charts(_Conn())
+    assert out["updated_at"] == "2026-10-28T01:40:00+00:00"
+    assert out["last_run"]["status"] == "error"  # Admin still sees the latest attempt

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { health, coveragePage, listModels, adminRuns, blogPosts, BoardUnreadable } from '../api'
+import { health, coveragePage, listModels, blogPosts, BoardUnreadable } from '../api'
+import { agoDays } from '../dates'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
 import BoardReview from '../components/BoardReview'
@@ -60,13 +61,9 @@ function useSurface(fn, deps = []) {
  * fetch-log history. Sweeping a model runs its evidence pipeline on demand and
  * appends new rows; the per-model history is served from the stored run logs.
  */
-/** "today", "1 day ago", "12 days ago" - the full time is on hover. */
-function agoShort(iso) {
-  const at = Date.parse(iso)
-  if (Number.isNaN(at)) return ''
-  const days = Math.floor((Date.now() - at) / 86400000)
-  return days <= 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`
-}
+/** "today", "1 day ago", "12 days ago" by UTC calendar day (web/src/dates.js) -
+ * the full time is on hover. */
+const agoShort = (iso) => agoDays(iso) || ''
 
 /* The Type filter's chips come from `web/src/kinds.js`, as on the Models page:
  * built from the kinds present, so a new kind gets a chip (#612 review). */
@@ -84,26 +81,13 @@ function CollectEvidence() {
     return () => { alive = false }
   }, [])
 
-  // LAST FETCHED, PER ROW, from the shared fetch log's latest 300 runs - one
-  // request, not one per model. A model with no completed run IN THAT WINDOW
-  // shows no date at all rather than "never" (rule 4): an older fetch may
-  // exist past the window. Failing to read the runs shows no dates either.
-  const [lastOk, setLastOk] = useState({})
-  useEffect(() => {
-    let alive = true
-    adminRuns(300)
-      .then((d) => {
-        const by = {}
-        for (const r of d.runs || []) {
-          if (r.status !== 'ok' || !r.model) continue
-          const at = r.last_at || r.started_at
-          if (at && (!by[r.model] || at > by[r.model])) by[r.model] = at
-        }
-        if (alive) setLastOk(by)
-      })
-      .catch(() => {})
-    return () => { alive = false }
-  }, [])
+  // LAST FETCHED, PER ROW: `m.last_fetch.succeeded.at`, which the roster
+  // carries from judge/fetch_history.py - the same rule and log as a model
+  // page (2026-11-11). It used to be worked out here from the newest 300 runs,
+  // so the two pages could disagree and an older last fetch showed no date.
+  // No successful fetch, or a log that could not be read, shows no date
+  // rather than "never" (rule 4).
+  const lastOk = (m) => m.last_fetch?.succeeded?.at || null
 
   return (
     // A CARD LIKE EVERY OTHER SECTION. It was bare text on the page
@@ -187,9 +171,9 @@ function CollectEvidence() {
             {m.canonical_id && <span className="n">{m.canonical_id}</span>}
             {/* The provider tag is gone: the name already starts with it
                 ("Anthropic: Claude Fable 5.1"), so it said the same thing twice. */}
-            {lastOk[m.display_name] && (
-              <span className="disc-when" title={lastOk[m.display_name]}>
-                fetched {agoShort(lastOk[m.display_name])}
+            {lastOk(m) && (
+              <span className="disc-when" title={lastOk(m)}>
+                fetched {agoShort(lastOk(m))}
               </span>
             )}
           </summary>
