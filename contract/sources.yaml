@@ -113,8 +113,10 @@ use_basis_undertaking:
   #: seven conditions below are re-stated as true on this date. RECORDED, not
   #: hidden: on 2026-11-11 a #602 issue comment quoted eight short Reddit
   #: board-entry quotes in this public repository. That is the first `voided_by`
-  #: line below. It was edited to paraphrases about twenty minutes later; the
-  #: first revision remains in GitHub's edit history. Since then, every write-up
+  #: line below. It was posted at 06:24Z and edited to paraphrases at 06:32Z,
+  #: eight minutes later. Its first revision is still reachable from the
+  #: comment's edit history; this assertion is not complete until that revision
+  #: is deleted and this note says when (#623 review). Since then, every write-up
   #: of Reddit- or X-derived data is checked for verbatim raw text before it is
   #: posted.
   #:
