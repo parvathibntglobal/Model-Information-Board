@@ -1,0 +1,110 @@
+# THE GROUPING OF THE AI ASSISTANTS PAGE (/ai-assistants). PROPOSED, for review
+# (2026-11-12, anooj's design; nothing here has been reviewed by a second person).
+#
+# Before this file the three groups existed only as comments in
+# `agent_models.yaml`. Rule 5: a grouping is config, so it lives here.
+#
+# groups     the page's sections, IN THIS ORDER.
+#   key      a stable slug.
+#   title    the section heading.
+#   what     one line, shown under the heading.
+#   members  canonical ids. A member the registry (`model_version`) does not
+#            hold yet is NOT rendered as a card; the page says how many of the
+#            group are not in the registry (rule 6: visible, never silent).
+#            The 27 personal assistants from assistantbenchmark.com are listed
+#            in `works-for-you` although none is loaded yet (their draft is
+#            local); they appear as cards once the registry holds them.
+#   compare  the rows of the section's comparison table: `kind` is `job` (a
+#            board `best_for` slug) or `capability`, `slug` must exist in
+#            `board_vocabulary.yaml` under that section. Each cell is a COUNT of
+#            reports (working / neutral / problems) - never a score or a rank.
+#            ROWS ARE CHOSEN FROM THE VOCABULARY, NOT FROM THE DESIGN'S WISH
+#            LIST: the design asked for monitoring, proactive alerts, privacy,
+#            interruptions and setup (works-for-you), reports and collaboration
+#            (workspaces) and codebase exploration (coding-builders); no such
+#            slug exists, and none is invented. The rows below are the nearest
+#            slugs that do exist.
+# tags       a per-assistant label shown on its card (`key` -> its text in
+#            `tag_labels`). An assistant in the registry that is an agent
+#            (`agent_models.yaml`) and in no group is listed as "not yet
+#            classified", never guessed into a group.
+
+groups:
+  - key: works-for-you
+    title: Works for you
+    what: Always-on, proactive, runs in the background and acts or alerts without being asked.
+    members:
+      - meta/meta-muse
+      - openai/openai-dots
+      - xai/grok-bot
+      - anthropic/claude-duet
+      - google/gemini-spark
+      - openclaw/openclaw
+      - nousresearch/hermes-agent
+      - unknown/hark
+      - unknown/instinct
+      - town/town
+      - unknown/tomo
+      - pally/pally
+      - wajo/fo
+      - unknown/szn
+      - unknown/catch
+      - unknown/tab
+      - unknown/zapia
+      - unknown/shuffle
+      - dazzle/dazzle
+      - companion-intelligence/kicker
+      - orchid/orchid
+      - unknown/caddy
+      - humansand/boba
+      - cognition/poke
+      - unknown/asmi
+      - unknown/del
+      - merit-systems/openinstinct
+      - asaply/asaply
+      - unknown/orbits
+      - nozomio-labs/folk
+      - boski/boski
+      - natura-ai/tinynature
+      - brea-ai/brea
+      - unknown/hirealpha
+    compare:
+      - {kind: job, slug: daily-planning}
+      - {kind: job, slug: agentic-tasks}
+      - {kind: capability, slug: memory-recall}
+      - {kind: capability, slug: reliability}
+
+  - key: workspaces
+    title: Workspaces
+    what: On-demand workspace for business deliverables (documents, analyses, decks).
+    members:
+      - anthropic/claude-cowork
+      - openai/chatgpt-work
+    compare:
+      - {kind: capability, slug: document-generation}
+      - {kind: job, slug: document-analysis}
+      - {kind: job, slug: presentation-generation}
+      - {kind: job, slug: summarization}
+
+  - key: coding-builders
+    title: Coding builders
+    what: Developer-focused, user-triggered; builds and debugs code from a CLI or IDE.
+    members:
+      - anthropic/claude-code
+      - openai/openai-codex
+      - google/gemini-cli
+      - github/github-copilot
+      - google/google-antigravity
+    compare:
+      - {kind: job, slug: debugging}
+      - {kind: job, slug: code-review}
+      - {kind: capability, slug: large-scale-refactoring}
+      - {kind: job, slug: large-codebases}
+      - {kind: capability, slug: usage-limits}
+
+tag_labels:
+  also-local-dev-tasks: Also used for local developer tasks
+
+tags:
+  openclaw/openclaw: [also-local-dev-tasks]
+  nousresearch/hermes-agent: [also-local-dev-tasks]

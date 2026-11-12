@@ -852,3 +852,69 @@ def slug_parents() -> dict[str, dict[str, str]]:
             )
         out[str(section)] = mapping
     return out
+
+
+@lru_cache(maxsize=1)
+def assistant_groups() -> dict:
+    """`contract/assistant_groups.yaml` -> the AI assistants page's grouping.
+
+    {"groups": [{key, title, what, members: [canonical id], compare:
+    [{kind: 'job'|'capability', slug}]}], "tags": {canonical id: [key]},
+    "tag_labels": {key: text}}. PROPOSED (2026-11-12). No defaults (rule 12): a
+    missing key, a member in two groups, a compare slug the board vocabulary
+    does not hold or a tag with no label raises, because a page built from a
+    half-read grouping would file an assistant under the wrong heading.
+    """
+    raw = _read("assistant_groups.yaml") or {}
+    where = "contract/assistant_groups.yaml"
+    sections = {"job": "best_for", "capability": "capability"}
+    vocab = board_vocabulary()
+    known = {
+        (kind, it["slug"])
+        for kind, section in sections.items()
+        for items in (vocab.get(section) or {}).values()
+        for it in items
+    }
+    groups, seen = [], {}
+    raw_groups = raw.get("groups")
+    if not isinstance(raw_groups, list) or not raw_groups:
+        raise ValueError(f"{where}: `groups` must be a non-empty list")
+    for g in raw_groups:
+        for field in ("key", "title", "what", "members", "compare"):
+            if not g.get(field):
+                raise ValueError(f"{where}: group {g.get('key')!r} has no `{field}`")
+        members = [str(m) for m in g["members"]]
+        for m in members:
+            if m in seen:
+                raise ValueError(f"{where}: {m!r} is in both {seen[m]!r} and {g['key']!r}")
+            seen[m] = g["key"]
+        compare = []
+        for row in g["compare"]:
+            kind, slug = row.get("kind"), row.get("slug")
+            if (kind, slug) not in known:
+                raise ValueError(
+                    f"{where}: compare row {kind}/{slug} is not in board_vocabulary.yaml "
+                    "(kind must be `job` or `capability`)"
+                )
+            compare.append({"kind": kind, "slug": slug})
+        groups.append({"key": str(g["key"]), "title": str(g["title"]), "what": str(g["what"]),
+                       "members": members, "compare": compare})
+    labels = {str(k): str(v) for k, v in (raw.get("tag_labels") or {}).items()}
+    tags = {}
+    for cid, keys in (raw.get("tags") or {}).items():
+        if cid not in seen:
+            raise ValueError(f"{where}: tag on {cid!r}, which is in no group")
+        for k in keys:
+            if k not in labels:
+                raise ValueError(f"{where}: tag {k!r} has no entry in `tag_labels`")
+        tags[str(cid)] = [str(k) for k in keys]
+    return {"groups": groups, "tags": tags, "tag_labels": labels}
+
+
+@lru_cache(maxsize=1)
+def agent_canonical_ids() -> tuple[str, ...]:
+    """The canonical id of every agent in `contract/agent_models.yaml`."""
+    rows = (_read("agent_models.yaml") or {}).get("models")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("contract/agent_models.yaml has no `models` list")
+    return tuple(str(r["canonical_id"]) for r in rows)

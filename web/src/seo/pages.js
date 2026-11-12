@@ -111,6 +111,31 @@ export function boardModelInSection(seg, item, modelKey, modelName, modified = n
   }
 }
 
+/**
+ * `/ai-assistants` and one assistant (2026-11-12, PROPOSED). Not on
+ * contract/indexing.yaml's `always` list, so noindex like every unlisted page.
+ * Names only, never a count (a number in a description is cached by whoever
+ * reads it and goes stale).
+ */
+export function assistantsPage(name = null, id = null) {
+  const crumb = { name: 'AI assistants', path: '/ai-assistants' }
+  if (!name) {
+    return {
+      title: fullTitle('AI Assistants: What Engineers Report'),
+      description: 'AI assistants that work for you, with you, or code with you, and what engineers report about each one: counted by person, never quoted.',
+      canonical: '/ai-assistants',
+      breadcrumbs: [crumb],
+    }
+  }
+  const n = squash(name)
+  return {
+    title: fullTitle(`${n}: what engineers report`),
+    description: clip(`What engineers report about ${n}: the jobs it is used for and the problems reported, counted by person and never quoted.`),
+    canonical: `/ai-assistants/${String(id).split('/').map(encodeURIComponent).join('/')}`,
+    breadcrumbs: [crumb, { name: n, path: `/ai-assistants/${String(id).split('/').map(encodeURIComponent).join('/')}` }],
+  }
+}
+
 export function modelsIndex() {
   return {
     title: fullTitle('AI models compared'),

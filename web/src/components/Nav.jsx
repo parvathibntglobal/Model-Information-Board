@@ -45,6 +45,9 @@ const LINKS = [
       { to: '/ai-models/latest', label: 'Latest AI model releases', note: 'The newest listings' },
       { to: '/compare', label: 'AI model comparison', note: 'Up to three, side by side' },
       { to: '/reviews', label: 'AI model reviews', note: 'Ranked by engineer reports' },
+      // 2026-11-12 (PROPOSED): the registry's assistants and coding builders,
+      // grouped by contract/assistant_groups.yaml; counts only.
+      { to: '/ai-assistants', label: 'AI assistants', note: 'Assistants that work for you, with you, or code with you' },
       // THE EVIDENCE FEED (2026-10-21, PROPOSED): the reports behind a count, each
       // in our own words with its source. Every count on these pages links in too.
       { to: '/evidence', label: 'Evidence feed', note: 'The reports behind every count' },
