@@ -225,6 +225,9 @@ function Support({ ev }) {
       {ev.omitted > 0 && (
         <p className="dim as-omitted">{plural(ev.omitted, 'report')} from sources we don&apos;t show publicly: counted above, not shown.</p>
       )}
+      {ev.unlinked > 0 && (
+        <p className="dim as-omitted">{plural(ev.unlinked, 'report')} with no link to the original: counted above, not shown, because we show a quote only with its link.</p>
+      )}
     </div>
   )
 }

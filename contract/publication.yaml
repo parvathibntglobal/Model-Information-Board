@@ -31,6 +31,8 @@
 #   judge/publication.py        the one loader; every public read goes through it
 #   generate_sample_blogs.py    reads `derived_posts` to decide whether a blog
 #                               draft may draw on a withheld source
+#   judge/assistants.py         reads `assistants_page` (proposed, #625) for the
+#                               public AI assistants page
 #
 # ABSENT IS NOT PERMISSIVE (rule 6, rule 12). A missing file, a missing key or
 # an empty list raises - it never silently publishes everything.
@@ -158,6 +160,56 @@ evidence_feed:
   #
   # Must be a list. Absent raises (rule 6); an empty list is a definite answer
   # - "nothing held" - never what a missing key means.
+  held:
+    - bluesky
+
+assistants_page:
+  # ⚠ PROPOSED 2026-11-12 by anooj on #625 (the public AI assistants page,
+  #   /ai-assistants/<id>) - NOT RATIFIED. Asked for in Parvathi's #625 review:
+  #   the page is a drill-down from a count to its reports, like the feed, but
+  #   it shows VERBATIM quotes, which is the `derived_posts` form, not the
+  #   feed's paraphrase-only rule. Nothing said which rule the page follows, so
+  #   this block says it, and a reviewer rules on it here.
+  #
+  # WHAT THE PAGE SHOWS under each job and problem, per report (judge/
+  # assistants.py `_treatment` and `_support`, which read this block):
+  #   - a source in `held`: nothing - no text, no embed, no link. Counted.
+  #   - a source in `embed_only`: the platform's official embed only, loaded
+  #     when the reader asks. No text, link, handle or subreddit typed by us.
+  #   - a source in `withheld_from_public` and not in `embed_only` (arXiv, and a
+  #     report with no recorded source): nothing. Counted.
+  #   - every other source: the verified quote, exactly as stored, with its
+  #     platform credit and an https link to it - all three or none. A quote
+  #     whose source has no https link is NOT shown; it is counted as "no link
+  #     to the original" (#625 review: text without its link is the
+  #     undertaking's second `voided_by` case).
+  #   Every count above the reports includes every source (`withheld_from_public.
+  #   totals_include_withheld`), and the page says how many it does not show and
+  #   why, in words (rule 4).
+  #
+  # LIKE THE FEED, IT OVERRIDES "NO PER-PLATFORM COUNT" for this page only: each
+  # report names its platform, so a reader could count one platform's reports
+  # for an assistant. The page prints no such count.
+  #
+  # A SECOND PUBLIC PATH THAT QUOTES. `voice_cloning_in_blog_posts` below rests
+  # on "the blog generator is the one public path that quotes or embeds
+  # evidence". If this block is approved, that is no longer true, and its rule
+  # (no real person whose voice was cloned) should cover this page too. Not
+  # changed here: that block was agreed by parvathi and anooj, so it changes
+  # only when both rule on this one. On 2026-11-06 the shared DB held no quote
+  # about voice cloning.
+  #
+  # quote_form: `quote_with_credit_and_link` is the only form the page renders.
+  #   A ruling for paraphrase-only changes the code; the loader refuses any
+  #   other value rather than falling back to quotes (rule 12).
+  # embed_only: must be a subset of `evidence_feed.embed_only`, because the
+  #   page cites through the feed's `cite_source`; the loader checks it.
+  # Every key required; absent raises (rule 6).
+  status: proposed
+  quote_form: quote_with_credit_and_link
+  embed_only:
+    - reddit
+    - x
   held:
     - bluesky
 

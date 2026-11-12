@@ -17,8 +17,8 @@ already uses, so this page cannot disagree with it:
 ALWAYS THE PUBLIC VIEW. Totals count every source
 (`publication.hidden_from_counts`), as `/reports` does. The list endpoint is
 counts only. The DETAIL endpoint also carries, under each job and problem, the
-reports behind its counts, by `_treatment` (contract/publication.yaml and the
-helpers the evidence feed uses):
+reports behind its counts, by `_treatment` (contract/publication.yaml
+`assistants_page`, PROPOSED; citations through the feed's `cite_source`):
 
     embed-only source (reddit, x)   NO text, no link, no handle: the ids the
                                     platform's official embed needs, loaded by
@@ -26,7 +26,8 @@ helpers the evidence feed uses):
     withheld source (arxiv, bluesky, no recorded source), or held
                                     nothing at all - counted in `omitted`
     any other source                the verified quote, its platform name and
-                                    a link to the source
+                                    an https link to the source; with no such
+                                    link, nothing - counted in `unlinked`
 
 No document id, author or handle leaves this module. A paraphrase is not
 available (the feed's paraphraser runs for seated models and costs money).
@@ -114,28 +115,41 @@ def _documents(conn, doc_ids: set) -> tuple[int, str | None, dict]:
 
 
 def _treatment(source: str | None) -> str:
-    """How a report from `source` may appear on this PUBLIC page, from
-    contract/publication.yaml and the helpers the evidence feed uses:
+    """How a report from `source` may appear on this PUBLIC page, by
+    contract/publication.yaml `assistants_page` (its own block, #625 review:
+    the feed's rule is paraphrase-only, and this page quotes):
 
-        embed   `evidence_feed.embed_only` (reddit, x) and not held: the
-                platform's official embed, never our copy of its text
-        omit    withheld from the public (arxiv, bluesky, no recorded source)
-                or held: no text, no embed, no link - COUNTED by the caller
-        quote   every other source: the verified quote, with platform and link
+        omit    `held` (bluesky), or withheld from the public with no embed
+                (arxiv, no recorded source): no text, no embed, no link -
+                COUNTED by the caller
+        embed   `embed_only` (reddit, x): the platform's official embed,
+                never our copy of its text
+        quote   every other source: the verified quote with its platform
+                credit and an https link, or not shown at all (`_support`)
     """
-    embed_only = publication.evidence_feed_terms()["embed_only"]
-    if source in embed_only and not publication.feed_hides(source):
+    terms = publication.assistants_page_terms()
+    if source in terms["held"]:
+        return "omit"
+    if source in terms["embed_only"]:
         return "embed"
-    if publication.withheld_publicly(source) or publication.feed_hides(source):
+    if publication.withheld_publicly(source):
         return "omit"
     return "quote"
 
 
 def _support(conn, items: list[dict], info: dict, *, polarity: str | None = None) -> dict:
     """The reports behind one job's or problem's counts, for the public page:
-    {"items": [...], "omitted": N, "total": N}. `total` counts every report
-    (never truncated); `omitted` is how many came from a source we do not show
-    publicly (rule 4). An item carries NO text for an embed-only source."""
+    {"items": [...], "omitted": N, "unlinked": N, "total": N}. `total` counts
+    every report (never truncated); `omitted` is how many came from a source we
+    do not show publicly, and `unlinked` how many quotes have no https link to
+    their source (rule 4: counted and said, never silently dropped). An item
+    carries NO text for an embed-only source.
+
+    ⚠ A QUOTE IS SHOWN ONLY WITH ITS LINK (#625 review, Parvathi). Its text
+      without a link is the undertaking's second `voided_by` case ("a quote
+      from any other source shown publicly without its platform credit and
+      link"), so a quote whose cite has no `url` is counted in `unlinked` and
+      its text never leaves this module."""
     from judge.feed.items import cite_source
 
     quotes = [q for it in items for q in it["quotes"]
@@ -150,7 +164,7 @@ def _support(conn, items: list[dict], info: dict, *, polarity: str | None = None
     epoch = datetime.min.replace(tzinfo=UTC)
     quotes.sort(key=lambda q: (info.get(q["document_id"]) or (None, None))[1] or epoch,
                 reverse=True)
-    out, omitted, seen_embeds = [], 0, set()
+    out, omitted, unlinked, seen_embeds = [], 0, 0, set()
     for q in quotes:
         source, at = info.get(q["document_id"]) or (None, None)
         how = _treatment(source)
@@ -163,11 +177,14 @@ def _support(conn, items: list[dict], info: dict, *, polarity: str | None = None
             seen_embeds.add(q["document_id"])
         cite = cite_source({"source": source, "url": q.get("url")},
                            embeds.get(q["document_id"]))
+        if how == "quote" and not cite.get("url"):
+            unlinked += 1
+            continue
         out.append({"polarity": q.get("polarity"),
                     "posted_at": at.isoformat() if at else None,
                     "text": q["quote"] if how == "quote" else None,
                     "source": cite})
-    return {"items": out, "omitted": omitted, "total": len(quotes)}
+    return {"items": out, "omitted": omitted, "unlinked": unlinked, "total": len(quotes)}
 
 
 def _evidence(conn, cid: str, hidden: list[str]) -> dict:

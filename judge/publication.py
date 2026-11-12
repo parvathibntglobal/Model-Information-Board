@@ -139,6 +139,47 @@ def evidence_feed_terms() -> dict:
             "held": tuple(str(s).strip() for s in held)}
 
 
+#: The quote forms the assistants page can render. Only one is built: a
+#: paraphrase-only ruling must change the code, not quietly fall back to quotes.
+_ASSISTANTS_QUOTE_FORMS = ("quote_with_credit_and_link",)
+
+
+@lru_cache(maxsize=1)
+def assistants_page_terms() -> dict:
+    """`contract/publication.yaml` `assistants_page` (PROPOSED 2026-11-12, #625):
+    the rule the public AI assistants page follows for the reports under each
+    job and problem. Every key required; absent or unknown raises (rules 6, 12).
+
+    Its `embed_only` must be a subset of the feed's, because the page cites
+    through the feed's `cite_source`: a source embed-only here but not there
+    would be cited as a link with its text beside it.
+    """
+    from judge.config import _read
+
+    raw = (_read("publication.yaml") or {}).get("assistants_page")
+    if not isinstance(raw, dict):
+        raise PublicationConfigError(
+            "contract/publication.yaml has no `assistants_page` block. Refusing rather "
+            "than guessing what the public assistants page may show.")
+    form, embed, held = raw.get("quote_form"), raw.get("embed_only"), raw.get("held")
+    if form not in _ASSISTANTS_QUOTE_FORMS:
+        raise PublicationConfigError(
+            f"`assistants_page.quote_form` is {form!r}; the page renders only "
+            f"{list(_ASSISTANTS_QUOTE_FORMS)}. Another form needs code, not a setting.")
+    if not isinstance(embed, list) or not isinstance(held, list):
+        raise PublicationConfigError(
+            "`assistants_page` needs `embed_only` and `held` (lists); "
+            f"got {embed!r} and {held!r}.")
+    embed_t = tuple(str(s).strip() for s in embed)
+    stray = set(embed_t) - set(evidence_feed_terms()["embed_only"])
+    if stray:
+        raise PublicationConfigError(
+            f"`assistants_page.embed_only` names {sorted(stray)}, which the feed's "
+            "`cite_source` does not embed: it would be cited as a link beside its text.")
+    return {"quote_form": form, "embed_only": embed_t,
+            "held": tuple(str(s).strip() for s in held)}
+
+
 def feed_hides(source: str | None) -> bool:
     """Whether the evidence feed shows a report from `source` with no text and
     no source - `{"kind": "withheld"}` - while still listing and counting it.

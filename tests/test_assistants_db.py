@@ -228,6 +228,7 @@ def test_a_reports_text_follows_the_publication_rules_by_source(client):
         assert f"example.test/{doc}" not in text, doc
     ev = _job(detail, "debugging")["evidence"]
     assert ev["total"] == 4 and ev["omitted"] == 1  # bluesky: counted, never shown
+    assert ev["unlinked"] == 0  # every shown quote here has its https link
     by_kind = {i["source"]["kind"]: i for i in ev["items"]}
     # hackernews: the verified quote, its platform and a link
     hn = by_kind["link"]
@@ -243,6 +244,21 @@ def test_a_reports_text_follows_the_publication_rules_by_source(client):
     assert len(ev["items"]) == 3
     # No paraphrase field: readers are told nothing about a feature they don't have.
     assert "paraphrases_note" not in detail
+
+
+@pytest.mark.parametrize("url", ["http://example.test/d7", "", "example.test/d7"])
+def test_a_quote_without_an_https_link_is_counted_never_shown(conn, client, url):
+    """#625 review (Parvathi): a verbatim quote with no platform link is the
+    undertaking's second `voided_by` case. Counted in `unlinked`, no text."""
+    conn.execute("UPDATE document SET url = %s WHERE id = 'd7'", (url,))
+    conn.commit()
+    detail = client.get("/assistants/google/gemini-cli").json()
+    assert "words from d7" not in json.dumps(detail)
+    ev = _job(detail, "debugging")["evidence"]
+    assert (ev["total"], ev["omitted"], ev["unlinked"]) == (4, 1, 1)
+    assert all(i["source"]["kind"] != "link" for i in ev["items"])
+    assert len(ev["items"]) == 2  # the two embeds, which carry no text either
+    assert all(i["text"] is None for i in ev["items"])
 
 
 def test_a_problem_carries_its_negative_reports_with_the_same_rules(client):
