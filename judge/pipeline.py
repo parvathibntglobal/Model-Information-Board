@@ -916,6 +916,9 @@ class Pipeline:
                             "parent_proposed": _held.parent,
                             "axis_verbatim": _held.axis_verbatim,
                             "subject_verbatim": _held.subject_verbatim,
+                            # Kept with the held entry so it reaches the board
+                            # on attribution (20261112T0900).
+                            "speaking": claim.model_ref.speaking,
                             "polarity": claim.polarity,
                             "quote": quote.display_text,
                         })
@@ -1164,6 +1167,10 @@ class Pipeline:
                     "quote": quote.display_text,
                     "quote_verified": True,
                     "polarity": claim.polarity,
+                    # STORED since 20261112T0900. The extractor answers this on
+                    # every call; before the column it reached only `claim`,
+                    # which LEGACY_CELLS=off never writes (rule 9).
+                    "speaking": claim.model_ref.speaking,
                 })
 
         if board_rows:

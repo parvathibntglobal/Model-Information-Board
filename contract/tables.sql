@@ -1035,6 +1035,18 @@ CREATE TABLE board_entry (
   subject_verbatim  text,
   axis_quoted       boolean,
 
+  -- WHO IS SPEAKING, from the extractor's `model_ref.speaking`. Added by
+  -- 20261112T0900_board_entry_speaking.sql: the value was paid for on every
+  -- call and stored only on `claim`, which LEGACY_CELLS=off never writes.
+  -- NULL = not recorded (the row predates the column), never a speaker.
+  -- Never gates storage or display (rule 8). Named like the constraint the
+  -- migration's inline CHECK produces, so the two render identically.
+  speaking          text,
+  CONSTRAINT board_entry_speaking_check CHECK (speaking IN (
+                                    'own-experience',
+                                    'vendor-about-own-product',
+                                    'relayed-from-elsewhere')),
+
   pipeline_version  text NOT NULL,
   created_at        timestamptz NOT NULL DEFAULT now(),
 
@@ -2546,6 +2558,9 @@ CREATE TABLE unresolved_entry (
   parent_proposed    text,
   axis_verbatim      text,
   subject_verbatim   text,
+  -- model_ref.speaking, carried onto board_entry.speaking on attribution
+  -- (20261112T0900_board_entry_speaking.sql). NULL = not recorded.
+  speaking           text,
   polarity           text NOT NULL,
   quote              text NOT NULL,
   proposer_model     text NOT NULL,
@@ -2559,7 +2574,11 @@ CREATE TABLE unresolved_entry (
   CONSTRAINT unresolved_entry_polarity_ck
     CHECK (polarity IN ('positive', 'negative', 'neutral')),
   CONSTRAINT unresolved_entry_attributed_ck
-    CHECK ((attributed_at IS NULL) = (attributed_to IS NULL))
+    CHECK ((attributed_at IS NULL) = (attributed_to IS NULL)),
+  CONSTRAINT unresolved_entry_speaking_check CHECK (speaking IN (
+                                    'own-experience',
+                                    'vendor-about-own-product',
+                                    'relayed-from-elsewhere'))
 );
 
 CREATE INDEX unresolved_entry_held_idx ON unresolved_entry (surface) WHERE attributed_at IS NULL;
