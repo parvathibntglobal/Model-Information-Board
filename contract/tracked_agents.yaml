@@ -32,10 +32,25 @@
 #                          largest by far (1,208 HN stories since 2026-08-01), so
 #                          its first nights will meet this ceiling: its fetch
 #                          stops at it, and the rest waits for the next night.
+#   group_turns            THE GROUPS TAKE TURNS, in this order: one due agent from
+#                          each group per round (anooj 2026-11-12: "a limited number
+#                          of agents from all three groups"). Within a group the
+#                          order is the scheduler's own (`rank_due`: first fetches,
+#                          then the longest since a success). Without turns a night
+#                          follows that order alone, and where it ties - every
+#                          first fetch ties - file order decides: on the first
+#                          night (run 43160685646, 2026-11-12) the six agents that
+#                          ran before the deadline were all from the first two
+#                          groups, and no coding agent ran. It changes the ORDER
+#                          only: who is due, the deadline and the ceiling are as
+#                          before. The names match the groups of
+#                          `contract/assistant_groups.yaml` (#625, the page's
+#                          grouping); this list is the fetch's own.
 #
 # PER AGENT
 #   name           shown in the run summary
 #   registry       its `agent_models.yaml` canonical id
+#   group          one of `run.group_turns`
 #   search_terms   EXTRA SEARCH QUERIES, never aliases: they widen what is
 #                  searched and do not decide what a claim is filed under. A hit
 #                  that names only a bare short name ("Muse") is held, counted
@@ -51,46 +66,56 @@ version: 1
 run:
   enabled: true
   run_spend_ceiling_usd: 0.40
+  group_turns: [works-for-you, workspaces, coding-builders]
 
 agents:
   - name: Meta Muse
     registry: meta/meta-muse
+    group: works-for-you
     # 35 of 50 Bluesky, 19 of 38 Reddit and 16 of 22 X results were the bare
     # "Muse" beside WhatsApp - first-hand reports the compound form misses.
     search_terms: ['muse whatsapp']
     subreddits: []
   - name: OpenAI Dots
     registry: openai/openai-dots
+    group: works-for-you
     # `dots chatgpt` sorted only 3 of 40 on Hacker News: too noisy to search.
     search_terms: []
     subreddits: []
   - name: Claude Duet
     registry: anthropic/claude-duet
+    group: works-for-you
     search_terms: []          # `anthropic duet`: 0 on HN, 3 on Reddit - dropped
     subreddits: []
   - name: Claude Cowork
     registry: anthropic/claude-cowork
+    group: workspaces
     search_terms: []          # bare `cowork` is stemmed to "coworkers" - dropped
     subreddits: []
   - name: Grok Bot
     registry: xai/grok-bot
+    group: works-for-you
     # A Reddit post about someone's "Grok Bots" setup missed `grok bot` (#611).
     search_terms: ['grok bots']
     subreddits: [GrokBot]
   - name: ChatGPT Work
     registry: openai/chatgpt-work
+    group: workspaces
     search_terms: []
     subreddits: []
   - name: Gemini Spark
     registry: google/gemini-spark
+    group: works-for-you
     search_terms: []
     subreddits: []
   - name: OpenClaw
     registry: openclaw/openclaw
+    group: works-for-you
     search_terms: []
     subreddits: [openclaw]
   - name: Hermes Agent
     registry: nousresearch/hermes-agent
+    group: works-for-you
     search_terms: ['hermes agents']
     subreddits: []
   # CODING AGENTS (2026-11-10). Counts and the name rulings: agent_models.yaml.
@@ -98,23 +123,28 @@ agents:
   # test B did for r/openclaw and r/GrokBot.
   - name: Claude Code
     registry: anthropic/claude-code
+    group: coding-builders
     search_terms: []
     subreddits: []
   - name: OpenAI Codex
     registry: openai/openai-codex
+    group: coding-builders
     # Most people write bare "Codex", which is held (agent_models.yaml); this
     # widens the search. A hit naming only bare "Codex" is counted, not filed.
     search_terms: ['codex cli']
     subreddits: []
   - name: Gemini CLI
     registry: google/gemini-cli
+    group: coding-builders
     search_terms: []
     subreddits: []
   - name: GitHub Copilot
     registry: github/github-copilot
+    group: coding-builders
     search_terms: []
     subreddits: []
   - name: Google Antigravity
     registry: google/google-antigravity
+    group: coding-builders
     search_terms: []
     subreddits: []
