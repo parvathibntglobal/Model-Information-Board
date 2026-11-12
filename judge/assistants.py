@@ -1,6 +1,7 @@
 """The AI assistants page (PROPOSED, 2026-11-12): the registry's personal agents
 and coding builders, grouped by `contract/assistant_groups.yaml`, with what
-engineers report about each COUNTED and never quoted.
+engineers report about each COUNTED, and on an assistant's own page the
+reports behind its jobs and problems shown under the publication rules.
 
 NOTHING NEW IS COUNTED HERE. Every figure comes from a function the board
 already uses, so this page cannot disagree with it:
@@ -13,11 +14,22 @@ already uses, so this page cannot disagree with it:
     issues_for           capabilities with problems from at least N people
     board_freshness      when the board last changed for a model
 
-ALWAYS THE PUBLIC VIEW, COUNTS ONLY. Totals count every source
-(`publication.hidden_from_counts`), as `/reports` does. No quote, URL, handle,
-document id or platform NAME leaves this module: a quote stays behind the
-sign-in on `/models/<id>`, and Reddit / X text may reach a public page only as
-an official embed (CLAUDE.md, publication).
+ALWAYS THE PUBLIC VIEW. Totals count every source
+(`publication.hidden_from_counts`), as `/reports` does. The list endpoint is
+counts only. The DETAIL endpoint also carries, under each job and problem, the
+reports behind its counts, by `_treatment` (contract/publication.yaml and the
+helpers the evidence feed uses):
+
+    embed-only source (reddit, x)   NO text, no link, no handle: the ids the
+                                    platform's official embed needs, loaded by
+                                    the reader's click (`cite_source`)
+    withheld source (arxiv, bluesky, no recorded source), or held
+                                    nothing at all - counted in `omitted`
+    any other source                the verified quote, its platform name and
+                                    a link to the source
+
+No document id, author or handle leaves this module. A paraphrase is not
+available (the feed's paraphraser runs for seated models and costs money).
 
 NO SCORE, NO RANK (rule 3). A card carries counts. The members of a group keep
 the order of the contract file, which is not a ranking, and a comparison cell is
@@ -35,6 +47,8 @@ rather than dropped or rendered empty.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from judge import publication
 from judge.config import agent_canonical_ids, assistant_groups, board_vocabulary
 
@@ -50,7 +64,11 @@ def _registry(conn, canonical_ids: list[str]) -> dict[str, dict]:
         (canonical_ids,),
     ).fetchall()
     return {
-        cid: {"id": mid, "canonical_id": cid, "provider": provider,
+        # NO MAKER IS SHOWN, NOT "unknown": a registry-only row whose maker is
+        # not known carries provider 'unknown', which is a placeholder, not a
+        # company (reviewer point, 2026-11-12). Absent stays absent (rule 6).
+        cid: {"id": mid, "canonical_id": cid,
+              "provider": None if (provider or "").strip().lower() in ("", "unknown") else provider,
               "display_name": name or cid}
         for mid, cid, provider, name in rows
     }
@@ -79,19 +97,77 @@ def _axis_index(conn) -> dict[tuple[str, str, str], dict]:
     return index
 
 
-def _documents(conn, doc_ids: set) -> tuple[int, str | None]:
-    """(platforms, newest report date) over a model's documents. The platform
-    count names no platform and leaves out the withheld ones, as the Reports
-    page does."""
+def _documents(conn, doc_ids: set) -> tuple[int, str | None, dict]:
+    """(platforms, newest report date, {document id: (source, posted_at)}) over
+    a model's documents. The platform count names no platform and leaves out
+    the withheld ones, as the Reports page does."""
     if not doc_ids:
-        return 0, None
+        return 0, None, {}
     named = set(publication.withheld_sources())
     rows = conn.execute(
-        "SELECT source, created_at FROM document WHERE id = ANY(%s)", (list(doc_ids),)
+        "SELECT id, source, created_at FROM document WHERE id = ANY(%s)", (list(doc_ids),)
     ).fetchall()
-    platforms = {s for s, _ in rows if s and s not in named}
-    dates = [c for _, c in rows if c]
-    return len(platforms), (max(dates).date().isoformat() if dates else None)
+    platforms = {s for _, s, _ in rows if s and s not in named}
+    dates = [c for _, _, c in rows if c]
+    return (len(platforms), (max(dates).date().isoformat() if dates else None),
+            {d: (s, c) for d, s, c in rows})
+
+
+def _treatment(source: str | None) -> str:
+    """How a report from `source` may appear on this PUBLIC page, from
+    contract/publication.yaml and the helpers the evidence feed uses:
+
+        embed   `evidence_feed.embed_only` (reddit, x) and not held: the
+                platform's official embed, never our copy of its text
+        omit    withheld from the public (arxiv, bluesky, no recorded source)
+                or held: no text, no embed, no link - COUNTED by the caller
+        quote   every other source: the verified quote, with platform and link
+    """
+    embed_only = publication.evidence_feed_terms()["embed_only"]
+    if source in embed_only and not publication.feed_hides(source):
+        return "embed"
+    if publication.withheld_publicly(source) or publication.feed_hides(source):
+        return "omit"
+    return "quote"
+
+
+def _support(conn, items: list[dict], info: dict, *, polarity: str | None = None) -> dict:
+    """The reports behind one job's or problem's counts, for the public page:
+    {"items": [...], "omitted": N, "total": N}. `total` counts every report
+    (never truncated); `omitted` is how many came from a source we do not show
+    publicly (rule 4). An item carries NO text for an embed-only source."""
+    from judge.feed.items import cite_source
+
+    quotes = [q for it in items for q in it["quotes"]
+              if polarity is None or q.get("polarity") == polarity]
+    embed_docs = [q["document_id"] for q in quotes
+                  if _treatment((info.get(q["document_id"]) or (None,))[0]) == "embed"]
+    embeds = {}
+    if embed_docs:
+        embeds = {d: {"outcome": o, "url": u} for d, o, u in conn.execute(
+            "SELECT document_id, outcome, url FROM feed_embed WHERE document_id = ANY(%s)",
+            (embed_docs,)).fetchall()}
+    epoch = datetime.min.replace(tzinfo=UTC)
+    quotes.sort(key=lambda q: (info.get(q["document_id"]) or (None, None))[1] or epoch,
+                reverse=True)
+    out, omitted, seen_embeds = [], 0, set()
+    for q in quotes:
+        source, at = info.get(q["document_id"]) or (None, None)
+        how = _treatment(source)
+        if how == "omit":
+            omitted += 1
+            continue
+        if how == "embed":
+            if q["document_id"] in seen_embeds:
+                continue
+            seen_embeds.add(q["document_id"])
+        cite = cite_source({"source": source, "url": q.get("url")},
+                           embeds.get(q["document_id"]))
+        out.append({"polarity": q.get("polarity"),
+                    "posted_at": at.isoformat() if at else None,
+                    "text": q["quote"] if how == "quote" else None,
+                    "source": cite})
+    return {"items": out, "omitted": omitted, "total": len(quotes)}
 
 
 def _evidence(conn, cid: str, hidden: list[str]) -> dict:
@@ -103,23 +179,27 @@ def _evidence(conn, cid: str, hidden: list[str]) -> dict:
     ev = evidence_for_model(conn, cid, hidden=hidden, with_voices=True)
     docs = {q["document_id"] for sec in ("best_for", "capabilities", "metrics")
             for item in ev[sec] for q in item["quotes"] if q.get("document_id") is not None}
-    platforms, newest = _documents(conn, docs)
+    platforms, newest, info = _documents(conn, docs)
     return {"ev": ev, "people": ev["voices"], "reports": len(docs),
-            "platforms": platforms, "newest": newest}
+            "platforms": platforms, "newest": newest, "info": info}
 
 
-def _rows(items: list[dict], kind: str, cid: str, axes: dict) -> list[dict]:
+def _rows(items: list[dict], kind: str, cid: str, axes: dict, support=None) -> list[dict]:
+    """`support(item)` adds the reports behind a row (detail page only)."""
     out = []
     for it in items:
         a = axes.get((kind, it["slug"], cid)) or {}
         split = a.get("split") or {}
-        out.append({
+        row = {
             "slug": it["slug"], "name": it.get("name") or it["slug"],
             "people": it["voices"], "reports": it["reports"],
             "working": int(split.get("positive", 0)),
             "neutral": int(split.get("neutral", 0)),
             "problems": int(split.get("negative", 0)),
-        })
+        }
+        if support is not None:
+            row["evidence"] = support(it)
+        out.append(row)
     out.sort(key=lambda r: (-r["people"], -r["reports"], r["slug"]))
     return out
 
@@ -156,7 +236,10 @@ def assistants_view(conn) -> dict:
         compare = []
         for row in g["compare"]:
             cells = []
-            for c in cards:
+            # ONLY ASSISTANTS WITH REPORTS are columns of the table (reviewer
+            # point B): a row of "No reports" per silent assistant is a wall.
+            # They are listed, by name, under the cards (the page).
+            for c in (c for c in cards if c["state"] == "reports"):
                 a = axes.get((row["kind"], row["slug"], c["canonical_id"])) or {}
                 split = a.get("split") or {}
                 cells.append({
@@ -212,12 +295,17 @@ def assistant_detail(conn, ident: str) -> dict | None:
     hidden = list(publication.hidden_from_counts())
     axes = _axis_index(conn)
     e = _evidence(conn, cid, hidden)
-    jobs = _rows(e["ev"]["best_for"], "job", cid, axes)
+    info = e["info"]
+    jobs = _rows(e["ev"]["best_for"], "job", cid, axes,
+                 support=lambda it: _support(conn, [it], info))
     caps = _rows(e["ev"]["capabilities"], "capability", cid, axes)
     issues = issues_for(conn, cid)
+    by_cap = {it["slug"]: it for it in e["ev"]["capabilities"]}
     problems = [
         {"slug": i["slug"], "name": i["name"], "people_with_problems": i["problems"],
-         "people_it_works_for": i["working"], "latest": i["latest"]}
+         "people_it_works_for": i["working"], "latest": i["latest"],
+         "evidence": _support(conn, [by_cap[i["slug"]]] if i["slug"] in by_cap else [],
+                              info, polarity="negative")}
         for i in (issues or {"issues": []})["issues"]
     ]
     fresh = board_freshness(conn)["models"].get(cid) or {}
@@ -235,6 +323,15 @@ def assistant_detail(conn, ident: str) -> dict | None:
         "problems": problems,
         "problems_min_people": (issues or {}).get("min_engineers"),
         "capabilities": caps,
+        "quotes_note": (
+            "Reports are shown under each job and problem by the publication rules: a "
+            "verified quote with its platform and link for most sources; Reddit and X "
+            "only as the platform's own embed, loaded when you ask; and sources we do "
+            "not show publicly are counted, never shown."
+        ),
+        "paraphrases_note": (
+            "Paraphrases in our own words are not available for assistants yet."
+        ),
         "guides": [],
         "guides_note": (
             "No guides yet: nothing links a how-to post to an assistant today, so this "

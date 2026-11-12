@@ -2502,8 +2502,11 @@ def assistants_page() -> dict:
 
 @app.get("/assistants/{ident:path}")
 def assistant_page(ident: str) -> dict:
-    """One assistant (canonical id or registry id), counts only. 404 for an id
-    that is not an assistant in the grouping file. See `judge/assistants.py`."""
+    """One assistant (canonical id or registry id): counts, and under each job
+    and problem the reports behind them by the publication rules - a verified
+    quote with platform and link, Reddit and X only as embed ids, withheld
+    sources counted and never shown. 404 for an id that is not an assistant in
+    the grouping file. See `judge/assistants.py`."""
     from judge.assistants import assistant_detail
 
     with _conn() as conn:
@@ -2515,7 +2518,8 @@ def assistant_page(ident: str) -> dict:
             "best_for": d["best_for"], "problems": d["problems"],
             "problems_min_people": d["problems_min_people"],
             "capabilities": d["capabilities"], "guides": d["guides"],
-            "guides_note": d["guides_note"]}
+            "guides_note": d["guides_note"], "quotes_note": d["quotes_note"],
+            "paraphrases_note": d["paraphrases_note"]}
 
 
 @app.get("/model-catalog")

@@ -2179,3 +2179,7 @@ a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:
 .as-counts,.as-jobs,.as-empty{margin:0;font-size:var(--fs-sm)}
 .as-caption{caption-side:top;text-align:left;padding:10px 16px;font-size:var(--fs-xs)}
 .as-compare th,.as-compare td{vertical-align:top}
+.as-silent{margin:0;font-size:var(--fs-sm)}
+.as-quote{margin:0;padding-left:var(--s2);border-left:2px solid var(--border)}
+.as-omitted{margin:0;font-size:var(--fs-xs)}
+.as-support{margin-top:var(--s1)}

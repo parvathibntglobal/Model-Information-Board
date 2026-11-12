@@ -92,6 +92,18 @@ def conn(test_dsn):
         # declined: adds nothing
         _report(connection, 4, "mv_muse", source="devto", author="a4", section="capability",
                 slug="reliability", name="Reliability", polarity="negative", ruling="declined")
+        # a registry-only row whose maker is unknown, with no reports
+        _model(connection, "mv_hark", "unknown/hark-pro", "Hark")
+        # one job, four sources: embed-only (x, reddit), withheld (bluesky), shown (hackernews)
+        _model(connection, "mv_cli", "google/gemini-cli", "Gemini CLI")
+        for n, source in ((5, "x"), (6, "bluesky"), (7, "hackernews"), (8, "reddit")):
+            _report(connection, n, "mv_cli", source=source, author=f"b{n}", section="best_for",
+                    slug="debugging", name="Debugging", polarity="positive")
+        connection.execute(
+            "INSERT INTO feed_embed (document_id, platform, outcome, url) VALUES "
+            "('d5', 'x', 'embeddable', 'https://x.com/i/status/1234567890'), "
+            "('d8', 'reddit', 'embeddable', 'https://www.reddit.com/comments/abc123/')"
+        )
         connection.commit()
         yield connection
 
@@ -154,8 +166,9 @@ def test_a_member_missing_from_the_registry_is_counted_not_rendered(client):
     assert ws["assistants"] == []
     assert ws["not_in_registry"] == ws["members"] == 2
     works = _group(body, "works-for-you")
-    assert works["not_in_registry"] == works["members"] - 1  # only meta-muse is seated
-    assert [c["canonical_id"] for c in works["assistants"]] == ["meta/meta-muse"]
+    assert works["not_in_registry"] == works["members"] - 2  # meta-muse and hark-pro are seated
+    assert [c["canonical_id"] for c in works["assistants"]] == [
+        "meta/meta-muse", "unknown/hark-pro"]
 
 
 def test_an_agent_in_no_group_is_unclassified_never_guessed(client):
@@ -192,12 +205,69 @@ def test_an_id_that_is_not_an_assistant_is_a_404(client):
     assert client.get("/assistants/nobody/nothing").status_code == 404
 
 
-def test_no_score_rank_or_quote_in_any_payload(client):
-    for path in ("/assistants", "/assistants/meta/meta-muse", "/assistants/anthropic/claude-code"):
-        body = client.get(path).json()
-        assert not FORBIDDEN_KEYS & set(_walk(body)), path
-        text = json.dumps(body)
-        assert "words from" not in text and "example.test" not in text
+def test_no_score_or_rank_in_any_payload_and_the_list_carries_no_quote(client):
+    for path in ("/assistants", "/assistants/meta/meta-muse", "/assistants/google/gemini-cli"):
+        assert not {"score", "rank", "ranking", "wilson", "weight", "consensus"} & set(
+            _walk(client.get(path).json())), path
+    listing = client.get("/assistants").json()
+    text = json.dumps(listing)
+    assert "words from" not in text and "example.test" not in text
+    assert not FORBIDDEN_KEYS & set(_walk(listing))
+
+
+def _job(detail, slug):
+    return next(r for r in detail["best_for"] if r["slug"] == slug)
+
+
+def test_a_reports_text_follows_the_publication_rules_by_source(client):
+    """THE PUBLIC PAYLOAD HOLDS NO TEXT FOR AN EMBED-ONLY OR A WITHHELD SOURCE."""
+    detail = client.get("/assistants/google/gemini-cli").json()
+    text = json.dumps(detail)
+    for doc in ("d5", "d6", "d8"):  # x, bluesky, reddit
+        assert f"words from {doc}" not in text, doc
+        assert f"example.test/{doc}" not in text, doc
+    ev = _job(detail, "debugging")["evidence"]
+    assert ev["total"] == 4 and ev["omitted"] == 1  # bluesky: counted, never shown
+    by_kind = {i["source"]["kind"]: i for i in ev["items"]}
+    # hackernews: the verified quote, its platform and a link
+    hn = by_kind["link"]
+    assert hn["text"] == "words from d7"
+    assert hn["source"]["platform"] == "Hacker News"
+    assert hn["source"]["url"] == "https://example.test/d7"
+    # x and reddit: the ids the official embed needs, and no text
+    embeds = [i for i in ev["items"] if i["source"]["kind"] == "embed"]
+    assert {i["source"]["platform"] for i in embeds} == {"x", "reddit"}
+    assert all(i["text"] is None for i in embeds)
+    ids = {i["source"]["platform"]: i["source"] for i in embeds}
+    assert ids["x"]["status_id"] == "1234567890" and ids["reddit"]["post_id"] == "abc123"
+    assert len(ev["items"]) == 3
+    assert detail["paraphrases_note"]
+
+
+def test_a_problem_carries_its_negative_reports_with_the_same_rules(client):
+    problem = client.get("/assistants/meta/meta-muse").json()["problems"][0]
+    ev = problem["evidence"]
+    assert ev["total"] == 2
+    kinds = sorted(i["source"]["kind"] for i in ev["items"])
+    assert kinds == ["link", "pending"]  # hackernews quote; reddit embed not resolved yet
+    assert [i["text"] for i in ev["items"] if i["source"]["kind"] == "pending"] == [None]
+    assert "words from d3" not in json.dumps(problem)
+
+
+def test_an_unknown_maker_is_not_shown(client):
+    body = client.get("/assistants").json()
+    silent = next(a for a in _group(body, "works-for-you")["assistants"]
+                  if a["canonical_id"] == "unknown/hark-pro")
+    assert silent["provider"] is None and silent["state"] == "no_reports"
+    assert client.get("/assistants/unknown/hark-pro").json()["assistant"]["provider"] is None
+    assert "unknown" not in json.dumps(
+        [a["provider"] for g in body["groups"] for a in g["assistants"]]).lower()
+
+
+def test_assistants_without_reports_are_not_in_the_comparison_table(client):
+    works = _group(client.get("/assistants").json(), "works-for-you")
+    for row in works["compare"]:
+        assert [c["canonical_id"] for c in row["cells"]] == ["meta/meta-muse"]
 
 
 def test_both_endpoints_are_public(client, monkeypatch):
@@ -211,5 +281,6 @@ def test_the_grouping_file_loads_with_unique_members():
     cfg = assistant_groups()
     members = [m for g in cfg["groups"] for m in g["members"]]
     assert len(members) == len(set(members))
-    assert len(_group({"groups": cfg["groups"]}, "works-for-you")["members"]) == 34
+    assert len(_group({"groups": cfg["groups"]}, "works-for-you")["members"]) == 31
+    assert not {"unknown/instinct", "nozomio-labs/folk", "unknown/del"} & set(members)  # held
     assert all("/" in m for m in members)

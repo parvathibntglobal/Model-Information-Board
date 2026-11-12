@@ -11,9 +11,12 @@
 #   members  canonical ids. A member the registry (`model_version`) does not
 #            hold yet is NOT rendered as a card; the page says how many of the
 #            group are not in the registry (rule 6: visible, never silent).
-#            The 27 personal assistants from assistantbenchmark.com are listed
-#            in `works-for-you` although none is loaded yet (their draft is
-#            local); they appear as cards once the registry holds them.
+#            The 24 personal assistants from assistantbenchmark.com are listed
+#            in `works-for-you` although none may be loaded yet (PR #624, ids as
+#            revised); they appear as cards once the registry holds them.
+#            HELD, so NOT listed (no registry row until each has a non-ordinary
+#            alias): Instinct (unknown/instinct), Folk (nozomio-labs/folk) and Del
+#            (unknown/del) - see contract/assistantbenchmark_models.yaml.
 #   compare  the rows of the section's comparison table: `kind` is `job` (a
 #            board `best_for` slug) or `capability`, `slug` must exist in
 #            `board_vocabulary.yaml` under that section. Each cell is a COUNT of
@@ -41,32 +44,29 @@ groups:
       - google/gemini-spark
       - openclaw/openclaw
       - nousresearch/hermes-agent
-      - unknown/hark
-      - unknown/instinct
-      - town/town
-      - unknown/tomo
-      - pally/pally
+      - unknown/hark-pro
+      - town/town-com
+      - unknown/tomo-ai
+      - pally/pally-app
       - wajo/fo
       - unknown/szn
-      - unknown/catch
-      - unknown/tab
+      - unknown/catch-ai
+      - unknown/tab-bot
       - unknown/zapia
-      - unknown/shuffle
-      - dazzle/dazzle
-      - companion-intelligence/kicker
-      - orchid/orchid
-      - unknown/caddy
-      - humansand/boba
-      - cognition/poke
+      - unknown/shuffle-ai
+      - dazzle/dazzle-ai
+      - companion-intelligence/kicker-ai
+      - orchid/orchid-ai
+      - unknown/caddy-app
+      - humansand/boba-app
+      - cognition/poke-com
       - unknown/asmi
-      - unknown/del
       - merit-systems/openinstinct
       - asaply/asaply
-      - unknown/orbits
-      - nozomio-labs/folk
+      - unknown/orbits-app
       - boski/boski
       - natura-ai/tinynature
-      - brea-ai/brea
+      - brea-ai/brea-ai
       - unknown/hirealpha
     compare:
       - {kind: job, slug: daily-planning}

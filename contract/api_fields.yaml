@@ -525,6 +525,11 @@ fields:
     routes:
     - /models
     state: consumed
+  paraphrases_note:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
   parent_coverage:
     reviewed: false
     routes:
@@ -600,6 +605,11 @@ fields:
     reviewed: false
     routes:
     - /models/{model_version_id:path}
+    state: consumed
+  quotes_note:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
     state: consumed
   rapidapi:
     reviewed: false
