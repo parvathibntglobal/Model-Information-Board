@@ -35,9 +35,11 @@
 #    Orchid, Kicker, Boba, Dazzle, Brea, Tomo, Pally, Orbits, Hark) is never the
 #    local part: the local part is the compound alias the official site or its
 #    domain uses (`town/town-com`, `unknown/tab-bot`, `cognition/poke-com`), so
-#    no bare word reaches the alias table (rule 10).
-#    tests/test_assistantbenchmark_registry.py checks the ids as well as the
-#    declared aliases.
+#    no bare word reaches the alias table (rule 10). The same goes for short
+#    tokens prose produces by accident: Wajo's "Fo" is `wajo/wajo-fo`, and szn
+#    ("season" in slang) is `unknown/theszn-ai`.
+#    tests/test_assistantbenchmark_registry.py checks every key the loader would
+#    write, including the id-built ones, and refuses any of 3 characters or fewer.
 # 3. THREE ARE HELD, never loaded until each has an alias that is not an
 #    ordinary word or phrase:
 #      Instinct  no source-backed alias (its site writes only the bare word); maker
@@ -67,7 +69,7 @@ models:
     display_name: 'Town'
     aliases:
       surface: 'town.com'
-      variants: ['town-com', 'towncom']
+      variants: ['town com', 'town-com', 'towncom']
 
   # Tomo: https://assistantbenchmark.com/agents/tomo | site https://tomo.ai/ | maker: unknown
   - canonical_id: 'unknown/tomo-ai'
@@ -86,7 +88,7 @@ models:
       variants: ['pally-app', 'pallyapp']
 
   # Wajo Fo: https://assistantbenchmark.com/agents/wajo-fo | site https://wajo.ai/ | maker: wajo
-  - canonical_id: 'wajo/fo'
+  - canonical_id: 'wajo/wajo-fo'
     provider: 'wajo'
     display_name: 'Wajo Fo'
     aliases:
@@ -94,7 +96,7 @@ models:
       variants: ['wajo-fo', 'wajofo']
 
   # szn: https://assistantbenchmark.com/agents/szn | site https://theszn.ai/ | maker: unknown
-  - canonical_id: 'unknown/szn'
+  - canonical_id: 'unknown/theszn-ai'
     provider: 'unknown'
     display_name: 'szn'
     aliases:
@@ -123,7 +125,9 @@ models:
     display_name: 'Zapia'
     aliases:
       surface: 'zapia'
-      variants: []
+      # the loader wants spaced/hyphenated/joined forms; a coined one-word name has
+      # none, so its domain (zapia.com) supplies them, as town.com does above
+      variants: ['zapia com', 'zapia-com', 'zapiacom']
 
   # Shuffle: https://assistantbenchmark.com/agents/shuffle | site https://textshuffle.com/ | maker: unknown
   - canonical_id: 'unknown/shuffle-ai'
@@ -179,7 +183,7 @@ models:
     display_name: 'Poke'
     aliases:
       surface: 'poke.com'
-      variants: ['poke-com', 'pokecom']
+      variants: ['poke com', 'poke-com', 'pokecom']
 
   # Asmi: https://assistantbenchmark.com/agents/asmi | site https://asmiai.com/ | maker: unknown
   - canonical_id: 'unknown/asmi'
@@ -203,7 +207,8 @@ models:
     display_name: 'Asaply'
     aliases:
       surface: 'asaply'
-      variants: []
+      # spaced/hyphenated/joined forms from its domain (asaply.ai): see Zapia
+      variants: ['asaply ai', 'asaply-ai', 'asaplyai']
 
   # Orbits: https://assistantbenchmark.com/agents/orbits | site https://tryorbits.com/ | maker: unknown
   - canonical_id: 'unknown/orbits-app'
@@ -219,7 +224,8 @@ models:
     display_name: 'Boski'
     aliases:
       surface: 'boski'
-      variants: []
+      # spaced/hyphenated/joined forms from its domain (boski.com): see Zapia
+      variants: ['boski com', 'boski-com', 'boskicom']
 
   # tinyNature: https://assistantbenchmark.com/agents/tinynature | site https://tinypeople.ai/ | maker: natura-ai
   - canonical_id: 'natura-ai/tinynature'

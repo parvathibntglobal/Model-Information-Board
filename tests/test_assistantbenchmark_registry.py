@@ -50,6 +50,15 @@ def test_no_alias_is_an_ordinary_phrase():
     assert not {normalize(p) for p in ORDINARY_PHRASES} & keys
 
 
+def test_no_alias_key_is_three_characters_or_fewer():
+    """STRUCTURAL, not a word list. A list only catches the words someone thought
+    of: `wajo/fo` and `unknown/szn` passed it and would have filed every "FO" and
+    every "summer szn" (slang for season). Any key this short is a token prose
+    produces by accident, so it is refused whatever it spells."""
+    short = sorted(k for k in _keys(load_seed_file(AB)) if len(k) <= 3)
+    assert not short, short
+
+
 def test_the_file_loads_with_unique_ids():
     ids = [m.canonical_id for m in load_seed_file(AB).models]
     assert ids and len(ids) == len(set(ids))
