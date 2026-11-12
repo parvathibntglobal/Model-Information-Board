@@ -68,7 +68,7 @@ function Fetched({ r }) {
         {s.models} {s.models === 1 ? 'model' : 'models'} · {s.ok} ok · {s.documents_appended} docs · {s.quotes_verified} quotes
       </summary>
       <table className="adm-subtable">
-        <thead><tr><th>Model</th><th>Outcome</th><th className="r">Docs</th><th className="r">Threads</th><th className="r">Quotes</th><th className="r">Unreadable here</th></tr></thead>
+        <thead><tr><th>Model</th><th>Outcome</th><th className="r">Docs</th><th className="r">Threads</th><th className="r">Quotes</th></tr></thead>
         <tbody>
           {s.rows.map((x, i) => (
             <tr key={`${x.model}:${i}`}>
@@ -77,11 +77,19 @@ function Fetched({ r }) {
               <td className="r tnum">{x.documents_appended ?? '—'}</td>
               <td className="r tnum">{x.threads_read ?? '—'}</td>
               <td className="r tnum">{x.quotes_verified ?? '—'}</td>
-              <td className="r tnum">{x.unreadable_here ?? '—'}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      {s.unreadable_whole_corpus && (
+        <p className="dim">
+          Unread threads in the whole corpus this runner could not open:{' '}
+          {s.unreadable_whole_corpus.low === s.unreadable_whole_corpus.high
+            ? s.unreadable_whole_corpus.low.toLocaleString()
+            : `${s.unreadable_whole_corpus.low.toLocaleString()} to ${s.unreadable_whole_corpus.high.toLocaleString()}`}
+          . Not any one model&apos;s: a thread that cannot be opened cannot be checked for a model&apos;s name.
+        </p>
+      )}
       {s.url && <a className="mb-link" href={s.url} target="_blank" rel="noopener noreferrer">the posted summary ↗</a>}
     </details>
   )

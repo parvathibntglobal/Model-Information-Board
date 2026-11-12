@@ -144,6 +144,11 @@ _SAFE_FIELDS = (
 )
 
 
+#: The summary's one line for `threads_unreadable_here`; Admin -> Scheduler
+#: (`scheduler_status.parse_unreadable`) finds it by this prefix.
+UNREADABLE_LINE = "Unread threads in the whole corpus this runner could not open:"
+
+
 def summarise_runs(records: list[dict]) -> str:
     """A host-free markdown summary of a scheduled batch, for a public issue.
 
@@ -156,9 +161,9 @@ def summarise_runs(records: list[dict]) -> str:
     lines = [f"**Scheduled fetch: {len(records)} model(s).** "
              "Counts only; no quotes, authors or hosts.", "",
              "| Model | Outcome | Docs appended | Threads read "
-             "| Quotes verified (count) | Unreadable here | Harvest errors "
+             "| Quotes verified (count) | Harvest errors "
              "| E6 rejected | E6 unvetted |",
-             "|---|---|---|---|---|---|---|---|---|"]
+             "|---|---|---|---|---|---|---|---|"]
 
     def cell(rec, key):
         v = rec.get(key)
@@ -180,9 +185,8 @@ def summarise_runs(records: list[dict]) -> str:
             # so this column read 0 for every model while each produced
             # hundreds of verified quotes.
             f"| {cell(rec, 'claims_verified')} "
-            # Threads this run could not read because their payloads are on
-            # another machine: a reason for a low count, not a count of zero.
-            f"| {cell(rec, 'threads_unreadable_here')} "
+            # NO "UNREADABLE HERE" COLUMN (2026-11-12, #610 review): that count
+            # is the whole corpus's, so it is one line under the table.
             f"| {', '.join(errored) if errored else '-'} "
             # E6 LAST, so a summary posted before these columns still parses.
             f"| {cell(rec, 'e6_rejected')} | {cell(rec, 'e6_unvetted')} |"
@@ -191,6 +195,23 @@ def summarise_runs(records: list[dict]) -> str:
     lines += ["", f"{ok} of {len(records)} ended ok. "
               "A model absent from this list was not due; a count shown as `-` was "
               "not reported by that run, which is not the same as zero."]
+    # UNREADABLE HERE IS THE WHOLE CORPUS'S COUNT, SO IT IS SAID ONCE (#610
+    # review, Parvathi, 2026-11-12). fetch_model counts every unread thread in
+    # the corpus whose text the runner could not open - an unopened thread
+    # cannot be checked for any model's name - so it is not a model's figure.
+    # In a per-model column the first agent night showed 1,323 on all six rows
+    # and read as six counts. Each run counts it at its own extract step, and
+    # the corpus moves during a night, so differing values are a range.
+    # Absent from every run: no line, never a 0 (rule 6).
+    seen = [r["threads_unreadable_here"] for r in records
+            if isinstance(r.get("threads_unreadable_here"), int)]
+    if seen:
+        low, high = min(seen), max(seen)
+        figure = f"{low:,}" if low == high else f"{low:,} to {high:,}"
+        lines += ["", f"{UNREADABLE_LINE} {figure} (counted at each run's extract step, "
+                  f"{len(seen)} of {len(records)} run(s) reported it). These are not any "
+                  "one model's threads: a thread that cannot be opened cannot be checked "
+                  "for a model's name. They explain a low `Threads read`."]
     # MEDIA'S SHARE OF THE NIGHT (#602 item 8), in counts only - no spend on a
     # public issue; each run's `cost_usd` stays in its own fetch log.
     # ONLY THE KINDS THAT ARE MEDIA (#618/#620 review, Parvathi). It counted

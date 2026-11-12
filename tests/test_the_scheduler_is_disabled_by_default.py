@@ -299,7 +299,8 @@ def test_the_summary_shows_threads_a_run_could_not_read():
     rec = {"model": "A", "status": "ok", "documents_appended": 0,
            "threads_unreadable_here": 6087}
     summary = scheduler.summarise_runs([scheduler.safe_record(rec)])
-    assert "Unreadable here" in summary and "| 6087 |" in summary
+    # Once, under the table: it is the whole corpus's count (#610 review).
+    assert f"{scheduler.UNREADABLE_LINE} 6,087 " in summary and "| 6087 |" not in summary
 
 
 class TestTheJobLimitStopsAFetchNotTheRunner:

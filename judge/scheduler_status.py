@@ -260,10 +260,18 @@ def switch(slug: str, *, variable: str = "SCHEDULER_ENABLED") -> dict:
 #: The runner's summary comment (judge/scheduler.summarise_runs) starts with this.
 SUMMARY_HEAD = "**Scheduled fetch:"
 SUMMARY_COLUMNS = ("model", "outcome", "documents_appended", "threads_read",
-                   "quotes_verified", "unreadable_here", "harvest_errors",
-                   "e6_rejected", "e6_unvetted")
-#: Summaries posted before the two E6 columns (#608) have the first seven only.
-_E6_COLUMNS = 2
+                   "quotes_verified", "harvest_errors", "e6_rejected", "e6_unvetted")
+#: THE THREE LAYOUTS THE ISSUE HOLDS, told apart by their cell count:
+#:   8  since 2026-11-12: no per-model "Unreadable here" (a whole-corpus count,
+#:      now one line under the table - `parse_unreadable`)
+#:   9  2026-11-04 to 2026-11-12: that column, and E6's two (#608)
+#:   7  before #608: that column, no E6 (E6 is then unreported, never zero)
+_OLDER_COLUMNS = ("model", "outcome", "documents_appended", "threads_read",
+                  "quotes_verified", "unreadable_here", "harvest_errors",
+                  "e6_rejected", "e6_unvetted")
+_LAYOUTS = {len(SUMMARY_COLUMNS): SUMMARY_COLUMNS,
+            len(_OLDER_COLUMNS): _OLDER_COLUMNS,
+            len(_OLDER_COLUMNS) - 2: _OLDER_COLUMNS}
 
 
 def parse_summary(body: str) -> list[dict]:
@@ -272,15 +280,15 @@ def parse_summary(body: str) -> list[dict]:
     rows = []
     for line in (body or "").splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if not line.startswith("|") or len(cells) not in (
-                len(SUMMARY_COLUMNS), len(SUMMARY_COLUMNS) - _E6_COLUMNS):
+        if not line.startswith("|") or len(cells) not in _LAYOUTS:
             continue
+        columns = _LAYOUTS[len(cells)]
         # An older summary has no E6 cells: unreported, which is not zero.
-        cells += ["-"] * (len(SUMMARY_COLUMNS) - len(cells))
+        cells += ["-"] * (len(columns) - len(cells))
         if cells[0] in ("Model", "") or set(cells[0]) <= {"-"}:
             continue
         row = {}
-        for key, cell in zip(SUMMARY_COLUMNS, cells, strict=True):
+        for key, cell in zip(columns, cells, strict=True):
             if cell == "-":
                 row[key] = None
             elif key in ("model", "outcome", "harvest_errors"):
@@ -289,6 +297,26 @@ def parse_summary(body: str) -> list[dict]:
                 row[key] = int(cell) if cell.isdigit() else cell
         rows.append(row)
     return rows
+
+
+def parse_unreadable(body: str, rows: list[dict]) -> dict | None:
+    """The night's whole-corpus "unreadable here" count, `{"low", "high"}`.
+
+    From the summary's one line (`scheduler.UNREADABLE_LINE`) since 2026-11-12;
+    from an older summary's per-model column otherwise - the same field, which
+    that layout repeated on every row. None when no run reported it (rule 6).
+    """
+    from judge.scheduler import UNREADABLE_LINE
+
+    for line in (body or "").splitlines():
+        if line.startswith(UNREADABLE_LINE):
+            m = re.match(r"\s*([\d,]+)(?: to ([\d,]+))?", line[len(UNREADABLE_LINE):])
+            if m:
+                low = int(m.group(1).replace(",", ""))
+                high = int((m.group(2) or m.group(1)).replace(",", ""))
+                return {"low": low, "high": high}
+    seen = [r["unreadable_here"] for r in rows if isinstance(r.get("unreadable_here"), int)]
+    return {"low": min(seen), "high": max(seen)} if seen else None
 
 
 def summaries(slug: str, issue: str) -> list[dict]:
@@ -307,8 +335,9 @@ def summaries(slug: str, issue: str) -> list[dict]:
         for c in body:
             text = c.get("body") or ""
             if text.startswith(SUMMARY_HEAD):
+                rows = parse_summary(text)
                 out.append({"at": c.get("created_at"), "url": c.get("html_url"),
-                            "rows": parse_summary(text)})
+                            "rows": rows, "unreadable": parse_unreadable(text, rows)})
     return out
 
 
@@ -342,7 +371,9 @@ def attach_summaries(run_list: list[dict], posted: list[dict]) -> None:
                                       if isinstance(x.get("documents_appended"), int)),
             "quotes_verified": sum(x.get("quotes_verified") or 0 for x in rows
                                    if isinstance(x.get("quotes_verified"), int)),
-            "rows": rows,
+            # The whole corpus's, once per night - never per model (#610 review).
+            "unreadable_whole_corpus": hit.get("unreadable"),
+            "rows": [{k: v for k, v in x.items() if k != "unreadable_here"} for x in rows],
         }
 
 

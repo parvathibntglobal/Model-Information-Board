@@ -74,6 +74,57 @@ def test_the_summary_carries_e6_and_an_older_one_still_parses():
     assert old_row["e6_rejected"] is None and old_row["e6_unvetted"] is None
 
 
+def test_unreadable_here_is_one_whole_corpus_line_not_a_column():
+    """The first agent night (2026-11-12) showed 1,323 on all six rows of a
+    per-model column, which read as six counts of each agent's threads. It is one
+    corpus-wide count, so it is said once under the table (#610 review)."""
+    from judge import scheduler
+    from judge import scheduler_status as s
+
+    runs = [{"model": "Meta Muse", "status": "ok", "threads_unreadable_here": 1323},
+            {"model": "Grok Bot", "status": "ok", "threads_unreadable_here": 1323},
+            {"model": "Claude Duet", "status": "not run: this job's time budget is spent"}]
+    body = scheduler.summarise_runs([scheduler.safe_record(r) for r in runs])
+    assert "Unreadable here" not in body and "| 1323 |" not in body
+    assert (f"{scheduler.UNREADABLE_LINE} 1,323 (counted at each run's extract step, "
+            "2 of 3 run(s) reported it)") in body
+    rows = s.parse_summary(body)
+    assert [r["model"] for r in rows] == ["Meta Muse", "Grok Bot", "Claude Duet"]
+    assert all("unreadable_here" not in r for r in rows)
+    assert s.parse_unreadable(body, rows) == {"low": 1323, "high": 1323}
+    # the corpus moves during a night: a range, both ends parsed
+    moved = scheduler.summarise_runs([scheduler.safe_record(
+        {"model": m, "status": "ok", "threads_unreadable_here": n})
+        for m, n in (("A", 1310), ("B", 1323))])
+    assert f"{scheduler.UNREADABLE_LINE} 1,310 to 1,323 " in moved
+    assert s.parse_unreadable(moved, s.parse_summary(moved)) == {"low": 1310, "high": 1323}
+    # a reported 0 is said; a field no run reported is no line at all, never 0
+    zero = scheduler.summarise_runs([{"model": "A", "status": "ok", "threads_unreadable_here": 0}])
+    assert f"{scheduler.UNREADABLE_LINE} 0 " in zero
+    silent = scheduler.summarise_runs([{"model": "A", "status": "ok"}])
+    assert scheduler.UNREADABLE_LINE not in silent
+    assert s.parse_unreadable(silent, s.parse_summary(silent)) is None
+
+
+def test_an_older_summary_still_gives_the_whole_corpus_figure_from_its_column():
+    """Summaries posted before 2026-11-12 carried it per row: the same field."""
+    from judge import scheduler_status as s
+
+    rows = s.parse_summary(SUMMARY)
+    assert s.parse_unreadable(SUMMARY, rows) == {"low": 1650, "high": 1650}
+
+
+def test_admin_shows_the_figure_once_and_no_row_carries_it():
+    from judge import scheduler_status as s
+
+    rows = s.parse_summary(SUMMARY)
+    run = {"status": "completed", "started_at": "2026-10-21T20:30:00Z", "minutes": 60}
+    s.attach_summaries([run], [{"at": "2026-10-21T21:00:00Z", "url": "u", "rows": rows,
+                                "unreadable": s.parse_unreadable(SUMMARY, rows)}])
+    assert run["summary"]["unreadable_whole_corpus"] == {"low": 1650, "high": 1650}
+    assert all("unreadable_here" not in r for r in run["summary"]["rows"])
+
+
 def test_the_media_line_counts_media_kinds_only():
     """`decision` keeps the text arms and `agent` has its own run: neither is media
     (#618/#620 review). An image run is."""
