@@ -48,8 +48,8 @@ groups:
       - town/town-com
       - unknown/tomo-ai
       - pally/pally-app
-      - wajo/fo
-      - unknown/szn
+      - wajo/wajo-fo
+      - unknown/theszn-ai
       - unknown/catch-ai
       - unknown/tab-bot
       - unknown/zapia
@@ -64,7 +64,7 @@ groups:
       - merit-systems/openinstinct
       - asaply/asaply
       - unknown/orbits-app
-      - boski/boski
+      - boski/boski-com
       - natura-ai/tinynature
       - brea-ai/brea-ai
       - unknown/hirealpha
