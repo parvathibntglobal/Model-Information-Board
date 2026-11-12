@@ -74,6 +74,75 @@ def test_the_summary_carries_e6_and_an_older_one_still_parses():
     assert old_row["e6_rejected"] is None and old_row["e6_unvetted"] is None
 
 
+def test_unreadable_here_is_one_line_per_scan_window_not_a_column():
+    """2026-11-12, both runners' real shape. In a per-model column the agent night
+    showed 1,323 on all six rows and read as six counts (#610 review). And the
+    model night's 1,323 then 0 was not drift (#628 review): its first run was a
+    first fetch, which scans every unread thread ever stored; the eleven after it
+    were refreshes, which scan only the last 14 days."""
+    from judge import scheduler
+    from judge import scheduler_status as s
+
+    runs = [{"model": "Gemini 4 Carbon", "status": "ok", "first_fetch": True,
+             "threads_unreadable_here": 1323},
+            {"model": "DeepSeek V4 Pro", "status": "ok", "first_fetch": False,
+             "threads_unreadable_here": 0},
+            {"model": "Claude Opus 5", "status": "ok", "first_fetch": False,
+             "threads_unreadable_here": 0},
+            {"model": "Claude Duet", "status": "not run: this job's time budget is spent"}]
+    body = scheduler.summarise_runs([scheduler.safe_record(r) for r in runs])
+    assert "Unreadable here" not in body and "| 1323 |" not in body
+    days = scheduler.policy().extraction_window_days
+    assert (f"{scheduler.UNREADABLE_LINE} first fetches, which scan every unread thread "
+            "ever stored: 1,323 (1 run); refreshes, which scan threads with a post in "
+            f"the last {days} days: 0 (2 runs). These are not any one model's") in body
+    assert "0 to 1,323" not in body  # never one range across two windows
+    rows = s.parse_summary(body)
+    assert [r["model"] for r in rows] == ["Gemini 4 Carbon", "DeepSeek V4 Pro",
+                                          "Claude Opus 5", "Claude Duet"]
+    assert all("unreadable_here" not in r for r in rows)
+    assert s.parse_unreadable(body, rows).startswith(scheduler.UNREADABLE_LINE + " first")
+
+
+def test_a_run_with_no_window_recorded_is_said_so_and_an_unreported_figure_is_no_line():
+    from judge import scheduler
+
+    older = scheduler.summarise_runs([{"model": "A", "status": "ok",
+                                       "threads_unreadable_here": 12}])
+    assert f"{scheduler.UNREADABLE_LINE} window not recorded: 12 (1 run)." in older
+    silent = scheduler.summarise_runs([{"model": "A", "status": "ok"}])
+    assert scheduler.UNREADABLE_LINE not in silent  # never a 0 (rule 6)
+
+
+def test_first_fetch_is_a_safe_field_and_detail_is_still_not():
+    from judge import scheduler
+
+    safe = scheduler.safe_record({"model": "A", "first_fetch": True, "detail": "203.0.113.5"})
+    assert safe == {"model": "A", "first_fetch": True}
+
+
+def test_an_older_summary_gives_its_column_figure_and_says_where_from():
+    """Summaries posted before 2026-11-12 carried it per row, with no window."""
+    from judge import scheduler_status as s
+
+    rows = s.parse_summary(SUMMARY)
+    said = s.parse_unreadable(SUMMARY, rows)
+    assert said.startswith("Unread threads this runner could not open: 1,650, from this "
+                           "older summary's per-model column")
+    assert s.parse_unreadable("no table here", []) is None
+
+
+def test_admin_shows_the_line_once_and_no_row_carries_it():
+    from judge import scheduler_status as s
+
+    rows = s.parse_summary(SUMMARY)
+    run = {"status": "completed", "started_at": "2026-10-21T20:30:00Z", "minutes": 60}
+    s.attach_summaries([run], [{"at": "2026-10-21T21:00:00Z", "url": "u", "rows": rows,
+                                "unreadable": s.parse_unreadable(SUMMARY, rows)}])
+    assert run["summary"]["unreadable"].startswith("Unread threads this runner could not open")
+    assert all("unreadable_here" not in r for r in run["summary"]["rows"])
+
+
 def test_the_media_line_counts_media_kinds_only():
     """`decision` keeps the text arms and `agent` has its own run: neither is media
     (#618/#620 review). An image run is."""
