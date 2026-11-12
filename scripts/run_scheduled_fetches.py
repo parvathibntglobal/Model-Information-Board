@@ -5,8 +5,9 @@
   `SCHEDULER_ENABLED` is set to a truthy value, so turning it on is a person's
   decision, made on the repository variable. It was off while
   `contract/sources.yaml`'s undertaking described a basis that no longer held;
-  #535 re-asserted it on 2026-10-19 and it was switched on 2026-10-21. The
-  undertaking lapses 2026-11-18 unless re-asserted (docs/ops-scheduled-fetches.md).
+  #535 re-asserted it on 2026-10-19 and it was switched on 2026-10-21. It was
+  re-asserted again on 2026-11-12 and has had no expiry since
+  (docs/ops-scheduled-fetches.md).
 
   TWO INDEPENDENT GUARDS, so neither alone is load-bearing:
     - this switch (off), which stops the scheduler running at all;
