@@ -1,0 +1,255 @@
+# The assistants assistantbenchmark.com scores, held as REGISTRY ROWS ONLY
+# (anooj, 2026-11-12).
+#
+#   python scripts/load_unpolled_models.py --apply --path contract/assistantbenchmark_models.yaml
+#
+# WHY A SEPARATE FILE FROM `agent_models.yaml`. That file is the list of agents
+# the nightly agent fetch searches for (`tracked_agents.yaml` must equal it), and
+# every one of its aliases is a `snapshot` (its header, point 1). These rows are
+# neither: they are not fetched nightly, and most carry a compound alias that
+# files at `family` specificity. Putting them there would break both rules on
+# purpose; a file of their own keeps those rules true and makes "registry only"
+# visible in the name.
+#
+# WHAT THEY ARE FOR. One canonical id per assistant, so the board can file any
+# evidence about them that arrives through other searches, and the benchmark
+# section can track the assistantbenchmark results against the same ids. The
+# grouping on the AI assistants page puts all of them under "Works for you".
+#
+# THE SOURCE. assistantbenchmark.com scores 30 assistants (read 2026-11-12).
+# Muse, Grok Bot and Dots are already in `agent_models.yaml`; these are 24 of
+# the other 27 (three held, below). Each row was drafted from the assistant's
+# assistantbenchmark page and its official site (maker = the company in the site
+# footer where the page names none) and reviewed by anooj on 2026-11-12. Row
+# comments name the page, the site and the company only. NO SCORE from the site
+# is stored: it has no published formula, and rule 3 forbids a synthesised
+# number.
+#
+# ⚠ WHAT A REVIEWER SHOULD KNOW
+# 1. MAKER UNKNOWN on 11 rows -> `unknown/<name>` and provider 'unknown'. Not
+#    guessed (rule 6). Rename the id when the maker is confirmed. A page shows no
+#    maker for these, never the word "unknown".
+# 2. AN ID IS AN ALIAS TOO (#624 review). The loader builds alias rows from the
+#    canonical id AND its local part (collect/registry/aliases.py), filed at
+#    `snapshot`. So an ordinary-word name (Town, Tab, Catch, Shuffle, Poke, Caddy,
+#    Orchid, Kicker, Boba, Dazzle, Brea, Tomo, Pally, Orbits, Hark) is never the
+#    local part: the local part is the compound alias the official site or its
+#    domain uses (`town/town-com`, `unknown/tab-bot`, `cognition/poke-com`), so
+#    no bare word reaches the alias table (rule 10). The same goes for short
+#    tokens prose produces by accident: Wajo's "Fo" is `wajo/wajo-fo`, and szn
+#    ("season" in slang) is `unknown/theszn-ai`.
+#    tests/test_assistantbenchmark_registry.py checks every key the loader would
+#    write, including the id-built ones, and refuses any of 3 characters or fewer.
+# 3. THREE ARE HELD, never loaded until each has an alias that is not an
+#    ordinary word or phrase:
+#      Instinct  no source-backed alias (its site writes only the bare word); maker
+#                unknown; relation to OpenInstinct (below) unstated.
+#      Folk      its only alias, "folk app", is also how people name the folk CRM
+#                (folk.app), so it would pull in CRM posts.
+#      Del       its only alias, "withdel", needs the spaced rendering "with del",
+#                an ordinary phrase that matching folds to the same key.
+#
+# NO FIGURES: identity and aliases only, as in `agent_models.yaml`.
+
+version: "1.0"
+provenance: seed
+
+models:
+  # Hark: https://assistantbenchmark.com/agents/hark | site https://hark.com/ | maker: unknown
+  - canonical_id: 'unknown/hark-pro'
+    provider: 'unknown'
+    display_name: 'Hark'
+    aliases:
+      surface: 'hark pro'
+      variants: ['hark-pro', 'harkpro']
+
+  # Town: https://assistantbenchmark.com/agents/town | site https://www.town.com/ | maker: town
+  - canonical_id: 'town/town-com'
+    provider: 'town'
+    display_name: 'Town'
+    aliases:
+      surface: 'town.com'
+      variants: ['town com', 'town-com', 'towncom']
+
+  # Tomo: https://assistantbenchmark.com/agents/tomo | site https://tomo.ai/ | maker: unknown
+  - canonical_id: 'unknown/tomo-ai'
+    provider: 'unknown'
+    display_name: 'Tomo'
+    aliases:
+      surface: 'tomo ai'
+      variants: ['tomo-ai', 'tomoai']
+
+  # Pally: https://assistantbenchmark.com/agents/pally | site https://pally.com/ | maker: pally
+  - canonical_id: 'pally/pally-app'
+    provider: 'pally'
+    display_name: 'Pally'
+    aliases:
+      surface: 'pally app'
+      variants: ['pally-app', 'pallyapp']
+
+  # Wajo Fo: https://assistantbenchmark.com/agents/wajo-fo | site https://wajo.ai/ | maker: wajo
+  - canonical_id: 'wajo/wajo-fo'
+    provider: 'wajo'
+    display_name: 'Wajo Fo'
+    aliases:
+      surface: 'wajo fo'
+      variants: ['wajo-fo', 'wajofo']
+
+  # szn: https://assistantbenchmark.com/agents/szn | site https://theszn.ai/ | maker: unknown
+  - canonical_id: 'unknown/theszn-ai'
+    provider: 'unknown'
+    display_name: 'szn'
+    aliases:
+      surface: 'theszn ai'
+      variants: ['theszn-ai', 'thesznai']
+
+  # Catch: https://assistantbenchmark.com/agents/catch | site https://catchagent.ai/ | maker: unknown
+  - canonical_id: 'unknown/catch-ai'
+    provider: 'unknown'
+    display_name: 'Catch'
+    aliases:
+      surface: 'catch ai'
+      variants: ['catch-ai', 'catchai']
+
+  # Tab: https://assistantbenchmark.com/agents/tab | site https://tab.bot/ | maker: unknown
+  - canonical_id: 'unknown/tab-bot'
+    provider: 'unknown'
+    display_name: 'Tab'
+    aliases:
+      surface: 'tab bot'
+      variants: ['tab-bot', 'tabbot']
+
+  # Zapia: https://assistantbenchmark.com/agents/zapia | site https://zapia.com/ | maker: unknown
+  - canonical_id: 'unknown/zapia'
+    provider: 'unknown'
+    display_name: 'Zapia'
+    aliases:
+      surface: 'zapia'
+      # the loader wants spaced/hyphenated/joined forms; a coined one-word name has
+      # none, so its domain (zapia.com) supplies them, as town.com does above
+      variants: ['zapia com', 'zapia-com', 'zapiacom']
+
+  # Shuffle: https://assistantbenchmark.com/agents/shuffle | site https://textshuffle.com/ | maker: unknown
+  - canonical_id: 'unknown/shuffle-ai'
+    provider: 'unknown'
+    display_name: 'Shuffle'
+    aliases:
+      surface: 'shuffle ai'
+      variants: ['shuffle-ai', 'shuffleai']
+
+  # Dazzle: https://assistantbenchmark.com/agents/dazzle | site https://dazzle.ai/ | maker: dazzle
+  - canonical_id: 'dazzle/dazzle-ai'
+    provider: 'dazzle'
+    display_name: 'Dazzle'
+    aliases:
+      surface: 'dazzle ai'
+      variants: ['dazzle-ai', 'dazzleai']
+
+  # Kicker: https://assistantbenchmark.com/agents/kicker | site https://kickerai.xyz/ | maker: companion-intelligence
+  - canonical_id: 'companion-intelligence/kicker-ai'
+    provider: 'companion-intelligence'
+    display_name: 'Kicker'
+    aliases:
+      surface: 'kicker ai'
+      variants: ['kicker-ai', 'kickerai']
+
+  # Orchid: https://assistantbenchmark.com/agents/orchid | site https://orchid.ai/ | maker: orchid
+  - canonical_id: 'orchid/orchid-ai'
+    provider: 'orchid'
+    display_name: 'Orchid'
+    aliases:
+      surface: 'orchid ai'
+      variants: ['orchid-ai', 'orchidai']
+
+  # Caddy: https://assistantbenchmark.com/agents/caddy | site https://caddy.app/ | maker: unknown
+  - canonical_id: 'unknown/caddy-app'
+    provider: 'unknown'
+    display_name: 'Caddy'
+    aliases:
+      surface: 'caddy app'
+      variants: ['caddy-app', 'caddyapp']
+
+  # Boba: https://assistantbenchmark.com/agents/boba | site https://boba.app/ | maker: humansand
+  - canonical_id: 'humansand/boba-app'
+    provider: 'humansand'
+    display_name: 'Boba'
+    aliases:
+      surface: 'boba app'
+      variants: ['boba-app', 'bobaapp']
+
+  # Poke: https://assistantbenchmark.com/agents/poke | site https://poke.com/ | maker: cognition
+  - canonical_id: 'cognition/poke-com'
+    provider: 'cognition'
+    display_name: 'Poke'
+    aliases:
+      surface: 'poke.com'
+      variants: ['poke com', 'poke-com', 'pokecom']
+
+  # Asmi: https://assistantbenchmark.com/agents/asmi | site https://asmiai.com/ | maker: unknown
+  - canonical_id: 'unknown/asmi'
+    provider: 'unknown'
+    display_name: 'Asmi'
+    aliases:
+      surface: 'asmi ai'
+      variants: ['asmi-ai', 'asmiai']
+
+  # OpenInstinct: https://assistantbenchmark.com/agents/openinstinct | site https://openinstinct.sh/ | maker: merit-systems
+  - canonical_id: 'merit-systems/openinstinct'
+    provider: 'merit-systems'
+    display_name: 'OpenInstinct'
+    aliases:
+      surface: 'openinstinct'
+      variants: ['open instinct', 'open-instinct']
+
+  # Asaply: https://assistantbenchmark.com/agents/asaply | site https://asaply.ai/ | maker: asaply
+  - canonical_id: 'asaply/asaply'
+    provider: 'asaply'
+    display_name: 'Asaply'
+    aliases:
+      surface: 'asaply'
+      # spaced/hyphenated/joined forms from its domain (asaply.ai): see Zapia
+      variants: ['asaply ai', 'asaply-ai', 'asaplyai']
+
+  # Orbits: https://assistantbenchmark.com/agents/orbits | site https://tryorbits.com/ | maker: unknown
+  - canonical_id: 'unknown/orbits-app'
+    provider: 'unknown'
+    display_name: 'Orbits'
+    aliases:
+      surface: 'orbits app'
+      variants: ['orbits-app', 'orbitsapp']
+
+  # Boski: https://assistantbenchmark.com/agents/boski | site https://boski.com/ | maker: boski
+  # NO BARE ALIAS (#624 review): "boski" is an everyday Polish word ("divine",
+  # "great"), and attribution reads every mention, searched or not. Same shape as
+  # Town and Poke: the domain form, with the id's local part following it.
+  - canonical_id: 'boski/boski-com'
+    provider: 'boski'
+    display_name: 'Boski'
+    aliases:
+      surface: 'boski.com'
+      variants: ['boski com', 'boski-com', 'boskicom']
+
+  # tinyNature: https://assistantbenchmark.com/agents/tinynature | site https://tinypeople.ai/ | maker: natura-ai
+  - canonical_id: 'natura-ai/tinynature'
+    provider: 'natura-ai'
+    display_name: 'tinyNature'
+    aliases:
+      surface: 'tinynature'
+      variants: ['tiny nature', 'tiny-nature']
+
+  # Brea: https://assistantbenchmark.com/agents/brea | site https://brea.ai/ | maker: brea-ai
+  - canonical_id: 'brea-ai/brea-ai'
+    provider: 'brea-ai'
+    display_name: 'Brea'
+    aliases:
+      surface: 'brea ai'
+      variants: ['brea-ai', 'breaai']
+
+  # HireAlpha: https://assistantbenchmark.com/agents/hirealpha | site https://hirealpha.chat/ | maker: unknown
+  - canonical_id: 'unknown/hirealpha'
+    provider: 'unknown'
+    display_name: 'HireAlpha'
+    aliases:
+      surface: 'hirealpha'
+      variants: ['hire alpha', 'hire-alpha']
+
