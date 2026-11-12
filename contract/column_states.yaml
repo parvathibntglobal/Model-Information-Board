@@ -637,7 +637,7 @@ columns:
         model_version_id means the attribution was inferred from the document
         rather than read from the quote. Intended reader is the same page.
     speaking:
-      known_gap: no page reads it yet; the intended reader is a count of first-hand reports beside each job and capability on the evidence pages, not built
+      known_gap: no page reads it yet; the intended reader is a count of first-hand reports beside each job and capability, not built, shown on the signed-in board first and on no public page until the extractor's accuracy on this field is measured (#626 review)
       reviewed: true
       state: write_only
       why: >-
