@@ -219,12 +219,14 @@ models:
       variants: ['orbits-app', 'orbitsapp']
 
   # Boski: https://assistantbenchmark.com/agents/boski | site https://boski.com/ | maker: boski
-  - canonical_id: 'boski/boski'
+  # NO BARE ALIAS (#624 review): "boski" is an everyday Polish word ("divine",
+  # "great"), and attribution reads every mention, searched or not. Same shape as
+  # Town and Poke: the domain form, with the id's local part following it.
+  - canonical_id: 'boski/boski-com'
     provider: 'boski'
     display_name: 'Boski'
     aliases:
-      surface: 'boski'
-      # spaced/hyphenated/joined forms from its domain (boski.com): see Zapia
+      surface: 'boski.com'
       variants: ['boski com', 'boski-com', 'boskicom']
 
   # tinyNature: https://assistantbenchmark.com/agents/tinynature | site https://tinypeople.ai/ | maker: natura-ai

@@ -18,7 +18,9 @@ AGENTS = ROOT / "contract" / "agent_models.yaml"
 
 #: The ordinary-word names in the file (rule 10): none may be an alias on its own.
 ORDINARY = {"hark", "town", "tomo", "pally", "catch", "tab", "shuffle", "dazzle", "kicker",
-            "orchid", "caddy", "boba", "poke", "del", "orbits", "folk", "brea", "instinct"}
+            "orchid", "caddy", "boba", "poke", "del", "orbits", "folk", "brea", "instinct",
+            # not English, still a word: Polish "divine", "great" (#624 review)
+            "boski"}
 
 
 #: Ordinary PHRASES that matching folds to one key with a name (#624 review): held.
