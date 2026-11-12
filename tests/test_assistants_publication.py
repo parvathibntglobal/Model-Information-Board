@@ -50,6 +50,20 @@ def test_each_source_is_treated_by_the_block(source, how):
     assert assistants._treatment(source) == how
 
 
+def test_the_fetch_groups_and_the_page_groups_agree_on_every_tracked_agent():
+    """#627 review: the agent fetch's `group` (tracked_agents.yaml) and the page's
+    grouping (assistant_groups.yaml) are two files; whichever merged second adds
+    this. Every tracked agent sits in the page group of the same key, and the
+    fetch's turn order names exactly the page's groups."""
+    from judge import config
+
+    page = config.assistant_groups()["groups"]
+    page_group = {m: g["key"] for g in page for m in g["members"]}
+    for agent in config.tracked_agents():
+        assert page_group.get(agent.registry) == agent.group, agent.registry
+    assert set(config.agent_run_rule().group_turns) == {g["key"] for g in page}
+
+
 @pytest.mark.parametrize("page, says", [
     (None, "no `assistants_page` block"),
     ({"quote_form": "paraphrase_only", "embed_only": [], "held": []}, "needs code"),
