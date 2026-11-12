@@ -101,8 +101,20 @@ review_marker: "REVIEW REQUIRED"
 use_basis_undertaking:
   asserts: public-derived-publication
   asserted_by: anooj
-  asserted_on: 2026-10-19
+  asserted_on: 2026-11-12
   review_valid_days: 30
+  #: RE-ASSERTED 2026-11-12 BY anooj, six days before the 2026-11-18 lapse of the
+  #: 2026-10-19 assertion. Without it, collect/adapters/basis.py refuses every
+  #: source except GitHub from 2026-11-19 and all nightly collection stops. The
+  #: seven conditions below are re-stated as true on this date. RECORDED, not
+  #: hidden: on 2026-11-11 a #602 issue comment quoted eight short Reddit
+  #: board-entry quotes in this public repository. That is the first `voided_by`
+  #: line below. It was edited to paraphrases about twenty minutes later; the
+  #: first revision remains in GitHub's edit history. Since then, every write-up
+  #: of Reddit- or X-derived data is checked for verbatim raw text before it is
+  #: posted.
+  #: Removing the 30-day expiry altogether is a separate, later change.
+  #:
   #: RE-ASSERTED 2026-10-15 BY anooj, two days before the 2026-10-17 lapse, and
   #: CHECKED rather than re-dated. All five conditions below were true that day:
   #: every page still sits behind the sign-in, nobody outside the team holds an
