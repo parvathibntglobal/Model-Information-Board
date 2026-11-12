@@ -78,6 +78,13 @@ backend that serves it, not for the Action - check the repository variables.
   on a yield guess: a model a schedule stopped fetching reads exactly like one
   nobody discusses (rule 4). Yield-ordering within a night is a later refinement
   and waits for the end-record fields (#489) to accumulate.
+- **the agent run only (`--list agents`): the groups take turns.** One due agent
+  from each group in `run.group_turns` (`contract/tracked_agents.yaml`) per
+  round, keeping the order above inside each group, before `--max-models`, the
+  deadline and the run ceiling cut the list. So a night that runs out of time
+  still reaches every group with something due. Where the order above ties
+  (every first fetch ties), file order used to decide alone: on the first agent
+  night, 2026-11-12, no coding agent ran.
 
 The cadence (60 hours; 7 days until 2026-10-21) and the two caps (100, 25) live in `contract/scheduler.yaml`
 since 2026-10-05; there is no default in code, so a missing value refuses.
