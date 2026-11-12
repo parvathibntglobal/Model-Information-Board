@@ -211,7 +211,6 @@ def _undertaking(monkeypatch, **overrides):
         "asserts": CURRENT,
         "asserted_by": "tester",
         "asserted_on": date.today(),
-        "review_valid_days": 30,
         # FROM THE CONTRACT, not a copy of it: the closed set changes when the
         # basis does (2026-10-19), and a copy here is what broke with it.
         "required_conditions": dict(_real_contract().use_basis_undertaking["required_conditions"]),
@@ -269,15 +268,29 @@ def test_an_absent_undertaking_refuses_rather_than_permits(monkeypatch):
     assert "no-undertaking" in basis
 
 
-def test_an_expired_undertaking_is_not_a_basis(monkeypatch):
-    """An undertaking with no expiry is a thing nobody revisits."""
+def test_an_old_assertion_is_still_a_basis(monkeypatch):
+    """NO EXPIRY SINCE 2026-11-12 (anooj). It used to lapse after 30 days and a
+    lapse stopped every source but GitHub; terms findings inform and never block,
+    so the age of the assertion no longer decides anything. A failed condition
+    still voids it (test_conditions_beat_the_asserts_line)."""
     _undertaking(monkeypatch, asserted_on=date.today() - timedelta(days=400))
-    basis = observe_reddit_use()["use_basis"]
-    assert basis != CURRENT
-    assert "expired" in basis
-    # NAMED, not merely different. The gate quotes the observed value, so the
-    # refusal has to say WHICH check failed.
-    assert str(date.today() - timedelta(days=400)) in basis
+    assert observe_reddit_use()["use_basis"] == CURRENT
+
+
+def test_a_malformed_assertion_date_still_fails_loudly(monkeypatch):
+    """The date is no longer a timer but it is still required and must parse:
+    a garbled date passing as "signed" is a fallback that succeeds on a wrong
+    input (rule 12)."""
+    _undertaking(monkeypatch, asserted_on="sometime last month")
+    with pytest.raises(ValueError):
+        observe_reddit_use()
+
+
+def test_the_contract_carries_no_undertaking_timer():
+    """A `review_valid_days` key under the undertaking would read as a lapse that
+    no longer exists. It fails CI here rather than being refused at run time,
+    where it would stop collection - the block this change removed."""
+    assert "review_valid_days" not in _real_contract().use_basis_undertaking
 
 
 def test_conditions_beat_the_asserts_line(monkeypatch):

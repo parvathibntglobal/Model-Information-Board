@@ -197,7 +197,8 @@ The board is **internal-development-only** today, enforced through a versioned
 - Asserted conditions: authenticated behind a wall, no external users, not publicly
   linked, not monetized, nothing derived-from-corpus published outside the team.
 - Any one of those changing **voids** the basis and refuses harvest — the guard is
-  fail-closed. The undertaking carries an expiry that forces periodic re-review.
+  fail-closed. Since 2026-11-12 the undertaking has no expiry: a condition failing
+  ends it, not a calendar (terms findings inform and never block).
 
 Harvest is polite by construction: official APIs and public feeds only,
 `robots.txt` respected, per-source terms rulings, identifying User-Agent, and paid

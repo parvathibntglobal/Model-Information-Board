@@ -40,7 +40,7 @@ condition.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 
 #: The basis all three rulings name, spelled as `contract/sources.yaml` spells
 #: it. A precondition compares by value, so a paraphrase here refuses the
@@ -75,17 +75,25 @@ PRODUCTION = "production"
 def _undertaking_basis() -> str:
     """The asserted basis, or a NAMED refusal value saying which check failed.
 
-    Four ways to have no basis, and they are told apart because the gate's error
+    Three ways to have no basis, and they are told apart because the gate's error
     is the only thing anybody reads when a harvest refuses:
 
         no undertaking block          nobody has written one
         `asserted_by` empty           written but not signed - the state this
                                       ships in, so a proposal cannot be mistaken
                                       for an assertion
-        expired                       `asserted_on` + `review_valid_days` passed
         self-contradicting            `asserts: internal-development-only` with
                                       `external_users: true`, say - the `asserts`
                                       line must not win over the conditions
+
+    NO EXPIRY SINCE 2026-11-12 (anooj). The undertaking used to lapse
+    `review_valid_days` (30) after `asserted_on`, and a lapse stopped every
+    source but GitHub. The team's standing decision is that terms findings
+    inform and never block, and a timer that halts all collection is a block.
+    So the date is still REQUIRED and must parse (an unsigned or malformed block
+    still refuses, loudly), but its age no longer decides anything. What voids
+    the undertaking now is a condition failing (`voided_by` in the contract),
+    which a person checks, not a calendar.
     """
     from collect.registry.sources import load_sources
 
@@ -96,10 +104,13 @@ def _undertaking_basis() -> str:
     if not who or not when:
         return "undertaking-unsigned (asserted_by/asserted_on are empty)"
 
-    asserted_on = when if isinstance(when, date) else date.fromisoformat(str(when))
-    expires = asserted_on + timedelta(days=int(block.get("review_valid_days", 30)))
-    if expires < date.today():
-        return f"undertaking-expired (asserted {asserted_on}, expired {expires})"
+    # The date must still be a date: a malformed one raises here rather than
+    # passing as "signed" (rule 12: a fallback that succeeds on a wrong input).
+    if not isinstance(when, date):
+        date.fromisoformat(str(when))
+    # A leftover `review_valid_days` key is NOT refused here: that would turn a
+    # stale line into the very collection stop this change removes. It fails CI
+    # instead (tests/test_reddit_terms_gate.py, the contract carries no timer).
 
     # SELF-CONSISTENCY, AS A CLOSED CONTRACT RATHER THAN A WHITELIST.
     #

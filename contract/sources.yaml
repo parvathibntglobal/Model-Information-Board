@@ -88,9 +88,12 @@ review_marker: "REVIEW REQUIRED"
 #
 #  A PERSON'S STATEMENT, AS BEFORE. Each condition is something a person checks
 #  by looking; no process can. The checker (collect/adapters/basis.py) still
-#  refuses an absent, expired, unsigned or self-contradicting block, and every
-#  ruling below accepts only this basis - so a lapse stops all eight together,
-#  never one quietly.
+#  refuses an absent, unsigned or self-contradicting block, and every ruling
+#  below accepts only this basis - so a void undertaking stops all eight
+#  together, never one quietly. It has NO EXPIRY since 2026-11-12 (anooj):
+#  terms findings inform and never block, and a calendar lapse that halts all
+#  collection is a block. A `voided_by` condition, checked by a person, is what
+#  ends it.
 #
 #  WHAT THIS DOES NOT DO. It reads no terms document that was unread before;
 #  each ruling still records what was and was not read. Terms findings inform
@@ -101,8 +104,24 @@ review_marker: "REVIEW REQUIRED"
 use_basis_undertaking:
   asserts: public-derived-publication
   asserted_by: anooj
-  asserted_on: 2026-10-19
-  review_valid_days: 30
+  asserted_on: 2026-11-12
+  #: NO `review_valid_days` SINCE 2026-11-12 (anooj): the 30-day lapse is gone.
+  #: `asserted_on` stays, required, as the date of the latest assertion.
+  #: RE-ASSERTED 2026-11-12 BY anooj, six days before the 2026-11-18 lapse of the
+  #: 2026-10-19 assertion. Without it, collect/adapters/basis.py refuses every
+  #: source except GitHub from 2026-11-19 and all nightly collection stops. The
+  #: seven conditions below are re-stated as true on this date. RECORDED, not
+  #: hidden: on 2026-11-11 a #602 issue comment quoted eight short Reddit
+  #: board-entry quotes in this public repository. That is the first `voided_by`
+  #: line below. It was posted at 06:24Z and edited to paraphrases at 06:32Z,
+  #: eight minutes later. Its first revision was DELETED from the comment's edit
+  #: history on 2026-11-12 at 09:47:58Z by anoojntglobal-sudo (checked through the
+  #: GitHub API: the revision carries a deletedAt and no longer holds the text), so
+  #: from then the Reddit text is not reachable outside an official embed and the
+  #: condition holds (#623 review). Since then, every write-up
+  #: of Reddit- or X-derived data is checked for verbatim raw text before it is
+  #: posted.
+  #:
   #: RE-ASSERTED 2026-10-15 BY anooj, two days before the 2026-10-17 lapse, and
   #: CHECKED rather than re-dated. All five conditions below were true that day:
   #: every page still sits behind the sign-in, nobody outside the team holds an
