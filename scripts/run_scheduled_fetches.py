@@ -5,8 +5,9 @@
   `SCHEDULER_ENABLED` is set to a truthy value, so turning it on is a person's
   decision, made on the repository variable. It was off while
   `contract/sources.yaml`'s undertaking described a basis that no longer held;
-  #535 re-asserted it on 2026-10-19 and it was switched on 2026-10-21. The
-  undertaking lapses 2026-11-18 unless re-asserted (docs/ops-scheduled-fetches.md).
+  #535 re-asserted it on 2026-10-19 and it was switched on 2026-10-21. It was
+  re-asserted again on 2026-11-12 and has had no expiry since
+  (docs/ops-scheduled-fetches.md).
 
   TWO INDEPENDENT GUARDS, so neither alone is load-bearing:
     - this switch (off), which stops the scheduler running at all;
@@ -142,6 +143,8 @@ def due_rows(conn, which: str = "models") -> list[dict]:
             "tracked": True,
             "in_window": bool(in_window),
             "last_success": last.get(mv_id),
+            # The agent run's turn-taking reads it; a model has none.
+            **({"group": m.group} if which == "agents" else {}),
         })
     return rows
 
@@ -307,12 +310,20 @@ def main(argv: list[str] | None = None) -> int:
     missing = [r for r in rows if r.get("registry_row_missing")]
     rows = [r for r in rows if not r.get("registry_row_missing")]
     due = scheduler.rank_due(rows, datetime.now(UTC))
+    group_of = {}
+    if args.list == "agents":
+        # THE GROUPS TAKE TURNS (tracked_agents.yaml `run.group_turns`), so the
+        # deadline, the ceiling or --max-models cannot fall on one group alone.
+        # Before `--max-models`, which then keeps a share of every group.
+        group_of = {r["model_version_id"]: r["group"] for r in rows}
+        due = scheduler.take_turns(due, group_of, rule.group_turns)
     if args.max_models is not None:
         due = due[: args.max_models]
 
     print(f"due: {len(due)} model(s)")
     for d in due:
-        print(f"  {d.display_name}  [{d.reason}, cap {d.thread_cap}]")
+        group = f", {group_of[d.model_version_id]}" if group_of else ""
+        print(f"  {d.display_name}  [{d.reason}, cap {d.thread_cap}{group}]")
     for m in missing:
         print(f"  not due: {m['display_name']} is tracked as {m['registry']}, "
               "and no registry row has that id")

@@ -30,7 +30,7 @@ import pytest  # noqa: E402
 
 @pytest.fixture
 def signed_undertaking(monkeypatch):
-    """A signed, unexpired, self-consistent undertaking for this test."""
+    """A signed, self-consistent undertaking for this test (no expiry since 2026-11-12)."""
     import dataclasses
     from datetime import date
 
@@ -50,7 +50,6 @@ def signed_undertaking(monkeypatch):
         "asserts": contract["asserts"],
         "asserted_by": "tester",
         "asserted_on": date.today(),
-        "review_valid_days": 30,
         "required_conditions": dict(contract["required_conditions"]),
         "conditions": dict(contract["required_conditions"]),
     }

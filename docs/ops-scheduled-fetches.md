@@ -13,18 +13,20 @@ basis that was no longer true. The go-public contract (#535, approved
 so the reason no longer holds and the scheduler was switched back on
 2026-10-21, at a 60-hour cadence (below).
 
-⚠ **THE UNDERTAKING LAPSES 30 DAYS AFTER IT WAS ASSERTED: 2026-11-18.**
-`review_valid_days: 30` from `asserted_on: 2026-10-19`. If nobody re-asserts it
-by then, every non-GitHub arm skips itself with its reason and the nightly run
-quietly becomes GitHub-only. The summary on the scheduler issue shows it -
+**THE UNDERTAKING NO LONGER LAPSES (2026-11-12, anooj).** Until then it expired
+30 days after `asserted_on` (`review_valid_days: 30`), and a lapse turned every
+non-GitHub arm off, so the nightly run quietly became GitHub-only. It was
+re-asserted on 2026-11-12, six days before its 2026-11-18 lapse, and the timer
+was removed: terms findings inform and never block. What still voids it is a
+`voided_by` condition in `contract/sources.yaml`, which a person checks. When
+that happens the summary on the scheduler issue shows it -
 `harvest_arms_errored` per model - but nothing else will.
 
 Two independent guards, so neither alone is load-bearing:
 
 - **`SCHEDULER_ENABLED`** (this runner) — unset means nothing runs at all.
-- **the terms gate** (inside `fetch_model`) — once the undertaking is void or
-  lapsed, every non-GitHub arm skips itself with its reason, whatever the switch
-  says.
+- **the terms gate** (inside `fetch_model`) — once the undertaking is void,
+  every non-GitHub arm skips itself with its reason, whatever the switch says.
 
 ## Where it runs: a GitHub Action (since 2026-10-06)
 
@@ -76,6 +78,13 @@ backend that serves it, not for the Action - check the repository variables.
   on a yield guess: a model a schedule stopped fetching reads exactly like one
   nobody discusses (rule 4). Yield-ordering within a night is a later refinement
   and waits for the end-record fields (#489) to accumulate.
+- **the agent run only (`--list agents`): the groups take turns.** One due agent
+  from each group in `run.group_turns` (`contract/tracked_agents.yaml`) per
+  round, keeping the order above inside each group, before `--max-models`, the
+  deadline and the run ceiling cut the list. So a night that runs out of time
+  still reaches every group with something due. Where the order above ties
+  (every first fetch ties), file order used to decide alone: on the first agent
+  night, 2026-11-12, no coding agent ran.
 
 The cadence (60 hours; 7 days until 2026-10-21) and the two caps (100, 25) live in `contract/scheduler.yaml`
 since 2026-10-05; there is no default in code, so a missing value refuses.
