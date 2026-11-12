@@ -702,6 +702,8 @@ class TrackedAgent:
     #: The agent's own subreddits, lower-cased: a post there counts as naming it
     #: for the comment-reading check. Empty means none known.
     subreddits: frozenset[str]
+    #: Which of `run.group_turns` it takes its turn in.
+    group: str
     kind: str = "agent"
 
 
@@ -709,6 +711,8 @@ class TrackedAgent:
 class AgentRunRule:
     enabled: bool
     run_spend_ceiling_usd: float
+    #: The order the groups take turns in, one due agent each per round.
+    group_turns: tuple[str, ...]
 
 
 @lru_cache(maxsize=1)
@@ -731,21 +735,40 @@ def agent_run_rule() -> AgentRunRule:
     if isinstance(ceiling, bool) or not isinstance(ceiling, (int, float)) or ceiling <= 0:
         raise AgentConfigError(
             f"`run.run_spend_ceiling_usd` must be a positive number, not {ceiling!r}")
-    return AgentRunRule(enabled=enabled, run_spend_ceiling_usd=float(ceiling))
+    turns = run.get("group_turns")
+    if (not isinstance(turns, list) or not turns
+            or not all(isinstance(g, str) and g.strip() for g in turns)):
+        raise AgentConfigError(
+            f"`run.group_turns` must be a non-empty list of group names, not {turns!r}")
+    turns = [g.strip() for g in turns]
+    if len(set(turns)) != len(turns):
+        raise AgentConfigError(f"`run.group_turns` names a group twice: {turns!r}")
+    return AgentRunRule(enabled=enabled, run_spend_ceiling_usd=float(ceiling),
+                        group_turns=tuple(turns))
 
 
 @lru_cache(maxsize=1)
 def tracked_agents() -> tuple[TrackedAgent, ...]:
-    """The agents the agent fetch searches for, in the file's order."""
+    """The agents the agent fetch searches for, in the file's order.
+
+    Each names its `group`, which must be one of `run.group_turns`; a group
+    there with no agent is refused too, so a renamed group cannot leave a stale
+    name taking empty turns.
+    """
     agents = _agents_raw().get("agents")
     if not isinstance(agents, list) or not agents:
         raise AgentConfigError("contract/tracked_agents.yaml `agents` must be a non-empty list")
+    turns = agent_run_rule().group_turns
     out, seen = [], set()
     for i, e in enumerate(agents):
         where = f"agents[{i}]"
-        for key in ("name", "registry", "search_terms", "subreddits"):
+        for key in ("name", "registry", "search_terms", "subreddits", "group"):
             if key not in e:
-                raise AgentConfigError(f"{where}: `{key}` is required ([] for none)")
+                none = " ([] for none)" if key in ("search_terms", "subreddits") else ""
+                raise AgentConfigError(f"{where}: `{key}` is required{none}")
+        if e["group"] not in turns:
+            raise AgentConfigError(
+                f"{where}: `group` {e['group']!r} is not one of `run.group_turns` {list(turns)}")
         if not isinstance(e["name"], str) or not e["name"].strip():
             raise AgentConfigError(f"{where}: `name` must be a non-empty string")
         if not isinstance(e["registry"], str) or "/" not in e["registry"]:
@@ -763,7 +786,11 @@ def tracked_agents() -> tuple[TrackedAgent, ...]:
             name=e["name"].strip(), registry=e["registry"],
             search_terms=tuple(t.strip().lower() for t in e["search_terms"]),
             subreddits=frozenset(s.strip().lower() for s in e["subreddits"]),
+            group=e["group"],
         ))
+    empty = [g for g in turns if g not in {a.group for a in out}]
+    if empty:
+        raise AgentConfigError(f"`run.group_turns` names group(s) no agent is in: {empty}")
     return tuple(out)
 
 

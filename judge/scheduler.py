@@ -131,6 +131,31 @@ def rank_due(
     return due
 
 
+def take_turns(due: list[DueModel], group_of: dict[str, str],
+               turns: tuple[str, ...]) -> list[DueModel]:
+    """`due` reordered so the groups take turns: one from each, in `turns` order.
+
+    Within a group, `due`'s own order is kept, so it is still first fetches and
+    then the longest-stale. A group with nothing due is passed over, never waited
+    on. Nothing is added or dropped: the result is a permutation of `due`.
+
+    ⚠ AN AGENT WITH NO GROUP RAISES (rule 12). Dropping it would stop its fetch
+      in silence, and putting it last would give it a turn nobody chose.
+    """
+    queues: dict[str, list[DueModel]] = {g: [] for g in turns}
+    for d in due:
+        g = group_of.get(d.model_version_id)
+        if g not in queues:
+            raise ValueError(f"{d.display_name} has group {g!r}, not one of {list(turns)}")
+        queues[g].append(d)
+    out: list[DueModel] = []
+    while any(queues.values()):
+        for g in turns:
+            if queues[g]:
+                out.append(queues[g].pop(0))
+    return out
+
+
 #: End-record fields that carry NO host, quote or author - safe for a public
 #: issue. `detail` is deliberately NOT here: a write-guard refusal's detail names
 #: the database host, so the summary is built from structured fields only.

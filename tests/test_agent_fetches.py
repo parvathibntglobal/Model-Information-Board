@@ -72,10 +72,16 @@ def _with_raw(monkeypatch, raw):
     monkeypatch.setattr(config, "_read", lambda name: raw if name == "tracked_agents.yaml" else {})
 
 
+_RUN = {"enabled": True, "run_spend_ceiling_usd": 1, "group_turns": ["g"]}
+
+
 @pytest.mark.parametrize("broken, says", [
-    ({"run": {"enabled": True}}, "run_spend_ceiling_usd"),
-    ({"run": {"enabled": "yes", "run_spend_ceiling_usd": 1}}, "run.enabled"),
-    ({"run": {"enabled": True, "run_spend_ceiling_usd": 0}}, "positive number"),
+    ({"run": {"enabled": True, "group_turns": ["g"]}}, "run_spend_ceiling_usd"),
+    ({"run": {**_RUN, "enabled": "yes"}}, "run.enabled"),
+    ({"run": {**_RUN, "run_spend_ceiling_usd": 0}}, "positive number"),
+    ({"run": {"enabled": True, "run_spend_ceiling_usd": 1}}, "group_turns"),
+    ({"run": {**_RUN, "group_turns": []}}, "group_turns"),
+    ({"run": {**_RUN, "group_turns": ["g", "g"]}}, "twice"),
 ])
 def test_a_missing_or_wrong_run_setting_is_refused(monkeypatch, broken, says):
     _with_raw(monkeypatch, broken)
@@ -84,21 +90,77 @@ def test_a_missing_or_wrong_run_setting_is_refused(monkeypatch, broken, says):
 
 
 @pytest.mark.parametrize("agent, says", [
-    ({"name": "X", "registry": "a/x", "search_terms": []}, "subreddits"),
-    ({"name": "X", "registry": "nope", "search_terms": [], "subreddits": []}, "canonical id"),
-    ({"name": "X", "registry": "a/x", "search_terms": [""], "subreddits": []}, "non-empty strings"),
+    ({"name": "X", "registry": "a/x", "search_terms": [], "group": "g"}, "subreddits"),
+    ({"name": "X", "registry": "nope", "search_terms": [], "subreddits": [], "group": "g"},
+     "canonical id"),
+    ({"name": "X", "registry": "a/x", "search_terms": [""], "subreddits": [], "group": "g"},
+     "non-empty strings"),
+    ({"name": "X", "registry": "a/x", "search_terms": [], "subreddits": []}, "`group` is required"),
+    ({"name": "X", "registry": "a/x", "search_terms": [], "subreddits": [], "group": "h"},
+     "not one of"),
 ])
 def test_a_malformed_agent_is_refused_not_defaulted(monkeypatch, agent, says):
-    _with_raw(monkeypatch, {"agents": [agent]})
+    _with_raw(monkeypatch, {"run": _RUN, "agents": [agent]})
     with pytest.raises(config.AgentConfigError, match=says):
         config.tracked_agents()
 
 
 def test_an_agent_listed_twice_is_refused(monkeypatch):
-    a = {"name": "X", "registry": "a/x", "search_terms": [], "subreddits": []}
-    _with_raw(monkeypatch, {"agents": [a, dict(a)]})
+    a = {"name": "X", "registry": "a/x", "search_terms": [], "subreddits": [], "group": "g"}
+    _with_raw(monkeypatch, {"run": _RUN, "agents": [a, dict(a)]})
     with pytest.raises(config.AgentConfigError, match="listed twice"):
         config.tracked_agents()
+
+
+def test_a_group_with_no_agent_is_refused(monkeypatch):
+    """A renamed group must not leave its old name taking empty turns."""
+    a = {"name": "X", "registry": "a/x", "search_terms": [], "subreddits": [], "group": "g"}
+    _with_raw(monkeypatch, {"run": {**_RUN, "group_turns": ["g", "old"]}, "agents": [a]})
+    with pytest.raises(config.AgentConfigError, match="no agent is in"):
+        config.tracked_agents()
+
+
+def test_the_real_list_puts_every_agent_in_one_of_the_three_groups():
+    """anooj's three archetypes (2026-11-12), the same keys as the page's grouping."""
+    assert config.agent_run_rule().group_turns == ("works-for-you", "workspaces",
+                                                   "coding-builders")
+    by = {a.registry: a.group for a in config.tracked_agents()}
+    assert by["anthropic/claude-cowork"] == by["openai/chatgpt-work"] == "workspaces"
+    assert {r for r, g in by.items() if g == "coding-builders"} == {
+        "anthropic/claude-code", "openai/openai-codex", "google/gemini-cli",
+        "github/github-copilot", "google/google-antigravity"}
+
+
+# ── the groups take turns ────────────────────────────────────────────────────
+
+def _due(*ids_and_last):
+    now = datetime(2026, 11, 12, 15, tzinfo=UTC)
+    rows = [{"model_version_id": i, "display_name": i.upper(), "tracked": True,
+             "in_window": True, "last_success": last} for i, last in ids_and_last]
+    return scheduler.rank_due(rows, now)
+
+
+def test_the_groups_take_turns_and_each_keeps_its_own_order():
+    old, older = datetime(2026, 11, 8, tzinfo=UTC), datetime(2026, 11, 5, tzinfo=UTC)
+    due = _due(("w1", None), ("w2", None), ("w3", older), ("c1", None), ("c2", old),
+               ("c3", older), ("s1", old))
+    group = {"w1": "w", "w2": "w", "w3": "w", "c1": "c", "c2": "c", "c3": "c", "s1": "s"}
+    out = scheduler.take_turns(due, group, ("w", "s", "c"))
+    # rank_due: first fetches, then the longest-stale - kept inside each group
+    assert [d.model_version_id for d in out] == ["w1", "s1", "c1", "w2", "c3", "w3", "c2"]
+    assert sorted(out, key=id) == sorted(due, key=id)  # a permutation: none added or dropped
+
+
+def test_a_group_with_nothing_due_is_passed_over():
+    due = _due(("c1", None), ("c2", None))
+    assert [d.model_version_id for d in
+            scheduler.take_turns(due, {"c1": "c", "c2": "c"}, ("w", "s", "c"))] == ["c1", "c2"]
+    assert scheduler.take_turns([], {}, ("w",)) == []
+
+
+def test_a_due_agent_with_no_group_raises_rather_than_dropping():
+    with pytest.raises(ValueError, match="C1 has group None"):
+        scheduler.take_turns(_due(("c1", None)), {}, ("w", "c"))
 
 
 # ── the fetch ────────────────────────────────────────────────────────────────
@@ -165,7 +227,8 @@ def test_the_workflow_runs_agents_on_their_own_schedule_and_issue():
 
 # ── the ceiling holds inside a fetch (#618 review follow-up) ─────────────────
 
-def _night(monkeypatch, *, which_rows, spent=0.30, cap="2.00", ceiling=0.40):
+def _night(monkeypatch, *, which_rows, spent=0.30, cap="2.00", ceiling=0.40,
+           groups=("g", "g", "g"), turns=("g",)):
     """A batch of three with a fake ledger at `spent`; returns each launch's kwargs."""
     import types
 
@@ -181,16 +244,19 @@ def _night(monkeypatch, *, which_rows, spent=0.30, cap="2.00", ceiling=0.40):
         def __exit__(self, *a): return False
     monkeypatch.setattr("psycopg.connect", lambda *a, **k: _Conn())
     rows = [{"model_version_id": m, "display_name": m.upper(), "tracked": True,
-             "in_window": True, "last_success": None} for m in ("a", "b", "c")]
+             "in_window": True, "last_success": None, "group": g}
+            for m, g in zip(("a", "b", "c"), groups, strict=True)]
     monkeypatch.setattr(runner, "due_rows", lambda conn, which="models": (
         which_rows.append(which) or rows))
     def rule():
-        return types.SimpleNamespace(enabled=True, run_spend_ceiling_usd=ceiling)
+        return types.SimpleNamespace(enabled=True, run_spend_ceiling_usd=ceiling,
+                                     group_turns=turns)
     rule.cache_clear = lambda: None  # the autouse fixture clears the real one's cache
     monkeypatch.setattr(config, "agent_run_rule", rule)
     monkeypatch.setattr(ledger, "spent_today", lambda *a, **k: spent)
     launches = []
-    monkeypatch.setattr(runner, "run_one", lambda d, **k: launches.append(k)
+    monkeypatch.setattr(runner, "run_one", lambda d, **k: launches.append(
+                        {**k, "_id": d.model_version_id})
                         or {"_end": {"kind": "end", "status": "ok"}})
     monkeypatch.setattr(runner, "post_summary", lambda recs: None)
     monkeypatch.setattr(runner, "in_progress", lambda conn, now: set())
@@ -211,6 +277,21 @@ def test_the_agent_budget_never_exceeds_the_daily_cap(monkeypatch):
     launches = _night(monkeypatch, which_rows=[], spent=1.80, cap="2.00")
     runner.main(["--list", "agents"])
     assert launches and all(k["budget_usd"] == 2.00 for k in launches)
+
+
+def test_max_models_keeps_a_share_of_every_group(monkeypatch):
+    """Turns come before --max-models: two of a, b (group w) and c (group c) is
+    one from each group, not the first two in file order."""
+    launches = _night(monkeypatch, which_rows=[], groups=("w", "w", "c"), turns=("w", "c"))
+    assert runner.main(["--list", "agents", "--max-models", "2"]) == 0
+    assert [k["_id"] for k in launches] == ["a", "c"]
+
+
+def test_the_model_run_takes_no_turns(monkeypatch):
+    """The model list has no groups: its order is rank_due's, unchanged."""
+    launches = _night(monkeypatch, which_rows=[], groups=("w", "w", "c"), turns=("w", "c"))
+    runner.main(["--max-models", "2"])
+    assert [k["_id"] for k in launches] == ["a", "b"]
 
 
 def test_the_model_run_keeps_the_daily_cap(monkeypatch):
