@@ -35,7 +35,7 @@
 groups:
   - key: works-for-you
     title: Works for you
-    what: Always-on, proactive, runs in the background and acts or alerts without being asked.
+    what: "Always on in the background: it watches, reminds and acts without being asked."
     members:
       - meta/meta-muse
       - openai/openai-dots
@@ -76,7 +76,7 @@ groups:
 
   - key: workspaces
     title: Workspaces
-    what: On-demand workspace for business deliverables (documents, analyses, decks).
+    what: "A workspace you open for business work: documents, analyses and decks."
     members:
       - anthropic/claude-cowork
       - openai/chatgpt-work
@@ -88,7 +88,7 @@ groups:
 
   - key: coding-builders
     title: Coding builders
-    what: Developer-focused, user-triggered; builds and debugs code from a CLI or IDE.
+    what: "For developers: you ask, and it builds and debugs code in your terminal or editor."
     members:
       - anthropic/claude-code
       - openai/openai-codex

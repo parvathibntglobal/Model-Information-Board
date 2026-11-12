@@ -241,7 +241,8 @@ def test_a_reports_text_follows_the_publication_rules_by_source(client):
     ids = {i["source"]["platform"]: i["source"] for i in embeds}
     assert ids["x"]["status_id"] == "1234567890" and ids["reddit"]["post_id"] == "abc123"
     assert len(ev["items"]) == 3
-    assert detail["paraphrases_note"]
+    # No paraphrase field: readers are told nothing about a feature they don't have.
+    assert "paraphrases_note" not in detail
 
 
 def test_a_problem_carries_its_negative_reports_with_the_same_rules(client):

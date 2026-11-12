@@ -525,11 +525,6 @@ fields:
     routes:
     - /models
     state: consumed
-  paraphrases_note:
-    reviewed: false
-    routes:
-    - /assistants/{ident:path}
-    state: consumed
   parent_coverage:
     reviewed: false
     routes:

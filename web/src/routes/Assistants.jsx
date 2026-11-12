@@ -12,7 +12,7 @@ import '../styles/evidence.css'
 /**
  * AI ASSISTANTS (/ai-assistants, 2026-11-12, PROPOSED): the registry's personal
  * assistants, workspaces and coding builders, grouped by
- * contract/assistant_groups.yaml, with what engineers report about each one.
+ * contract/assistant_groups.yaml, with what people report about each one.
  *
  * THE LIST IS COUNTS ONLY: people and reports, no quote, link, handle or
  * platform name. NOTHING IS A SCORE OR A RANK: a card is two counts, the order
@@ -41,7 +41,7 @@ function Tags({ tags }) {
 }
 
 function NoReports() {
-  return <p className="dim as-empty">No reports yet. An absence, not a verdict: nobody has been reported discussing it, which says nothing about how it works.</p>
+  return <p className="dim as-empty">No reports yet. That&apos;s a gap in what we&apos;ve collected, not a judgement on the assistant.</p>
 }
 
 function Card({ a }) {
@@ -73,7 +73,7 @@ function Compare({ group, reported }) {
   return (
     <div className="tablewrap as-compare">
       <table>
-        <caption className="dim as-caption">Reports per job or capability, counted, not ranked. Only assistants with reports are listed.</caption>
+        <caption className="dim as-caption">How many reports say each job worked, was neutral, or had problems. Counts, not a ranking. Assistants with no reports aren&apos;t listed.</caption>
         <thead>
           <tr>
             <th scope="col">Assistant</th>
@@ -108,14 +108,14 @@ function Group({ g }) {
           {silent.map((a, i) => (
             <span key={a.canonical_id}>{i > 0 && ', '}<Link to={idPath(a.canonical_id)}>{a.name}</Link></span>
           ))}
-          . <span className="dim">An absence of reports, not a verdict: nobody has been reported discussing them, which says nothing about how they work.</span>
+          . <span className="dim">No reports yet. That&apos;s a gap in what we&apos;ve collected, not a judgement on these assistants.</span>
         </p>
       )}
-      <p className="dim tnum">
-        {g.not_in_registry > 0
-          ? `Not yet in the registry: ${g.not_in_registry} of ${g.members} in this group. They are not shown because there is nothing to count yet.`
-          : `All ${g.members} in this group are in the registry.`}
-      </p>
+      {g.not_in_registry > 0 && (
+        <p className="dim tnum">
+          {plural(g.not_in_registry, 'more assistant', 'more assistants')} in this group {g.not_in_registry === 1 ? "isn't" : "aren't"} tracked yet.
+        </p>
+      )}
       <Compare group={g} reported={reported} />
     </div>
   )
@@ -171,7 +171,7 @@ function List() {
   return (
     <div className="shell section-tight stack stack-4">
       <header className="stack stack-2">
-        <h1>AI assistants: what engineers report</h1>
+        <h1>AI assistants: what people report</h1>
         <p className="muted">Assistants that work for you, with you, or code with you. The list is counted from our evidence collection; an assistant&apos;s own page shows the reports behind its counts.</p>
       </header>
       {unreadable && <Unreadable detail={unreadable} />}
@@ -187,8 +187,8 @@ function List() {
           </div>
           {data.unclassified.length > 0 && (
             <section className="stack stack-2" aria-labelledby="as-unclassified">
-              <h2 id="as-unclassified">Not yet classified</h2>
-              <p className="muted">In the registry as an agent, but in none of the groups above. Not guessed into one.</p>
+              <h2 id="as-unclassified">Not sorted into a group yet</h2>
+              <p className="muted">We track these, but haven&apos;t placed them in a group, so none is guessed.</p>
               <ul>
                 {data.unclassified.map((u) => <li key={u.canonical_id}>{u.name}{u.provider && <span className="dim"> ({u.provider})</span>}</li>)}
               </ul>
@@ -303,8 +303,8 @@ function Detail({ id }) {
             <b>{plural(e.people, 'person', 'people')}</b>, <b>{plural(e.reports, 'report')}</b>, from <b>{plural(e.platforms, 'platform')}</b>
             {e.newest && <span className="dim"> · newest report {fmtDayUtc(e.newest)}</span>}
           </p>
-          <p className="dim">People are distinct authors; reports are distinct documents. The platform count leaves out sources the board never names publicly.</p>
-          <p className="dim">{data.quotes_note} {data.paraphrases_note}</p>
+          <p className="dim">Each person is counted once, however often they posted; a report is one post or article. Platforms we don&apos;t name publicly aren&apos;t in the platform count.</p>
+          <p className="dim">{data.quotes_note}</p>
         </section>
       )}
 
@@ -312,8 +312,8 @@ function Detail({ id }) {
         <>
           <section className="stack stack-3">
             <h2>Best tasks</h2>
-            <p className="dim">Jobs people used it for, most people first. Working, neutral and problems count reports; the reports themselves are beneath.</p>
-            {data.best_for.length === 0 && <p className="dim">No job has been reported for this assistant yet. An absence, not a verdict.</p>}
+            <p className="dim">What people used it for, most people first. Each count is of reports that say it worked, was neutral, or had problems; the reports are listed below.</p>
+            {data.best_for.length === 0 && <p className="dim">No jobs reported yet. That&apos;s a gap in what we&apos;ve collected, not a judgement on the assistant.</p>}
             {data.best_for.map((r) => (
               <article key={r.slug} className="card card-body stack stack-2">
                 <h3>{r.name}</h3>
@@ -348,7 +348,7 @@ function Detail({ id }) {
 
           <section className="stack stack-2">
             <h2>Capabilities</h2>
-            <Rows rows={data.capabilities} empty="No capability has been reported for this assistant yet. An absence, not a verdict." />
+            <Rows rows={data.capabilities} empty="No capabilities reported yet. That's a gap in what we've collected, not a judgement on the assistant." />
           </section>
         </>
       )}
@@ -362,7 +362,7 @@ function Detail({ id }) {
 
       <section className="stack stack-2">
         <h2>The full evidence</h2>
-        <p className="dim">Every quoted report for this assistant, with the engineers&apos; own words, is behind the sign-in.</p>
+        <p className="dim">Signed in, you also see reports from sources we don&apos;t show publicly.</p>
         <p><Link to={`/models/${modelPath(a.canonical_id)}`} rel="nofollow">See the quoted evidence (sign-in required)</Link></p>
       </section>
     </div>

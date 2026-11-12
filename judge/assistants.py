@@ -1,6 +1,6 @@
 """The AI assistants page (PROPOSED, 2026-11-12): the registry's personal agents
 and coding builders, grouped by `contract/assistant_groups.yaml`, with what
-engineers report about each COUNTED, and on an assistant's own page the
+people report about each COUNTED, and on an assistant's own page the
 reports behind its jobs and problems shown under the publication rules.
 
 NOTHING NEW IS COUNTED HERE. Every figure comes from a function the board
@@ -268,10 +268,10 @@ def assistants_view(conn) -> dict:
         "unclassified": unclassified,
         "view": "public",
         "unit_note": (
-            "People are distinct authors and reports are distinct documents. In the "
-            "comparison tables each cell counts reports: working is a report with a "
-            "positive statement, problems one with a negative statement. A report can "
-            "be both. Counts only; nothing is scored or ranked."
+            "Each person is counted once, however often they posted; a report is one "
+            "post or article. In the comparison tables, each cell counts reports that "
+            "say a job worked, was neutral, or had problems, and one report can say "
+            "more than one. Counts, not a ranking."
         ),
     }
 
@@ -323,18 +323,16 @@ def assistant_detail(conn, ident: str) -> dict | None:
         "problems": problems,
         "problems_min_people": (issues or {}).get("min_engineers"),
         "capabilities": caps,
+        # The publication rules, in the reader's words (contract/publication.yaml):
+        # verified quotes with platform and link; Reddit/X only as the platform's
+        # embed on click; withheld sources counted, never shown.
         "quotes_note": (
-            "Reports are shown under each job and problem by the publication rules: a "
-            "verified quote with its platform and link for most sources; Reddit and X "
-            "only as the platform's own embed, loaded when you ask; and sources we do "
-            "not show publicly are counted, never shown."
+            "Under each job are the reports themselves: quotes linked to their source, "
+            "Reddit and X posts as the platform's own embed (loaded when you click), and "
+            "reports from sources we don't show publicly, counted but not shown."
         ),
-        "paraphrases_note": (
-            "Paraphrases in our own words are not available for assistants yet."
-        ),
+        # Empty because nothing links a how-to post to an assistant yet; a reader
+        # needs only the fact (the page shows this when the list is empty).
         "guides": [],
-        "guides_note": (
-            "No guides yet: nothing links a how-to post to an assistant today, so this "
-            "list is empty because the link does not exist, not because none are wanted."
-        ),
+        "guides_note": "No how-to guides for this assistant yet.",
     }

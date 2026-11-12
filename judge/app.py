@@ -2490,8 +2490,9 @@ def reports_page() -> dict:
 def assistants_page() -> dict:
     """The AI assistants page (PROPOSED, public): the grouping in
     contract/assistant_groups.yaml, each assistant the registry holds as a card
-    of COUNTS, and a per-group comparison table. Counted over the PUBLIC view,
-    never quoted. See `judge/assistants.py`."""
+    of COUNTS, and a per-group comparison table. Counted over the PUBLIC view; the
+    list carries no quotes (each assistant's own page does). See
+    `judge/assistants.py`."""
     from judge.assistants import assistants_view
 
     with _conn() as conn:
@@ -2518,8 +2519,7 @@ def assistant_page(ident: str) -> dict:
             "best_for": d["best_for"], "problems": d["problems"],
             "problems_min_people": d["problems_min_people"],
             "capabilities": d["capabilities"], "guides": d["guides"],
-            "guides_note": d["guides_note"], "quotes_note": d["quotes_note"],
-            "paraphrases_note": d["paraphrases_note"]}
+            "guides_note": d["guides_note"], "quotes_note": d["quotes_note"]}
 
 
 @app.get("/model-catalog")

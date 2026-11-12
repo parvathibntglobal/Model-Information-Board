@@ -121,16 +121,16 @@ export function assistantsPage(name = null, id = null) {
   const crumb = { name: 'AI assistants', path: '/ai-assistants' }
   if (!name) {
     return {
-      title: fullTitle('AI Assistants: What Engineers Report'),
-      description: 'AI assistants that work for you, with you, or code with you, and what engineers report about each one: counted by person, never quoted.',
+      title: fullTitle('AI Assistants: What People Report'),
+      description: 'AI assistants that work for you, with you, or code with you, and what people report about each one: counted by person, with the reports linked to their sources.',
       canonical: '/ai-assistants',
       breadcrumbs: [crumb],
     }
   }
   const n = squash(name)
   return {
-    title: fullTitle(`${n}: what engineers report`),
-    description: clip(`What engineers report about ${n}: the jobs it is used for and the problems reported, counted by person and never quoted.`),
+    title: fullTitle(`${n}: what people report`),
+    description: clip(`What people report about ${n}: the jobs it's used for, the problems reported, and the reports themselves.`),
     canonical: `/ai-assistants/${String(id).split('/').map(encodeURIComponent).join('/')}`,
     breadcrumbs: [crumb, { name: n, path: `/ai-assistants/${String(id).split('/').map(encodeURIComponent).join('/')}` }],
   }
