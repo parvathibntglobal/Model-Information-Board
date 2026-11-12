@@ -299,24 +299,28 @@ def parse_summary(body: str) -> list[dict]:
     return rows
 
 
-def parse_unreadable(body: str, rows: list[dict]) -> dict | None:
-    """The night's whole-corpus "unreadable here" count, `{"low", "high"}`.
+def parse_unreadable(body: str, rows: list[dict]) -> str | None:
+    """The night's "unreadable here" figures, as the summary words them.
 
-    From the summary's one line (`scheduler.UNREADABLE_LINE`) since 2026-11-12;
-    from an older summary's per-model column otherwise - the same field, which
-    that layout repeated on every row. None when no run reported it (rule 6).
+    Since 2026-11-12 the summary says them once, per scan window, in one line
+    (`scheduler.UNREADABLE_LINE`); that line is returned whole, because its
+    windows are the meaning and a re-parsed number would drop them. An older
+    summary repeated the figure in a per-model column, with no window; that is
+    returned as the figures it gave, said to be from that column. None when no
+    run reported it (rule 6).
     """
     from judge.scheduler import UNREADABLE_LINE
 
     for line in (body or "").splitlines():
         if line.startswith(UNREADABLE_LINE):
-            m = re.match(r"\s*([\d,]+)(?: to ([\d,]+))?", line[len(UNREADABLE_LINE):])
-            if m:
-                low = int(m.group(1).replace(",", ""))
-                high = int((m.group(2) or m.group(1)).replace(",", ""))
-                return {"low": low, "high": high}
+            return line.strip()
     seen = [r["unreadable_here"] for r in rows if isinstance(r.get("unreadable_here"), int)]
-    return {"low": min(seen), "high": max(seen)} if seen else None
+    if not seen:
+        return None
+    low, high = min(seen), max(seen)
+    span = f"{low:,}" if low == high else f"{low:,} to {high:,}"
+    return (f"Unread threads this runner could not open: {span}, from this older "
+            "summary's per-model column (it did not record which window each run scanned).")
 
 
 def summaries(slug: str, issue: str) -> list[dict]:
@@ -371,8 +375,8 @@ def attach_summaries(run_list: list[dict], posted: list[dict]) -> None:
                                       if isinstance(x.get("documents_appended"), int)),
             "quotes_verified": sum(x.get("quotes_verified") or 0 for x in rows
                                    if isinstance(x.get("quotes_verified"), int)),
-            # The whole corpus's, once per night - never per model (#610 review).
-            "unreadable_whole_corpus": hit.get("unreadable"),
+            # Once per night, per scan window - never per model (#610, #628).
+            "unreadable": hit.get("unreadable"),
             "rows": [{k: v for k, v in x.items() if k != "unreadable_here"} for x in rows],
         }
 

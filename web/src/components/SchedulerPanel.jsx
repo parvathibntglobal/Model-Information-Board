@@ -81,15 +81,7 @@ function Fetched({ r }) {
           ))}
         </tbody>
       </table>
-      {s.unreadable_whole_corpus && (
-        <p className="dim">
-          Unread threads in the whole corpus this runner could not open:{' '}
-          {s.unreadable_whole_corpus.low === s.unreadable_whole_corpus.high
-            ? s.unreadable_whole_corpus.low.toLocaleString()
-            : `${s.unreadable_whole_corpus.low.toLocaleString()} to ${s.unreadable_whole_corpus.high.toLocaleString()}`}
-          . Not any one model&apos;s: a thread that cannot be opened cannot be checked for a model&apos;s name.
-        </p>
-      )}
+      {s.unreadable && <p className="dim">{s.unreadable}</p>}
       {s.url && <a className="mb-link" href={s.url} target="_blank" rel="noopener noreferrer">the posted summary ↗</a>}
     </details>
   )

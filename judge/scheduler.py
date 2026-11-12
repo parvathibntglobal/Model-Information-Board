@@ -141,12 +141,65 @@ _SAFE_FIELDS = (
     # E6, counted (#608 review): counts only, no host. Without them a run that
     # sent every document back to `unvetted` looks like any other night.
     "e6_rejected", "e6_unvetted",
+    # True / false: which window the run's thread scan used, so the unreadable
+    # count can be said per window (#628 review). A flag, no host.
+    "first_fetch",
 )
 
 
 #: The summary's one line for `threads_unreadable_here`; Admin -> Scheduler
 #: (`scheduler_status.parse_unreadable`) finds it by this prefix.
-UNREADABLE_LINE = "Unread threads in the whole corpus this runner could not open:"
+UNREADABLE_LINE = "Unread threads this runner could not open, in the window each run scans:"
+
+
+def _unreadable_line(records: list[dict]) -> str | None:
+    """The night's `threads_unreadable_here`, said once and PER WINDOW.
+
+    WHAT IT COUNTS (#628 review, measured 2026-11-12). fetch_model scans every
+    unread thread in the run's window for the model's names, and counts those
+    the runner cannot open (their text is on another machine). It is nobody's
+    per-model figure. The window is what moves it:
+
+        first fetch   no window - every unread thread ever stored
+        refresh       threads with a post in the last `extraction_window_days`
+
+    On 2026-11-12 the model runner's first run (Gemini 4 Carbon, a first fetch)
+    reported 1,323 and its eleven refreshes 0, while the agent runner's six
+    first fetches reported 1,323 each through 08:14Z: the old threads were not
+    cleared, the refreshes never looked at them. A range across the two windows
+    would have read as drift and hidden that.
+
+    A run with no `first_fetch` (an older runner) is said as window not
+    recorded. No run reported it: no line, never a 0 (rule 6).
+    """
+    groups: dict[str, list[int]] = {}
+    for r in records:
+        n = r.get("threads_unreadable_here")
+        if not isinstance(n, int):
+            continue
+        key = {True: "first", False: "refresh"}.get(r.get("first_fetch"), "unknown")
+        groups.setdefault(key, []).append(n)
+    if not groups:
+        return None
+
+    def figure(ns: list[int]) -> str:
+        low, high = min(ns), max(ns)
+        span = f"{low:,}" if low == high else f"{low:,} to {high:,}"
+        return f"{span} ({len(ns)} run{'s' if len(ns) != 1 else ''})"
+
+    parts = []
+    if "first" in groups:
+        parts.append(f"first fetches, which scan every unread thread ever stored: "
+                     f"{figure(groups['first'])}")
+    if "refresh" in groups:
+        days = policy().extraction_window_days
+        parts.append(f"refreshes, which scan threads with a post in the last {days} days: "
+                     f"{figure(groups['refresh'])}")
+    if "unknown" in groups:
+        parts.append(f"window not recorded: {figure(groups['unknown'])}")
+    return (f"{UNREADABLE_LINE} {'; '.join(parts)}. These are not any one model's "
+            "threads: a thread that cannot be opened cannot be checked for a model's "
+            "name. They explain a low `Threads read`.")
 
 
 def summarise_runs(records: list[dict]) -> str:
@@ -195,23 +248,13 @@ def summarise_runs(records: list[dict]) -> str:
     lines += ["", f"{ok} of {len(records)} ended ok. "
               "A model absent from this list was not due; a count shown as `-` was "
               "not reported by that run, which is not the same as zero."]
-    # UNREADABLE HERE IS THE WHOLE CORPUS'S COUNT, SO IT IS SAID ONCE (#610
-    # review, Parvathi, 2026-11-12). fetch_model counts every unread thread in
-    # the corpus whose text the runner could not open - an unopened thread
-    # cannot be checked for any model's name - so it is not a model's figure.
-    # In a per-model column the first agent night showed 1,323 on all six rows
-    # and read as six counts. Each run counts it at its own extract step, and
-    # the corpus moves during a night, so differing values are a range.
-    # Absent from every run: no line, never a 0 (rule 6).
-    seen = [r["threads_unreadable_here"] for r in records
-            if isinstance(r.get("threads_unreadable_here"), int)]
-    if seen:
-        low, high = min(seen), max(seen)
-        figure = f"{low:,}" if low == high else f"{low:,} to {high:,}"
-        lines += ["", f"{UNREADABLE_LINE} {figure} (counted at each run's extract step, "
-                  f"{len(seen)} of {len(records)} run(s) reported it). These are not any "
-                  "one model's threads: a thread that cannot be opened cannot be checked "
-                  "for a model's name. They explain a low `Threads read`."]
+    # UNREADABLE HERE IS NOT A MODEL'S COUNT, SO IT IS SAID ONCE, PER WINDOW
+    # (#610 review, then #628 review). In a per-model column the first agent
+    # night showed 1,323 on all six rows and read as six counts. See
+    # `_unreadable_line` for what moves it.
+    unreadable = _unreadable_line(records)
+    if unreadable:
+        lines += ["", unreadable]
     # MEDIA'S SHARE OF THE NIGHT (#602 item 8), in counts only - no spend on a
     # public issue; each run's `cost_usd` stays in its own fetch log.
     # ONLY THE KINDS THAT ARE MEDIA (#618/#620 review, Parvathi). It counted
