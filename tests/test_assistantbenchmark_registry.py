@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from collect.registry.aliases import normalize
+from collect.registry.aliases import alias_rows, local_part, normalize
 from collect.registry.seed import load_seed_file
 from judge import config
 
@@ -21,12 +21,33 @@ ORDINARY = {"hark", "town", "tomo", "pally", "catch", "tab", "shuffle", "dazzle"
             "orchid", "caddy", "boba", "poke", "del", "orbits", "folk", "brea", "instinct"}
 
 
+#: Ordinary PHRASES that matching folds to one key with a name (#624 review): held.
+ORDINARY_PHRASES = {"with del"}
+
+
 def _keys(seed) -> dict[str, str]:
+    """Every normalised key the LOADER would write for these rows - the declared
+    aliases AND the rows it builds from the canonical id and its local part
+    (#624 review: reading only the declared aliases missed the id-built ones)."""
     out: dict[str, str] = {}
     for m in seed.models:
-        for v in [m.aliases.surface, *m.aliases.variants]:
-            out[normalize(v)] = m.canonical_id
+        for row in alias_rows(m):
+            out[row.normalized] = m.canonical_id
     return out
+
+
+def test_no_local_part_is_an_ordinary_word():
+    """The loader turns each id's local part into a snapshot alias, so `town/town`
+    would put the bare word "town" in the alias table. The local part is the
+    compound alias instead (`town/town-com`)."""
+    bad = [m.canonical_id for m in load_seed_file(AB).models
+           if normalize(local_part(m.canonical_id)) in ORDINARY]
+    assert not bad, bad
+
+
+def test_no_alias_is_an_ordinary_phrase():
+    keys = set(_keys(load_seed_file(AB)))
+    assert not {normalize(p) for p in ORDINARY_PHRASES} & keys
 
 
 def test_the_file_loads_with_unique_ids():
@@ -53,6 +74,9 @@ def test_an_ordinary_word_is_never_an_alias_on_its_own():
     assert not bare, bare
 
 
-def test_instinct_is_held_until_it_has_an_alias():
-    """No source-backed alias exists for it (2026-11-12); a row is added only with one."""
-    assert "unknown/instinct" not in {m.canonical_id for m in load_seed_file(AB).models}
+def test_the_three_held_assistants_stay_out():
+    """Instinct: no source-backed alias. Folk: "folk app" is also the folk CRM.
+    Del: "withdel" needs the spaced form "with del", an ordinary phrase. Each is
+    added only with an alias that is neither an ordinary word nor phrase."""
+    names = {m.display_name.lower() for m in load_seed_file(AB).models}
+    assert not {"instinct", "folk", "del"} & names
