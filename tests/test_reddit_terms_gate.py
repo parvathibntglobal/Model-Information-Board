@@ -65,7 +65,7 @@ def test_the_ruling_records_who_read_the_terms():
     a fact anyone can follow up."""
     ruling = load_sources().rulings[RULING_ID]
     assert ruling.reviewed_by
-    assert ruling.reviewed_on == date(2026, 8, 18)
+    assert ruling.reviewed_on == date(2026, 11, 13)  # re-reviewed; first read 2026-08-18
 
 
 def test_the_ruling_names_the_basis_it_rests_on():
