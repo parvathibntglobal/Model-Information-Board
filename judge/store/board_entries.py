@@ -635,8 +635,9 @@ def store_entries(
                 "INSERT INTO board_entry "
                 "(id, section, slug, name, definition, unit, value_verbatim, basis,"
                 " model_version_id, document_id, claim_id, quote, quote_verified,"
-                " polarity, proposer_model, model_scope, pipeline_version, parent_proposed) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                " polarity, proposer_model, model_scope, pipeline_version, parent_proposed,"
+                " speaking) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                 "ON CONFLICT (id) DO NOTHING",
                 (
                     entry_id(
@@ -650,6 +651,10 @@ def store_entries(
                     _scope_of(e, searched),
                     pipeline_version,
                     parent,
+                    # WHO IS SPEAKING (20261112T0900). Absent stays absent: a
+                    # caller with no speaker passes nothing and the row is NULL,
+                    # never a guessed speaker (rule 6). Not a gate (rule 8).
+                    e.get("speaking"),
                 ),
             )
             stored += cur.rowcount  # 1 on insert, 0 on conflict

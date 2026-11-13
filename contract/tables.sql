@@ -1045,6 +1045,21 @@ CREATE TABLE board_entry (
   ruling_target     text,               -- the slug a `merged` row folds into
   reviewed_at       timestamptz,
 
+  -- WHO IS SPEAKING, from the extractor's `model_ref.speaking`. Added by
+  -- 20261112T0900_board_entry_speaking.sql: the value was paid for on every
+  -- call and stored only on `claim`, which LEGACY_CELLS=off never writes.
+  -- NULL = not recorded (the row predates the column), never a speaker.
+  -- Never gates storage or display (rule 8). Named like the constraint the
+  -- migration's inline CHECK produces, so the two render identically.
+  -- LAST, where the migration's ADD COLUMN puts it on a migrated database
+  -- (#626 review: a positional copy between two databases that differed only
+  -- in column order once put values into the wrong columns).
+  speaking          text,
+  CONSTRAINT board_entry_speaking_check CHECK (speaking IN (
+                                    'own-experience',
+                                    'vendor-about-own-product',
+                                    'relayed-from-elsewhere')),
+
   CONSTRAINT board_entry_model_scope_ck
     CHECK (model_scope IS NULL OR model_scope IN ('searched', 'mentioned')),
   CONSTRAINT board_entry_section_ck
@@ -2554,12 +2569,20 @@ CREATE TABLE unresolved_entry (
   attributed_at      timestamptz,
   attributed_to      text REFERENCES model_version(id),
   attributed_entry   text,
+  -- model_ref.speaking, carried onto board_entry.speaking on attribution
+  -- (20261112T0900_board_entry_speaking.sql). NULL = not recorded. LAST, where
+  -- the migration's ADD COLUMN puts it (#626 review).
+  speaking           text,
   CONSTRAINT unresolved_entry_section_ck
     CHECK (section IN ('best_for', 'capability', 'metric')),
   CONSTRAINT unresolved_entry_polarity_ck
     CHECK (polarity IN ('positive', 'negative', 'neutral')),
   CONSTRAINT unresolved_entry_attributed_ck
-    CHECK ((attributed_at IS NULL) = (attributed_to IS NULL))
+    CHECK ((attributed_at IS NULL) = (attributed_to IS NULL)),
+  CONSTRAINT unresolved_entry_speaking_check CHECK (speaking IN (
+                                    'own-experience',
+                                    'vendor-about-own-product',
+                                    'relayed-from-elsewhere'))
 );
 
 CREATE INDEX unresolved_entry_held_idx ON unresolved_entry (surface) WHERE attributed_at IS NULL;

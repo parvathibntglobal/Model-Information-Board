@@ -636,6 +636,19 @@ columns:
         say only "the worker model". NULL here beside a non-NULL
         model_version_id means the attribution was inferred from the document
         rather than read from the quote. Intended reader is the same page.
+    speaking:
+      known_gap: no page reads it yet; the intended reader is a count of first-hand reports beside each job and capability, not built, shown on the signed-in board first and on no public page until the extractor's accuracy on this field is measured (#626 review)
+      reviewed: true
+      state: write_only
+      why: >-
+        Added by 20261112T0900. The extractor's model_ref.speaking
+        (own-experience / vendor-about-own-product / relayed-from-elsewhere),
+        written by judge/store/board_entries.py store_entries. It was paid for
+        on every call and stored only on claim, which LEGACY_CELLS=off never
+        writes, so before this column it was produced and never consumed with
+        no declaration (rule 9). Declared write_only rather than left silent:
+        its reader is named and unbuilt. NULL means not recorded. Never a gate
+        (rule 8: the extractor's accuracy on it is unmeasured).
     basis:
       reviewed: true
       state: read
@@ -3061,6 +3074,10 @@ columns:
       reviewed: true
       state: read
       why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    speaking:
+      reviewed: true
+      state: read
+      why: "carried onto board_entry.speaking when the model is seated, by scripts/attribute_unresolved_entries.py (20261112T0900)"
     polarity:
       reviewed: true
       state: read
