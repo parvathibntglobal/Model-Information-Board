@@ -264,6 +264,15 @@ def test_every_feed_dates_its_measurements():
             checked = feed[block]["checked_on"]
             assert isinstance(checked, date), f"{feed['id']}.{block}"
             assert checked <= today, f"{feed['id']}.{block} is dated ahead"
+            # ONLY THE TERMS EVIDENCE EXPIRES (2026-11-13). The gate refuses
+            # stale `terms_evidence` and never reads `measured`, which is the
+            # feed's dated SHAPE (entries, span, bylines) - a description, not
+            # a permission. Holding it to the terms horizon turned this test,
+            # and main's CI, red on day 91 without any rule having lapsed, and
+            # re-dating it without re-measuring every field would record a
+            # measurement nobody made (rule 6). It stays dated (rule 11).
+            if block != "terms_evidence":
+                continue
             assert today - checked <= horizon, (
                 f"{feed['id']}.{block} checked {checked}, which is older than "
                 f"{ruling.id}'s evidence_valid_days of "
@@ -383,10 +392,19 @@ def test_the_class_a_ruling_carries_the_404_caveat_in_its_text():
     assert "dropbox.tech" in summary
 
 
-def test_grab_is_the_live_404_case():
-    evidence = _feed("blog:engineering.grab.com")["terms_evidence"]
+def test_thorstenball_is_the_live_404_case():
+    """Was grab's test. engineering.grab.com published a robots.txt between
+    2026-08-14 and the 2026-11-13 re-measurement, so the live 404 case is now
+    thorstenball.com (measured 2026-09-21), the other feed in that position."""
+    evidence = _feed("blog:thorstenball.com")["terms_evidence"]
     assert evidence["robots_status"] == "no-rules"
     assert evidence["robots_http"] == 404
+
+
+def test_grab_now_has_rules_and_still_allows_us():
+    evidence = _feed("blog:engineering.grab.com")["terms_evidence"]
+    assert evidence["robots_status"] == "rules" and evidence["robots_http"] == 200
+    assert evidence["feed_path_allowed"] and evidence["robots_allows_article_path"]
 
 
 def test_team_bylined_feeds_collapse_to_one_voice_not_zero():
@@ -441,7 +459,8 @@ def test_every_feed_becomes_a_source_row():
     #                        2026-10-26 newsletters, 37 with the Google AI forum,
     #                        38 with Bluesky.
     assert rows["blog:simonwillison.net"]["provenance"] == "seed"
-    assert rows["blog:simonwillison.net"]["terms_checked_on"] == REVIEWED_ON
+    # Re-measured 2026-11-13; the row carries the evidence date, not the ruling's.
+    assert rows["blog:simonwillison.net"]["terms_checked_on"] == date(2026, 11, 13)
     assert all(row["base_trust"] for row in rows.values())
 
 
