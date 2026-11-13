@@ -6,10 +6,18 @@
 # (scheduled-fetches.yml, 20:30 UTC) never reads that list, and this never reads
 # tracked_models.yaml, so the two cannot mix.
 #
-# WHEN: 15:00 UTC, a free slot. Test B (local database, 2026-11-09) took 6 to 21
-# minutes per agent on a first fetch, so ten agents fit well before the 17:23 job
-# and long before the 20:30 model fetch. Its own concurrency group: neither
-# workflow queues behind or cancels the other.
+# WHEN: 15:00 UTC, a free slot. Its own concurrency group: neither workflow
+# queues behind or cancels the other.
+#
+# HOW LONG (2026-11-13). Test B (local database, 2026-11-09) took 6 to 21 minutes
+# per agent on a first fetch; on the hosted runner the first nights took 26 to 67
+# minutes each (fetch_log, 10 agent first fetches, median 26), and extraction (E5)
+# is most of it. At 200 minutes the job launched only 4 agents on 2026-11-12, cut
+# Hermes Agent off mid-fetch and never reached three more. The job now has what
+# the model fetch has: 355 minutes (GitHub-hosted jobs stop at 360), new agents
+# launched until minute 320, a running fetch stopped at minute 345 so the summary
+# still posts. There are no feed steps before this one, so only setup (about 3
+# minutes) comes off the top. The public repository pays nothing for the minutes.
 #
 # SPEND: the extraction cap (EXTRACTION_DAILY_BUDGET_USD) is ONE team-wide daily
 # figure, shared with the model fetch later the same UTC day. The run therefore
@@ -47,7 +55,7 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 200
+    timeout-minutes: 355
     env:
       ENVIRONMENT: staging
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
@@ -101,7 +109,7 @@ jobs:
       - name: Fetch the due agents
         if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
         run: |
-          args="--list agents --job-limit-minutes 185 --deadline-minutes 165"
+          args="--list agents --job-limit-minutes 345 --deadline-minutes 320"
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args
