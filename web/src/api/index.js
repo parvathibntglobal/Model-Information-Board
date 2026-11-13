@@ -320,6 +320,11 @@ export const freshness = () => cached('freshness', () => request('/freshness'), 
 // THE REPORTS PAGE: the board's counts over the PUBLIC view, never a quote
 // (judge/reports.py). Cached like the board, which it is read from.
 export const reportsPage = () => cached('reports', () => request('/reports'), { ttl: BOARD_TTL_MS })
+// THE AI ASSISTANTS PAGE (judge/assistants.py, 2026-11-12, PROPOSED): the grouping
+// in contract/assistant_groups.yaml with each assistant's COUNTS, public, never a
+// quote. The detail is keyed by canonical id (it contains a slash).
+export const assistantsPage = () => cached('assistants', () => request('/assistants'), { ttl: BOARD_TTL_MS })
+export const assistantDetail = (id) => request(`/assistants/${String(id).split('/').map(encodeURIComponent).join('/')}`)
 // The Models pages: OpenRouter's whole list by provider and type (judge/catalog.py).
 // Reading the catalogue also tells comparison addresses which model names two
 // providers share (compare/path.js `markSharedNames`).

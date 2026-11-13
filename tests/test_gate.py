@@ -239,8 +239,11 @@ def test_the_public_list_names_only_reads_that_were_checked():
         # source, quotes only from shown sources (tests/test_verdict.py).
         "/verdict",
         "/verdict/week",
+        # 2026-11-12 (PROPOSED): the AI assistants page - counts only
+        # (tests/test_assistants_db.py checks what it sends).
+        "/assistants",
     } == gate.PUBLIC_READ_PATHS
-    assert gate.PUBLIC_READ_PREFIXES == ("/model-catalog/", "/glossary-terms/")
+    assert gate.PUBLIC_READ_PREFIXES == ("/model-catalog/", "/glossary-terms/", "/assistants/")
 
 
 def test_an_anonymous_comparison_carries_counts_and_no_words():
