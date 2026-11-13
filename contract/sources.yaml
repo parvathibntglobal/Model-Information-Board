@@ -508,9 +508,11 @@ terms_rulings:
       service. Its policy page answered 403 to an automated fetch on
       2026-11-13, so reading it is left to anooj in a browser. The ruling never
       rested on it ("sufficient to refuse, not to permit"), and feed-only stays
-      the narrowest reading. Python's urllib.robotparser, which the harvester
-      uses, does NOT apply `*` wildcards; the article refusal is enforced by
-      `fetch_articles: false`, not by that parser, which is why it holds.
+      the narrowest reading. The article refusal is enforced twice: by
+      `fetch_articles: false`, and by the harvester's robots gate, which applies
+      RFC 9309 wildcards (collect/adapters/blog/robots.py `allows()` calls
+      rules.allowance_for, written 2026-08-14 for this `/*/*source=` rule, and
+      not the standard library's `can_fetch`, which ignores `*`).
 
       AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
       The basis moves from internal-development-only to
