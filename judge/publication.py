@@ -146,7 +146,7 @@ _ASSISTANTS_QUOTE_FORMS = ("quote_with_credit_and_link",)
 
 @lru_cache(maxsize=1)
 def assistants_page_terms() -> dict:
-    """`contract/publication.yaml` `assistants_page` (PROPOSED 2026-11-12, #625):
+    """`contract/publication.yaml` `assistants_page` (agreed 2026-11-12, #625):
     the rule the public AI assistants page follows for the reports under each
     job and problem. Every key required; absent or unknown raises (rules 6, 12).
 

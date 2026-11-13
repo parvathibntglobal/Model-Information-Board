@@ -18,7 +18,7 @@ ALWAYS THE PUBLIC VIEW. Totals count every source
 (`publication.hidden_from_counts`), as `/reports` does. The list endpoint is
 counts only. The DETAIL endpoint also carries, under each job and problem, the
 reports behind its counts, by `_treatment` (contract/publication.yaml
-`assistants_page`, PROPOSED; citations through the feed's `cite_source`):
+`assistants_page`, agreed 2026-11-12; citations through the feed's `cite_source`):
 
     embed-only source (reddit, x)   NO text, no link, no handle: the ids the
                                     platform's official embed needs, loaded by
