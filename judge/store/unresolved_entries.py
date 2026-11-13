@@ -19,7 +19,7 @@ from judge.store.claims import PIPELINE_VERSION
 _COLUMNS = (
     "id", "surface", "document_id", "thread_context_id", "section", "slug", "name",
     "definition", "unit", "value_verbatim", "basis", "parent_proposed", "axis_verbatim",
-    "subject_verbatim", "polarity", "quote", "proposer_model", "pipeline_version",
+    "subject_verbatim", "speaking", "polarity", "quote", "proposer_model", "pipeline_version",
 )
 
 
@@ -29,11 +29,12 @@ _COLUMNS = (
 _INSERT = (
     "INSERT INTO unresolved_entry (id, surface, document_id, thread_context_id, "
     "section, slug, name, definition, unit, value_verbatim, basis, parent_proposed, "
-    "axis_verbatim, subject_verbatim, polarity, quote, proposer_model, pipeline_version) "
+    "axis_verbatim, subject_verbatim, speaking, polarity, quote, proposer_model, "
+    "pipeline_version) "
     "VALUES (%(id)s, %(surface)s, %(document_id)s, %(thread_context_id)s, %(section)s, "
     "%(slug)s, %(name)s, %(definition)s, %(unit)s, %(value_verbatim)s, %(basis)s, "
-    "%(parent_proposed)s, %(axis_verbatim)s, %(subject_verbatim)s, %(polarity)s, "
-    "%(quote)s, %(proposer_model)s, %(pipeline_version)s) "
+    "%(parent_proposed)s, %(axis_verbatim)s, %(subject_verbatim)s, %(speaking)s, "
+    "%(polarity)s, %(quote)s, %(proposer_model)s, %(pipeline_version)s) "
 )
 
 
@@ -103,7 +104,7 @@ def attribute_held(conn: Any, resolve_surface, *, dry_run: bool = True) -> dict[
     rows = conn.execute(
         "SELECT id, surface, document_id, thread_context_id, section, slug, name, "
         "definition, unit, value_verbatim, basis, parent_proposed, axis_verbatim, "
-        "subject_verbatim, polarity, quote, proposer_model, pipeline_version "
+        "subject_verbatim, speaking, polarity, quote, proposer_model, pipeline_version "
         "FROM unresolved_entry WHERE attributed_at IS NULL ORDER BY created_at, id"
     ).fetchall()
     by_model: Counter = Counter()
@@ -127,6 +128,8 @@ def attribute_held(conn: Any, resolve_surface, *, dry_run: bool = True) -> dict[
             "definition": r["definition"], "parent": r["parent_proposed"],
             "unit": r["unit"], "value_verbatim": r["value_verbatim"], "basis": r["basis"],
             "axis_verbatim": r["axis_verbatim"], "subject_verbatim": r["subject_verbatim"],
+            # NULL for rows held before 20261112T0900: carried as NULL, never guessed.
+            "speaking": r["speaking"],
             "model_version_id": model, "document_id": r["document_id"], "claim_id": None,
             # Verified at extraction, before the row was held: the quote is the
             # one the substring check passed, stored as it was then.

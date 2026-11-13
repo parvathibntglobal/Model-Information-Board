@@ -45,6 +45,11 @@ fields:
     routes:
     - /admin/stages
     state: no_consumer
+  assistant:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
   attempts:
     reviewed: true
     routes:
@@ -71,6 +76,11 @@ fields:
     reviewed: false
     routes:
     - /admin/usage
+    state: consumed
+  best_for:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
     state: consumed
   blog_counts_unreadable:
     reviewed: false
@@ -146,6 +156,7 @@ fields:
     reviewed: false
     routes:
     - /models/{model_version_id:path}
+    - /assistants/{ident:path}
     state: consumed
   capabilities_loaded:
     reviewed: false
@@ -269,6 +280,11 @@ fields:
     routes:
     - /admin/usage
     state: consumed
+  evidence:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
   excluded_note:
     reviewed: false
     routes:
@@ -289,6 +305,11 @@ fields:
     routes:
     - /blog-posts
     state: consumed
+  freshness:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
   gates_unreadable:
     reviewed: false
     routes:
@@ -303,6 +324,11 @@ fields:
       Its real reader is the open build, outside the scan - web/Dockerfile fetches the export
       and web/seo-build.js `readPaths` requires this field. The `consumed` the audit finds is
       other payloads'' fields of the same name in web/src, so it is not proof of this one.'
+  group:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
   grouped:
     reviewed: false
     routes:
@@ -313,12 +339,23 @@ fields:
     routes:
     - /admin/board-entries
     - /admin/capability-candidates
+    - /assistants
     state: consumed
   guard:
     reviewed: false
     routes:
     - /ask/recommend
     state: no_consumer
+  guides:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
+  guides_note:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
   harvest:
     reviewed: false
     routes:
@@ -529,6 +566,16 @@ fields:
     routes:
     - /models
     state: consumed
+  problems:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
+  problems_min_people:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
   prompts:
     reviewed: false
     routes:
@@ -553,6 +600,11 @@ fields:
     reviewed: false
     routes:
     - /models/{model_version_id:path}
+    state: consumed
+  quotes_note:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
     state: consumed
   rapidapi:
     reviewed: false
@@ -766,6 +818,7 @@ fields:
     routes:
     - /discussions/delete
     - /documents/{document_id:path}/source
+    - /assistants/{ident:path}
     state: consumed
   status:
     reviewed: false
@@ -796,6 +849,11 @@ fields:
     routes:
     - /models/{model_version_id:path}
     state: no_consumer
+  tags:
+    reviewed: false
+    routes:
+    - /assistants/{ident:path}
+    state: consumed
   text:
     reviewed: false
     routes:
@@ -856,10 +914,20 @@ fields:
     routes:
     - /models/{model_version_id:path}
     state: no_consumer
+  unclassified:
+    reviewed: false
+    routes:
+    - /assistants
+    state: consumed
   unfinished_and_silent:
     reviewed: false
     routes:
     - /admin/runs
+    state: consumed
+  unit_note:
+    reviewed: false
+    routes:
+    - /assistants
     state: consumed
   unpriced_models:
     reviewed: false
