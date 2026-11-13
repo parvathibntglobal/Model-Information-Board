@@ -25,7 +25,7 @@
 # THE WINDOW IS ANCHORED, NOT ROLLING (#631 review, Parvathi). Real work counts
 # from the most recent `window_opens_utc` before now - one window per day,
 # beginning at the agent slot - never "the last N hours". A rolling 12 hours let
-# a model fetch that ran at 13:30 (agents finished early) be followed by
+# a model fetch that ran at 11:30 (agents finished early) be followed by
 # GitHub's 20:30 schedule arriving at 02:48 (measured 2026-11-10) as a second
 # real run, against the next UTC day's budget.
 #
@@ -48,10 +48,18 @@
 # while the night's agent run was still going does not start the model fetch
 # early. The same holds for the evidence feed after the model fetch.
 #
-# ORDER. The agent fetch starts at 13:00. The model fetch starts when it finishes
-# (its `workflow_run` trigger; agents take up to about 6 hours), with 21:00 as
+# ORDER. The agent fetch starts at 11:00. The model fetch starts when it finishes
+# (its `workflow_run` trigger; agents take up to about 6 hours), with 19:00 as
 # the fallback if that did not happen. The two share one daily extraction budget
 # and no longer overlap. The evidence feed follows the model fetch.
+#
+# WHY 11:00, NOT 13:00 (anooj, 2026-11-13, #631 review point 3). The extraction
+# cap is per UTC day. Up to about 6 hours of agents, then up to 355 minutes of
+# models, ends by about 23:00 from 11:00. From 13:00 it ran to about 01:00, and
+# the model fetch's post-midnight calls counted against the next day's cap, which
+# that day's agent fetch shares. The 19:00 fallback keeps the 2-hour margin
+# after the agents' longest run that 21:00 had. A model fetch the fallback
+# starts can still pass midnight: that only happens on a night the chain broke.
 #
 # Every key required; a missing or malformed one raises (rule 12). A dispatched
 # workflow's `window_opens_utc` must open at most 24 hours minus
@@ -64,15 +72,15 @@ catch_up_minutes: 180
 workflows:
   agent-fetches.yml:
     job: fetch
-    dispatch_at_utc: "13:00"
-    window_opens_utc: "13:00"
+    dispatch_at_utc: "11:00"
+    window_opens_utc: "11:00"
     guard_events: [schedule]
     counts_events: [schedule, nightly_dispatch]
 
   scheduled-fetches.yml:
     job: fetch
-    dispatch_at_utc: "21:00"
-    window_opens_utc: "13:00"
+    dispatch_at_utc: "19:00"
+    window_opens_utc: "11:00"
     guard_events: [schedule, workflow_run]
     counts_events: [schedule, workflow_run, nightly_dispatch]
 
@@ -86,6 +94,6 @@ workflows:
   evidence-feed.yml:
     job: feed
     dispatch_at_utc: null
-    window_opens_utc: "13:00"
+    window_opens_utc: "11:00"
     guard_events: [workflow_run]
     counts_events: [workflow_run]

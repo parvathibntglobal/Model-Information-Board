@@ -55,7 +55,7 @@ run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflo
 
 on:
   # Started when the agent fetch finishes, so the two never overlap
-  # (contract/dispatch_schedule.yaml); 21:00 UTC is our dispatcher's fallback.
+  # (contract/dispatch_schedule.yaml); 19:00 UTC is our dispatcher's fallback.
   workflow_run:
     workflows: ["Agent fetches"]
     types: [completed]

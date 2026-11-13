@@ -5,7 +5,7 @@ No network: GitHub is a fake. What these pin:
 * a workflow is started once per slot, inside the catch-up window, and never when
   it already did real work in its window;
 * the window is ANCHORED to the most recent `window_opens_utc`, not rolling
-  (#631 review: agents end 13:20, GitHub's model schedule fires 02:48);
+  (#631 review: agents end 11:20, GitHub's model schedule fires 02:48);
 * only a nightly start counts: a hand-started test holds nothing off;
 * a `workflow_run` start follows only a finished run that did real nightly work
   (#631 review: a morning agent test must not start the model fetch);
@@ -28,7 +28,7 @@ import yaml
 from scripts import dispatch_workflows as dw
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-NOW = datetime(2026, 11, 14, 13, 5, tzinfo=UTC)
+NOW = datetime(2026, 11, 14, 11, 5, tzinfo=UTC)
 
 
 def _sched():
@@ -47,11 +47,15 @@ def test_the_real_schedule_loads_and_names_the_four_workflows():
         "topic-harvest.yml",
         "evidence-feed.yml",
     }
-    assert s.entries["agent-fetches.yml"].dispatch_at == (13, 0)
+    # 11:00, not 13:00 (anooj, #631 review point 3): agents then models end
+    # inside one UTC day, which is the day the extraction cap counts.
+    assert s.entries["agent-fetches.yml"].dispatch_at == (11, 0)
+    assert s.entries["scheduled-fetches.yml"].dispatch_at == (19, 0)
     assert s.entries["evidence-feed.yml"].dispatch_at is None  # follows the model fetch
     assert "workflow_run" in s.entries["scheduled-fetches.yml"].guard_events
     # The model fetch's day begins at the agent slot, not at its own fallback.
-    assert s.entries["scheduled-fetches.yml"].window_opens == (13, 0)
+    assert s.entries["scheduled-fetches.yml"].window_opens == (11, 0)
+    assert s.entries["evidence-feed.yml"].window_opens == (11, 0)
 
 
 @pytest.mark.parametrize(
@@ -99,9 +103,9 @@ def test_a_slot_is_dispatched_once_inside_the_catch_up_window():
     s = _sched()
     never = lambda e, since: False  # noqa: E731
     assert [f for f, _ in dw.to_dispatch(s, NOW, never)] == ["agent-fetches.yml"]
-    late = _at(14, 16, 1)  # 13:00 + 181 min: past catch-up
+    late = _at(14, 14, 1)  # 11:00 + 181 min: past catch-up
     assert "agent-fetches.yml" not in [f for f, _ in dw.to_dispatch(s, late, never)]
-    assert dw.to_dispatch(s, _at(14, 12, 59), never) == []
+    assert dw.to_dispatch(s, _at(14, 10, 59), never) == []
 
 
 def test_a_workflow_that_already_did_real_work_is_not_dispatched():
@@ -110,12 +114,13 @@ def test_a_workflow_that_already_did_real_work_is_not_dispatched():
 
 
 def test_the_window_is_anchored_to_the_slot_not_rolling():
-    """#631 review, Parvathi: on a light night the agents end at 13:20 and the
-    model fetch follows at once; GitHub's 20:30 model schedule has arrived as
-    late as 02:48. A rolling 12 hours lets that second run through, after UTC
-    midnight, on the next day's budget. Anchored at 13:00, it stands down."""
+    """#631 review, Parvathi: on a light night the agents end 20 minutes after
+    their slot and the model fetch follows at once; GitHub's 20:30 model
+    schedule has arrived as late as 02:48. A rolling 12 hours lets that second
+    run through, after UTC midnight, on the next day's budget. Anchored at the
+    agent slot (11:00 since anooj's answer on the same review), it stands down."""
     model = _sched().entries["scheduled-fetches.yml"]
-    real_runs = [_at(14, 13, 20)]  # the model fetch the agent run started
+    real_runs = [_at(14, 11, 20)]  # the model fetch the agent run started
 
     def did_real_work(e, since):
         return any(t >= since for t in real_runs)
@@ -123,20 +128,20 @@ def test_the_window_is_anchored_to_the_slot_not_rolling():
     late_schedule = _at(15, 2, 48)
     run, why = dw.guard_decision(model, "schedule", late_schedule, did_real_work)
     assert run is False, why
-    assert "2026-11-14 13:00Z" in why
+    assert "2026-11-14 11:00Z" in why
 
     # ... and the NEXT day's agent-started model fetch still runs.
-    next_day = _at(15, 13, 25)
+    next_day = _at(15, 11, 25)
     trigger = (True, "agent-fetches.yml run 1 ran `fetch` (success)")
     assert dw.guard_decision(model, "workflow_run", next_day, did_real_work, trigger)[0] is True
 
 
 def test_the_fallback_slot_does_not_repeat_an_afternoon_model_fetch():
-    """The 21:00 fallback sees the 13:20 run, which a rolling 12 hours also did -
-    but a window anchored at 21:00 would not. The anchor is the agent slot."""
+    """The 19:00 fallback sees the 11:20 run, which a window anchored at 19:00
+    would not. The anchor is the agent slot."""
     s = _sched()
-    model_ran_at = _at(14, 13, 20)
-    due = dw.to_dispatch(s, _at(14, 21, 5), lambda e, since: model_ran_at >= since)
+    model_ran_at = _at(14, 11, 20)
+    due = dw.to_dispatch(s, _at(14, 19, 5), lambda e, since: model_ran_at >= since)
     assert "scheduled-fetches.yml" not in [f for f, _ in due]
 
 
@@ -190,7 +195,7 @@ def _job(conclusion):
 def test_a_morning_agent_test_does_not_start_the_model_fetch():
     """#631 review, Parvathi: the 2026-11-12 05:20Z agent run was a test started
     by hand with `max_models`; its completion must not start the full model
-    fetch - it would, and then the 21:00 fallback would start a second one."""
+    fetch - it would, and then the fallback slot would start a second one."""
     s = _sched()
     test_run = _finished("workflow_dispatch", "Agent fetches")
     ok, why = dw.trigger_verdict(s, test_run, _job("success"))
@@ -278,8 +283,8 @@ class _FakeGH:
 ENTRY = dw.Entry(
     "scheduled-fetches.yml",
     "fetch",
-    (21, 0),
-    (13, 0),
+    (19, 0),
+    (11, 0),
     frozenset({"schedule", "workflow_run"}),
     frozenset({"schedule", "workflow_run", "nightly_dispatch"}),
 )
@@ -324,7 +329,7 @@ def test_this_run_and_uncounted_events_are_ignored():
         "evidence-feed.yml",
         "fetch",
         None,
-        (13, 0),
+        (11, 0),
         frozenset({"workflow_run"}),
         frozenset({"workflow_run"}),
     )

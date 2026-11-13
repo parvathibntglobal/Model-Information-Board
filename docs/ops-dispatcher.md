@@ -4,8 +4,8 @@ GitHub's `schedule` trigger starts our workflows 3 to 10 hours late. This was me
 
 | Workflow | Starts |
 |---|---|
-| Agent fetch | 13:00 UTC |
-| Model fetch | When the agent fetch finishes, with 21:00 UTC as a fallback |
+| Agent fetch | 11:00 UTC |
+| Model fetch | When the agent fetch finishes, with 19:00 UTC as a fallback |
 | Topic harvest | 19:00 UTC |
 | Evidence feed | After the model fetch, as before |
 
@@ -14,7 +14,7 @@ GitHub's `schedule` trigger starts our workflows 3 to 10 hours late. This was me
 - **`python scripts/dispatch_workflows.py dispatch`** runs every 10 minutes on our cron. It starts a workflow when its time has passed (within `catch_up_minutes`), unless that workflow already did real work in its window. Running it more often than needed is harmless: it starts each slot once.
 - **`python scripts/dispatch_workflows.py guard --workflow <file>`** is the first job (`on-time`) of each of the four workflows. When GitHub's own late schedule fires, or a chained start arrives (`workflow_run`), the run ends without doing anything if the workflow already did real work. GitHub's schedule stays as a backup: if our cron is down, the late run still happens.
 
-**The window is the day since the slot, not the last N hours.** For the model fetch and the evidence feed, a "day" starts at 13:00 UTC, the agent slot. So once the model fetch has run after 13:00, nothing else starts it until 13:00 the next day, however late GitHub's schedule arrives.
+**The window is the day since the slot, not the last N hours.** For the model fetch and the evidence feed, a "day" starts at 11:00 UTC, the agent slot. So once the model fetch has run after 11:00, nothing else starts it until 11:00 the next day, however late GitHub's schedule arrives.
 
 **A test run is never the night's run.** The dispatcher starts each workflow with the input `slot: nightly`, and its run name then ends in "(nightly)". A run you start by hand from the Actions tab, with `slot` left empty, is a test:
 - it always runs;
@@ -55,6 +55,6 @@ Do not use a third-party cron website: it would hold a token that can start our 
 ## How to tell it's working
 
 - Each workflow run's first job, **on-time**, says either why it ran or why it stood down.
-- The next agent-fetch run should begin at about 13:00 UTC, named "Agent fetches (nightly)", with `workflow_dispatch` as its trigger.
+- The next agent-fetch run should begin at about 11:00 UTC, named "Agent fetches (nightly)", with `workflow_dispatch` as its trigger.
 - The model fetch should begin when the agent fetch ends, with `workflow_run` as its trigger.
 - GitHub's late `schedule` runs should end in about a minute, with their main job skipped.
