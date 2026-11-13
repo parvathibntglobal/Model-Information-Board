@@ -126,10 +126,12 @@ def test_the_evidence_blob_round_trips(conn):
     staleness check reads.
     """
     load_source_rows(conn)
-    row = _rows(conn)["blog:engineering.grab.com"]
+    # Was grab's row, until its 2026-11-13 re-measurement found a robots.txt.
+    # thorstenball.com is the other live 404 (test_source_terms.py says so too).
+    row = _rows(conn)["blog:thorstenball.com"]
 
-    assert row["terms_checked_on"] == REVIEWED_ON
-    assert row["terms_evidence"]["checked_on"] == "2026-08-14"
+    assert row["terms_checked_on"] == date(2026, 9, 21)
+    assert row["terms_evidence"]["checked_on"] == "2026-09-21"
     assert row["terms_evidence"]["robots_status"] == "no-rules"
     assert row["terms_evidence"]["robots_http"] == 404
 
