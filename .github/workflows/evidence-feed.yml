@@ -41,17 +41,17 @@ on:
 
 permissions:
   contents: read
-  actions: read      # the on-time guard lists this workflow's runs
+  actions: read      # the nightly guard lists this workflow's runs
 
 concurrency:
   group: evidence-feed
   cancel-in-progress: false
 
 jobs:
-  # ON TIME, ONCE (contract/dispatch_schedule.yaml, scripts/dispatch_workflows.py).
-  # Our own cron starts this workflow on time; GitHub's late `schedule` start (and,
-  # where listed, a chained start) stands down here if it already did real work.
-  on-time:
+  # ONCE A NIGHT, IN ORDER (contract/nightly_guard.yaml, scripts/nightly_guard.py).
+  # A `schedule` start (and, where listed, a chained `workflow_run` start) stands
+  # down here when this workflow already did real work tonight; see the contract.
+  guard:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -65,11 +65,11 @@ jobs:
       - id: guard
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/dispatch_workflows.py guard --workflow evidence-feed.yml
+        run: python scripts/nightly_guard.py --workflow evidence-feed.yml
 
   feed:
-    needs: on-time
-    if: needs.on-time.outputs.run == 'true'
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:

@@ -9,8 +9,8 @@
 # A WORKFLOW OF ITS OWN, not a step in scheduled-fetches.yml. A full harvest
 # took 550 seconds on 2026-10-26 (511 papers, 1,234 feed posts, 1,987 platform
 # items, measured as a dry run), and as a step it would come out of the model
-# fetch's time budget. Run separately it costs that job nothing. It runs an
-# hour and a half before the 20:30 fetch.
+# fetch's time budget. Run separately it costs that job nothing. It runs
+# independently of the agent and model fetches (contract/nightly_guard.yaml).
 #
 # Writes are to `topic_item` only: ON CONFLICT DO NOTHING, then a re-label of
 # stored items against today's topics. judge/writeguard refuses a remote write
@@ -18,7 +18,7 @@
 
 name: Topic harvest
 # "(nightly)" marks the night's run, so a test can be told from it
-# (contract/dispatch_schedule.yaml: `nightly_dispatch`).
+# (contract/nightly_guard.yaml: `nightly_dispatch`).
 run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflow) || github.workflow }}
 
 on:
@@ -27,23 +27,23 @@ on:
   workflow_dispatch:
     inputs:
       slot:
-        description: "Leave empty for a test. 'nightly' = this IS the night's run (the dispatcher sets it)"
+        description: "Leave empty for a test. 'nightly' = this run stands in for the night's run"
         required: false
         default: ""
 
 permissions:
   contents: read
-  actions: read      # the on-time guard lists this workflow's runs
+  actions: read      # the nightly guard lists this workflow's runs
 
 concurrency:
   group: topic-harvest
   cancel-in-progress: false
 
 jobs:
-  # ON TIME, ONCE (contract/dispatch_schedule.yaml, scripts/dispatch_workflows.py).
-  # Our own cron starts this workflow on time; GitHub's late `schedule` start (and,
-  # where listed, a chained start) stands down here if it already did real work.
-  on-time:
+  # ONCE A NIGHT, IN ORDER (contract/nightly_guard.yaml, scripts/nightly_guard.py).
+  # A `schedule` start (and, where listed, a chained `workflow_run` start) stands
+  # down here when this workflow already did real work tonight; see the contract.
+  guard:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -57,11 +57,11 @@ jobs:
       - id: guard
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/dispatch_workflows.py guard --workflow topic-harvest.yml
+        run: python scripts/nightly_guard.py --workflow topic-harvest.yml
 
   harvest:
-    needs: on-time
-    if: needs.on-time.outputs.run == 'true'
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:

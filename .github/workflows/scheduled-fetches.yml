@@ -50,23 +50,24 @@
 
 name: Scheduled fetches
 # "(nightly)" marks the night's run, so a test can be told from it
-# (contract/dispatch_schedule.yaml: `nightly_dispatch`).
+# (contract/nightly_guard.yaml: `nightly_dispatch`).
 run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflow) || github.workflow }}
 
 on:
   # Started when the agent fetch finishes, so the two never overlap
-  # (contract/dispatch_schedule.yaml); 19:00 UTC is our dispatcher's fallback.
+  # (contract/nightly_guard.yaml). The cron below is only the backup.
   workflow_run:
     workflows: ["Agent fetches"]
     types: [completed]
   schedule:
-    # 20:30 UTC = 02:00 IST, daily. GitHub may start a scheduled run late under
-    # load; nothing here depends on the minute.
-    - cron: "30 20 * * *"
+    # BACKUP, 16:00 UTC = 21:30 IST (anooj 2026-11-13, #631). GitHub starts it 3 to
+    # 10 hours late, after the agents have started (04:00 + up to 10 h). It stands
+    # down while an agent run is going or once the model fetch ran tonight.
+    - cron: "0 16 * * *"
   workflow_dispatch:
     inputs:
       slot:
-        description: "Leave empty for a test. 'nightly' = this IS the night's run (the dispatcher sets it)"
+        description: "Leave empty for a test. 'nightly' = this run stands in for the night's run"
         required: false
         default: ""
       max_models:
@@ -81,17 +82,17 @@ on:
 permissions:
   contents: read
   issues: write
-  actions: read      # the on-time guard lists this workflow's runs
+  actions: read      # the nightly guard lists this workflow's runs
 
 concurrency:
   group: scheduled-fetches
   cancel-in-progress: false
 
 jobs:
-  # ON TIME, ONCE (contract/dispatch_schedule.yaml, scripts/dispatch_workflows.py).
-  # Our own cron starts this workflow on time; GitHub's late `schedule` start (and,
-  # where listed, a chained start) stands down here if it already did real work.
-  on-time:
+  # ONCE A NIGHT, IN ORDER (contract/nightly_guard.yaml, scripts/nightly_guard.py).
+  # A `schedule` start (and, where listed, a chained `workflow_run` start) stands
+  # down here when this workflow already did real work tonight; see the contract.
+  guard:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -105,11 +106,11 @@ jobs:
       - id: guard
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/dispatch_workflows.py guard --workflow scheduled-fetches.yml
+        run: python scripts/nightly_guard.py --workflow scheduled-fetches.yml
 
   fetch:
-    needs: on-time
-    if: needs.on-time.outputs.run == 'true'
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 355
     env:
