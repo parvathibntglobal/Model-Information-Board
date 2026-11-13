@@ -49,14 +49,27 @@
 #              SCHEDULER_ENABLED=1 - last.
 
 name: Scheduled fetches
+# "(nightly)" marks the night's run, so a test can be told from it
+# (contract/nightly_guard.yaml: `nightly_dispatch`).
+run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflow) || github.workflow }}
 
 on:
+  # Started when the agent fetch finishes, so the two never overlap
+  # (contract/nightly_guard.yaml). The cron below is only the backup.
+  workflow_run:
+    workflows: ["Agent fetches"]
+    types: [completed]
   schedule:
-    # 20:30 UTC = 02:00 IST, daily. GitHub may start a scheduled run late under
-    # load; nothing here depends on the minute.
-    - cron: "30 20 * * *"
+    # BACKUP, 16:00 UTC = 21:30 IST (anooj 2026-11-13, #631). GitHub starts it 3 to
+    # 10 hours late, after the agents have started (04:00 + up to 10 h). It stands
+    # down while an agent run is going or once the model fetch ran tonight.
+    - cron: "0 16 * * *"
   workflow_dispatch:
     inputs:
+      slot:
+        description: "Leave empty for a test. 'nightly' = this run stands in for the night's run"
+        required: false
+        default: ""
       max_models:
         description: "Run at most this many due models (empty = all that fit)"
         required: false
@@ -69,13 +82,35 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: read      # the nightly guard lists this workflow's runs
 
 concurrency:
   group: scheduled-fetches
   cancel-in-progress: false
 
 jobs:
+  # ONCE A NIGHT, IN ORDER (contract/nightly_guard.yaml, scripts/nightly_guard.py).
+  # A `schedule` start (and, where listed, a chained `workflow_run` start) stands
+  # down here when this workflow already did real work tonight; see the contract.
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml
+      - id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/nightly_guard.py --workflow scheduled-fetches.yml
+
   fetch:
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 355
     env:

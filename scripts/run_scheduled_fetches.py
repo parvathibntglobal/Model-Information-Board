@@ -416,8 +416,8 @@ def main(argv: list[str] | None = None) -> int:
         # THE CEILING HOLDS INSIDE A FETCH TOO (#618 review, Parvathi). Checked only
         # before each launch, it let one fetch run past it to the team-wide daily
         # cap - and an agent's FIRST fetch reads its whole backlog (Claude Code's
-        # is the largest), so one 15:00 fetch could spend what the 20:30 model
-        # fetch needs. The child's own cap is lowered to where this run's ceiling
+        # is the largest), so one agent fetch could spend what the model fetch
+        # after it needs. The child's own cap is lowered to where this run's ceiling
         # falls on today's ledger, never above the daily cap. The model run's
         # children keep the daily cap exactly as before.
         budget_usd = None

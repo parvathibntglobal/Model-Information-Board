@@ -9,29 +9,59 @@
 # A WORKFLOW OF ITS OWN, not a step in scheduled-fetches.yml. A full harvest
 # took 550 seconds on 2026-10-26 (511 papers, 1,234 feed posts, 1,987 platform
 # items, measured as a dry run), and as a step it would come out of the model
-# fetch's time budget. Run separately it costs that job nothing. It runs an
-# hour and a half before the 20:30 fetch.
+# fetch's time budget. Run separately it costs that job nothing. It runs
+# independently of the agent and model fetches (contract/nightly_guard.yaml).
 #
 # Writes are to `topic_item` only: ON CONFLICT DO NOTHING, then a re-label of
 # stored items against today's topics. judge/writeguard refuses a remote write
 # unless ENVIRONMENT=staging, which is why it is set here, on purpose.
 
 name: Topic harvest
+# "(nightly)" marks the night's run, so a test can be told from it
+# (contract/nightly_guard.yaml: `nightly_dispatch`).
+run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflow) || github.workflow }}
 
 on:
   schedule:
     - cron: "0 19 * * *"
   workflow_dispatch:
+    inputs:
+      slot:
+        description: "Leave empty for a test. 'nightly' = this run stands in for the night's run"
+        required: false
+        default: ""
 
 permissions:
   contents: read
+  actions: read      # the nightly guard lists this workflow's runs
 
 concurrency:
   group: topic-harvest
   cancel-in-progress: false
 
 jobs:
+  # ONCE A NIGHT, IN ORDER (contract/nightly_guard.yaml, scripts/nightly_guard.py).
+  # A `schedule` start (and, where listed, a chained `workflow_run` start) stands
+  # down here when this workflow already did real work tonight; see the contract.
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml
+      - id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/nightly_guard.py --workflow topic-harvest.yml
+
   harvest:
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:

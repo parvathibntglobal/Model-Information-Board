@@ -3,13 +3,15 @@
 #
 # Fetches the agents in contract/tracked_agents.yaml (Muse, Dots, Duet, ...) with
 # scripts/run_scheduled_fetches.py --list agents. The model fetch
-# (scheduled-fetches.yml, 20:30 UTC) never reads that list, and this never reads
-# tracked_models.yaml, so the two cannot mix.
+# (scheduled-fetches.yml, which follows this one) never reads that list, and this
+# never reads tracked_models.yaml, so the two cannot mix.
 #
-# WHEN: 15:00 UTC, a free slot. Test B (local database, 2026-11-09) took 6 to 21
-# minutes per agent on a first fetch, so ten agents fit well before the 17:23 job
-# and long before the 20:30 model fetch. Its own concurrency group: neither
-# workflow queues behind or cancels the other.
+# WHEN: cron 04:00 UTC (anooj 2026-11-13, #631; was 15:00). GitHub starts
+# scheduled runs hours late: this one 374 to 408 minutes on its 3 measured runs,
+# our workflows 3.5 to 10 hours (2026-11-13, contract/nightly_guard.yaml). So it
+# usually lands near 10:00-11:00 UTC. The model fetch starts when this one
+# finishes (its `workflow_run`), so agents, then models, usually end inside one
+# UTC day - the day the extraction cap counts. Its own concurrency group.
 #
 # SPEND: the extraction cap (EXTRACTION_DAILY_BUDGET_USD) is ONE team-wide daily
 # figure, shared with the model fetch later the same UTC day. The run therefore
@@ -21,12 +23,19 @@
 # repo variable AGENT_SCHEDULER_ISSUE - required, never defaulted to the model
 # fetch's issue, so the two summaries stay apart.
 name: Agent fetches
+# "(nightly)" marks the night's run, so a test can be told from it
+# (contract/nightly_guard.yaml: `nightly_dispatch`).
+run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflow) || github.workflow }}
 
 on:
   schedule:
-    - cron: "0 15 * * *"
+    - cron: "0 4 * * *"
   workflow_dispatch:
     inputs:
+      slot:
+        description: "Leave empty for a test. 'nightly' = this run stands in for the night's run"
+        required: false
+        default: ""
       max_models:
         description: "Run at most this many due agents (empty = all that fit)"
         required: false
@@ -39,13 +48,35 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: read      # the nightly guard lists this workflow's runs
 
 concurrency:
   group: agent-fetches
   cancel-in-progress: false
 
 jobs:
+  # ONCE A NIGHT, IN ORDER (contract/nightly_guard.yaml, scripts/nightly_guard.py).
+  # A `schedule` start (and, where listed, a chained `workflow_run` start) stands
+  # down here when this workflow already did real work tonight; see the contract.
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml
+      - id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/nightly_guard.py --workflow agent-fetches.yml
+
   fetch:
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 200
     env:
