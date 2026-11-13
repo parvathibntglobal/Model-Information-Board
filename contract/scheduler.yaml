@@ -59,9 +59,12 @@ extraction_window_days: 14
 #:
 #: THE CAP CAN BE PASSED BY AT MOST (this - 1) CALLS. `check_before_call` runs
 #: before each call is SENT, and a call's cost is known only when it returns, so
-#: up to this many can be paid for after the last check. At about $0.0005 per
-#: thread (2026-11-12, 6 agent first fetches, 69-90 threads each, $0.035-0.046
-#: per fetch) that is about $0.0015 at 4 - stated, not hidden.
+#: up to (this - 1) more can be paid for after the last check. Per call, as
+#: measured by Parvathi on the #632 review over the 2,984 `extract` rows in
+#: spend_ledger since 2026-11-06: median $0.0017, 95th percentile $0.0031, max
+#: $0.0069. So at 4 the overshoot is typically about $0.005 and at most about
+#: $0.02 - stated, not hidden. (Was "$0.0005 per thread", from 6 agent first
+#: fetches: a per-thread average, not a per-call cost, and too low.)
 #:
 #: Required, a positive integer; a missing or bad value refuses (rule 12).
 extract_concurrency: 4
