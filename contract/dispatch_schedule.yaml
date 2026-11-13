@@ -1,0 +1,70 @@
+# WHEN THE DAILY WORKFLOWS START, ON TIME (2026-11-13, anooj; for review).
+#
+# WHY THIS EXISTS. GitHub's `schedule` trigger is best-effort and starts late under
+# load. Measured 2026-11-13 over each workflow's last scheduled runs (up to 14):
+#   agent fetch     cron 15:00, started 374-408 min late (3 runs)
+#   model fetch     cron 20:30, started 179-378 min late (14 runs)
+#   topic harvest   cron 19:00, started 186-409 min late (14 runs)
+#   registry poll, merged-PRs check, evidence feed, benchmarks: 3.5 to 10 hours.
+# Odd minutes (:17, :23, :41) were as late as the hour, so moving the crons does
+# not help. A `workflow_dispatch` start is not delayed (the 2026-11-12 05:20Z
+# agent run began at once).
+#
+# HOW IT IS USED (docs/ops-dispatcher.md):
+#   scripts/dispatch_workflows.py dispatch   run every 10 minutes by a cron we host
+#       (not GitHub's). It starts each workflow below once its `dispatch_at_utc`
+#       has passed (within `catch_up_minutes`), unless the workflow already did
+#       real work within `skip_if_ran_within_hours`.
+#   scripts/dispatch_workflows.py guard      the first job of each workflow below.
+#       For a trigger listed in `guard_events`, the run ends without doing
+#       anything if the workflow already did real work within the same window.
+#       GitHub's late `schedule` runs stay as a backup and stand down this way.
+#
+# "REAL WORK" is a run, started by one of `counts_events`, whose `job` (the
+# workflow's main job) did not end skipped. A run the guard itself stood down
+# does not count, so a duplicate can never hold off the next real run.
+# `counts_events` is per workflow because the evidence feed's weekly Monday run
+# (`schedule`) is a different job from its nightly one (`workflow_run`) and
+# must not hold the nightly off. A hand-started run (`workflow_dispatch`) counts
+# where listed: a test run started by hand at 10:00 holds off a 13:00 slot.
+#
+# ORDER. The agent fetch starts at 13:00. The model fetch starts when it finishes
+# (its `workflow_run` trigger; agents take up to about 6 hours), with 21:00 as
+# the fallback if that did not happen. The two share one daily extraction budget
+# and no longer overlap. The evidence feed already follows the model fetch
+# (`workflow_run`, any conclusion); its guard stops a stood-down model run from
+# starting it a second time.
+#
+# Every key required; a missing or malformed one raises (rule 12).
+# `dispatch_at_utc: null` means never dispatched (the workflow follows another).
+version: 1
+catch_up_minutes: 180
+
+workflows:
+  agent-fetches.yml:
+    job: fetch
+    dispatch_at_utc: "13:00"
+    skip_if_ran_within_hours: 12
+    guard_events: [schedule]
+    counts_events: [schedule, workflow_dispatch]
+
+  scheduled-fetches.yml:
+    job: fetch
+    dispatch_at_utc: "21:00"
+    skip_if_ran_within_hours: 12
+    guard_events: [schedule, workflow_run]
+    counts_events: [schedule, workflow_dispatch, workflow_run]
+
+  topic-harvest.yml:
+    job: harvest
+    dispatch_at_utc: "19:00"
+    skip_if_ran_within_hours: 12
+    guard_events: [schedule]
+    counts_events: [schedule, workflow_dispatch]
+
+  evidence-feed.yml:
+    job: feed
+    dispatch_at_utc: null
+    skip_if_ran_within_hours: 12
+    guard_events: [workflow_run]
+    counts_events: [workflow_run]

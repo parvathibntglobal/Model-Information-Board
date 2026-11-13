@@ -39,13 +39,35 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: read      # the on-time guard lists this workflow's runs
 
 concurrency:
   group: agent-fetches
   cancel-in-progress: false
 
 jobs:
+  # ON TIME, ONCE (contract/dispatch_schedule.yaml, scripts/dispatch_workflows.py).
+  # Our own cron starts this workflow on time; GitHub's late `schedule` start (and,
+  # where listed, a chained start) stands down here if it already did real work.
+  on-time:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml
+      - id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/dispatch_workflows.py guard --workflow agent-fetches.yml
+
   fetch:
+    needs: on-time
+    if: needs.on-time.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 200
     env:

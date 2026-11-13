@@ -51,6 +51,11 @@
 name: Scheduled fetches
 
 on:
+  # Started when the agent fetch finishes, so the two never overlap
+  # (contract/dispatch_schedule.yaml); 21:00 UTC is our dispatcher's fallback.
+  workflow_run:
+    workflows: ["Agent fetches"]
+    types: [completed]
   schedule:
     # 20:30 UTC = 02:00 IST, daily. GitHub may start a scheduled run late under
     # load; nothing here depends on the minute.
@@ -69,13 +74,35 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: read      # the on-time guard lists this workflow's runs
 
 concurrency:
   group: scheduled-fetches
   cancel-in-progress: false
 
 jobs:
+  # ON TIME, ONCE (contract/dispatch_schedule.yaml, scripts/dispatch_workflows.py).
+  # Our own cron starts this workflow on time; GitHub's late `schedule` start (and,
+  # where listed, a chained start) stands down here if it already did real work.
+  on-time:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml
+      - id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/dispatch_workflows.py guard --workflow scheduled-fetches.yml
+
   fetch:
+    needs: on-time
+    if: needs.on-time.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 355
     env:
