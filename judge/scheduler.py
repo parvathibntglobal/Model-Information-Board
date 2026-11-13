@@ -80,6 +80,21 @@ def policy() -> Policy:
     return Policy(**values)
 
 
+@lru_cache(maxsize=1)
+def extract_concurrency() -> int:
+    """contract/scheduler.yaml `extract_concurrency`: model calls in flight at
+    once in E5. Read apart from `policy()` so the Policy shape is unchanged.
+    Required, a positive integer; no default in code (rule 12)."""
+    from judge.config import _read
+
+    v = (_read("scheduler.yaml") or {}).get("extract_concurrency")
+    if not isinstance(v, int) or isinstance(v, bool) or v < 1:
+        raise SchedulerPolicyError(
+            f"contract/scheduler.yaml `extract_concurrency` must be a positive integer, not {v!r}"
+        )
+    return v
+
+
 @dataclass(frozen=True)
 class DueModel:
     model_version_id: str
