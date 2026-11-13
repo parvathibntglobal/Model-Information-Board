@@ -31,6 +31,8 @@
 #   judge/publication.py        the one loader; every public read goes through it
 #   generate_sample_blogs.py    reads `derived_posts` to decide whether a blog
 #                               draft may draw on a withheld source
+#   judge/assistants.py         reads `assistants_page` (agreed 2026-11-12, #625) for the
+#                               public AI assistants page
 #
 # ABSENT IS NOT PERMISSIVE (rule 6, rule 12). A missing file, a missing key or
 # an empty list raises - it never silently publishes everything.
@@ -161,6 +163,54 @@ evidence_feed:
   held:
     - bluesky
 
+assistants_page:
+  # AGREED 2026-11-12 by parvathi and anooj on #625 (the public AI assistants
+  #   page, /ai-assistants/<id>): "approved as proposed, verbatim quote +
+  #   platform credit + https link". Proposed by anooj the same day, asked for
+  #   in Parvathi's #625 review: the page is a drill-down from a count to its
+  #   reports, like the feed, but it shows VERBATIM quotes, which is the
+  #   `derived_posts` form, not the feed's paraphrase-only rule, so the page
+  #   needed a rule of its own.
+  #
+  # WHAT THE PAGE SHOWS under each job and problem, per report (judge/
+  # assistants.py `_treatment` and `_support`, which read this block):
+  #   - a source in `held`: nothing - no text, no embed, no link. Counted.
+  #   - a source in `embed_only`: the platform's official embed only, loaded
+  #     when the reader asks. No text, link, handle or subreddit typed by us.
+  #   - a source in `withheld_from_public` and not in `embed_only` (arXiv, and a
+  #     report with no recorded source): nothing. Counted.
+  #   - every other source: the verified quote, exactly as stored, with its
+  #     platform credit and an https link to it - all three or none. A quote
+  #     whose source has no https link is NOT shown; it is counted as "no link
+  #     to the original" (#625 review: text without its link is the
+  #     undertaking's second `voided_by` case).
+  #   Every count above the reports includes every source (`withheld_from_public.
+  #   totals_include_withheld`), and the page says how many it does not show and
+  #   why, in words (rule 4).
+  #
+  # LIKE THE FEED, IT OVERRIDES "NO PER-PLATFORM COUNT" for this page only: each
+  # report names its platform, so a reader could count one platform's reports
+  # for an assistant. The page prints no such count.
+  #
+  # A SECOND PUBLIC PATH THAT QUOTES, so the voice-cloning rule below covers
+  # this page as well as blog posts (widened in the same change, #625).
+  #
+  # quote_form: `quote_with_credit_and_link` is the only form the page renders.
+  #   A ruling for paraphrase-only changes the code; the loader refuses any
+  #   other value rather than falling back to quotes (rule 12).
+  # embed_only: must be a subset of `evidence_feed.embed_only`, because the
+  #   page cites through the feed's `cite_source`; the loader checks it.
+  # Every key required; absent raises (rule 6).
+  status: agreed
+  agreed_on: 2026-11-12
+  agreed_by: [parvathi, anooj]
+  quote_form: quote_with_credit_and_link
+  embed_only:
+    - reddit
+    - x
+  held:
+    - bluesky
+
 credits:
   # ARXIV'S ACKNOWLEDGEMENT, as its API terms ask (2026-10-19, review of #535).
   # Attached at SERVE time to every post whose sources include an arXiv paper
@@ -169,28 +219,38 @@ credits:
   # Required: absent or empty raises (rule 12).
   arxiv_acknowledgement: "Thank you to arXiv for use of its open access interoperability."
 
-# ── VOICE CLONING: NO REAL PERSON NAMED IN A BLOG POST ──────────────────────
+# ── VOICE CLONING: NO REAL PERSON NAMED ON A PUBLIC PAGE THAT QUOTES ────────
 # AGREED 2026-11-06 by parvathi and anooj on #602, between the two of us: it
-# only narrows what a blog post publishes, so it did not need the MD.
+# only narrows what we publish, so it did not need the MD. WIDENED 2026-11-12 by
+# both on #625, from blog posts alone to every public path that quotes or embeds
+# evidence (was `voice_cloning_in_blog_posts`).
 #
 # WHY HERE. The board is behind login and the Reports pages are counts only,
 # so a voice-cloning report is kept and COUNTED (positive / negative / neutral)
-# like any other. The blog generator is the one public path that quotes or
-# embeds evidence (`derived_posts` above), so this is where the rule lives.
+# like any other. TWO public paths quote or embed evidence: the blog generator
+# (`derived_posts` above) and the AI assistants page (`assistants_page` above,
+# since #625). The rule covers both.
 #
-# THE RULE: a blog post never names a real person whose voice was cloned, and
-# never quotes or embeds a post that does. Our own words are fine ("users report
-# it clones a voice from a short sample"). It is not a blog topic on its own.
+# THE RULE: a blog post or the AI assistants page never names a real person
+# whose voice was cloned, and never quotes or embeds a post that does. Our own
+# words are fine ("users report it clones a voice from a short sample"). It is
+# not a blog topic on its own.
 #
-# NOT ENFORCED IN CODE YET, AND THAT IS STATED: the generator check follows
-# when speech evidence arrives in volume (on 2026-11-06 the shared DB held no
-# quote about voice cloning at all). Until then this record is the rule the
-# check will point at. Nothing reads this block yet.
-voice_cloning_in_blog_posts:
+# NOT ENFORCED IN CODE YET, AND THAT IS STATED: both paths need the check when
+# speech evidence arrives in volume. Measured read-only on 2026-11-12 (12:00Z,
+# Parvathi): no board or held entry names a real person whose voice was cloned;
+# two entries describe voice cloning as a product feature (Gemini 3.8 Flash,
+# from a blog and dev.to), and neither is on the assistants page. Until the
+# check exists this record is the rule it will point at. Nothing reads this
+# block yet.
+voice_cloning_on_public_pages:
   agreed_on: 2026-11-06
   agreed_by: [parvathi, anooj]
+  widened_on: 2026-11-12
+  widened_by: [parvathi, anooj]
+  applies_to: [blog_posts, assistants_page]
   rule: >-
-    A blog post never names a real person whose voice was cloned, and never
-    quotes or embeds a post that does. Our own words are allowed; it is not a
-    blog topic on its own.
-  enforced_by: null    # the generator check, when speech evidence arrives in volume
+    A blog post or the AI assistants page never names a real person whose voice
+    was cloned, and never quotes or embeds a post that does. Our own words are
+    allowed; it is not a blog topic on its own.
+  enforced_by: null    # both paths need the check, when speech evidence arrives in volume
