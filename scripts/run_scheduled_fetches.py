@@ -143,6 +143,8 @@ def due_rows(conn, which: str = "models") -> list[dict]:
             "tracked": True,
             "in_window": bool(in_window),
             "last_success": last.get(mv_id),
+            # The agent run's turn-taking reads it; a model has none.
+            **({"group": m.group} if which == "agents" else {}),
         })
     return rows
 
@@ -308,12 +310,20 @@ def main(argv: list[str] | None = None) -> int:
     missing = [r for r in rows if r.get("registry_row_missing")]
     rows = [r for r in rows if not r.get("registry_row_missing")]
     due = scheduler.rank_due(rows, datetime.now(UTC))
+    group_of = {}
+    if args.list == "agents":
+        # THE GROUPS TAKE TURNS (tracked_agents.yaml `run.group_turns`), so the
+        # deadline, the ceiling or --max-models cannot fall on one group alone.
+        # Before `--max-models`, which then keeps a share of every group.
+        group_of = {r["model_version_id"]: r["group"] for r in rows}
+        due = scheduler.take_turns(due, group_of, rule.group_turns)
     if args.max_models is not None:
         due = due[: args.max_models]
 
     print(f"due: {len(due)} model(s)")
     for d in due:
-        print(f"  {d.display_name}  [{d.reason}, cap {d.thread_cap}]")
+        group = f", {group_of[d.model_version_id]}" if group_of else ""
+        print(f"  {d.display_name}  [{d.reason}, cap {d.thread_cap}{group}]")
     for m in missing:
         print(f"  not due: {m['display_name']} is tracked as {m['registry']}, "
               "and no registry row has that id")

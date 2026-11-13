@@ -702,6 +702,8 @@ class TrackedAgent:
     #: The agent's own subreddits, lower-cased: a post there counts as naming it
     #: for the comment-reading check. Empty means none known.
     subreddits: frozenset[str]
+    #: Which of `run.group_turns` it takes its turn in.
+    group: str
     kind: str = "agent"
 
 
@@ -709,6 +711,8 @@ class TrackedAgent:
 class AgentRunRule:
     enabled: bool
     run_spend_ceiling_usd: float
+    #: The order the groups take turns in, one due agent each per round.
+    group_turns: tuple[str, ...]
 
 
 @lru_cache(maxsize=1)
@@ -731,21 +735,40 @@ def agent_run_rule() -> AgentRunRule:
     if isinstance(ceiling, bool) or not isinstance(ceiling, (int, float)) or ceiling <= 0:
         raise AgentConfigError(
             f"`run.run_spend_ceiling_usd` must be a positive number, not {ceiling!r}")
-    return AgentRunRule(enabled=enabled, run_spend_ceiling_usd=float(ceiling))
+    turns = run.get("group_turns")
+    if (not isinstance(turns, list) or not turns
+            or not all(isinstance(g, str) and g.strip() for g in turns)):
+        raise AgentConfigError(
+            f"`run.group_turns` must be a non-empty list of group names, not {turns!r}")
+    turns = [g.strip() for g in turns]
+    if len(set(turns)) != len(turns):
+        raise AgentConfigError(f"`run.group_turns` names a group twice: {turns!r}")
+    return AgentRunRule(enabled=enabled, run_spend_ceiling_usd=float(ceiling),
+                        group_turns=tuple(turns))
 
 
 @lru_cache(maxsize=1)
 def tracked_agents() -> tuple[TrackedAgent, ...]:
-    """The agents the agent fetch searches for, in the file's order."""
+    """The agents the agent fetch searches for, in the file's order.
+
+    Each names its `group`, which must be one of `run.group_turns`; a group
+    there with no agent is refused too, so a renamed group cannot leave a stale
+    name taking empty turns.
+    """
     agents = _agents_raw().get("agents")
     if not isinstance(agents, list) or not agents:
         raise AgentConfigError("contract/tracked_agents.yaml `agents` must be a non-empty list")
+    turns = agent_run_rule().group_turns
     out, seen = [], set()
     for i, e in enumerate(agents):
         where = f"agents[{i}]"
-        for key in ("name", "registry", "search_terms", "subreddits"):
+        for key in ("name", "registry", "search_terms", "subreddits", "group"):
             if key not in e:
-                raise AgentConfigError(f"{where}: `{key}` is required ([] for none)")
+                none = " ([] for none)" if key in ("search_terms", "subreddits") else ""
+                raise AgentConfigError(f"{where}: `{key}` is required{none}")
+        if e["group"] not in turns:
+            raise AgentConfigError(
+                f"{where}: `group` {e['group']!r} is not one of `run.group_turns` {list(turns)}")
         if not isinstance(e["name"], str) or not e["name"].strip():
             raise AgentConfigError(f"{where}: `name` must be a non-empty string")
         if not isinstance(e["registry"], str) or "/" not in e["registry"]:
@@ -763,7 +786,11 @@ def tracked_agents() -> tuple[TrackedAgent, ...]:
             name=e["name"].strip(), registry=e["registry"],
             search_terms=tuple(t.strip().lower() for t in e["search_terms"]),
             subreddits=frozenset(s.strip().lower() for s in e["subreddits"]),
+            group=e["group"],
         ))
+    empty = [g for g in turns if g not in {a.group for a in out}]
+    if empty:
+        raise AgentConfigError(f"`run.group_turns` names group(s) no agent is in: {empty}")
     return tuple(out)
 
 
@@ -852,3 +879,69 @@ def slug_parents() -> dict[str, dict[str, str]]:
             )
         out[str(section)] = mapping
     return out
+
+
+@lru_cache(maxsize=1)
+def assistant_groups() -> dict:
+    """`contract/assistant_groups.yaml` -> the AI assistants page's grouping.
+
+    {"groups": [{key, title, what, members: [canonical id], compare:
+    [{kind: 'job'|'capability', slug}]}], "tags": {canonical id: [key]},
+    "tag_labels": {key: text}}. PROPOSED (2026-11-12). No defaults (rule 12): a
+    missing key, a member in two groups, a compare slug the board vocabulary
+    does not hold or a tag with no label raises, because a page built from a
+    half-read grouping would file an assistant under the wrong heading.
+    """
+    raw = _read("assistant_groups.yaml") or {}
+    where = "contract/assistant_groups.yaml"
+    sections = {"job": "best_for", "capability": "capability"}
+    vocab = board_vocabulary()
+    known = {
+        (kind, it["slug"])
+        for kind, section in sections.items()
+        for items in (vocab.get(section) or {}).values()
+        for it in items
+    }
+    groups, seen = [], {}
+    raw_groups = raw.get("groups")
+    if not isinstance(raw_groups, list) or not raw_groups:
+        raise ValueError(f"{where}: `groups` must be a non-empty list")
+    for g in raw_groups:
+        for field in ("key", "title", "what", "members", "compare"):
+            if not g.get(field):
+                raise ValueError(f"{where}: group {g.get('key')!r} has no `{field}`")
+        members = [str(m) for m in g["members"]]
+        for m in members:
+            if m in seen:
+                raise ValueError(f"{where}: {m!r} is in both {seen[m]!r} and {g['key']!r}")
+            seen[m] = g["key"]
+        compare = []
+        for row in g["compare"]:
+            kind, slug = row.get("kind"), row.get("slug")
+            if (kind, slug) not in known:
+                raise ValueError(
+                    f"{where}: compare row {kind}/{slug} is not in board_vocabulary.yaml "
+                    "(kind must be `job` or `capability`)"
+                )
+            compare.append({"kind": kind, "slug": slug})
+        groups.append({"key": str(g["key"]), "title": str(g["title"]), "what": str(g["what"]),
+                       "members": members, "compare": compare})
+    labels = {str(k): str(v) for k, v in (raw.get("tag_labels") or {}).items()}
+    tags = {}
+    for cid, keys in (raw.get("tags") or {}).items():
+        if cid not in seen:
+            raise ValueError(f"{where}: tag on {cid!r}, which is in no group")
+        for k in keys:
+            if k not in labels:
+                raise ValueError(f"{where}: tag {k!r} has no entry in `tag_labels`")
+        tags[str(cid)] = [str(k) for k in keys]
+    return {"groups": groups, "tags": tags, "tag_labels": labels}
+
+
+@lru_cache(maxsize=1)
+def agent_canonical_ids() -> tuple[str, ...]:
+    """The canonical id of every agent in `contract/agent_models.yaml`."""
+    rows = (_read("agent_models.yaml") or {}).get("models")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("contract/agent_models.yaml has no `models` list")
+    return tuple(str(r["canonical_id"]) for r in rows)

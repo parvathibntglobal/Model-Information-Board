@@ -2486,6 +2486,42 @@ def reports_page() -> dict:
         return reports_view(conn)
 
 
+@app.get("/assistants")
+def assistants_page() -> dict:
+    """The AI assistants page (PROPOSED, public): the grouping in
+    contract/assistant_groups.yaml, each assistant the registry holds as a card
+    of COUNTS, and a per-group comparison table. Counted over the PUBLIC view; the
+    list carries no quotes (each assistant's own page does). See
+    `judge/assistants.py`."""
+    from judge.assistants import assistants_view
+
+    with _conn() as conn:
+        view = assistants_view(conn)
+    return {"groups": view["groups"], "unclassified": view["unclassified"],
+            "unit_note": view["unit_note"]}
+
+
+@app.get("/assistants/{ident:path}")
+def assistant_page(ident: str) -> dict:
+    """One assistant (canonical id or registry id): counts, and under each job
+    and problem the reports behind them by the publication rules - a verified
+    quote with platform and link, Reddit and X only as embed ids, withheld
+    sources counted and never shown. 404 for an id that is not an assistant in
+    the grouping file. See `judge/assistants.py`."""
+    from judge.assistants import assistant_detail
+
+    with _conn() as conn:
+        d = assistant_detail(conn, ident)
+    if d is None:
+        raise HTTPException(status_code=404, detail=f"{ident} is not an AI assistant on this page")
+    return {"assistant": d["assistant"], "group": d["group"], "tags": d["tags"],
+            "freshness": d["freshness"], "state": d["state"], "evidence": d["evidence"],
+            "best_for": d["best_for"], "problems": d["problems"],
+            "problems_min_people": d["problems_min_people"],
+            "capabilities": d["capabilities"], "guides": d["guides"],
+            "guides_note": d["guides_note"], "quotes_note": d["quotes_note"]}
+
+
 @app.get("/model-catalog")
 def model_catalog() -> dict:
     """The Models pages: OpenRouter's whole list by provider and by type, the

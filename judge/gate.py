@@ -168,10 +168,20 @@ PUBLIC_READ_PATHS = frozenset({
     # from sources a public page may show, as judge/verdict.py documents.
     "/verdict",
     "/verdict/week",
+    # 2026-11-12 (PROPOSED, anooj, feat/ai-assistants-page): the AI assistants
+    # page (judge/assistants.py) - COUNTS of people and reports from every
+    # source, per assistant and per comparison row; no quote, link, handle or
+    # platform name on this list endpoint. The detail (/assistants/<id>, in
+    # PUBLIC_READ_PREFIXES) adds the reports under the publication rules.
+    "/assistants",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.
-PUBLIC_READ_PREFIXES = ("/model-catalog/", "/glossary-terms/")
+#: /assistants/<canonical id> (2026-11-12, PROPOSED): one assistant's counts and
+#: the reports behind them under the publication rules - a verified quote only
+#: for a source the contract does not withhold, Reddit / X as embed ids, no text
+#: from any withheld source (judge/assistants.py `_treatment`).
+PUBLIC_READ_PREFIXES = ("/model-catalog/", "/glossary-terms/", "/assistants/")
 
 #: THE ONE PUBLIC WRITE (2026-10-20, Parvathi): a reader posting to the
 #: Discussions page. POST only, rate-limited per address (rate_limit_discussion),

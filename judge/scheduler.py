@@ -131,6 +131,31 @@ def rank_due(
     return due
 
 
+def take_turns(due: list[DueModel], group_of: dict[str, str],
+               turns: tuple[str, ...]) -> list[DueModel]:
+    """`due` reordered so the groups take turns: one from each, in `turns` order.
+
+    Within a group, `due`'s own order is kept, so it is still first fetches and
+    then the longest-stale. A group with nothing due is passed over, never waited
+    on. Nothing is added or dropped: the result is a permutation of `due`.
+
+    ⚠ AN AGENT WITH NO GROUP RAISES (rule 12). Dropping it would stop its fetch
+      in silence, and putting it last would give it a turn nobody chose.
+    """
+    queues: dict[str, list[DueModel]] = {g: [] for g in turns}
+    for d in due:
+        g = group_of.get(d.model_version_id)
+        if g not in queues:
+            raise ValueError(f"{d.display_name} has group {g!r}, not one of {list(turns)}")
+        queues[g].append(d)
+    out: list[DueModel] = []
+    while any(queues.values()):
+        for g in turns:
+            if queues[g]:
+                out.append(queues[g].pop(0))
+    return out
+
+
 #: End-record fields that carry NO host, quote or author - safe for a public
 #: issue. `detail` is deliberately NOT here: a write-guard refusal's detail names
 #: the database host, so the summary is built from structured fields only.
@@ -141,7 +166,65 @@ _SAFE_FIELDS = (
     # E6, counted (#608 review): counts only, no host. Without them a run that
     # sent every document back to `unvetted` looks like any other night.
     "e6_rejected", "e6_unvetted",
+    # True / false: which window the run's thread scan used, so the unreadable
+    # count can be said per window (#628 review). A flag, no host.
+    "first_fetch",
 )
+
+
+#: The summary's one line for `threads_unreadable_here`; Admin -> Scheduler
+#: (`scheduler_status.parse_unreadable`) finds it by this prefix.
+UNREADABLE_LINE = "Unread threads this runner could not open, in the window each run scans:"
+
+
+def _unreadable_line(records: list[dict]) -> str | None:
+    """The night's `threads_unreadable_here`, said once and PER WINDOW.
+
+    WHAT IT COUNTS (#628 review, measured 2026-11-12). fetch_model scans every
+    unread thread in the run's window for the model's names, and counts those
+    the runner cannot open (their text is on another machine). It is nobody's
+    per-model figure. The window is what moves it:
+
+        first fetch   no window - every unread thread ever stored
+        refresh       threads with a post in the last `extraction_window_days`
+
+    On 2026-11-12 the model runner's first run (Gemini 4 Carbon, a first fetch)
+    reported 1,323 and its eleven refreshes 0, while the agent runner's six
+    first fetches reported 1,323 each through 08:14Z: the old threads were not
+    cleared, the refreshes never looked at them. A range across the two windows
+    would have read as drift and hidden that.
+
+    A run with no `first_fetch` (an older runner) is said as window not
+    recorded. No run reported it: no line, never a 0 (rule 6).
+    """
+    groups: dict[str, list[int]] = {}
+    for r in records:
+        n = r.get("threads_unreadable_here")
+        if not isinstance(n, int):
+            continue
+        key = {True: "first", False: "refresh"}.get(r.get("first_fetch"), "unknown")
+        groups.setdefault(key, []).append(n)
+    if not groups:
+        return None
+
+    def figure(ns: list[int]) -> str:
+        low, high = min(ns), max(ns)
+        span = f"{low:,}" if low == high else f"{low:,} to {high:,}"
+        return f"{span} ({len(ns)} run{'s' if len(ns) != 1 else ''})"
+
+    parts = []
+    if "first" in groups:
+        parts.append(f"first fetches, which scan every unread thread ever stored: "
+                     f"{figure(groups['first'])}")
+    if "refresh" in groups:
+        days = policy().extraction_window_days
+        parts.append(f"refreshes, which scan threads with a post in the last {days} days: "
+                     f"{figure(groups['refresh'])}")
+    if "unknown" in groups:
+        parts.append(f"window not recorded: {figure(groups['unknown'])}")
+    return (f"{UNREADABLE_LINE} {'; '.join(parts)}. These are not any one model's "
+            "threads: a thread that cannot be opened cannot be checked for a model's "
+            "name. They explain a low `Threads read`.")
 
 
 def summarise_runs(records: list[dict]) -> str:
@@ -156,9 +239,9 @@ def summarise_runs(records: list[dict]) -> str:
     lines = [f"**Scheduled fetch: {len(records)} model(s).** "
              "Counts only; no quotes, authors or hosts.", "",
              "| Model | Outcome | Docs appended | Threads read "
-             "| Quotes verified (count) | Unreadable here | Harvest errors "
+             "| Quotes verified (count) | Harvest errors "
              "| E6 rejected | E6 unvetted |",
-             "|---|---|---|---|---|---|---|---|---|"]
+             "|---|---|---|---|---|---|---|---|"]
 
     def cell(rec, key):
         v = rec.get(key)
@@ -180,9 +263,8 @@ def summarise_runs(records: list[dict]) -> str:
             # so this column read 0 for every model while each produced
             # hundreds of verified quotes.
             f"| {cell(rec, 'claims_verified')} "
-            # Threads this run could not read because their payloads are on
-            # another machine: a reason for a low count, not a count of zero.
-            f"| {cell(rec, 'threads_unreadable_here')} "
+            # NO "UNREADABLE HERE" COLUMN (2026-11-12, #610 review): that count
+            # is the whole corpus's, so it is one line under the table.
             f"| {', '.join(errored) if errored else '-'} "
             # E6 LAST, so a summary posted before these columns still parses.
             f"| {cell(rec, 'e6_rejected')} | {cell(rec, 'e6_unvetted')} |"
@@ -191,6 +273,13 @@ def summarise_runs(records: list[dict]) -> str:
     lines += ["", f"{ok} of {len(records)} ended ok. "
               "A model absent from this list was not due; a count shown as `-` was "
               "not reported by that run, which is not the same as zero."]
+    # UNREADABLE HERE IS NOT A MODEL'S COUNT, SO IT IS SAID ONCE, PER WINDOW
+    # (#610 review, then #628 review). In a per-model column the first agent
+    # night showed 1,323 on all six rows and read as six counts. See
+    # `_unreadable_line` for what moves it.
+    unreadable = _unreadable_line(records)
+    if unreadable:
+        lines += ["", unreadable]
     # MEDIA'S SHARE OF THE NIGHT (#602 item 8), in counts only - no spend on a
     # public issue; each run's `cost_usd` stays in its own fetch log.
     # ONLY THE KINDS THAT ARE MEDIA (#618/#620 review, Parvathi). It counted

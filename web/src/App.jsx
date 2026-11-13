@@ -64,6 +64,7 @@ const Tools = page(() => import('./routes/Tools'))
 const Methodology = page(() => import('./routes/Methodology'))
 const ModelPicker = page(() => import('./routes/ModelPicker'))
 const Reports = page(() => import('./routes/Reports'))
+const Assistants = page(() => import('./routes/Assistants'))
 const Catalog = page(() => import('./routes/Catalog'))
 const Evidence = page(() => import('./routes/Evidence'))
 const Discussions = page(() => import('./routes/Discussions'))
@@ -186,6 +187,10 @@ export default function App() {
               (`anthropic/claude-fable-5-1`), so the path names each model by
               the part after the provider instead - see the route below. */}
           <Route path="/compare"    element={<Compare />} />
+          {/* THE AI ASSISTANTS PAGE (2026-11-12, PROPOSED): public, counts only.
+              Top-level like /compare, because a canonical id contains a slash and
+              the rest of the address is that id. Quotes stay on /models/<id>. */}
+          <Route path="/ai-assistants/*" element={<Assistants />} />
           {/* THE READABLE ADDRESS (2026-10-20): /compare/grok-4.6-vs-gpt-6-sol,
               each model named by its own name, which is unique in the catalogue
               (compare/path.js). `?ids=` still opens and moves here. */}
