@@ -14,28 +14,49 @@
 #   scripts/dispatch_workflows.py dispatch   run every 10 minutes by a cron we host
 #       (not GitHub's). It starts each workflow below once its `dispatch_at_utc`
 #       has passed (within `catch_up_minutes`), unless the workflow already did
-#       real work within `skip_if_ran_within_hours`.
+#       real work since its most recent `window_opens_utc`. It starts them with
+#       the input `slot: nightly`, which the workflow puts in its run name
+#       ("Agent fetches (nightly)"), so the night's run can be told from a test.
 #   scripts/dispatch_workflows.py guard      the first job of each workflow below.
 #       For a trigger listed in `guard_events`, the run ends without doing
-#       anything if the workflow already did real work within the same window.
+#       anything if the workflow already did real work in the same window.
 #       GitHub's late `schedule` runs stay as a backup and stand down this way.
 #
-# "REAL WORK" is a run, started by one of `counts_events`, whose `job` (the
-# workflow's main job) did not end skipped. A run the guard itself stood down
-# does not count, so a duplicate can never hold off the next real run.
+# THE WINDOW IS ANCHORED, NOT ROLLING (#631 review, Parvathi). Real work counts
+# from the most recent `window_opens_utc` before now - one window per day,
+# beginning at the agent slot - never "the last N hours". A rolling 12 hours let
+# a model fetch that ran at 13:30 (agents finished early) be followed by
+# GitHub's 20:30 schedule arriving at 02:48 (measured 2026-11-10) as a second
+# real run, against the next UTC day's budget.
+#
+# "REAL WORK" is a run whose `job` (the workflow's main job) did not end
+# skipped, started by one of `counts_events`:
+#   schedule, workflow_run   as GitHub reports them;
+#   nightly_dispatch         a `workflow_dispatch` start whose run name ends
+#                            "(nightly)" - the dispatcher's, or a person who
+#                            chose `slot: nightly` to stand in for the night.
+# A plain hand-started run (a test with `max_models` or `sources`) never counts
+# and is never guarded: it runs, and it holds nothing off. A run the guard stood
+# down does not count either, so a duplicate can never hold off the next real one.
 # `counts_events` is per workflow because the evidence feed's weekly Monday run
-# (`schedule`) is a different job from its nightly one (`workflow_run`) and
-# must not hold the nightly off. A hand-started run (`workflow_dispatch`) counts
-# where listed: a test run started by hand at 10:00 holds off a 13:00 slot.
+# (`schedule`) is a different job from its nightly one and must not hold it off.
+#
+# A `workflow_run` START FOLLOWS ONLY A REAL NIGHTLY RUN (#631 review). The guard
+# reads the run that finished and proceeds only when it would count as real work
+# for ITS OWN workflow: a nightly start whose main job ran. So a morning agent test
+# does not start the model fetch, and a late `schedule` agent run that stood down
+# while the night's agent run was still going does not start the model fetch
+# early. The same holds for the evidence feed after the model fetch.
 #
 # ORDER. The agent fetch starts at 13:00. The model fetch starts when it finishes
 # (its `workflow_run` trigger; agents take up to about 6 hours), with 21:00 as
 # the fallback if that did not happen. The two share one daily extraction budget
-# and no longer overlap. The evidence feed already follows the model fetch
-# (`workflow_run`, any conclusion); its guard stops a stood-down model run from
-# starting it a second time.
+# and no longer overlap. The evidence feed follows the model fetch.
 #
-# Every key required; a missing or malformed one raises (rule 12).
+# Every key required; a missing or malformed one raises (rule 12). A dispatched
+# workflow's `window_opens_utc` must open at most 24 hours minus
+# `catch_up_minutes` before its `dispatch_at_utc`, or a dispatch late in its
+# catch-up would be held off by the previous day's run.
 # `dispatch_at_utc: null` means never dispatched (the workflow follows another).
 version: 1
 catch_up_minutes: 180
@@ -44,27 +65,27 @@ workflows:
   agent-fetches.yml:
     job: fetch
     dispatch_at_utc: "13:00"
-    skip_if_ran_within_hours: 12
+    window_opens_utc: "13:00"
     guard_events: [schedule]
-    counts_events: [schedule, workflow_dispatch]
+    counts_events: [schedule, nightly_dispatch]
 
   scheduled-fetches.yml:
     job: fetch
     dispatch_at_utc: "21:00"
-    skip_if_ran_within_hours: 12
+    window_opens_utc: "13:00"
     guard_events: [schedule, workflow_run]
-    counts_events: [schedule, workflow_dispatch, workflow_run]
+    counts_events: [schedule, workflow_run, nightly_dispatch]
 
   topic-harvest.yml:
     job: harvest
     dispatch_at_utc: "19:00"
-    skip_if_ran_within_hours: 12
+    window_opens_utc: "19:00"
     guard_events: [schedule]
-    counts_events: [schedule, workflow_dispatch]
+    counts_events: [schedule, nightly_dispatch]
 
   evidence-feed.yml:
     job: feed
     dispatch_at_utc: null
-    skip_if_ran_within_hours: 12
+    window_opens_utc: "13:00"
     guard_events: [workflow_run]
     counts_events: [workflow_run]

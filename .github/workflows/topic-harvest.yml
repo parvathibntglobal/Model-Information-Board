@@ -17,11 +17,19 @@
 # unless ENVIRONMENT=staging, which is why it is set here, on purpose.
 
 name: Topic harvest
+# "(nightly)" marks the night's run, so a test can be told from it
+# (contract/dispatch_schedule.yaml: `nightly_dispatch`).
+run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflow) || github.workflow }}
 
 on:
   schedule:
     - cron: "0 19 * * *"
   workflow_dispatch:
+    inputs:
+      slot:
+        description: "Leave empty for a test. 'nightly' = this IS the night's run (the dispatcher sets it)"
+        required: false
+        default: ""
 
 permissions:
   contents: read

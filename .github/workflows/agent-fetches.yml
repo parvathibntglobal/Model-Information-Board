@@ -21,12 +21,19 @@
 # repo variable AGENT_SCHEDULER_ISSUE - required, never defaulted to the model
 # fetch's issue, so the two summaries stay apart.
 name: Agent fetches
+# "(nightly)" marks the night's run, so a test can be told from it
+# (contract/dispatch_schedule.yaml: `nightly_dispatch`).
+run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflow) || github.workflow }}
 
 on:
   schedule:
     - cron: "0 15 * * *"
   workflow_dispatch:
     inputs:
+      slot:
+        description: "Leave empty for a test. 'nightly' = this IS the night's run (the dispatcher sets it)"
+        required: false
+        default: ""
       max_models:
         description: "Run at most this many due agents (empty = all that fit)"
         required: false
