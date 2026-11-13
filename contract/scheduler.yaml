@@ -47,3 +47,21 @@ refresh_thread_cap: 25
 #: those and the stale ones on its E5 stage line, so "left because old or
 #: undated" never reads as "nothing to read" (rule 4, rule 6).
 extraction_window_days: 14
+
+#: THREADS READ AT ONCE IN E5 (2026-11-13, anooj; for review). Extraction is one
+#: model call per thread, and it was made one at a time: E5 was 57-61% of every
+#: fetch's time (fetch_log, runs since 2026-11-10: agent first fetches median 26
+#: min of which E5 15; model first fetches 85 of which 52; refreshes 16 of which
+#: 5). Up to this many calls are now in flight together. Only the CALL runs in
+#: parallel: verifying each quote, storing it and the ledger row stay one thread
+#: at a time, in thread order, on the run's own connection (judge/pipeline.py
+#: `run_all`). 1 is the old serial behaviour exactly.
+#:
+#: THE CAP CAN BE PASSED BY AT MOST (this - 1) CALLS. `check_before_call` runs
+#: before each call is SENT, and a call's cost is known only when it returns, so
+#: up to this many can be paid for after the last check. At about $0.0005 per
+#: thread (2026-11-12, 6 agent first fetches, 69-90 threads each, $0.035-0.046
+#: per fetch) that is about $0.0015 at 4 - stated, not hidden.
+#:
+#: Required, a positive integer; a missing or bad value refuses (rule 12).
+extract_concurrency: 4

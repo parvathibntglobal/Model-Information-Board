@@ -112,6 +112,7 @@ import logging
 import os
 from collections import Counter
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Protocol, runtime_checkable
@@ -119,7 +120,7 @@ from typing import Any, Protocol, runtime_checkable
 from judge.config import bucket_for
 from judge.curate.labels import Driver
 from judge.curate.nightly import close_the_night
-from judge.extract.budget import Budget
+from judge.extract.budget import Budget, BudgetExhausted
 from judge.extract.client import Completion, ExtractionClient, ExtractorUnavailable
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
 from judge.store.cells import CellOutcome, CellStore
@@ -689,6 +690,64 @@ class PipelineResult:
         return sum(1 for cell in self.cells if cell.publishes)
 
 
+class _Prefetch:
+    """Up to `width` extraction calls in flight, sent in thread order (2026-11-13).
+
+    E5 made one model call per thread, one at a time, and was 57-61% of every
+    fetch's time. The call needs no database (`extract` takes the thread, the
+    client and the capability keys; the client's spend row opens its own
+    connection), so it can run on a worker thread. Nothing else does.
+
+    SENT LIKE THE SERIAL LOOP SENT IT: for each thread, `on_thread`, then
+    `budget.check_before_call()`, then the call. When the check raises, nothing
+    more is sent; the calls already in flight are still handed back and stored,
+    and `take` raises the same BudgetExhausted at the first thread never sent -
+    where the serial loop would have raised it. The cap can be passed by at most
+    `width - 1` calls already in flight (contract/scheduler.yaml says so).
+
+    `take(i)` returns ``(True, ExtractionRun)`` or ``(False, exception)`` for
+    thread i, so the caller raises it inside its own retry handling.
+    """
+
+    def __init__(self, extract_one, threads, width, on_thread, budget):
+        self._pool = ThreadPoolExecutor(max_workers=width, thread_name_prefix="extract")
+        self._extract, self._threads, self._width = extract_one, threads, width
+        self._on_thread, self._budget = on_thread, budget
+        self._futures: dict[int, object] = {}
+        self._next = 0
+        self._stopped: BudgetExhausted | None = None
+
+    def _fill(self, upto: int) -> None:
+        while self._stopped is None and self._next < min(upto, len(self._threads)):
+            thread = self._threads[self._next]
+            if self._on_thread is not None:
+                self._on_thread(thread.thread_context_id)
+            if self._budget is not None:
+                try:
+                    self._budget.check_before_call()
+                except BudgetExhausted as exc:
+                    self._stopped = exc
+                    return
+            self._futures[self._next] = self._pool.submit(self._extract, thread)
+            self._next += 1
+
+    def take(self, index: int):
+        self._fill(index + self._width)
+        future = self._futures.pop(index, None)
+        if future is None:
+            # Never sent: the cap bound first. Raised here, in order.
+            raise self._stopped if self._stopped is not None else RuntimeError(
+                f"thread {index} was neither sent nor stopped")
+        try:
+            return True, future.result()
+        except Exception as exc:  # noqa: BLE001 - handed back to the retry handling
+            return False, exc
+
+    def close(self) -> None:
+        """Calls not yet started are cancelled; running ones finish (they are paid)."""
+        self._pool.shutdown(wait=True, cancel_futures=True)
+
+
 class Pipeline:
     """E5 through E7 for one thread. Holds no state between calls."""
 
@@ -720,6 +779,9 @@ class Pipeline:
         self._claims = ClaimStore(conn)
         self._ledger = ExtractionLedger(conn)
         self._cells = CellStore(conn)
+        #: The parallel calls of the batch in progress (`run_all`); None between
+        #: batches and whenever calls are made one at a time.
+        self._prefetch: _Prefetch | None = None
 
     def _vet(
         self,
@@ -793,8 +855,13 @@ class Pipeline:
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
         rebuild_cells: bool = True,
+        extraction: ExtractionRun | None = None,
     ) -> PipelineResult:
         """One thread, end to end.
+
+        `extraction` is the model call's result when `run_all` already made the
+        call in parallel; None makes it here, as before. Everything after the
+        call - verification, storage - is the same either way.
 
         `rebuild_cells=False` is for `run_all`, which rebuilds ONCE after the
         batch instead of once per thread. See the measurement in
@@ -816,10 +883,7 @@ class Pipeline:
         """
         as_of = as_of or date.today()
         result = PipelineResult(
-            extraction=extract(
-                thread, client=self._client, capability_keys=self._capabilities,
-                legacy=self._legacy,
-            )
+            extraction=extraction if extraction is not None else self._extract(thread)
         )
 
         # ── E6 REJECT, which had no caller until now ────────────────────────
@@ -1359,6 +1423,13 @@ class Pipeline:
             )
             return None
 
+    def _extract(self, thread: ThreadInput) -> ExtractionRun:
+        """The model call for one thread. No database: safe on a worker thread."""
+        return extract(
+            thread, client=self._client, capability_keys=self._capabilities,
+            legacy=self._legacy,
+        )
+
     def run_all(
         self,
         threads: list[ThreadInput],
@@ -1378,6 +1449,46 @@ class Pipeline:
         #: only place a caller can see what came back.
         on_result: Callable[..., None] | None = None,
         after_thread: Callable[[], None] | None = None,
+        #: Model calls in flight at once. 1 is the serial loop exactly; the
+        #: fetch passes contract/scheduler.yaml `extract_concurrency`.
+        concurrency: int = 1,
+    ) -> list[PipelineResult]:
+        """A batch; see `_run_all`. This wrapper only guarantees that the pool of
+        parallel model calls is shut down however the batch ends."""
+        if isinstance(concurrency, bool) or not isinstance(concurrency, int) or concurrency < 1:
+            raise ValueError(f"concurrency must be a positive integer, not {concurrency!r}")
+        self._prefetch = None
+        try:
+            return self._run_all(
+                threads, facts=facts, model_version_of=model_version_of,
+                release_dates=release_dates, as_of=as_of, budget=budget,
+                already_extracted=already_extracted, driver=driver,
+                resolve_surface=resolve_surface, find_surfaces=find_surfaces,
+                on_thread=on_thread, on_result=on_result, after_thread=after_thread,
+                concurrency=concurrency,
+            )
+        finally:
+            if self._prefetch is not None:
+                self._prefetch.close()
+                self._prefetch = None
+
+    def _run_all(
+        self,
+        threads: list[ThreadInput],
+        *,
+        facts: dict[str, DocumentFacts],
+        model_version_of: dict[str, str],
+        release_dates: dict[str, date] | None,
+        as_of: date | None,
+        budget: Budget | None,
+        already_extracted: dict[str, str | None] | None,
+        driver: Driver | None,
+        resolve_surface: SurfaceResolver | None,
+        find_surfaces: SurfaceFinder | None,
+        on_thread: Callable[[str], None] | None,
+        on_result: Callable[..., None] | None,
+        after_thread: Callable[[], None] | None,
+        concurrency: int,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
 
@@ -1401,6 +1512,7 @@ class Pipeline:
         # forgotten.
         self.retried_threads = 0
         self.unread_threads: list[str] = []
+        todo: list[ThreadInput] = []
         for thread in threads:
             if ExtractionLedger.should_skip(seen, thread.thread_context_id, thread.flattened_text):
                 log.info(
@@ -1408,16 +1520,32 @@ class Pipeline:
                     thread.thread_context_id,
                 )
                 continue
-            # A progress hook for callers that want to SEE a long batch move -
-            # the on-demand fetch's E5 was silent for the whole extraction, so a
-            # slow run and a hung one looked identical. Fired before the call it
-            # is about to make; a no-op for the nightly batch, which passes none.
-            if on_thread is not None:
-                on_thread(thread.thread_context_id)
-            if budget is not None:
-                # BEFORE the call. Spend cannot be undone, so a check after it
-                # is a report rather than a cap.
-                budget.check_before_call()
+            todo.append(thread)
+        # UP TO `concurrency` MODEL CALLS IN FLIGHT (contract/scheduler.yaml
+        # `extract_concurrency`). Only the call: everything below - verifying the
+        # quotes, storing them, the ledger row, the charge, the commit - stays on
+        # this thread, one thread at a time, in thread order, on this connection.
+        if concurrency > 1:
+            self._prefetch = _Prefetch(self._extract, todo, concurrency, on_thread, budget)
+        for position, thread in enumerate(todo):
+            first = None
+            if self._prefetch is not None:
+                # Sent earlier, after its own `on_thread` and budget check. Raises
+                # BudgetExhausted when the cap bound before this call was sent,
+                # exactly where the serial loop would have raised it.
+                first = self._prefetch.take(position)
+            else:
+                # A progress hook for callers that want to SEE a long batch move -
+                # the on-demand fetch's E5 was silent for the whole extraction, so
+                # a slow run and a hung one looked identical. Fired before the call
+                # it is about to make; a no-op for the nightly batch, which passes
+                # none.
+                if on_thread is not None:
+                    on_thread(thread.thread_context_id)
+                if budget is not None:
+                    # BEFORE the call. Spend cannot be undone, so a check after it
+                    # is a report rather than a cap.
+                    budget.check_before_call()
             # ── ONE BAD RESPONSE ENDS THE THREAD, NOT THE BATCH ──────────
             #
             # `ExtractorUnavailable` used to escape this loop, so a single 502
@@ -1443,6 +1571,15 @@ class Pipeline:
             result = None
             for attempt in range(1, EXTRACT_ATTEMPTS + 1):
                 try:
+                    prefetched = None
+                    if attempt == 1 and first is not None:
+                        # The parallel call's outcome, raised HERE so a refused
+                        # or failed call takes the same branches below as a
+                        # serial one. A retry is made serially, as before.
+                        ok, value = first
+                        if not ok:
+                            raise value
+                        prefetched = value
                     result = self.run(
                         thread,
                         facts=facts,
@@ -1453,6 +1590,7 @@ class Pipeline:
                         find_surfaces=find_surfaces,
                         # ONCE AFTER THE BATCH, not once per thread. See below.
                         rebuild_cells=False,
+                        extraction=prefetched,
                     )
                     result.failed_attempts = attempt - 1
                     break
