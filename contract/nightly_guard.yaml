@@ -1,0 +1,97 @@
+# ONE NIGHT'S RUNS, ONCE EACH AND IN ORDER (2026-11-13, anooj; for review, #631).
+#
+# WHY THIS EXISTS. GitHub's `schedule` trigger is best-effort and starts late under
+# load. Measured 2026-11-13 over each workflow's last scheduled runs (up to 14):
+#   agent fetch     cron 15:00, started 374-408 min late (3 runs)
+#   model fetch     cron 20:30, started 179-378 min late (14 runs)
+#   topic harvest   cron 19:00, started 186-409 min late (14 runs)
+#   registry poll, merged-PRs check, evidence feed, benchmarks: 3.5 to 10 hours.
+# Odd minutes (:17, :23, :41) were as late as the hour, so a different minute
+# does not help. Late, the agent and model fetches ran at the same time on one
+# daily extraction budget, and past UTC midnight.
+#
+# THE ORDER, ALL ON GITHUB (anooj 2026-11-13: no outside timer for now).
+#   agent fetch    cron 04:00 UTC; with the delay above it lands near 10:00-11:00.
+#   model fetch    starts when the agent fetch finishes (`workflow_run`). Its own
+#                  cron, 16:00 UTC, is a BACKUP: it fires 3-10 hours late, after
+#                  the agents' latest start seen (04:00 + 10 h), and stands down
+#                  while an agent run is going (`waits_for`) or once the model
+#                  fetch did real work tonight.
+#   evidence feed  starts when the model fetch finishes, as before.
+#   topic harvest  cron 19:00, independent; no extraction.
+# Agents (up to about 6 hours) then models (up to 355 minutes) from about 10:30
+# end near 22:30 UTC, inside the day the extraction cap counts. A night the
+# agents start at the 10-hour end still runs past midnight; nothing here can
+# prevent that without an on-time start, which needs a timer outside GitHub.
+#
+# HOW IT IS USED: scripts/nightly_guard.py is the first job (`guard`) of each
+# workflow below. For a start listed in `guard_events` the run ends without doing
+# anything, its main `job` skipped, when:
+#   - a `workflow_run` start: the run that finished was not real nightly work for
+#     ITS OWN workflow (see below). So a morning agent test does not start the
+#     model fetch, and a late agent `schedule` that stood down mid-run does not
+#     start the model fetch while the agents still run (#631 review).
+#   - `waits_for` names a workflow with a nightly run still going; its finish
+#     starts this one.
+#   - this workflow already did real work tonight.
+# A hand-started run (`workflow_dispatch`) is never guarded.
+#
+# "TONIGHT" IS ANCHORED, NOT ROLLING (#631 review, Parvathi).
+#   a `schedule` start      real work counts from the most recent
+#                           `window_opens_utc` before now, never "the last N
+#                           hours". A rolling 12 hours let a model fetch that ran
+#                           in the afternoon be followed by GitHub's model
+#                           schedule arriving at 02:48 (measured 2026-11-10) as a
+#                           second real run, on the next UTC day's budget. 04:00
+#                           is the agent cron, so each night's first run starts
+#                           after it.
+#   a `workflow_run` start  real work counts from when the run that finished was
+#                           created: only a run of this workflow begun after that
+#                           is a duplicate. Not the anchor, because a backup model
+#                           fetch fired near 02:00 ends after 04:00, and the feed
+#                           it starts must not hold off the next night's feed.
+#
+# "REAL WORK" is a run whose `job` (the workflow's main job) did not end skipped,
+# started by one of `counts_events`:
+#   schedule, workflow_run   as GitHub reports them;
+#   nightly_dispatch         a hand start with `slot: nightly`, which the workflow
+#                            puts in its run name ("Agent fetches (nightly)"): a
+#                            person standing in for a night whose run failed.
+# A plain hand start (a test with `max_models` or `sources`) never counts: it
+# runs, holds nothing off and starts nothing. A run the guard stood down does not
+# count either, so a duplicate can never hold off the next real one.
+# `counts_events` is per workflow because the evidence feed's weekly Monday run
+# (`schedule`) is a different job from its nightly one and must not hold it off.
+#
+# Every key required (`waits_for: null` for none); a missing or malformed one
+# raises (rule 12).
+version: 1
+
+workflows:
+  agent-fetches.yml:
+    job: fetch
+    window_opens_utc: "04:00"
+    waits_for: null
+    guard_events: [schedule]
+    counts_events: [schedule, nightly_dispatch]
+
+  scheduled-fetches.yml:
+    job: fetch
+    window_opens_utc: "04:00"
+    waits_for: agent-fetches.yml
+    guard_events: [schedule, workflow_run]
+    counts_events: [schedule, workflow_run, nightly_dispatch]
+
+  topic-harvest.yml:
+    job: harvest
+    window_opens_utc: "19:00"
+    waits_for: null
+    guard_events: [schedule]
+    counts_events: [schedule, nightly_dispatch]
+
+  evidence-feed.yml:
+    job: feed
+    window_opens_utc: "04:00"
+    waits_for: null
+    guard_events: [workflow_run]
+    counts_events: [workflow_run]

@@ -1,7 +1,7 @@
 # The agents the AGENT fetch searches for every night (#609-#611, anooj 2026-11-09).
 #
 # A SEPARATE LIST, A SEPARATE FETCH. Read by `scripts/run_scheduled_fetches.py
-# --list agents` in `.github/workflows/agent-fetches.yml` (15:00 UTC), never by
+# --list agents` in `.github/workflows/agent-fetches.yml` (cron 04:00 UTC), never by
 # the model fetch: `judge/tracked.py all_tracked` reads `tracked_models.yaml`
 # only, so nothing here reaches the model fetch, the models page or
 # `auto_track` (whose providers come from `tracked_models.yaml` - which is what
@@ -23,7 +23,7 @@
 #                          the ceiling falls, so a running fetch stops at it
 #                          between threads too (#618 review follow-up). The daily cap is ONE team-wide figure
 #                          (EXTRACTION_DAILY_BUDGET_USD) shared with the model
-#                          fetch at 20:30 UTC, so the agents must not use it up
+#                          fetch that follows the agents, so they must not use it up
 #                          first. Test B's first fetches of nine agents cost $0.12
 #                          in all (2026-11-09, tokens x rate - the basis before
 #                          #617; the ledger now records OpenRouter's billed
