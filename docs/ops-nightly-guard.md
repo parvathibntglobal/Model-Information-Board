@@ -27,6 +27,7 @@ A run you start by hand from the Actions tab is never stopped.
 
 - **With `slot` left empty, it's a test.** It runs, holds nothing off, and when it finishes it starts nothing (the model fetch does not follow an agent test).
 - **With `slot` set to `nightly`, it stands in for the night's run.** Use this when a night's run failed. Its run name ends in "(nightly)", it counts as that night's run, and its finish starts the next workflow.
+- **Its finish starts the model fetch even if the models already ran today.** A chained start counts from the creation of the run that finished, not from 04:00. So if the agent run failed, the models chained after it, and you then rerun the agents with `slot: nightly`, the models and the evidence feed run a second time. Little is due on that second pass, so the cost is small. If the models already ran and you only want the agents, leave `slot` empty. (Parvathi, #631 review, 2026-11-13.)
 
 ## How to tell it's working
 
