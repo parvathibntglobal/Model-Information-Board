@@ -82,7 +82,8 @@ class TestItIsActuallyCalled:
 
         from judge.pipeline import Pipeline
 
-        source = inspect.getsource(Pipeline.run_all)
+        # `_run_all` is the batch body; `run_all` only shuts the parallel calls down.
+        source = inspect.getsource(Pipeline._run_all)
         assert "close_the_night(" in source
 
     def test_the_pipeline_skips_it_rather_than_guessing_a_driver(self):
@@ -92,7 +93,8 @@ class TestItIsActuallyCalled:
 
         from judge.pipeline import Pipeline
 
-        source = inspect.getsource(Pipeline.run_all)
+        # `_run_all` is the batch body; `run_all` only shuts the parallel calls down.
+        source = inspect.getsource(Pipeline._run_all)
         # `and self._legacy` since 2026-09-24: the stage reads cells, which are
         # not written with the legacy capability cards off (`judge/legacy.py`).
         assert "if driver is not None and self._legacy:" in source

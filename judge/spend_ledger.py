@@ -63,6 +63,7 @@ import json
 import logging
 import os
 import socket
+import threading
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -342,6 +343,13 @@ _unmirrored_rows = 0
 #: a 30-second pause in which every call is skipped.
 _unmirrored_calls: list = []
 
+#: GUARDS THE MODULE STATE ABOVE AND THE TELEMETRY BACKOFF (2026-11-13, #632
+#: review). Extraction calls now record spend from up to `extract_concurrency`
+#: worker threads at once, and `_unmirrored_rows += n` and the backoff timestamp
+#: are read-modify-write: without this a lost increment under-reports the
+#: "N row(s) not mirrored" figure. The rows themselves were never at risk.
+_STATE_LOCK = threading.Lock()
+
 
 def unmirrored_count() -> int:
     return _unmirrored_rows
@@ -364,7 +372,8 @@ def flush_unmirrored(dsn: str | None = None) -> Mirrored:
     the caller says so; the rows are in the file either way.
     """
     global _unmirrored_rows
-    pending = list(_unmirrored_calls)
+    with _STATE_LOCK:
+        pending = list(_unmirrored_calls)
     if not pending:
         return Mirrored(MIRROR_NOTHING_TO_SEND, 0)
     reset_telemetry_backoff()
@@ -386,8 +395,9 @@ def flush_unmirrored(dsn: str | None = None) -> Mirrored:
         return Mirrored(MIRROR_FAILED, len(pending), 0, _describe(exc))
     finally:
         conn.close()
-    del _unmirrored_calls[: len(pending)]
-    _unmirrored_rows = max(0, _unmirrored_rows - len(pending))
+    with _STATE_LOCK:
+        del _unmirrored_calls[: len(pending)]
+        _unmirrored_rows = max(0, _unmirrored_rows - len(pending))
     return Mirrored(MIRROR_WRITTEN, len(pending), len(pending))
 
 
@@ -445,8 +455,9 @@ def append_to_database(calls: Iterable[Call], *, dsn: str | None = None) -> Mirr
             finally:
                 conn.close()
         if result.unmirrored:
-            _unmirrored_rows += result.unmirrored
-            _unmirrored_calls.extend(calls)
+            with _STATE_LOCK:
+                _unmirrored_rows += result.unmirrored
+                _unmirrored_calls.extend(calls)
             (log.error if result.status == MIRROR_FAILED else log.warning)(
                 "spend_ledger: %d row(s) NOT mirrored to the shared table "
                 "(%s: %s); %d so far in this process. They are in %s, and "
@@ -530,9 +541,11 @@ def _telemetry_connect(dsn: str | None, *, timeout: float = TELEMETRY_CONNECT_TI
     try:
         conn = psycopg.connect(url, connect_timeout=timeout)
     except Exception as exc:  # noqa: BLE001
-        _unreachable_until = time.monotonic() + TELEMETRY_RETRY_AFTER_SECONDS
-        _unreachable_reason = _describe(exc)
-        return None, MIRROR_FAILED, _unreachable_reason
+        reason = _describe(exc)
+        with _STATE_LOCK:
+            _unreachable_until = time.monotonic() + TELEMETRY_RETRY_AFTER_SECONDS
+            _unreachable_reason = reason
+        return None, MIRROR_FAILED, reason
     return conn, MIRROR_WRITTEN, None
 
 

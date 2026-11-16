@@ -167,7 +167,8 @@ class TestThePipelineUsesIt:
 
         from judge.pipeline import Pipeline
 
-        source = inspect.getsource(Pipeline.run_all)
+        # `_run_all` is the batch body; `run_all` only shuts the parallel calls down.
+        source = inspect.getsource(Pipeline._run_all)
         assert "self._ledger.already_extracted()" in source
         assert "if already_extracted is None" in source
 
@@ -187,7 +188,8 @@ class TestThePipelineUsesIt:
 
         from judge.pipeline import Pipeline
 
-        source = inspect.getsource(Pipeline.run_all)
+        # `_run_all` is the batch body; `run_all` only shuts the parallel calls down.
+        source = inspect.getsource(Pipeline._run_all)
         code = "\n".join(
             re.sub(r"#.*$", "", line) for line in source.splitlines()
         )
@@ -245,6 +247,7 @@ class TestTheIdDoesNotIdentifyTheText:
 
         from judge.pipeline import Pipeline
 
-        source = inspect.getsource(Pipeline.run_all)
+        # `_run_all` is the batch body; `run_all` only shuts the parallel calls down.
+        source = inspect.getsource(Pipeline._run_all)
         assert "should_skip(" in source
         assert "thread.flattened_text" in source

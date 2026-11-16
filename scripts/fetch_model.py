@@ -3541,7 +3541,11 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     _say(f"  LLM     {model_name}")
     _say(f"  sending {_n(total)} thread(s) - {_n(sum(posts_of.values()))} post(s), "
          f"{_n(sum(len(t.flattened_text) for t in threads))} chars")
-    _say("          one call per thread; tokens and cost are printed per call below")
+    from judge.scheduler import extract_concurrency
+
+    concurrency = extract_concurrency()
+    _say(f"          one call per thread, up to {concurrency} at once; tokens and cost "
+         "are printed per thread below, in thread order")
     _rule()
 
     def _on_thread(tc_id: str) -> None:
@@ -3773,6 +3777,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
         on_thread=_on_thread,
         on_result=_on_result,
+        # UP TO `extract_concurrency` MODEL CALLS AT ONCE (contract/scheduler.yaml,
+        # 2026-11-13): E5 was most of every fetch's time. Only the calls overlap;
+        # storing, the ledger and the commit below stay one thread at a time.
+        concurrency=concurrency,
         # COMMIT EACH THREAD AS IT LANDS. This batch used to commit once, after
         # every thread, so a run that was stopped or died at thread 20 of 24
         # discarded all 19 that had finished — measured E5 durations reach 13.8
