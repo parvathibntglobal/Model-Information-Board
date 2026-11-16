@@ -225,6 +225,25 @@ def test_the_workflow_runs_agents_on_their_own_schedule_and_issue():
     assert "--list agents" not in model_wf
 
 
+def test_the_agent_job_uses_the_runners_time_and_its_limits_nest():
+    """2026-11-13: at 200 minutes the job launched 4 agents and cut one off. The
+    limits must nest - launch deadline < fetch stop < job timeout <= GitHub's 360 -
+    or a fetch is killed by GitHub before the runner can stop it and post."""
+    import re
+
+    workflows = ROOT / ".github" / "workflows"
+    wf = yaml.safe_load((workflows / "agent-fetches.yml").read_text(encoding="utf-8"))
+    job = wf["jobs"]["fetch"]
+    run = next(s["run"] for s in job["steps"] if "--list agents" in (s.get("run") or ""))
+    deadline = int(re.search(r"--deadline-minutes (\d+)", run).group(1))
+    job_limit = int(re.search(r"--job-limit-minutes (\d+)", run).group(1))
+    timeout = job["timeout-minutes"]
+    assert deadline < job_limit < timeout <= 360
+    assert timeout - job_limit >= 5, "room for setup and the summary post"
+    model = yaml.safe_load((workflows / "scheduled-fetches.yml").read_text(encoding="utf-8"))
+    assert timeout == model["jobs"]["fetch"]["timeout-minutes"]
+
+
 # ── the ceiling holds inside a fetch (#618 review follow-up) ─────────────────
 
 def _night(monkeypatch, *, which_rows, spent=0.30, cap="2.00", ceiling=0.40,
