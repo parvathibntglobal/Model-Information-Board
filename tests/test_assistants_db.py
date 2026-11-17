@@ -160,6 +160,27 @@ def test_an_assistant_nobody_discussed_is_no_reports_not_problems(client):
     assert detail["evidence"]["reports"] == 0
 
 
+def test_not_searched_for_is_not_tracked_not_no_reports(client):
+    """Two absences, two states (2026-11-17). Claude Code is in
+    contract/tracked_agents.yaml, so its silence is one we looked for:
+    `no_reports`. Hark Pro is in the grouping but nothing searches for it, so
+    its silence is a gap in coverage: `not_tracked`. On 2026-11-17, 23 of the
+    31 "works for you" members were the second kind and read as the first."""
+    from judge.config import tracked_agents
+
+    tracked = {a.registry for a in tracked_agents()}
+    assert "anthropic/claude-code" in tracked and "unknown/hark-pro" not in tracked
+    states = {a["canonical_id"]: a["state"]
+              for g in client.get("/assistants").json()["groups"] for a in g["assistants"]}
+    assert states["anthropic/claude-code"] == "no_reports"
+    assert states["unknown/hark-pro"] == "not_tracked"
+    assert client.get("/assistants/unknown/hark-pro").json()["state"] == "not_tracked"
+    # Every untracked member with no reports is not_tracked, never no_reports.
+    for cid, state in states.items():
+        if cid not in tracked:
+            assert state in ("reports", "not_tracked"), cid
+
+
 def test_a_member_missing_from_the_registry_is_counted_not_rendered(client):
     body = client.get("/assistants").json()
     ws = _group(body, "workspaces")
@@ -275,7 +296,7 @@ def test_an_unknown_maker_is_not_shown(client):
     body = client.get("/assistants").json()
     silent = next(a for a in _group(body, "works-for-you")["assistants"]
                   if a["canonical_id"] == "unknown/hark-pro")
-    assert silent["provider"] is None and silent["state"] == "no_reports"
+    assert silent["provider"] is None and silent["state"] == "not_tracked"
     assert client.get("/assistants/unknown/hark-pro").json()["assistant"]["provider"] is None
     assert "unknown" not in json.dumps(
         [a["provider"] for g in body["groups"] for a in g["assistants"]]).lower()

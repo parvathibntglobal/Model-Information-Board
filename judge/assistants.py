@@ -40,10 +40,21 @@ may be both. The people counts are per card and per issue, where the board
 counts people; the comparison table is in reports because that is the unit the
 board's split is held in.
 
-ABSENCE IS NOT A VERDICT (rules 4 and 6). An assistant with no reports is
-`state: "no_reports"`, distinct from one with problems reported, and a member of
-the grouping file the registry does not hold is COUNTED (`not_in_registry`)
-rather than dropped or rendered empty.
+ABSENCE IS NOT A VERDICT (rules 4 and 6). An assistant with no reports is one
+of two states, because they are two different absences (2026-11-17):
+
+    no_reports    the agent fetch searches for it (contract/tracked_agents.yaml)
+                  and nobody has reported on it: an absence we looked for
+    not_tracked   nothing searches for it, so nothing has been counted: a gap
+                  in coverage. 23 of the 31 "works for you" members were this
+                  on 2026-11-17 and read as "No reports yet", i.e. as if
+                  nobody talked about them
+
+Both are distinct from one with problems reported. An assistant that is not
+tracked but has reports (found by another fetch) is `reports`: counts are
+counts wherever they came from. A member of the grouping file the registry
+does not hold is COUNTED (`not_in_registry`) rather than dropped or rendered
+empty.
 """
 
 from __future__ import annotations
@@ -51,7 +62,18 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from judge import publication
-from judge.config import agent_canonical_ids, assistant_groups, board_vocabulary
+from judge.config import agent_canonical_ids, assistant_groups, board_vocabulary, tracked_agents
+
+
+def _tracked() -> set[str]:
+    """The registry ids the agent fetch searches for."""
+    return {a.registry for a in tracked_agents()}
+
+
+def _state(cid: str, reports: int, tracked: set[str]) -> str:
+    if reports:
+        return "reports"
+    return "no_reports" if cid in tracked else "not_tracked"
 
 #: board section name by the kind the page uses
 _SECTION_OF_KIND = {"job": "best_for", "capability": "capability"}
@@ -232,6 +254,7 @@ def assistants_view(conn) -> dict:
     registry = _registry(conn, sorted(in_group | set(agent_canonical_ids())))
     axes = _axis_index(conn)
     names = _vocab_names()
+    tracked = _tracked()
 
     groups = []
     for g in cfg["groups"]:
@@ -245,7 +268,7 @@ def assistants_view(conn) -> dict:
             cards.append({
                 "id": reg["id"], "canonical_id": cid, "name": reg["display_name"],
                 "provider": reg["provider"], "tags": _tags(cid, cfg),
-                "state": "reports" if e["reports"] else "no_reports",
+                "state": _state(cid, e["reports"], tracked),
                 "people": e["people"], "reports": e["reports"], "newest": e["newest"],
                 "top_jobs": [{k: j[k] for k in ("slug", "name", "people", "reports")}
                              for j in jobs[:_TOP_JOBS]],
@@ -333,7 +356,7 @@ def assistant_detail(conn, ident: str) -> dict | None:
         "tags": _tags(cid, cfg),
         "freshness": {"updated_at": fresh.get("updated_at"),
                       "newest_report_at": fresh.get("newest_report_at")},
-        "state": "reports" if e["reports"] else "no_reports",
+        "state": _state(cid, e["reports"], _tracked()),
         "evidence": {"people": e["people"], "reports": e["reports"],
                      "platforms": e["platforms"], "newest": e["newest"]},
         "best_for": jobs,

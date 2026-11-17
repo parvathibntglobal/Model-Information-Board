@@ -26,9 +26,11 @@ import '../styles/evidence.css'
  * counted ("N reports from sources we don't show publicly"). No paraphrase yet.
  *
  * SILENCE IS NOT CRITICISM (rule 4): an assistant nobody has reported on is
- * listed as "No reports yet", an absence and not a verdict, and never as a
- * card of zeros. A member of the grouping the registry does not hold yet is
- * COUNTED, never dropped (rule 6).
+ * listed by name, never as a card of zeros, and in one of two lines because
+ * they are two different absences (2026-11-17): "No reports yet" (we search
+ * for it, nobody has reported) and "Not tracked yet" (we don't search for it,
+ * so nothing is counted - a gap in our coverage). A member of the grouping the
+ * registry does not hold yet is COUNTED, never dropped (rule 6).
  */
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
@@ -40,8 +42,24 @@ function Tags({ tags }) {
   return <>{tags.map((t) => <Badge key={t.key} tone="info">{t.label}</Badge>)}</>
 }
 
-function NoReports() {
-  return <p className="dim as-empty">No reports yet. That&apos;s a gap in what we&apos;ve collected, not a judgement on the assistant.</p>
+function NoReports({ state }) {
+  if (state === 'not_tracked') {
+    return <p className="dim as-empty">Not tracked yet: we don&apos;t search for this assistant yet, so nothing has been counted. That&apos;s a gap in our coverage, not a judgement on the assistant.</p>
+  }
+  return <p className="dim as-empty">No reports yet: we search for this assistant, and nobody has reported on it so far. That&apos;s an absence, not a judgement on the assistant.</p>
+}
+
+function Silent({ list, label, note }) {
+  if (!list.length) return null
+  return (
+    <p className="as-silent">
+      <b>{label} ({list.length}):</b>{' '}
+      {list.map((a, i) => (
+        <span key={a.canonical_id}>{i > 0 && ', '}<Link to={idPath(a.canonical_id)}>{a.name}</Link></span>
+      ))}
+      . <span className="dim">{note}</span>
+    </p>
+  )
 }
 
 function Card({ a }) {
@@ -97,23 +115,19 @@ function Compare({ group, reported }) {
 
 function Group({ g }) {
   const reported = g.assistants.filter((a) => a.state === 'reports')
-  const silent = g.assistants.filter((a) => a.state !== 'reports')
+  const searched = g.assistants.filter((a) => a.state === 'no_reports')
+  const untracked = g.assistants.filter((a) => a.state === 'not_tracked')
   return (
     <div className="stack stack-3">
       <p className="muted">{g.what}</p>
       {reported.length > 0 && <div className="as-grid">{reported.map((a) => <Card key={a.canonical_id} a={a} />)}</div>}
-      {silent.length > 0 && (
-        <p className="as-silent">
-          <b>No reports yet ({silent.length}):</b>{' '}
-          {silent.map((a, i) => (
-            <span key={a.canonical_id}>{i > 0 && ', '}<Link to={idPath(a.canonical_id)}>{a.name}</Link></span>
-          ))}
-          . <span className="dim">No reports yet. That&apos;s a gap in what we&apos;ve collected, not a judgement on these assistants.</span>
-        </p>
-      )}
+      <Silent list={searched} label="No reports yet"
+        note="We search for these, and nobody has reported on them so far. That's an absence, not a judgement on these assistants." />
+      <Silent list={untracked} label="Not tracked yet"
+        note="We don't search for these yet, so nothing has been counted. That's a gap in our coverage, not a judgement on these assistants." />
       {g.not_in_registry > 0 && (
         <p className="dim tnum">
-          {plural(g.not_in_registry, 'more assistant', 'more assistants')} in this group {g.not_in_registry === 1 ? "isn't" : "aren't"} tracked yet.
+          {plural(g.not_in_registry, 'more assistant', 'more assistants')} in this group {g.not_in_registry === 1 ? "isn't" : "aren't"} in our registry yet.
         </p>
       )}
       <Compare group={g} reported={reported} />
@@ -299,7 +313,7 @@ function Detail({ id }) {
         ) : null}
       </header>
 
-      {data.state === 'no_reports' ? <NoReports /> : (
+      {data.state !== 'reports' ? <NoReports state={data.state} /> : (
         <section className="stack stack-2">
           <h2>What was reported</h2>
           <p className="tnum">
@@ -311,7 +325,7 @@ function Detail({ id }) {
         </section>
       )}
 
-      {data.state !== 'no_reports' && (
+      {data.state === 'reports' && (
         <>
           <section className="stack stack-3">
             <h2>Best tasks</h2>
