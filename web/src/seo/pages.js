@@ -613,6 +613,7 @@ export const PRIVATE = {
   login: { title: fullTitle('Sign in'), noindex: true },
   admin: { title: fullTitle('Admin'), noindex: true },
   blogLogs: { title: fullTitle('Blog run logs'), noindex: true },
+  contentWorkspace: { title: fullTitle('Content workspace'), noindex: true },
   keywords: { title: fullTitle('SEO keywords'), noindex: true },
   benchmarks: { title: fullTitle('Benchmarks'), noindex: true },
   priceChanges: { title: fullTitle('Price changelog'), noindex: true },

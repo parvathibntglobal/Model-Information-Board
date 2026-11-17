@@ -459,6 +459,27 @@ export const outreachReopen = (id) =>
 export const outreachCheck = (id, text) =>
   request(`/admin/outreach/threads/${id}/check`, { method: 'POST', body: { text } })
 
+// THE CONTENT WORKSPACE (judge/content_workspace/, 2026-11-17). Per-platform
+// notes people edit, coded topic suggestions read from the board, drafts and
+// the platform fit check. Its own database; nothing here posts anywhere.
+export const contentPlatforms = () => request('/admin/content/platforms')
+export const contentPlatform = (key, archived = false) =>
+  request(`/admin/content/platforms/${encodeURIComponent(key)}${archived ? '?archived=true' : ''}`)
+export const contentSuggestions = (key) =>
+  request(`/admin/content/platforms/${encodeURIComponent(key)}/suggestions`)
+export const contentNoteCreate = (note) =>
+  request('/admin/content/notes', { method: 'POST', body: note })
+export const contentNoteUpdate = (id, changes) =>
+  request(`/admin/content/notes/${id}`, { method: 'POST', body: changes })
+export const contentNoteHistory = (id) => request(`/admin/content/notes/${id}/history`)
+export const contentDraftCreate = (draft) =>
+  request('/admin/content/drafts', { method: 'POST', body: draft })
+export const contentDraftUpdate = (id, changes) =>
+  request(`/admin/content/drafts/${id}`, { method: 'POST', body: changes })
+// The platform fit check on a saved draft. Advisory: it blocks nothing.
+export const contentDraftCheck = (id) =>
+  request(`/admin/content/drafts/${id}/check`, { method: 'POST' })
+
 // THE BENCHMARKS PAGE (judge/benchmarks.py, 2026-10-22). Signed in: every call
 // carries the token. Values are the sources' own; the page formats, never computes.
 export const benchmarksTable = () => request('/benchmarks/table')

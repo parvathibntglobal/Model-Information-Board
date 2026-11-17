@@ -1,0 +1,199 @@
+# Content workspace: settings the code reads. Edited by hand and reviewed,
+# not in the Admin page (the per-platform notes and rules are edited there).
+#
+# Every key here is required. There are no defaults in code (rule 12): a
+# missing key fails loudly where it is read.
+
+# Our site's hosts, for the UTM check: the host of the environment variable
+# named in `hosts_env` (SITE_URL, the canonical address the web build already
+# reads, web/vite.config.js) plus any listed in `hosts`. The address is not in
+# this repository (looked for on 2026-11-17), so where SITE_URL is unset and
+# `hosts` is empty the UTM rule reports "not checked: site address not set"
+# rather than passing.
+site:
+  hosts_env: SITE_URL
+  hosts: []
+  # Paths of the board's own pages a suggestion links to.
+  paths:
+    model: /models/{model_path}
+    news: /news/{id}
+    updates: /updates
+    price_changes: /price-changes
+    vram_calculator: /local-llm-vram-calculator
+    compare: /compare
+    methodology: /methodology
+    blogs: /blogs
+
+checks:
+  # Matched as whole words, case-insensitive. A hit is a warning or a failure
+  # as the rule's severity says; nothing blocks saving a draft (rule 8: these
+  # word lists have not been measured on any population).
+  hype_words:
+    - game-changer
+    - game changer
+    - revolutionary
+    - groundbreaking
+    - mind-blowing
+    - insane
+    - unbelievable
+    - incredible
+    - jaw-dropping
+    - must-see
+    - you won't believe
+    - destroys
+    - crushes
+    - killer
+    - best ever
+    - 10x
+    - secret
+    - hack
+  # A post counts as disclosing affiliation when it contains one of these.
+  disclosure_phrases:
+    - disclosure
+    - i built
+    - we built
+    - i made
+    - we made
+    - i work on
+    - i run
+    - we run
+    - our board
+    - our site
+    - my project
+    - our project
+    - affiliated
+  # A quotation this long (in words) inside quotation marks is flagged as a
+  # possible verbatim user quote, for a person to confirm.
+  quote_min_words: 6
+  # (Characters a URL counts as on X is the length rule's own `url_chars`.)
+  # Separator between the parts of a thread or carousel, on a line by itself.
+  part_separator: "---"
+  # Formats whose body is split into parts and checked per part.
+  per_part_formats: [thread, carousel_text, document_carousel_text]
+
+recommender:
+  # How far back each board source is read, in days.
+  window_days:
+    launches: 7
+    price_moves: 14
+    news: 3
+    verdicts: 30
+  # A launch younger than this has no verdict yet worth posting.
+  verdict_min_days: 2
+  # At most this many launches get their verdict counts read per request
+  # (each is several queries).
+  verdict_max_models: 8
+  # At most this many suggestions per topic kind.
+  max_per_kind: 6
+
+# What each topic kind suggests and where its material comes from. A
+# platform's seed lists which kinds it uses.
+#   signal: launches | verdicts | price_moves | price_cuts | news |
+#           week_summary | workspace_drafts | evergreen
+topic_kinds:
+  release_reaction:
+    label: Release reaction
+    signal: launches
+    angle: >-
+      Same-day post on a new model: what was released, its listed price and
+      context, and what the board will count over the next 48 hours.
+  launch_verdict:
+    label: Launch verdict
+    signal: verdicts
+    angle: >-
+      What engineers reported in the days after release, in counts with their
+      denominator (posts and people, positive / negative / neutral).
+  video_metadata_verdict:
+    label: Verdict video metadata
+    signal: verdicts
+    angle: >-
+      Title, description and chapters for a launch-verdict video, written now
+      so recording can start later.
+  price_change:
+    label: Price change
+    signal: price_moves
+    angle: >-
+      A list price moved and held: old and new price, the date, and what it
+      changes for someone running that model.
+  cheaper_alternative:
+    label: Cheaper alternative
+    signal: price_cuts
+    angle: >-
+      A model got cheaper: who could move to it, and what the board's reports
+      say about where it holds up.
+  cost_explainer:
+    label: Cost explainer
+    signal: price_moves
+    angle: >-
+      For leaders and buyers: what this price move means for a monthly bill,
+      with the board's counts on the model.
+  news_digest:
+    label: News digest
+    signal: news
+    angle: >-
+      Two or three of the day's AI stories that matter to people choosing
+      models, each with a link to the source.
+  weekly_digest:
+    label: Weekly digest
+    signal: week_summary
+    angle: >-
+      The week in counts: launches, price changes and news items, with the
+      5-10 that matter.
+  vram_answer:
+    label: VRAM answer
+    signal: evergreen
+    link: vram_calculator
+    angle: >-
+      Answer a "can I run model X on my GPU?" question with the calculator's
+      figure and its assumptions.
+  vram_table:
+    label: VRAM table
+    signal: evergreen
+    link: vram_calculator
+    angle: >-
+      A table of memory needed per model and quantisation from the
+      calculator, stated as an estimate with its assumptions.
+  video_metadata_vram:
+    label: VRAM walkthrough metadata
+    signal: evergreen
+    link: vram_calculator
+    angle: >-
+      Title, description and chapters for a VRAM-calculator walkthrough video.
+  show_hn_tool:
+    label: Show HN (a tool)
+    signal: evergreen
+    link: vram_calculator
+    angle: >-
+      A tool people can try without signing up, presented by whoever built it.
+  method_post:
+    label: Method write-up
+    signal: evergreen
+    link: methodology
+    angle: >-
+      How the board counts: verified quotes, counts not scores, and what it
+      does not claim.
+  data_study:
+    label: Data study
+    signal: evergreen
+    link: compare
+    angle: >-
+      One counted finding from the board, with its population and date.
+  guide_syndication:
+    label: Guide syndication
+    signal: evergreen
+    link: blogs
+    angle: >-
+      Re-publish a finished guide with the canonical link pointing to our page.
+  comment_reply:
+    label: Comment reply
+    signal: evergreen
+    link: updates
+    angle: >-
+      Reply to a question under a post (ours or another's) with a counted
+      answer; written by a person.
+  carousel_from_linkedin:
+    label: Carousel from LinkedIn
+    signal: workspace_drafts
+    from_platform: linkedin
+    angle: >-
+      Re-use the text of a LinkedIn carousel written here as Instagram slides.

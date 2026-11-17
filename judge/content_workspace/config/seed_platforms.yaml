@@ -1,0 +1,725 @@
+# Content workspace: seed notes per platform.
+#
+# Loaded ONCE into the content-workspace tables by
+# `python -m judge.content_workspace seed`;
+# after that the notes are edited in Admin -> Content workspace and the
+# database copy is the live one. Re-running the seed adds only notes whose
+# seed_key is not there yet; it never overwrites an edited note.
+#
+# Sources (every note names one):
+#   anooj-2026-11-16   anooj's virality framework (psychology, algorithm,
+#                      hook, verticality), chat of 2026-11-16
+#   mib-study-2026-11-16   our platform study,
+#                      ~/.claude/mib-rwt/out/PLATFORM_STUDY_2026-11-16.txt
+#                      (four research agents + coordinator checks)
+#   mib-field-2026-11-16   our field study,
+#                      ~/.claude/mib-rwt/out/CONTENT_FIELD_STUDY_2026-11-16.txt
+#   ext-2026-11        the external research anooj attached on 2026-11-17
+#                      ("Cross-Platform Content Distribution, User
+#                      Expectations, and Virality Analysis ... Nov 2026")
+#   recommendation     Claude's own recommendation for this workspace
+#
+# source_type follows the study's tags: official, code, study, press,
+# marketing-blog, inference, mixed. A figure keeps its population and date.
+# Where the two research files disagree, the note says so and names both.
+
+common:
+  philosophy:
+    - key: common-layers
+      source: anooj-2026-11-16
+      source_type: inference
+      text: >-
+        Virality works in layers: psychology (the emotion a post carries),
+        algorithm (how the platform distributes it), hook (the first seconds
+        or line) and verticality (how closely the post matches the intent and
+        subject its audience came for). Conversion to the website is the fifth
+        layer we add on top.
+    - key: common-board-rules
+      source: mib-field-2026-11-16
+      source_type: inference
+      text: >-
+        Our own rules travel with every post: counts not scores, every figure
+        with its denominator, silence is never praise, and no verbatim Reddit
+        or X text (paraphrase, count, or link).
+    - key: common-sceptic-audience
+      source: mib-study-2026-11-16
+      source_type: study
+      text: >-
+        Our core audience uses AI daily and trusts it less each year: positive
+        sentiment toward AI tools fell to 60% (Stack Overflow 2025, 49,000+
+        respondents). Proof-heavy, sceptical posts suit them; hype repels them.
+  # Rules every platform's posts are checked against, beside its own.
+  rules:
+    - {key: common-rule-noquote, check: verbatim_quote, severity: warn, text: "No verbatim Reddit or X user text: paraphrase, count, or link."}
+    - {key: common-rule-handles, check: handles, severity: warn, text: "Name no user handle (@name, u/name) from the evidence."}
+    - {key: common-rule-score, check: score_words, severity: warn, text: "No invented scores (\"8/10\", \"out of 100\"): the board publishes counts."}
+    - {key: common-rule-hype, check: hype_words, severity: warn, text: "No hype words; the audience is sceptical."}
+  recommendations:
+    - key: common-rec-order
+      source: recommendation
+      text: >-
+        Order of work: X and LinkedIn first (an AI writer may draft there and a
+        person edits), then Reddit and Hacker News written by hand, then
+        Bluesky beside X. Substack, Medium and GitHub follow once finished
+        pieces exist. YouTube and Instagram get metadata and comments only
+        until video starts. Facebook waits for research.
+    - key: common-rec-measure
+      source: recommendation
+      text: >-
+        Record every post's link and the visits it brought (UTM per platform).
+        After four weeks, the counts decide where to spend effort, not the
+        research claims, most of which are vendor-measured.
+    - key: common-rec-not-covered
+      source: recommendation
+      text: >-
+        Both research files also cover dev.to, Hugging Face, Product Hunt,
+        Threads, TikTok and Discord, which this workspace does not list yet.
+        dev.to and Hugging Face are the closest fit for our engineers; add
+        them as platforms when wanted (the list is this seed file).
+
+platforms:
+
+  - key: x
+    name: X
+    order: 1
+    formats: [post, thread, reply]
+    video_creation: false
+    ai_writer_allowed: true
+    researched: true
+    philosophy:
+      - key: x-phil-1
+        source: mib-study-2026-11-16
+        source_type: code
+        text: >-
+          X publishes its ranking code. A transformer predicts each viewer's
+          chance of each action and a weighted sum ranks the post. Conversation
+          and private sharing are what it values.
+      - key: x-phil-2
+        source: ext-2026-11
+        source_type: inference
+        text: >-
+          A real-time public square: breaking developments, fast commentary and
+          direct exchanges between practitioners. AI people on X expect day-one
+          release verdicts, bookmarkable charts and pushback against vendor hype.
+    research:
+      - key: x-res-weights
+        topic: algorithm
+        source: mib-study-2026-11-16
+        source_type: code
+        text: >-
+          Weights read from home-mixer/params/param.rs on main, 16 Nov 2026:
+          reply 5.0 (+15.0 when viewer and author follow each other), quote 5.0,
+          share via DM 5.0, follow author 4.0, share 2.118, repost 1.0,
+          favourite 0.708, click 0.274, open link 0.2, dwell 0.05; not
+          interested -53.07, block -31.2, mute -58.8, report -234.0. They
+          multiply predicted probabilities, not counts.
+      - key: x-res-weights-conflict
+        topic: algorithm
+        source: ext-2026-11
+        source_type: mixed
+        text: >-
+          CONFLICT. The external research quotes the 2023 weights (reply the
+          author engages with 75.0, reply 13.5, like 0.5) and a tracker's
+          Sept-Oct 2026 changes (favourite 0.6, dwell 0.006, not interested
+          -47.52). None of those match the file read on 16 Nov 2026. Trust the
+          file; re-read it before quoting a number.
+      - key: x-res-links
+        topic: conversion
+        source: mib-study-2026-11-16
+        source_type: mixed
+        text: >-
+          Links: the code gives opening a link +0.2 and has no link-penalty
+          parameter in param.rs; X's head of product said in 2025-2026 that
+          links are not penalised. The external research cites Musk (Nov 2024)
+          and a Buffer study (0% median engagement on non-Premium link posts,
+          marketing blog) saying they are. Unsettled: test link-in-post vs
+          link-in-reply ourselves.
+      - key: x-res-audience
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: study
+        text: >-
+          18% of 5,511 US adults use X (Pew, 30 Jan-18 Jun 2026); 31% of
+          18-29s; 23% of men vs 14% of women. 17.1% of 30,190 Stack Overflow
+          2025 respondents used X.
+      - key: x-res-why
+        topic: psychology
+        source: ext-2026-11
+        source_type: study
+        text: >-
+          Why people open X (DataReportal via Search Engine Land, Sept 2026,
+          users 16-64): news 59.7%, researching brands and products 37.8%,
+          entertainment 35.4%. Not verified by us.
+      - key: x-res-premium
+        topic: algorithm
+        source: ext-2026-11
+        source_type: marketing-blog
+        text: >-
+          Reported, not confirmed: Premium accounts get about 10x the median
+          reach of free ones; text-only posts got about 20% more engagement
+          than video (Buffer via PostEverywhere).
+    rules:
+      - {key: x-rule-length, check: length, severity: fail, params: {max_chars: 280, url_chars: 23}, formats: [post, thread, reply], text: "Stay within the character limit for the account type (280 for a standard account); a longer point becomes a thread."}
+      - {key: x-rule-count, check: denominator, severity: warn, text: "Lead with the count and its denominator (\"14 of 38 engineers reported...\")."}
+      - {key: x-rule-question, check: manual, severity: manual, text: "End on a specific technical question the board can answer: replies carry the largest positive weight."}
+      - {key: x-rule-hashtags, check: hashtags, severity: fail, params: {max: 2}, text: "At most 2 hashtags (more is reported to trigger spam classifiers)."}
+      - {key: x-rule-link, check: link_placement, severity: manual, params: {mode: record}, text: "Link placement is a test, not a rule: alternate link-in-post and link-in-reply and record both."}
+      - {key: x-rule-noquote, check: verbatim_quote, severity: warn, text: "Never quote an X or Reddit user's words; paraphrase and count."}
+    recommendations:
+      - key: x-rec-1
+        source: recommendation
+        text: >-
+          Start here. Launch-verdict threads on release days, a 48-hour
+          follow-up in counts, and price-drop alerts. Reply to "can I run X?"
+          posts with a VRAM calculator link.
+    topics: [release_reaction, launch_verdict, price_change, vram_answer, news_digest]
+
+  - key: linkedin
+    name: LinkedIn
+    order: 2
+    formats: [post, document_carousel_text, article]
+    video_creation: false
+    ai_writer_allowed: true
+    researched: true
+    philosophy:
+      - key: li-phil-1
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          Professional relevance. LinkedIn's engineering post (12 Mar 2026):
+          LLM-embedding retrieval plus a sequence recommender over a member's
+          last 1,000+ interactions, reading post text against profile skills,
+          industry and engagement history.
+      - key: li-phil-2
+        source: ext-2026-11
+        source_type: mixed
+        text: >-
+          Readers come with a career, architecture and procurement mindset:
+          saveable cost tables and trade-offs they can take to a leadership or
+          finance review, and peer validation in the comments.
+    research:
+      - key: li-res-360brew
+        topic: algorithm
+        source: mib-study-2026-11-16
+        source_type: code
+        text: >-
+          "360Brew" (150B parameters, arXiv 2501.16450) is a research
+          pre-production model; LinkedIn's March 2026 post does not name it, so
+          it being the live ranker is NOT confirmed. The external research
+          agrees (Fast Growth Advisors audit): the production ranker is the
+          sequential recommender (arXiv 2602.12354), optimising long dwell.
+      - key: li-res-links
+        topic: conversion
+        source: mib-study-2026-11-16
+        source_type: marketing-blog
+        text: >-
+          Link penalty is vendor-measured only: 19-36% lower reach for a link
+          in the post (Ordinal, LinkPost, van der Blom), concentrated on
+          company pages and nearly absent on personal profiles (Ordinal). The
+          repeated ~60% has no sample. The external research adds a claim that
+          first-comment links were penalised in early 2026 (marketing blogs,
+          disputed).
+      - key: li-res-audience
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: study
+        text: >-
+          31% of 5,511 US adults use LinkedIn (Pew 2026); 51% of college
+          graduates vs 13% with high school or less; 45% of $100k+ households.
+      - key: li-res-carousel
+        topic: hook
+        source: ext-2026-11
+        source_type: marketing-blog
+        text: >-
+          Document (PDF) carousels: reported 1.39x reach and 6.6% engagement vs
+          about 2% for text (AuthoredUp, 3M personal-profile posts, Mar 2025-
+          Feb 2026, via Expandi/Frontal). Not verified by us.
+      - key: li-res-edelman
+        topic: psychology
+        source: mib-study-2026-11-16
+        source_type: study
+        text: >-
+          Edelman-LinkedIn 2025 (about 2,000 decision-makers): 55% use thought
+          leadership to vet vendors; hidden buyers read as much as the buying
+          team. Figures via trade press; check against the PDF before quoting.
+    rules:
+      - {key: li-rule-profile, check: manual, severity: manual, text: "Post from a personal profile, not the company page."}
+      - {key: li-rule-hook, check: hook_length, severity: warn, params: {max_chars: 210}, formats: [post, document_carousel_text], text: "The point must land before \"see more\" (about the first 210 characters)."}
+      - {key: li-rule-link, check: link_placement, severity: warn, params: {mode: avoid}, formats: [post, document_carousel_text], text: "Keep the link out of the post body until our own test says otherwise; use the bio, a comment, or a LinkedIn newsletter."}
+      - {key: li-rule-count, check: denominator, severity: warn, text: "Cost and failure figures carry their denominator and date."}
+      - {key: li-rule-length, check: length, severity: fail, params: {max_chars: 3000}, formats: [post], text: "Stay under 3,000 characters."}
+      - {key: li-rule-hashtags, check: hashtags, severity: warn, params: {max: 5}, text: "At most 5 hashtags."}
+    recommendations:
+      - key: li-rec-1
+        source: recommendation
+        text: >-
+          Two posts a week for leaders and hidden buyers: what AI costs, where a
+          cheaper model holds up, launch verdicts in plain counts. Carousels
+          built here can be re-exported for Instagram.
+    topics: [price_change, cheaper_alternative, launch_verdict, cost_explainer]
+
+  - key: reddit
+    name: Reddit
+    order: 3
+    formats: [text_post, comment]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: true
+    philosophy:
+      - key: rd-phil-1
+        source: mib-study-2026-11-16
+        source_type: inference
+        text: >-
+          Self-governing communities: moderators decide what a subreddit is for
+          and members vote. Technical subs reward measurement, first-hand
+          experience and sourced claims; they punish marketing tone.
+      - key: rd-phil-2
+        source: ext-2026-11
+        source_type: mixed
+        text: >-
+          Readers expect a complete, self-contained Markdown table inside the
+          post, explicit sample sizes and hardware, and no clickbait. Many
+          arrive logged out from search: 77.7M of 130.3M daily uniques (59.6%)
+          in Q2 2026 (Reddit filing, via ContentDrifter; not verified by us).
+    research:
+      - key: rd-res-ranking
+        topic: algorithm
+        source: mib-study-2026-11-16
+        source_type: code
+        text: >-
+          "Hot" combines net votes with age, with a log so early votes count
+          more (old open-source code, Evan Miller). Current ranking not
+          published. "First 15-30 minutes decide" is marketing-blog only.
+      - key: rd-res-rules
+        topic: rules_external
+        source: mib-study-2026-11-16
+        source_type: mixed
+        text: >-
+          Subreddit rules could not be read first-hand (Reddit blocks fetches).
+          Mirror of the r/LocalLLaMA wiki: about 10% self-promotion, disclosure
+          required, karma minimums; a tightened Rule 4 reported around late
+          April 2026. Reddit's Rules Hub (5 Aug 2026) lets moderators enforce by
+          LLM. r/opensource bars AI projects from promotion (press).
+      - key: rd-res-sizes
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: mixed
+        text: >-
+          25% of 5,511 US adults use Reddit (Pew 2026); 36% of college
+          graduates. r/LocalLLaMA about 686k-762k members, r/LocalLLM about
+          268k, r/ChatGPTCoding about 390k, r/AI_Agents about 467k
+          (aggregators, 2026). 53.7% of Stack Overflow 2025 respondents use
+          Reddit as a community platform.
+      - key: rd-res-optics
+        topic: rules_external
+        source: mib-field-2026-11-16
+        source_type: inference
+        text: >-
+          Optics: most of our harvested posts come from Reddit (26,755 of
+          45,376 in the 30 days to 16 Nov 2026), so a post that looks like
+          "the board scraped our threads" will be read that way. Paraphrase,
+          count, never quote.
+    rules:
+      - {key: rd-rule-read, check: manual, severity: manual, text: "A person reads the subreddit's rules and pinned threads on the day of posting."}
+      - {key: rd-rule-disclose, check: disclosure, severity: fail, formats: [text_post], text: "Disclose affiliation in the post."}
+      - {key: rd-rule-value, check: table_or_data, severity: warn, formats: [text_post], text: "Put the data in the post (a table or the counts), not behind the link."}
+      - {key: rd-rule-noquote, check: verbatim_quote, severity: warn, text: "Never quote a Reddit user's words; paraphrase and count."}
+      - {key: rd-rule-human, check: ai_assisted, severity: warn, text: "Written by a person: AI-built content meets growing hostility on Reddit."}
+      - {key: rd-rule-title, check: title_length, severity: fail, params: {max_chars: 300}, formats: [text_post], text: "Title states the exact comparison or dataset, under 300 characters."}
+    recommendations:
+      - key: rd-rec-1
+        source: recommendation
+        text: >-
+          Participate first (answer questions with counted, sourced replies),
+          then one disclosed data post a fortnight. r/LocalLLaMA and r/LocalLLM
+          for VRAM tables; the self-promotion thread where one exists.
+    topics: [vram_table, launch_verdict, price_change, method_post]
+
+  - key: hackernews
+    name: Hacker News
+    order: 4
+    formats: [link_submission, show_hn, comment]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: true
+    philosophy:
+      - key: hn-phil-1
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          Stories that gratify intellectual curiosity, submitted from the
+          original source; conversation between humans; not primarily for
+          promotion (HN guidelines).
+    research:
+      - key: hn-res-ranking
+        topic: algorithm
+        source: mib-study-2026-11-16
+        source_type: mixed
+        text: >-
+          Points over a power of age (official FAQ), plus flags, anti-abuse,
+          overheated-discussion demotion, site weighting and moderators. 2013
+          analysis: gravity 1.8, vote exponent 0.8, domain penalties; current
+          values not published.
+      - key: hn-res-ai
+        topic: rules_external
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          HN bans AI-generated or AI-edited text in posts and comments, bans
+          vote solicitation, and Show HN takes only things people can try,
+          posted by whoever built them (blogs and sign-up pages do not
+          qualify).
+      - key: hn-res-audience
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: study
+        text: >-
+          19.6% of 30,190 Stack Overflow 2025 respondents use HN (self-selected
+          sample). The external research reports one case: a dev tool at #2 on
+          HN (107 points) gave 61 visitors and 100+ installs vs 243 visitors
+          and 30 installs from a #14 Product Hunt launch (marketing blog).
+    rules:
+      - {key: hn-rule-human, check: ai_assisted, severity: fail, text: "No AI-written or AI-edited text, in the title, the text or comments."}
+      - {key: hn-rule-title, check: title_length, severity: fail, params: {max_chars: 80}, formats: [link_submission, show_hn], text: "Plain, factual title under 80 characters; no superlatives, capitals or exclamation marks."}
+      - {key: hn-rule-hype, check: hype_words, severity: fail, text: "No marketing words anywhere."}
+      - {key: hn-rule-show, check: manual, severity: manual, formats: [show_hn], text: "Show HN only for a tool people can use now without signing up."}
+      - {key: hn-rule-votes, check: manual, severity: manual, text: "Never ask anyone to upvote or share the link."}
+      - {key: hn-rule-answer, check: manual, severity: manual, formats: [link_submission, show_hn], text: "Someone who built it answers comments for the first hours."}
+    recommendations:
+      - key: hn-rec-1
+        source: recommendation
+        text: >-
+          One Show HN for the VRAM calculator, written by a person. Later, a
+          method write-up (how a verified quote works) as a normal submission.
+          The board itself is not a Show HN.
+    topics: [show_hn_tool, method_post, data_study]
+
+  - key: bluesky
+    name: Bluesky
+    order: 5
+    formats: [post, thread]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: true
+    philosophy:
+      - key: bs-phil-1
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          Algorithmic choice: a chronological Following feed, a Discover feed,
+          and custom feeds anyone can build on the AT Protocol.
+      - key: bs-phil-2
+        source: ext-2026-11
+        source_type: marketing-blog
+        text: >-
+          Users expect working links to the open web, substantive threads over
+          engagement bait, and charts (62% of media posts in the network's
+          history were posted in 2025, per its transparency report via a blog).
+    research:
+      - key: bs-res-audience
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: mixed
+        text: >-
+          4% of 5,022 US adults (Pew 2025; no 2026 value). Users: about 41-43M
+          registered; active-user figures conflict (10.4M vs 27.5M monthly).
+          Academics moved there (arXiv study of about 300,000 academics: 18%).
+          Bluesky was our second-largest harvested source (6,026 posts, 30 days
+          to 16 Nov 2026).
+      - key: bs-res-links
+        topic: conversion
+        source: mib-study-2026-11-16
+        source_type: mixed
+        text: >-
+          No link penalty found in any primary source; that is "not found",
+          not "none". Link cards render natively.
+      - key: bs-res-starter
+        topic: verticality
+        source: ext-2026-11
+        source_type: study
+        text: >-
+          Starter packs: accounts included gained up to 85% more followers
+          (Lancaster University study via PostEverywhere; not verified by us).
+    rules:
+      - {key: bs-rule-length, check: length, severity: fail, params: {max_chars: 300}, text: "300 characters per post."}
+      - {key: bs-rule-chart, check: manual, severity: manual, text: "Pair a finding with a chart image."}
+      - {key: bs-rule-count, check: denominator, severity: warn, text: "Counts carry their denominator."}
+    recommendations:
+      - key: bs-rec-1
+        source: recommendation
+        text: >-
+          Cheap to run alongside X. Later, a custom feed of launch verdicts and
+          a starter pack of model-evaluation accounts.
+    topics: [launch_verdict, price_change, news_digest]
+
+  - key: substack
+    name: Substack
+    order: 6
+    formats: [newsletter_issue, note]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: true
+    philosophy:
+      - key: ss-phil-1
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          A direct relationship in the inbox. Substack says its feed aims at
+          discovery, subscriptions and paid conversion rather than time spent
+          (Demystifying the feed, 27 Oct 2025).
+    research:
+      - key: ss-res-audience
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: mixed
+        text: >-
+          Self-reported: TLDR AI about 1.15M subscribers (engineers); The
+          Rundown 1.35M on its own page vs about 2M on a broker page,
+          unresolved. Inclusion rules for third-party newsletters not found.
+      - key: ss-res-expect
+        topic: psychology
+        source: ext-2026-11
+        source_type: study
+        text: >-
+          42% of 97,520 respondents avoid news (Reuters DNR 2026); readers want
+          signal compression. Our week holds about 658 news items and 196
+          vendor notes; an issue picks the 5-10 that matter.
+    rules:
+      - {key: ss-rule-subject, check: title_length, severity: warn, params: {max_chars: 60}, formats: [newsletter_issue], text: "Factual subject line under 60 characters that names what is inside."}
+      - {key: ss-rule-links, check: utm, severity: warn, text: "Every link to our site carries a UTM tag."}
+      - {key: ss-rule-count, check: denominator, severity: warn, text: "Each item states its count and denominator."}
+    recommendations:
+      - key: ss-rec-1
+        source: recommendation
+        text: >-
+          A weekly digest: releases, price changes and launch verdicts. Start it
+          once the other channels give it readers; meanwhile pitch one counted
+          finding a month to AI newsletters.
+    topics: [weekly_digest, price_change, launch_verdict]
+
+  - key: medium
+    name: Medium
+    order: 7
+    formats: [article]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: true
+    philosophy:
+      - key: md-phil-1
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          Human storytelling with curation: network distribution, then
+          recommendations, then Boost picked by human curators.
+    research:
+      - key: md-res-ai
+        topic: rules_external
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          AI-written text is excluded from the Partner Program paywall and from
+          Boost (help-centre excerpt; a 2024 press report describes a looser
+          rule).
+      - key: md-res-fit
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: inference
+        text: >-
+          Weaker fit for AI developers than dev.to; no audience figure found.
+          Syndicate with a canonical link to our page; keep it free to read.
+    rules:
+      - {key: md-rule-human, check: ai_assisted, severity: warn, text: "Human-written; AI-written text loses distribution."}
+      - {key: md-rule-canonical, check: manual, severity: manual, text: "Import with the canonical link pointing to our page."}
+      - {key: md-rule-hype, check: hype_words, severity: warn, text: "No clickbait headline (it restricts distribution to followers)."}
+    recommendations:
+      - key: md-rec-1
+        source: recommendation
+        text: "Low priority: syndicate finished guides only."
+    topics: [guide_syndication, method_post]
+
+  - key: github
+    name: GitHub
+    order: 8
+    formats: [readme, discussion_post, release_notes]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: true
+    philosophy:
+      - key: gh-phil-1
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          Collaboration on code. Advertising is allowed but the main focus must
+          not be promotion; promotional README text must relate to the project
+          (Acceptable Use Policy).
+    research:
+      - key: gh-res-audience
+        topic: audience
+        source: mixed
+        source_type: study
+        text: >-
+          66.9% of 49,000+ Stack Overflow 2025 respondents use GitHub as a
+          community platform; the external research reports 69.5% of 10,741 in
+          the 2026 survey and 43.7% of 16,664 who search a maintained
+          repository directly (not verified by us).
+      - key: gh-res-trending
+        topic: algorithm
+        source: mib-study-2026-11-16
+        source_type: marketing-blog
+        text: >-
+          Trending is not published; observers say recent star velocity (24-48
+          hours). Automating stars is prohibited.
+    rules:
+      - {key: gh-rule-useful, check: manual, severity: manual, text: "Publish only something useful on its own (method, formulas, a data export of non-restricted fields)."}
+      - {key: gh-rule-noraw, check: verbatim_quote, severity: warn, text: "No raw Reddit or X text in any file."}
+    recommendations:
+      - key: gh-rec-1
+        source: recommendation
+        text: >-
+          An open "how we count" method repo, then the VRAM formulas as a small
+          tested library. Both point back to the site.
+    topics: [method_post, vram_table]
+
+  - key: youtube
+    name: YouTube
+    order: 9
+    formats: [video_metadata, shorts_metadata, comment]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: true
+    philosophy:
+      - key: yt-phil-1
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          Valued watch time, not clicks alone: clicks, watch time, 4-5 star
+          survey answers, shares and likes (YouTube blog, Sep 2021). Shorts is
+          a variety-first feed (2023).
+    research:
+      - key: yt-res-devs
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: study
+        text: >-
+          Where developers learn: 60.5% of 49,000+ Stack Overflow 2025
+          respondents use YouTube as a community platform (70% of learners);
+          62% of developers on social media prefer it for learning (SlashData,
+          31st edition).
+      - key: yt-res-links
+        topic: conversion
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          URLs in Shorts descriptions and comments are not clickable; the
+          Related video link is. Long-form descriptions and pinned comments
+          carry clickable links with advanced features. Shorts views count on
+          play since 31 Mar 2025, so quote engaged views.
+      - key: yt-res-desc
+        topic: verticality
+        source: ext-2026-11
+        source_type: press
+        text: >-
+          Detailed descriptions reportedly lifted retrieval by AI answer
+          engines (359%, Search Engine Land, Nov 2026; the cited URL in the
+          external file points to a different page, so unverified).
+    rules:
+      - {key: yt-rule-scope, check: manual, severity: manual, text: "No video production yet: this workspace writes titles, descriptions, chapters, tags and comments only."}
+      - {key: yt-rule-title, check: title_length, severity: fail, params: {max_chars: 100}, formats: [video_metadata, shorts_metadata], text: "Literal technical title under 100 characters."}
+      - {key: yt-rule-desc, check: length, severity: fail, params: {max_chars: 5000}, formats: [video_metadata, shorts_metadata], text: "Description under 5,000 characters, with sources and timestamps."}
+      - {key: yt-rule-shortslink, check: link_placement, severity: warn, params: {mode: not_clickable}, formats: [shorts_metadata], text: "In Shorts metadata, links are not clickable; point to a long-form video instead."}
+      - {key: yt-rule-synthetic, check: manual, severity: manual, formats: [video_metadata, shorts_metadata], text: "Disclose realistic synthetic voices or faces."}
+    recommendations:
+      - key: yt-rec-1
+        source: recommendation
+        text: >-
+          Prepare metadata templates now (launch-verdict video, VRAM
+          walkthrough) so recording can start later without new writing.
+    topics: [video_metadata_verdict, video_metadata_vram, comment_reply]
+
+  - key: instagram
+    name: Instagram
+    order: 10
+    formats: [caption, carousel_text, comment]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: true
+    philosophy:
+      - key: ig-phil-1
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          Instagram rewards original creators: from 30 Apr 2026 accounts that
+          mainly post unoriginal photos, carousels or reels are removed from
+          recommendations (Instagram Creators blog).
+    research:
+      - key: ig-res-signals
+        topic: algorithm
+        source: mib-study-2026-11-16
+        source_type: official
+        text: >-
+          Mosseri (Jan 2025): watch time, likes per reach and sends per reach;
+          sends slightly more important for non-followers. The "3-5x" weighting
+          is marketing-blog only.
+      - key: ig-res-audience
+        topic: audience
+        source: mib-study-2026-11-16
+        source_type: study
+        text: >-
+          51% of 5,511 US adults (Pew 2026); 79% of 18-29s. No developer
+          audience figure; reaches founders, professionals, news followers and
+          learners rather than core engineers.
+      - key: ig-res-links
+        topic: conversion
+        source: mib-study-2026-11-16
+        source_type: marketing-blog
+        text: >-
+          Caption links are not clickable for most accounts; the bio (up to
+          five links) and story stickers are. Conversion is indirect.
+      - key: ig-res-trial
+        topic: audience
+        source: recommendation
+        source_type: study
+        text: >-
+          Our own hashtag trial (5 hashtags, 4-5 Nov 2026 only): 13 of 328
+          posts first-hand (4%), 117 promotional. Instagram is a place to post
+          for non-engineers, not a source of evidence.
+    rules:
+      - {key: ig-rule-scope, check: manual, severity: manual, text: "No reels yet: captions, carousel text and comments only."}
+      - {key: ig-rule-original, check: manual, severity: manual, formats: [caption, carousel_text], text: "Every post carries our own graphic or counts; never repost or lightly edit someone else's."}
+      - {key: ig-rule-link, check: link_placement, severity: fail, params: {mode: not_clickable}, formats: [caption, carousel_text], text: "No URL in the caption (not clickable); say \"link in bio\"."}
+      - {key: ig-rule-length, check: length, severity: fail, params: {max_chars: 2200}, formats: [caption, carousel_text], text: "Caption under 2,200 characters."}
+      - {key: ig-rule-hashtags, check: hashtags, severity: warn, params: {max: 5}, formats: [caption, carousel_text], text: "At most 5 hashtags (a reported cap; 30 is the documented maximum)."}
+      - {key: ig-rule-send, check: manual, severity: manual, formats: [caption, carousel_text], text: "Write for a named recipient: \"send this to the teammate who...\"."}
+    recommendations:
+      - key: ig-rec-1
+        source: recommendation
+        text: >-
+          Re-use LinkedIn carousel text as slides for professionals and
+          learners; real-work stories wait for the video phase.
+    topics: [carousel_from_linkedin, cheaper_alternative, comment_reply]
+
+  - key: facebook
+    name: Facebook
+    order: 11
+    formats: [post, comment]
+    video_creation: false
+    ai_writer_allowed: false
+    researched: false
+    philosophy: []
+    research:
+      - key: fb-res-gap
+        topic: gap
+        source: recommendation
+        source_type: inference
+        text: >-
+          NOT RESEARCHED. Neither research file studied Facebook. The only
+          figure we hold: 70% of 5,511 US adults use it (Pew 2026). Run the
+          research prompt for Facebook (Groups especially) before writing
+          rules here.
+    rules:
+      - {key: fb-rule-length, check: length, severity: fail, params: {max_chars: 63206}, text: "Post under 63,206 characters (platform limit)."}
+    recommendations:
+      - key: fb-rec-1
+        source: recommendation
+        text: "Hold until researched; Groups are the likely fit, not a Page."
+    topics: [launch_verdict]

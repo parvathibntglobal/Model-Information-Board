@@ -78,6 +78,7 @@ const BenchmarkCharts = page(() => import('./routes/BenchmarkCharts'))
 const ModelFinder = page(() => import('./routes/ModelFinder'))
 const Admin = page(() => import('./routes/Admin'))
 const BlogLogs = page(() => import('./routes/BlogLogs'))
+const ContentWorkspace = page(() => import('./routes/ContentWorkspace'))
 const Keywords = page(() => import('./routes/Keywords'))
 const PriceChanges = page(() => import('./routes/PriceChanges'))
 const News = page(() => import('./routes/News'))
@@ -215,6 +216,7 @@ export default function App() {
           <Route path="/ai-news-headlines" element={<AiUpdates />} />
           <Route path="/keywords" element={<MovedTo path="/seo-keywords" />} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
+          <Route path="/admin/content" element={<Require session={session}><ContentWorkspace /></Require>} />
           {/* Signed in only: an internal preview of another product's site. */}
           <Route path="/kite-pulse/*" element={<Require session={session}><KitePulse /></Require>} />
 
