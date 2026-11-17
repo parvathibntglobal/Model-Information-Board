@@ -16,9 +16,11 @@ ratified into `contract/sources.yaml`.)
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import psycopg
 import pytest
+import yaml
 
 from collect.adapters.basis import PUBLIC_DERIVED_PUBLICATION
 from collect.registry.assertions import TermsNotReviewedError, assert_terms_reviewed
@@ -30,6 +32,7 @@ from collect.registry.sources import (
 from tests.conftest import assert_disposable, assert_safe_target
 
 REVIEWED_ON = date(2026, 8, 14)
+SOURCES = Path(__file__).resolve().parents[1] / "contract" / "sources.yaml"
 
 
 @pytest.fixture
@@ -228,7 +231,14 @@ def test_every_platform_row_is_stored_with_its_ruling(conn):
 
     row = _rows(conn)["reddit"]
     assert row["terms_ruling"] == "reddit-via-rapidapi"
-    assert row["terms_checked_on"] == date(2026, 8, 18)
+    # The stored date is the contract's, round-tripped as a date. Read from
+    # the contract rather than pinned: this was pinned to 2026-08-18, the
+    # same stale date the contract carried until the 2026-11-13 re-check, so
+    # re-dating the evidence (which the gate demands every 90 days) broke it.
+    contract = yaml.safe_load(SOURCES.read_text(encoding="utf-8"))
+    reddit = next(s for s in contract["sources"] if s["id"] == "reddit")
+    assert isinstance(row["terms_checked_on"], date)
+    assert row["terms_checked_on"] == reddit["terms_evidence"]["checked_on"]
 
 
 def test_an_unruled_row_is_stored_with_nulls_and_reported(conn):

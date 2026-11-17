@@ -1812,7 +1812,16 @@ sources:
     # conditions precisely because of that.
     terms_ruling: reddit-via-rapidapi
     terms_evidence:
-      checked_on: 2026-08-18
+      # 2026-11-13: the date these four facts were last checked, in the
+      # re-review recorded on `reddit-via-rapidapi` (#629): the route still
+      # serves the official Data API's shape (t2_ fullnames, t1_/t3_ ids,
+      # subreddit_id) through the reseller; Reddit is published only as its
+      # official embed; no Reddit-issued credentials (REDDIT_CLIENT_ID unset,
+      # REDDIT_PROVIDER reddit34, confirmed again 2026-11-17); no legal
+      # review. #629 re-dated the ruling and missed this date, so the gate
+      # refused Reddit from 2026-11-17 (evidence of 2026-08-18 + 90 days).
+      # First measured 2026-08-18.
+      checked_on: 2026-11-13
       official_api_proxy: true
       full_text_republished: false
       credentials_issued_by_reddit: false
