@@ -40,10 +40,26 @@ may be both. The people counts are per card and per issue, where the board
 counts people; the comparison table is in reports because that is the unit the
 board's split is held in.
 
-ABSENCE IS NOT A VERDICT (rules 4 and 6). An assistant with no reports is
-`state: "no_reports"`, distinct from one with problems reported, and a member of
-the grouping file the registry does not hold is COUNTED (`not_in_registry`)
-rather than dropped or rendered empty.
+ABSENCE IS NOT A VERDICT (rules 4 and 6). An assistant with no reports is one
+of three states, because they are different absences (2026-11-17; the third
+from the #634 review, 2026-11-18):
+
+    no_reports       the agent fetch has COMPLETED a search for it and nobody
+                     has reported on it: an absence we looked for
+    search_starting  listed in contract/tracked_agents.yaml with the run
+                     switched on, and no completed fetch yet: nothing counted,
+                     and not because nobody talks about it
+    not_tracked      nothing searches for it (not listed, or the agent run is
+                     switched off), so nothing has been counted: a gap in
+                     coverage. 23 of the 31 "works for you" members were this
+                     on 2026-11-17 and read as "No reports yet", i.e. as if
+                     nobody talked about them
+
+All three are distinct from one with problems reported. An assistant that is not
+tracked but has reports (found by another fetch) is `reports`: counts are
+counts wherever they came from. A member of the grouping file the registry
+does not hold is COUNTED (`not_in_registry`) rather than dropped or rendered
+empty.
 """
 
 from __future__ import annotations
@@ -51,7 +67,44 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from judge import publication
-from judge.config import agent_canonical_ids, assistant_groups, board_vocabulary
+from judge.config import (
+    agent_canonical_ids,
+    agent_run_rule,
+    assistant_groups,
+    board_vocabulary,
+    tracked_agents,
+)
+
+
+def _coverage(conn) -> tuple[set[str], set[str]]:
+    """(listed, searched): the canonical ids the agent fetch is set to search
+    for, and the registry row ids it HAS searched.
+
+    LISTED IS NOT SEARCHED (#634 review, Parvathi, 2026-11-18). Being in
+    contract/tracked_agents.yaml says a fetch will run, not that one has: a
+    newly listed agent can wait a night or more for its turn (group turns, the
+    run's time and spend ceilings). So `searched` is the scheduler's own test,
+    `due_rows` and its LAST_SUCCESS: an `end` record with status ok that read
+    something or could have. With `run.enabled: false` nothing searches, so
+    both sets are empty and every silent assistant is `not_tracked`.
+    """
+    if not agent_run_rule().enabled:
+        return set(), set()
+    from scripts.run_scheduled_fetches import due_rows
+
+    listed = {a.registry for a in tracked_agents()}
+    searched = {r["model_version_id"] for r in due_rows(conn, "agents")
+                if r.get("last_success") is not None}
+    return listed, searched
+
+
+def _state(reg: dict, reports: int, coverage: tuple[set[str], set[str]]) -> str:
+    listed, searched = coverage
+    if reports:
+        return "reports"
+    if reg["id"] in searched:
+        return "no_reports"
+    return "search_starting" if reg["canonical_id"] in listed else "not_tracked"
 
 #: board section name by the kind the page uses
 _SECTION_OF_KIND = {"job": "best_for", "capability": "capability"}
@@ -232,6 +285,7 @@ def assistants_view(conn) -> dict:
     registry = _registry(conn, sorted(in_group | set(agent_canonical_ids())))
     axes = _axis_index(conn)
     names = _vocab_names()
+    coverage = _coverage(conn)
 
     groups = []
     for g in cfg["groups"]:
@@ -245,7 +299,7 @@ def assistants_view(conn) -> dict:
             cards.append({
                 "id": reg["id"], "canonical_id": cid, "name": reg["display_name"],
                 "provider": reg["provider"], "tags": _tags(cid, cfg),
-                "state": "reports" if e["reports"] else "no_reports",
+                "state": _state(reg, e["reports"], coverage),
                 "people": e["people"], "reports": e["reports"], "newest": e["newest"],
                 "top_jobs": [{k: j[k] for k in ("slug", "name", "people", "reports")}
                              for j in jobs[:_TOP_JOBS]],
@@ -333,7 +387,7 @@ def assistant_detail(conn, ident: str) -> dict | None:
         "tags": _tags(cid, cfg),
         "freshness": {"updated_at": fresh.get("updated_at"),
                       "newest_report_at": fresh.get("newest_report_at")},
-        "state": "reports" if e["reports"] else "no_reports",
+        "state": _state(reg, e["reports"], _coverage(conn)),
         "evidence": {"people": e["people"], "reports": e["reports"],
                      "platforms": e["platforms"], "newest": e["newest"]},
         "best_for": jobs,
