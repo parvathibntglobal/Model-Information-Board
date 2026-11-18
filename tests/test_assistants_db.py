@@ -2,8 +2,10 @@
 
 What the page promises and these pin:
 
-* ABSENCE IS NOT A VERDICT. An assistant nobody reported on is `no_reports`,
-  never "problems"; a member the registry does not hold is COUNTED in
+* ABSENCE IS NOT A VERDICT. An assistant nobody reported on is `no_reports`
+  once the agent fetch has completed a search for it, `search_starting` while
+  it is listed and unsearched, `not_tracked` when nothing searches for it;
+  never "problems". A member the registry does not hold is COUNTED in
   `not_in_registry`, never rendered or silently dropped.
 * NOTHING UNGROUPED IS GUESSED INTO A GROUP. A registry agent in no group is
   listed under `unclassified`.
@@ -70,6 +72,21 @@ def _report(conn, n, model_id, *, source, author, section, slug, name, polarity,
         (f"be{n}", section, slug, name, model_id, doc, f"words from {doc}", polarity,
          ruling, "2026-10-09T00:00:00Z" if ruling else None),
     )
+
+
+def _fetched(conn, mv, **end):
+    """A completed agent fetch for `mv`: a `run` and an `end` record, status ok
+    and some threads read unless `end` says otherwise (the scheduler's
+    LAST_SUCCESS is what reads them)."""
+    run_id = f"run-{mv}-{len(end)}"
+    payload = {"kind": "end", "status": "ok", "threads_read": 3, **end}
+    for seq, (kind, body) in enumerate([("run", {"kind": "run"}), ("end", payload)]):
+        conn.execute(
+            "INSERT INTO fetch_log (id, run_id, seq, at, machine, payload, kind, "
+            "model_version_id) VALUES (%s, %s, %s, now(), 'test', %s, %s, %s)",
+            (f"{run_id}-{seq}", run_id, seq, json.dumps(body), kind, mv),
+        )
+    conn.commit()
 
 
 @pytest.fixture
@@ -149,7 +166,8 @@ def test_an_assistant_with_reports_has_counts_and_declined_rows_do_not_count(cli
     assert card["top_jobs"][0]["slug"] == "daily-planning"
 
 
-def test_an_assistant_nobody_discussed_is_no_reports_not_problems(client):
+def test_an_assistant_nobody_discussed_is_no_reports_not_problems(conn, client):
+    _fetched(conn, "mv_code")
     card = next(a for a in _group(client.get("/assistants").json(), "coding-builders")["assistants"]
                 if a["canonical_id"] == "anthropic/claude-code")
     assert card["state"] == "no_reports"
@@ -160,14 +178,16 @@ def test_an_assistant_nobody_discussed_is_no_reports_not_problems(client):
     assert detail["evidence"]["reports"] == 0
 
 
-def test_not_searched_for_is_not_tracked_not_no_reports(client):
+def test_not_searched_for_is_not_tracked_not_no_reports(conn, client):
     """Two absences, two states (2026-11-17). Claude Code is in
-    contract/tracked_agents.yaml, so its silence is one we looked for:
-    `no_reports`. Hark Pro is in the grouping but nothing searches for it, so
-    its silence is a gap in coverage: `not_tracked`. On 2026-11-17, 23 of the
-    31 "works for you" members were the second kind and read as the first."""
+    contract/tracked_agents.yaml and has a completed fetch, so its silence is
+    one we looked for: `no_reports`. Hark Pro is in the grouping but nothing
+    searches for it, so its silence is a gap in coverage: `not_tracked`. On
+    2026-11-17, 23 of the 31 "works for you" members were the second kind and
+    read as the first."""
     from judge.config import tracked_agents
 
+    _fetched(conn, "mv_code")
     tracked = {a.registry for a in tracked_agents()}
     assert "anthropic/claude-code" in tracked and "unknown/hark-pro" not in tracked
     states = {a["canonical_id"]: a["state"]
@@ -179,6 +199,41 @@ def test_not_searched_for_is_not_tracked_not_no_reports(client):
     for cid, state in states.items():
         if cid not in tracked:
             assert state in ("reports", "not_tracked"), cid
+
+
+def test_listed_but_never_fetched_is_search_starting_not_no_reports(client):
+    """#634 review (Parvathi, 2026-11-18): LISTED IS NOT SEARCHED. Claude Code
+    is in contract/tracked_agents.yaml and the run is on, but no fetch has
+    completed for it, so "we searched and nobody reported" would be untrue.
+    The case she named: the 23 untracked assistants added to the file would
+    otherwise all flip to `no_reports` before any fetch had run for them."""
+    card = next(a for a in _group(client.get("/assistants").json(), "coding-builders")["assistants"]
+                if a["canonical_id"] == "anthropic/claude-code")
+    assert card["state"] == "search_starting"
+    assert client.get("/assistants/anthropic/claude-code").json()["state"] == "search_starting"
+
+
+def test_a_fetch_that_could_read_nothing_is_not_a_search(conn, client):
+    """The scheduler's own test, not a looser one: an `ok` run that read no
+    thread because every one was unreadable on that runner does not count as a
+    fetch (LAST_SUCCESS), so it does not count as a search either."""
+    _fetched(conn, "mv_code", threads_read=0, threads_unreadable_here=40)
+    assert client.get("/assistants/anthropic/claude-code").json()["state"] == "search_starting"
+
+
+def test_with_the_agent_run_switched_off_nothing_reads_as_searched(conn, client, monkeypatch):
+    """`run.enabled: false`: nothing searches, so a silent assistant is
+    `not_tracked` even with an earlier completed fetch (#634 review)."""
+    from types import SimpleNamespace
+
+    _fetched(conn, "mv_code")
+    monkeypatch.setattr(assistants_module, "agent_run_rule",
+                        lambda: SimpleNamespace(enabled=False))
+    states = {a["canonical_id"]: a["state"]
+              for g in client.get("/assistants").json()["groups"] for a in g["assistants"]}
+    assert states["anthropic/claude-code"] == "not_tracked"
+    assert states["meta/meta-muse"] == "reports"  # counts are counts, run or no run
+    assert client.get("/assistants/anthropic/claude-code").json()["state"] == "not_tracked"
 
 
 def test_a_member_missing_from_the_registry_is_counted_not_rendered(client):

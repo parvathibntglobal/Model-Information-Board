@@ -26,10 +26,11 @@ import '../styles/evidence.css'
  * counted ("N reports from sources we don't show publicly"). No paraphrase yet.
  *
  * SILENCE IS NOT CRITICISM (rule 4): an assistant nobody has reported on is
- * listed by name, never as a card of zeros, and in one of two lines because
- * they are two different absences (2026-11-17): "No reports yet" (we search
- * for it, nobody has reported) and "Not tracked yet" (we don't search for it,
- * so nothing is counted - a gap in our coverage). A member of the grouping the
+ * listed by name, never as a card of zeros, and in one of three lines because
+ * they are different absences: "No reports yet" (we have searched for it, and
+ * nobody has reported), "Search starting" (added to our search, first search
+ * not finished - #634 review, 2026-11-18) and "Not tracked yet" (we don't
+ * search for it, so nothing is counted - a gap in our coverage). A member of the grouping the
  * registry does not hold yet is COUNTED, never dropped (rule 6).
  */
 
@@ -46,7 +47,10 @@ function NoReports({ state }) {
   if (state === 'not_tracked') {
     return <p className="dim as-empty">Not tracked yet: we don&apos;t search for this assistant yet, so nothing has been counted. That&apos;s a gap in our coverage, not a judgement on the assistant.</p>
   }
-  return <p className="dim as-empty">No reports yet: we search for this assistant, and nobody has reported on it so far. That&apos;s an absence, not a judgement on the assistant.</p>
+  if (state === 'search_starting') {
+    return <p className="dim as-empty">Search starting: we&apos;ve added this assistant to our search, and the first search hasn&apos;t finished yet, so nothing has been counted. That&apos;s not a judgement on the assistant.</p>
+  }
+  return <p className="dim as-empty">No reports yet: we&apos;ve searched for this assistant, and nobody has reported on it so far. That&apos;s an absence, not a judgement on the assistant.</p>
 }
 
 function Silent({ list, label, note }) {
@@ -116,13 +120,16 @@ function Compare({ group, reported }) {
 function Group({ g }) {
   const reported = g.assistants.filter((a) => a.state === 'reports')
   const searched = g.assistants.filter((a) => a.state === 'no_reports')
+  const starting = g.assistants.filter((a) => a.state === 'search_starting')
   const untracked = g.assistants.filter((a) => a.state === 'not_tracked')
   return (
     <div className="stack stack-3">
       <p className="muted">{g.what}</p>
       {reported.length > 0 && <div className="as-grid">{reported.map((a) => <Card key={a.canonical_id} a={a} />)}</div>}
       <Silent list={searched} label="No reports yet"
-        note="We search for these, and nobody has reported on them so far. That's an absence, not a judgement on these assistants." />
+        note="We've searched for these, and nobody has reported on them so far. That's an absence, not a judgement on these assistants." />
+      <Silent list={starting} label="Search starting"
+        note="We've added these to our search, and the first search hasn't finished yet, so nothing has been counted. That's not a judgement on these assistants." />
       <Silent list={untracked} label="Not tracked yet"
         note="We don't search for these yet, so nothing has been counted. That's a gap in our coverage, not a judgement on these assistants." />
       {g.not_in_registry > 0 && (
