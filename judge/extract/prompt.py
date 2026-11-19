@@ -73,7 +73,11 @@ One entry per claim a human made about a named model. A claim needs four \
 things and you emit nothing without all four:
 
   1. A MODEL, named specifically enough to identify. "the cheap Anthropic one" \
-is not a model.
+is not a model. A named AI AGENT OR ASSISTANT PRODUCT counts as the model of a \
+claim when the writer reports how IT behaved - "the Copilot agent ignored our \
+lint config", "Hermes Agent booked the wrong slot twice". Name it as the writer did. \
+Do not drop a \
+first-hand report because the name is a product rather than a model version.
   2. THE BOARD ENTRIES it belongs on, in `board_entries` - the sections you \
 DISCOVERED in the quote, each with a slug, a name and a definition.
   3. A VERBATIM QUOTE - the exact characters from the text, copied, never \
