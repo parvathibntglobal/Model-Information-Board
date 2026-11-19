@@ -11,6 +11,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+from collect.db import apply_schema
 from judge import app as app_module
 from judge import gate
 from judge.app import app
@@ -309,22 +310,44 @@ class TestTheRecommender:
         assert not any("score" in k for item in out["kinds"][0]["items"] for k in item)
 
 
-# ── the database guard ───────────────────────────────────────────────────────
+# ── the database: the board's, since 2026-11-19 ──────────────────────────────
 
 
-class TestTheGuard:
-    def test_the_boards_database_is_refused_by_name(self):
-        env = {"RAILWAY_DATABASE_URL": "postgresql://example_user@db.example:5432/board"}
-        # Same host, port and database, spelled differently (host case).
-        with pytest.raises(db.WorkspaceDbError, match="RAILWAY_DATABASE_URL"):
-            db.refuse_board_dsn("postgresql://example_user@DB.Example:5432/board", env)
-        db.refuse_board_dsn("postgresql://example_user@db.example:5432/workspace", env)
+class TestTheDatabase:
+    def test_the_workspace_connects_to_the_boards_database_url(self, monkeypatch):
+        seen = {}
+        monkeypatch.setenv("DATABASE_URL", "postgresql://example_user@db.example:5432/board")
+        monkeypatch.setattr(psycopg, "connect",
+                            lambda url, **k: seen.setdefault("url", url) and "board-conn")
+        assert db.connect() == "board-conn"
+        assert seen["url"] == "postgresql://example_user@db.example:5432/board"
 
-    def test_there_is_no_fallback_to_the_boards_url(self, monkeypatch):
-        monkeypatch.delenv(db.ENV, raising=False)
-        monkeypatch.setenv("DATABASE_URL", "postgresql://example_user@localhost/board")
-        with pytest.raises(db.WorkspaceDbError, match="never falls back"):
-            db.dsn_from_env()
+    def test_a_missing_database_url_refuses_rather_than_guessing(self, monkeypatch):
+        from judge.store.claims import DatabaseNotConfigured
+
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        with pytest.raises(DatabaseNotConfigured, match="DATABASE_URL is unset"):
+            db.connect()
+
+    def test_the_workspace_tables_are_in_the_boards_schema(self):
+        from collect.db import schema_sql
+
+        sql = schema_sql()
+        for table in db.TABLES:
+            assert f"CREATE TABLE {table} (" in sql, table
+
+    def test_the_write_commands_are_gated_and_the_reads_are_not(self, monkeypatch):
+        from judge.content_workspace import __main__ as cli
+
+        monkeypatch.setenv("ENVIRONMENT", "development")
+        remote = "postgresql://example_user@db.example:5432/board"
+        for cmd in cli.WRITE_COMMANDS:
+            refused = cli.write_gate(cmd, False, remote)
+            assert refused and "is not this machine" in refused, cmd
+            assert cli.write_gate(cmd, True, remote) is None              # deliberate
+            assert cli.write_gate(cmd, False, "postgresql://localhost/mib") is None
+        for cmd in ("status", "material", "draft-json"):
+            assert cli.write_gate(cmd, False, remote) is None
 
 
 # ── the store, on a database ─────────────────────────────────────────────────
@@ -336,18 +359,17 @@ def conn(test_dsn):
         c.execute("DROP SCHEMA IF EXISTS public CASCADE")
         c.execute("CREATE SCHEMA public")
         c.commit()
-        db.migrate(c)
+        apply_schema(c)
+        c.commit()
         yield c
 
 
 class TestTheStore:
-    def test_a_database_holding_the_boards_tables_is_refused(self, conn):
-        conn.execute("CREATE TABLE document (id int)")
-        with pytest.raises(db.WorkspaceDbError, match="document"):
-            db.refuse_board_tables(conn)
-
-    def test_migrate_twice_applies_once(self, conn):
-        assert db.migrate(conn) == []
+    def test_the_boards_schema_holds_every_workspace_table(self, conn):
+        assert db.missing_tables(conn) == []
+        conn.execute("DROP TABLE cw_media")
+        assert db.missing_tables(conn) == ["cw_media"]
+        conn.rollback()
 
     def test_the_seed_loads_once_and_never_overwrites_an_edit(self, conn):
         first = store.load_seed(conn)
@@ -409,7 +431,7 @@ class TestTheStore:
 @pytest.fixture
 def client(conn, monkeypatch):
     store.load_seed(conn)
-    monkeypatch.setattr(db, "connect", lambda *a, **k: contextlib.nullcontext(conn))
+    monkeypatch.setattr(app_module, "_cw_conn", lambda: contextlib.nullcontext(conn))
     return TestClient(app)
 
 

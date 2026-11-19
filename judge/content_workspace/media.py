@@ -3,7 +3,7 @@
 The files are MADE outside the page - in Claude Code, with the media skills
 (theme-factory's Model Information Board theme, dataviz, pdf, canvas-design;
 see docs in the workspace's media plan) - and stored here, in the workspace's
-own database, so the page can show and download them. Like everything in the
+cw_media table, so the page can show and download them. Like everything in the
 workspace they are internal: served only to a signed-in person.
 
 What is checked on the way in (code, no model): the file is a real PNG or PDF

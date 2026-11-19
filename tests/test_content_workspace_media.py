@@ -13,9 +13,11 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from pypdf import PdfWriter
 
+from collect.db import apply_schema
+from judge import app as app_module
 from judge import gate
 from judge.app import app
-from judge.content_workspace import db, media, recommend, results, settings, store
+from judge.content_workspace import media, recommend, results, settings, store
 
 S = settings.load()
 
@@ -63,7 +65,8 @@ def conn(test_dsn):
         c.execute("DROP SCHEMA IF EXISTS public CASCADE")
         c.execute("CREATE SCHEMA public")
         c.commit()
-        db.migrate(c)
+        apply_schema(c)
+        c.commit()
         store.load_seed(c)
         yield c
 
@@ -181,7 +184,7 @@ class TestMedia:
 class TestEndpoints:
     @pytest.fixture
     def client(self, conn, monkeypatch):
-        monkeypatch.setattr(db, "connect", lambda *a, **k: contextlib.nullcontext(conn))
+        monkeypatch.setattr(app_module, "_cw_conn", lambda: contextlib.nullcontext(conn))
         return TestClient(app)
 
     def test_media_file_is_served_privately(self, client, conn):

@@ -24,7 +24,7 @@ import '../styles/content-workspace.css'
  * Nothing here posts anywhere, and nothing here calls a model (phase 1). The
  * fit check blocks nothing: its word lists and patterns are unmeasured
  * (rule 8), so it reports counts of rules met, never a score (rule 3).
- * Backend: judge/content_workspace/, in its own database.
+ * Backend: judge/content_workspace/, cw_* tables in the board's database.
  */
 
 const TABS = [
@@ -53,7 +53,7 @@ const MEDIA_LABEL = { carousel_pdf: 'carousel PDF', card_png: 'card image', char
 // The topic kind's look and this platform's recipe (workspace.yaml topic_recipes).
 function Recipe({ recipe }) {
   if (!recipe) return null
-  if (recipe.missing) return <p className="dim cw-small">{recipe.note}</p>
+  if (recipe.no_recipe) return <p className="dim cw-small">{recipe.note}</p>
   const media = recipe.media.length
     ? recipe.media.map((m) => MEDIA_LABEL[m] || m).join(' + ')
     : 'text only'

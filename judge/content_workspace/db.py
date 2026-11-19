@@ -1,120 +1,56 @@
-"""The content workspace's own database: connect, refuse the board's, migrate.
+"""The content workspace's database: the BOARD'S (anooj, 2026-11-19).
 
-The workspace keeps its rows (notes, drafts, check runs) in a SEPARATE
-Postgres database named by `CONTENT_WORKSPACE_DATABASE_URL`, as Kite Pulse
-outreach does. They are not evidence, nothing on the board reads them, and
-keeping them apart means this feature needs no change to `contract/` and no
-migration on the shared staging database. There is no fallback to
-`DATABASE_URL`: borrowing it would put workspace tables in the board's
-database.
+The workspace's tables (cw_*) live in the board's database, created by the
+board's own migration (contract/migrations/20261119T1200_content_workspace.sql,
+applied by `python -m collect.cli db migrate`) and declared in
+contract/tables.sql and contract/column_states.yaml like every other table.
+Until 2026-11-19 they lived in a separate database with its own ledger; that
+database, its variable and its runner are gone.
 
-Two refusals, in the order a mistake would hit them:
+They are still NOT evidence: nothing on the board's pages or pipeline reads a
+cw_* table, and no cw_* table references a board table.
 
-1. Before connecting: the DSN names the same host, port and database as one
-   of the board's (`DATABASE_URL`, `RAILWAY_DATABASE_URL`,
-   `STAGING_DATABASE_URL`).
-2. After connecting: the database holds one of the board's tables. A DSN can
-   be spelled many ways; the tables cannot.
+Connecting is judge/'s own path to the board (DATABASE_URL, the timeout and
+`DatabaseNotConfigured` from judge/store/claims.py), never collect/'s: judge/
+does not import collect/ (tests/test_lane_boundary.py). A missing DATABASE_URL
+refuses rather than guessing. A workspace table that is missing means the migration has not run on
+this database, and `missing_tables` says which, by name (rule 4: an absence we
+can explain is never reported as an empty workspace).
+
+Writes through the CLI are gated by judge/content_workspace/__main__.py (the
+writeguard); the web app writes through its own connection like every admin
+page.
 """
 
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Any
 
-ENV = "CONTENT_WORKSPACE_DATABASE_URL"
-BOARD_ENVS = ("DATABASE_URL", "RAILWAY_DATABASE_URL", "STAGING_DATABASE_URL")
+#: Every table the workspace owns, created by 20261119T1200_content_workspace.sql.
+TABLES = ("cw_platform", "cw_note", "cw_note_edit", "cw_draft", "cw_check_run",
+          "cw_writer_run", "cw_result", "cw_tick", "cw_media")
 
-# Tables only the board's database has. Any one of them means "this is MIB's".
-BOARD_TABLES = ("document", "claim", "thread_context", "spend_ledger", "schema_migration")
-
-MIGRATIONS = Path(__file__).parent / "migrations"
-LEDGER = "cw_schema_migration"
-CONNECT_TIMEOUT_SECONDS = 10
-
-
-class WorkspaceDbError(RuntimeError):
-    """The workspace database is not configured, or is the board's."""
-
-
-def dsn_from_env() -> str:
-    dsn = (os.environ.get(ENV) or "").strip()
-    if not dsn:
-        raise WorkspaceDbError(
-            f"{ENV} is not set. Create a database for the workspace and put its URL "
-            f"in .env, e.g. {ENV}=postgresql://postgres:postgres@localhost:5433/"
-            "mib_content_workspace, then run `python -m judge.content_workspace setup`. "
-            "It never falls back to the board's DATABASE_URL."
-        )
-    return dsn
-
-
-def _target(dsn: str) -> tuple[str, str, str]:
-    from psycopg.conninfo import conninfo_to_dict
-
-    parts = conninfo_to_dict(dsn)
-    host = (parts.get("host") or "localhost").lower()
-    if host in ("127.0.0.1", "::1"):
-        host = "localhost"
-    return host, str(parts.get("port") or "5432"), str(parts.get("dbname") or "")
-
-
-def refuse_board_dsn(dsn: str, environ: dict[str, str] | None = None) -> None:
-    environ = os.environ if environ is None else environ
-    for name in BOARD_ENVS:
-        other = (environ.get(name) or "").strip()
-        if other and _target(dsn) == _target(other):
-            raise WorkspaceDbError(
-                f"{ENV} names the same database as {name} ({'/'.join(_target(dsn))}). "
-                "The workspace needs its own database."
-            )
-
-
-def refuse_board_tables(conn: Any) -> None:
-    found = [name for name in BOARD_TABLES
-             if conn.execute("SELECT to_regclass(%s)", (f"public.{name}",)).fetchone()[0]]
-    if found:
-        raise WorkspaceDbError(
-            f"database {conn.info.dbname!r} holds the board's tables ({', '.join(found)}); "
-            "the content workspace refuses to use the board's database"
-        )
+MIGRATE_HINT = ("run `python -m collect.cli db migrate` on this database "
+                "(contract/migrations/20261119T1200_content_workspace.sql)")
 
 
 def connect(dsn: str | None = None) -> Any:
-    """A connection to the workspace database, checked not to be the board's.
-    The caller owns the transaction."""
+    """A connection to the board's database (DATABASE_URL unless `dsn` is
+    given). The caller owns the transaction."""
     import psycopg
 
-    dsn = dsn or dsn_from_env()
-    refuse_board_dsn(dsn)
-    conn = psycopg.connect(dsn, connect_timeout=CONNECT_TIMEOUT_SECONDS)
-    try:
-        refuse_board_tables(conn)
-        conn.rollback()
-    except BaseException:
-        conn.close()
-        raise
-    return conn
+    from judge.store.claims import CONNECT_TIMEOUT_SECONDS, DatabaseNotConfigured
+
+    url = dsn or os.getenv("DATABASE_URL")
+    if not url:
+        raise DatabaseNotConfigured(
+            "DATABASE_URL is unset. The content workspace's tables are in the board's "
+            "database; refusing to guess at a connection.")
+    return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
 
-def pending(conn: Any) -> list[Path]:
-    conn.execute(
-        f"CREATE TABLE IF NOT EXISTS {LEDGER} ("
-        " filename text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())"
-    )
-    done = {r[0] for r in conn.execute(f"SELECT filename FROM {LEDGER}").fetchall()}
-    return [p for p in sorted(MIGRATIONS.glob("*.sql")) if p.name not in done]
-
-
-def migrate(conn: Any) -> list[str]:
-    """Apply every migration not yet in the ledger, each with its ledger row in
-    one transaction. Returns the file names applied."""
-    applied = []
-    for path in pending(conn):
-        with conn.transaction():
-            conn.execute(path.read_text(encoding="utf-8"))
-            conn.execute(f"INSERT INTO {LEDGER} (filename) VALUES (%s)", (path.name,))
-        applied.append(path.name)
-    conn.commit()
-    return applied
+def missing_tables(conn: Any) -> list[str]:
+    """The workspace tables this database does not have, in TABLES order."""
+    return [t for t in TABLES
+            if conn.execute("SELECT to_regclass(%s)", (f"public.{t}",)).fetchone()[0] is None]

@@ -101,11 +101,14 @@ def for_block(settings: dict[str, Any], platform_key: str, kind: str) -> dict[st
     r = settings["topic_recipes"].get(kind)
     rec = ((r or {}).get("platforms") or {}).get(platform_key)
     if r is None or rec is None:
-        return {"missing": True,
+        # `no_recipe`, not `missing`: tests/test_an_emitted_field_has_a_reader.py
+        # matches fields by NAME, and `missing` is /compare's, declared unread.
+        return {"no_recipe": True,
                 "note": "No recipe yet for this topic on this platform "
                         "(workspace.yaml topic_recipes)."}
     look = r["look"]
-    out: dict[str, Any] = {"missing": False, "format": rec["format"], "media": list(rec["media"])}
+    out: dict[str, Any] = {"no_recipe": False, "format": rec["format"],
+                           "media": list(rec["media"])}
     if look in settings["looks"]:
         out["look"] = {"key": look, "label": settings["looks"][look]["label"],
                        "suits": " ".join(settings["looks"][look]["suits"].split())}

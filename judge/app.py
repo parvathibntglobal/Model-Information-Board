@@ -3327,29 +3327,39 @@ def admin_outreach_check(thread_id: int, req: OutreachCheckRequest) -> dict:
 # Admin -> Content workspace. Per-platform philosophy, research, rules and
 # recommendations people edit; coded topic suggestions read from the board;
 # drafts people write and the platform fit check. Signed in only (no path here
-# is in judge/gate.py's public lists). Its rows are in its OWN database
-# (CONTENT_WORKSPACE_DATABASE_URL, judge/content_workspace/db.py); the board's
-# database is only READ, for suggestions. No model is called (phase 1).
+# is in judge/gate.py's public lists). Its rows are cw_* tables in the BOARD'S
+# database (anooj, 2026-11-19; contract/migrations/
+# 20261119T1200_content_workspace.sql), reached through the same pooled
+# connection as every admin page. Nothing on the board reads a cw_* table.
+
+
+def _cw_conn():
+    """The workspace's connection: the board's pool, since 2026-11-19 one
+    database. A seam of its own only so a test can give the workspace a
+    connection while the board read (`_conn`) fails."""
+    return _conn()
 
 
 def _cw_call(action):
-    """Run one action on a fresh workspace connection, mapping refusals."""
+    """Run one action on the board's pooled connection, mapping refusals. A
+    missing cw_* table means the workspace migration has not run here, and the
+    503 says which command runs it."""
     import psycopg
 
     from judge.content_workspace import db as cw_db
     from judge.content_workspace import store as cw_store
 
     try:
-        with cw_db.connect() as conn:
+        with _cw_conn() as conn:
             return action(conn)
-    except cw_db.WorkspaceDbError as e:
-        raise HTTPException(status_code=503, detail=f"content workspace database: {e}") from None
     except cw_store.WorkspaceRequestError as e:
         raise HTTPException(status_code=e.status, detail=str(e)) from None
+    except psycopg.errors.UndefinedTable as e:
+        raise HTTPException(status_code=503, detail=(
+            f"content workspace: {str(e).splitlines()[0]}. {cw_db.MIGRATE_HINT}")) from None
     except psycopg.Error as e:
         raise HTTPException(status_code=503, detail=(
-            f"content workspace database: {type(e).__name__}: {e}".rstrip()
-            + ". If a table is missing, run python -m judge.content_workspace setup")) from None
+            f"content workspace database: {type(e).__name__}: {e}".rstrip())) from None
 
 
 @app.get("/admin/content/platforms")

@@ -328,7 +328,6 @@ def _add_evidence(board: _Board, item: dict[str, Any], s: dict, signal: str) -> 
             line += f"; {after['people']} of them since {since}"
         lines.append(line + ".")
     item["evidence"] = list(item["evidence"]) + lines
-    item["board_people"] = total
     if not total and not unreadable and item["models"]:
         item["no_reports"] = (
             f"No reports on the board yet since the launch on {item['date']}."

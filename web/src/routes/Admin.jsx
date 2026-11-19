@@ -344,7 +344,7 @@ const SECTIONS = [
   {
     // A PAGE, NOT A PANEL (2026-11-17): eleven platforms with six tabs each
     // need the width a panel does not have, as Blogs' logs did. Its rows are
-    // in its own database (judge/content_workspace/).
+    // cw_* tables in the board's database (judge/content_workspace/).
     id: 'content-workspace',
     title: 'Content workspace',
     blurb: 'Write and check posts for each social platform',

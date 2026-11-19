@@ -59,11 +59,11 @@ def test_an_unknown_look_or_media_kind_is_caught(real):
 def test_a_block_shows_its_look_and_recipe(real):
     s, _seed = real
     r = recipes.for_block(s, "reddit", "price_change")
-    assert r["missing"] is False and r["format"] == "image_post"
+    assert r["no_recipe"] is False and r["format"] == "image_post"
     assert r["look"]["key"] == "data_card" and r["media"] == ["card_png"]
 
 
 def test_a_pair_with_no_recipe_says_so_rather_than_guessing(real):
     s, _seed = real
     r = recipes.for_block(s, "facebook", "price_change")
-    assert r["missing"] is True and "No recipe yet" in r["note"]
+    assert r["no_recipe"] is True and "No recipe yet" in r["note"]

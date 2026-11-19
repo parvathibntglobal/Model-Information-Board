@@ -51,7 +51,7 @@ def test_a_price_move_carries_the_people_who_reported():
     line = item["evidence"][-1]
     assert "12 people in the 30 days to 2026-11-19" in line
     assert "8 for, 3 against, 2 neutral" in line and "6 of them since 2026-11-10" in line
-    assert item["board_people"] == 12 and "no_reports" not in item
+    assert "board_people" not in item and "no_reports" not in item
 
 
 def test_an_event_nobody_reported_on_is_listed_and_labelled():

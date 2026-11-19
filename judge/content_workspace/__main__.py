@@ -1,9 +1,20 @@
 """`python -m judge.content_workspace <command>`
 
-setup                 apply the workspace's migrations to CONTENT_WORKSPACE_DATABASE_URL
+Its tables are cw_* tables in the BOARD'S database (DATABASE_URL), created by
+`python -m collect.cli db migrate` (contract/migrations/
+20261119T1200_content_workspace.sql). There is no separate setup any more.
+
+THE WRITE GATE. `seed`, `ingest` and `media-add` write (cw_* tables only, never
+a board table). Each runs judge/writeguard.py's check first, the way
+scripts/retriage_seated_models.py --apply does: ENVIRONMENT=development with a
+DATABASE_URL that is not this machine is refused. `--development-write` is the
+deliberate way past it from a development machine. No fixture check is needed
+on that path: a cw_* write cannot put a seeded or hand-curated board row
+anywhere. `status`, `material` and `draft-json` only read and are not gated.
+
 seed                  add platforms and notes from config/seed_platforms.yaml that the
                       database does not hold yet (never overwrites an edited note)
-status                applied migrations and row counts
+status                row counts of every cw_* table
 material DRAFT [--instructions TEXT] [--out FILE]
                       the writer's whole input for one draft, as JSON: what a
                       proposal written in Claude Code is written from
@@ -20,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -27,12 +39,18 @@ from dotenv import load_dotenv
 
 from judge.content_workspace import db, store, writer
 
+#: The commands that write (cw_* tables only). Gated; see the module docstring.
+WRITE_COMMANDS = ("seed", "ingest", "media-add")
+
+DEV_WRITE_HELP = ("write to a database that is not this machine while ENVIRONMENT="
+                  "development (judge/writeguard.py would refuse it otherwise)")
+
 
 def _parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="python -m judge.content_workspace", add_help=True)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("setup")
-    sub.add_parser("seed")
+    sd = sub.add_parser("seed")
+    sd.add_argument("--development-write", action="store_true", help=DEV_WRITE_HELP)
     sub.add_parser("status")
     m = sub.add_parser("material")
     m.add_argument("draft", type=int)
@@ -43,6 +61,7 @@ def _parser() -> argparse.ArgumentParser:
     i.add_argument("file")
     i.add_argument("--author", required=True)
     i.add_argument("--instructions")
+    i.add_argument("--development-write", action="store_true", help=DEV_WRITE_HELP)
     dj = sub.add_parser("draft-json")
     dj.add_argument("draft", type=int)
     dj.add_argument("--out")
@@ -52,21 +71,38 @@ def _parser() -> argparse.ArgumentParser:
     md.add_argument("--kind", required=True)
     md.add_argument("--made-with", required=True)
     md.add_argument("--note")
+    md.add_argument("--development-write", action="store_true", help=DEV_WRITE_HELP)
     return ap
+
+
+def write_gate(cmd: str, development_write: bool, dsn: str | None) -> str | None:
+    """Why a write command is refused, or None when it may run. Read-only
+    commands always pass."""
+    if cmd not in WRITE_COMMANDS or development_write:
+        return None
+    from judge.writeguard import UnsafeWriteRefused, check
+
+    try:
+        check(dsn, command=f"python -m judge.content_workspace {cmd}")
+    except UnsafeWriteRefused as e:
+        return str(e)
+    return None
 
 
 def main(argv: list[str]) -> int:
     load_dotenv()
     args = _parser().parse_args(argv)
+    refused = write_gate(args.cmd, getattr(args, "development_write", False),
+                         os.environ.get("DATABASE_URL"))
+    if refused:
+        print(refused)
+        return 2
     conn = db.connect()
     try:
-        if args.cmd == "setup":
-            applied = db.migrate(conn)
-            print(f"applied {len(applied)} migration(s): {', '.join(applied) or 'none pending'}")
-            return 0
-        if db.pending(conn):
-            conn.rollback()
-            print("migrations are pending: run `setup` first")
+        missing = db.missing_tables(conn)
+        conn.rollback()
+        if missing:
+            print(f"this database has no {', '.join(missing)}: {db.MIGRATE_HINT}")
             return 1
         if args.cmd == "seed":
             added = store.load_seed(conn)
@@ -74,8 +110,7 @@ def main(argv: list[str]) -> int:
             print(f"added {added['platforms']} platform(s), {added['notes']} note(s), "
                   f"{added['platform_lists']} format/topic entries")
         elif args.cmd == "status":
-            for table in ("cw_platform", "cw_note", "cw_note_edit", "cw_draft",
-                          "cw_check_run", "cw_writer_run"):
+            for table in db.TABLES:
                 n = conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
                 print(f"{table}: {n}")
             conn.rollback()

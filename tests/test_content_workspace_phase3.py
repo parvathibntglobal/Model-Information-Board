@@ -12,8 +12,10 @@ import psycopg
 import pytest
 from fastapi.testclient import TestClient
 
+from collect.db import apply_schema
+from judge import app as app_module
 from judge.app import app
-from judge.content_workspace import checks, db, results, settings, store, templates
+from judge.content_workspace import checks, results, settings, store, templates
 
 S = settings.load()
 T = templates.load()
@@ -138,7 +140,8 @@ def conn(test_dsn):
         c.execute("DROP SCHEMA IF EXISTS public CASCADE")
         c.execute("CREATE SCHEMA public")
         c.commit()
-        db.migrate(c)
+        apply_schema(c)
+        c.commit()
         store.load_seed(c)
         yield c
 
@@ -188,7 +191,7 @@ class TestResults:
 class TestEndpoints:
     @pytest.fixture
     def client(self, conn, monkeypatch):
-        monkeypatch.setattr(db, "connect", lambda *a, **k: contextlib.nullcontext(conn))
+        monkeypatch.setattr(app_module, "_cw_conn", lambda: contextlib.nullcontext(conn))
         return TestClient(app)
 
     def test_template_and_results_round_trip(self, client, conn):

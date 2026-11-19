@@ -7,7 +7,8 @@ from __future__ import annotations
 import psycopg
 import pytest
 
-from judge.content_workspace import db, settings, store, writer
+from collect.db import apply_schema
+from judge.content_workspace import settings, store, writer
 
 S = settings.load()
 
@@ -24,7 +25,8 @@ def conn(test_dsn):
         c.execute("DROP SCHEMA IF EXISTS public CASCADE")
         c.execute("CREATE SCHEMA public")
         c.commit()
-        db.migrate(c)
+        apply_schema(c)
+        c.commit()
         store.load_seed(c)
         yield c
 

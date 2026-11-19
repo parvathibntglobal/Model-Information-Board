@@ -9,7 +9,8 @@ import json
 import psycopg
 import pytest
 
-from judge.content_workspace import checks, db, recommend, settings, store, writer
+from collect.db import apply_schema
+from judge.content_workspace import checks, recommend, settings, store, writer
 
 S = settings.load()
 S_API = {**S, "writer": {**S["writer"], "api_enabled": True}}
@@ -44,7 +45,8 @@ def conn(test_dsn):
         c.execute("DROP SCHEMA IF EXISTS public CASCADE")
         c.execute("CREATE SCHEMA public")
         c.commit()
-        db.migrate(c)
+        apply_schema(c)
+        c.commit()
         store.load_seed(c)
         yield c
 
