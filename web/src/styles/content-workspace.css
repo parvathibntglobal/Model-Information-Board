@@ -86,3 +86,10 @@ textarea.cw-input{resize:vertical;line-height:1.5}
 .cw-out-fail .cw-outcome{color:var(--fail)}
 .cw-out-manual .cw-outcome{color:var(--info)}
 .cw-out-unchecked .cw-outcome{color:var(--text-3)}
+.cw-proof{border-left:2px solid var(--border-strong);padding-left:var(--s2)}
+.cw-proof .cw-sev{margin-right:2px}
+.cw-media-img{display:block;max-width:100%;max-height:520px;border:1px solid var(--border);border-radius:var(--r-sm)}
+.cw-table-wrap{overflow-x:auto;max-width:100%}
+.cw-table{border-collapse:collapse;font-size:var(--fs-sm);min-width:100%}
+.cw-table th,.cw-table td{border-bottom:1px solid var(--border-soft);padding:8px 10px;text-align:left;vertical-align:top}
+.cw-table th{font-size:var(--fs-xs);color:var(--text-2);font-weight:600;white-space:nowrap}

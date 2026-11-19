@@ -126,6 +126,17 @@ class TestTheChecks:
         r = _one(_draft(text), _rule("denominator", "warn"))
         assert (r["outcome"] == "pass") is ok, r["detail"]
 
+    def test_a_question_title_warns_and_a_statement_passes(self):
+        rule = _rule("title_question", "warn", formats=["text_post"])
+        asked = _one(_draft("body", fmt="text_post", title="Is Opus 5.5 worth it?"), rule)
+        said = _one(_draft("body", fmt="text_post", title="Opus 5.5: 63 reports in 3 weeks"), rule)
+        assert asked["outcome"] == "warn" and "question" in asked["detail"]
+        assert said["outcome"] == "pass"
+
+    def test_no_title_is_unchecked_not_passed(self):
+        r = _one(_draft("body", fmt="text_post"), _rule("title_question", "warn"))
+        assert r["outcome"] == "unchecked"
+
     def test_hashtags_over_the_limit(self):
         r = _one(_draft("post #AI #LLM #models"), _rule("hashtags", params={"max": 2}))
         assert r["outcome"] == "fail" and "3 hashtags" in r["detail"]
@@ -304,9 +315,9 @@ class TestTheRecommender:
 class TestTheGuard:
     def test_the_boards_database_is_refused_by_name(self):
         env = {"RAILWAY_DATABASE_URL": "postgresql://example_user@db.example:5432/board"}
-        # Same host, port and database under another spelling of the user.
+        # Same host, port and database, spelled differently (host case).
         with pytest.raises(db.WorkspaceDbError, match="RAILWAY_DATABASE_URL"):
-            db.refuse_board_dsn("postgresql://example_user:x@db.example:5432/board", env)
+            db.refuse_board_dsn("postgresql://example_user@DB.Example:5432/board", env)
         db.refuse_board_dsn("postgresql://example_user@db.example:5432/workspace", env)
 
     def test_there_is_no_fallback_to_the_boards_url(self, monkeypatch):
@@ -343,7 +354,7 @@ class TestTheStore:
         assert first["platforms"] == 11 and first["notes"] > 100
         x_rule = store.notes(conn, "x")["rule"][0]
         store.update_note(conn, x_rule["id"], {"body": "edited by a person"}, "a@b")
-        assert store.load_seed(conn) == {"platforms": 0, "notes": 0}
+        assert store.load_seed(conn) == {"platforms": 0, "notes": 0, "platform_lists": 0}
         assert store.note(conn, x_rule["id"])["body"] == "edited by a person"
 
     def test_an_edit_keeps_what_the_note_said_before(self, conn):

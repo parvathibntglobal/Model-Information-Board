@@ -9,14 +9,22 @@
 # Sources (every note names one):
 #   anooj-2026-11-16   anooj's virality framework (psychology, algorithm,
 #                      hook, verticality), chat of 2026-11-16
-#   mib-study-2026-11-16   our platform study,
-#                      ~/.claude/mib-rwt/out/PLATFORM_STUDY_2026-11-16.txt
-#                      (four research agents + coordinator checks)
-#   mib-field-2026-11-16   our field study,
-#                      ~/.claude/mib-rwt/out/CONTENT_FIELD_STUDY_2026-11-16.txt
+#   anooj-2026-11-17   anooj on LinkedIn voice (team introducing its work,
+#                      conversational), chat of 2026-11-17
+#   mib-study-2026-11-16   our platform study (four research agents +
+#                      coordinator checks); kept outside the repo, ask anooj
+#   mib-field-2026-11-16   our field study; kept outside the repo, ask anooj
 #   ext-2026-11        the external research anooj attached on 2026-11-17
 #                      ("Cross-Platform Content Distribution, User
 #                      Expectations, and Virality Analysis ... Nov 2026")
+#   mib-posts-2026-11-18   our measurement of POST formats (no comments) on
+#                      the platforms we fetch, asked for by anooj 2026-11-18:
+#                      docs/measurements/post-formats-2026-11-18/README.md.
+#                      Population: posts our fetches retrieved (they name a
+#                      tracked model or agent), created 1 Aug-18 Nov 2026,
+#                      random 400 per platform; engagement as fetched. Not a
+#                      platform-wide sample. Its rules are warn or manual,
+#                      never fail: correlations in one sample (rule 8).
 #   recommendation     Claude's own recommendation for this workspace
 #
 # source_type follows the study's tags: official, code, study, press,
@@ -50,10 +58,12 @@ common:
         respondents). Proof-heavy, sceptical posts suit them; hype repels them.
   # Rules every platform's posts are checked against, beside its own.
   rules:
-    - {key: common-rule-noquote, check: verbatim_quote, severity: warn, text: "No verbatim Reddit or X user text: paraphrase, count, or link."}
+    - {key: common-rule-noquote, check: verbatim_quote, severity: warn, text: "No verbatim Reddit or X user text: paraphrase and count."}
     - {key: common-rule-handles, check: handles, severity: warn, text: "Name no user handle (@name, u/name) from the evidence."}
     - {key: common-rule-score, check: score_words, severity: warn, text: "No invented scores (\"8/10\", \"out of 100\"): the board publishes counts."}
     - {key: common-rule-hype, check: hype_words, severity: warn, text: "No hype words; the audience is sceptical."}
+    - {key: common-rule-nopostlinks, check: no_post_links, severity: fail, text: "No link to anyone's post (Reddit, X, Bluesky, HN...). The model page is the link for more proof and updates."}
+    - {key: common-rule-proof, check: manual, severity: manual, text: "Back the count with one or two paraphrased reports from the board as proof: restated, never quoted, never linked."}
   recommendations:
     - key: common-rec-order
       source: recommendation
@@ -76,6 +86,18 @@ common:
         Threads, TikTok and Discord, which this workspace does not list yet.
         dev.to and Hugging Face are the closest fit for our engineers; add
         them as platforms when wanted (the list is this seed file).
+    - key: common-rec-measured-formats
+      source: mib-posts-2026-11-18
+      text: >-
+        The post formats of X, Reddit, Hacker News, Bluesky and GitHub are now
+        measured from our own fetched posts (each platform's "format" research
+        notes). Engagement was usable on X, Reddit and Hacker News only; on
+        Bluesky, GitHub, dev.to, Hugging Face and the Google AI developer forum
+        the median post had 0 or 1 likes, upvotes or replies, so those notes
+        describe shape, not what works. LinkedIn, Substack, Medium, YouTube,
+        Instagram and Facebook are not fetched, so nothing here is measured
+        for them (Medium's note borrows dev.to's long-form shape). Our posts
+        will be the better evidence: record them (common-rec-measure).
 
 platforms:
 
@@ -158,13 +180,41 @@ platforms:
           Reported, not confirmed: Premium accounts get about 10x the median
           reach of free ones; text-only posts got about 20% more engagement
           than video (Buffer via PostEverywhere).
+      - key: x-res-posts-shape
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          What X posts about AI models look like (400 of the 3,355 our fetches
+          retrieved, 1 Aug-18 Nov 2026; searched mostly by Top, so they lean
+          popular): 246 were long posts over 280 characters (a Premium
+          feature). Median 53 words in 4 short paragraphs, with a first line of
+          57 characters that stands alone. 337 carried a number, 278 a photo or
+          video, 91 were text only and 25 a link card. Hashtags in 48 posts,
+          @mentions in 58. The biggest posts were vendor launch notes; a common
+          mid-size shape was engagement bait (an all-caps opener, a "here's
+          how" teaser, arrow lists), which our hype rule keeps out.
+      - key: x-res-posts-engagement
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          Likes per 1,000 views, 291 of those posts with 500+ views (this
+          partly removes the account's reach): with a hashtag 5.0 (n=18) vs
+          10.6 without; a list of short lines 13.0 (n=75) vs 9.3; long posts
+          10.8 vs 8.6, and bookmarked 4.4 vs 1.4 per 1,000 views; photo or
+          video 10.4 vs text only 9.9, so media did not lift likes per view
+          here (nor did text beat video, against x-res-premium's report).
+          Correlations in one sample, not causes.
     rules:
-      - {key: x-rule-length, check: length, severity: fail, params: {max_chars: 280, url_chars: 23}, formats: [post, thread, reply], text: "Stay within the character limit for the account type (280 for a standard account); a longer point becomes a thread."}
+      - {key: x-rule-length, check: length, severity: fail, params: {max_chars: 280, url_chars: 23}, formats: [post, thread, reply], text: "Stay within the character limit: 280, because our X account is standard, not Premium (anooj, 2026-11-19). A longer point becomes a thread."}
       - {key: x-rule-count, check: denominator, severity: warn, text: "Lead with the count and its denominator (\"14 of 38 engineers reported...\")."}
       - {key: x-rule-question, check: manual, severity: manual, text: "End on a specific technical question the board can answer: replies carry the largest positive weight."}
       - {key: x-rule-hashtags, check: hashtags, severity: fail, params: {max: 2}, text: "At most 2 hashtags (more is reported to trigger spam classifiers)."}
       - {key: x-rule-link, check: link_placement, severity: manual, params: {mode: record}, text: "Link placement is a test, not a rule: alternate link-in-post and link-in-reply and record both."}
       - {key: x-rule-noquote, check: verbatim_quote, severity: warn, text: "Never quote an X or Reddit user's words; paraphrase and count."}
+      - {key: x-rule-nohashtag, check: hashtags, severity: warn, params: {max: 0}, formats: [post, thread, reply], text: "Prefer no hashtag: in our sample, X posts with one got about half the likes per view (5.0 vs 10.6 per 1,000 views, n=18; mib-posts-2026-11-18). A weight, not a gate."}
+      - {key: x-rule-firstline, check: manual, severity: manual, formats: [post, thread], text: "The first line stands alone and carries the count (median first line 57 characters in our sample); then short paragraphs with a blank line between. A short list of lines is fine (mib-posts-2026-11-18)."}
     recommendations:
       - key: x-rec-1
         source: recommendation
@@ -172,7 +222,15 @@ platforms:
           Start here. Launch-verdict threads on release days, a 48-hour
           follow-up in counts, and price-drop alerts. Reply to "can I run X?"
           posts with a VRAM calculator link.
-    topics: [release_reaction, launch_verdict, price_change, vram_answer, news_digest]
+      - key: x-rec-long-post
+        source: mib-posts-2026-11-18
+        text: >-
+          Long posts were bookmarked about 3 times as often per view in our
+          sample (4.4 vs 1.4 per 1,000), but they need Premium and our account
+          is standard (anooj, 2026-11-19). So a long finding becomes a thread,
+          and the length rule stays at 280. Revisit only if the account type
+          changes.
+    topics: [release_reaction, launch_verdict, model_trajectory, price_change, retirement, vram_answer, news_digest]
 
   - key: linkedin
     name: LinkedIn
@@ -197,6 +255,17 @@ platforms:
           Readers come with a career, architecture and procurement mindset:
           saveable cost tables and trade-offs they can take to a leadership or
           finance review, and peer validation in the comments.
+      - key: li-phil-3
+        source: anooj-2026-11-17
+        source_type: inference
+        text: >-
+          LinkedIn is where people introduce their work to the world, so we
+          post as the team behind the board: we tell the reader what we built,
+          what we counted and what we found, as a conversation ("we" talking
+          to "you"), not a report. The counts and paraphrased reports are the
+          proof inside the story. Much LinkedIn content is AI-written, which is
+          why an AI writer is allowed here; specific counts, real reports and
+          honest limits are what make ours different.
     research:
       - key: li-res-360brew
         topic: algorithm
@@ -249,6 +318,9 @@ platforms:
       - {key: li-rule-count, check: denominator, severity: warn, text: "Cost and failure figures carry their denominator and date."}
       - {key: li-rule-length, check: length, severity: fail, params: {max_chars: 3000}, formats: [post], text: "Stay under 3,000 characters."}
       - {key: li-rule-hashtags, check: hashtags, severity: warn, params: {max: 5}, text: "At most 5 hashtags."}
+      - {key: li-rule-slide, check: length, severity: warn, params: {max_chars: 200}, formats: [document_carousel_text], text: "Each carousel slide reads at a glance: at most about 200 characters (our recommendation, not a measured limit)."}
+      - {key: li-rule-firstcomment, check: manual, severity: manual, formats: [post, document_carousel_text], text: "Post the model page link as the first comment, right after the post."}
+      - {key: li-rule-question, check: manual, severity: manual, formats: [post, document_carousel_text], text: "End with one specific question for people who run models in production."}
     recommendations:
       - key: li-rec-1
         source: recommendation
@@ -256,12 +328,12 @@ platforms:
           Two posts a week for leaders and hidden buyers: what AI costs, where a
           cheaper model holds up, launch verdicts in plain counts. Carousels
           built here can be re-exported for Instagram.
-    topics: [price_change, cheaper_alternative, launch_verdict, cost_explainer]
+    topics: [price_change, retirement, cheaper_alternative, launch_verdict, model_trajectory, cost_explainer, glossary_explainer]
 
   - key: reddit
     name: Reddit
     order: 3
-    formats: [text_post, comment]
+    formats: [text_post, image_post, comment]
     video_creation: false
     ai_writer_allowed: false
     researched: true
@@ -319,13 +391,53 @@ platforms:
           45,376 in the 30 days to 16 Nov 2026), so a post that looks like
           "the board scraped our threads" will be read that way. Paraphrase,
           count, never quote.
+      - key: rd-res-posts-shape
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          What Reddit posts about AI models look like (400 of the 2,250 our
+          fetches retrieved, 1 Aug-18 Nov 2026; largest subreddits GeminiAI,
+          ClaudeAI, codex, LocalLLaMA, DeepSeek, SillyTavernAI,
+          google_antigravity): 248 text posts, 108 image, video or gallery
+          posts, 43 links. Title median 53 characters (9 words). A text body's
+          median is 89 words in 3 short paragraphs; bullets in 35 posts,
+          headings in 9, tables in 3. "Discussion" was the most common flair
+          (96). The best-scored text posts were first-hand demonstrations: what
+          the person asked the model, how long it took, what it cost.
+      - key: rd-res-posts-engagement
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          Compared inside each of those 7 subreddits (15-36 sampled posts
+          each): image, video and gallery posts had a higher median score than
+          text posts in all 7, and titles ending in a question mark scored
+          lower in 5 of 7 (about level in the other 2). Digits in titles are
+          not a signal here: model names carry them. Small samples per
+          subreddit; a lead to test, not a law.
+      - key: rd-res-table-conflict
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          CONFLICT with rd-phil-2 (external research: readers expect a Markdown
+          table in the post). Tables appeared in 3 of our 400 sampled posts and
+          in none of the 100 best-scored. That shows tables are rare in AI
+          subreddits, not that they fail; what leads is a picture of the
+          result. A data post can carry both: the chart as the image, the table
+          and method in the text.
     rules:
       - {key: rd-rule-read, check: manual, severity: manual, text: "A person reads the subreddit's rules and pinned threads on the day of posting."}
-      - {key: rd-rule-disclose, check: disclosure, severity: fail, formats: [text_post], text: "Disclose affiliation in the post."}
-      - {key: rd-rule-value, check: table_or_data, severity: warn, formats: [text_post], text: "Put the data in the post (a table or the counts), not behind the link."}
+      - {key: rd-rule-disclose, check: disclosure, severity: fail, formats: [text_post, image_post], text: "Disclose affiliation in the post."}
+      - {key: rd-rule-value, check: table_or_data, severity: warn, formats: [text_post], text: "Put the data in the post (the counts, a table, or our chart as an image), not behind the link."}
+      - {key: rd-rule-title-statement, check: title_question, severity: warn, formats: [text_post, image_post], text: "The title states the finding, not a question: question titles scored lower in 5 of 7 large AI subreddits in our sample (mib-posts-2026-11-18). A weight, not a gate."}
       - {key: rd-rule-noquote, check: verbatim_quote, severity: warn, text: "Never quote a Reddit user's words; paraphrase and count."}
       - {key: rd-rule-human, check: ai_assisted, severity: warn, text: "Written by a person: AI-built content meets growing hostility on Reddit."}
-      - {key: rd-rule-title, check: title_length, severity: fail, params: {max_chars: 300}, formats: [text_post], text: "Title states the exact comparison or dataset, under 300 characters."}
+      - {key: rd-rule-image-data, check: manual, severity: manual, formats: [image_post], text: "The image is graphical data from the board: a chart or table of real counts, each with its denominator and date on the image itself. No stock art, no decorative illustration, no AI-generated people or screenshots of anyone's post."}
+      - {key: rd-rule-image-text, check: manual, severity: manual, formats: [image_post], text: "The text carries what the image cannot: what was counted, over what population and dates, how (a line on method), and the disclosure."}
+      - {key: rd-rule-image-verify, check: manual, severity: manual, formats: [image_post], text: "Before posting, a person checks every figure on the image against the board. The workspace checks the text, not the picture."}
+      - {key: rd-rule-title, check: title_length, severity: fail, params: {max_chars: 300}, formats: [text_post, image_post], text: "Title states the exact comparison or dataset, under 300 characters."}
     recommendations:
       - key: rd-rec-1
         source: recommendation
@@ -333,7 +445,15 @@ platforms:
           Participate first (answer questions with counted, sourced replies),
           then one disclosed data post a fortnight. r/LocalLLaMA and r/LocalLLM
           for VRAM tables; the self-promotion thread where one exists.
-    topics: [vram_table, launch_verdict, price_change, method_post]
+      - key: rd-rec-image-post
+        source: mib-posts-2026-11-18
+        text: >-
+          Media with text is the starting method (anooj, 2026-11-19): an
+          image post whose image is graphical data from the board, realistic
+          rather than decorative, with the counts, method and disclosure in
+          the text. Image posts led in all 7 subreddits we sampled
+          (mib-posts-2026-11-18). Keep a text post for method write-ups.
+    topics: [vram_table, launch_verdict, model_trajectory, price_change, method_post]
 
   - key: hackernews
     name: Hacker News
@@ -378,9 +498,34 @@ platforms:
           sample). The external research reports one case: a dev tool at #2 on
           HN (107 points) gave 61 visitors and 100+ installs vs 243 visitors
           and 30 installs from a #14 Product Hunt launch (marketing blog).
+      - key: hn-res-posts-shape
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          What HN stories look like (400 of the 1,362 stories in threads our
+          fetches retrieved, where the story or a comment names a tracked
+          model; 1 Aug-18 Nov 2026): 346 links, 27 Show HN, 18 Ask HN, 9 text
+          posts; 332 had no text at all. Title median 52 characters (8
+          words); no exclamation marks, no bracketed tag at the start, and a
+          [pdf] or [video] suffix where the link is one. The best-scored
+          titles were often just the product's or paper's name. github.com and
+          the vendors' own sites were the most common domains.
+      - key: hn-res-posts-engagement
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          Link stories with titles of 50 characters or fewer had a median of
+          199 points (n=179) against 146 for longer ones (n=167); a colon in the
+          title made no difference (185.5 vs 182.5). Question titles were 8 of
+          the 100 best-scored stories and 19 of the 100 lowest; Ask and Show HN
+          were 5 of the best 100 and 28 of the lowest. One sample, correlations.
     rules:
       - {key: hn-rule-human, check: ai_assisted, severity: fail, text: "No AI-written or AI-edited text, in the title, the text or comments."}
       - {key: hn-rule-title, check: title_length, severity: fail, params: {max_chars: 80}, formats: [link_submission, show_hn], text: "Plain, factual title under 80 characters; no superlatives, capitals or exclamation marks."}
+      - {key: hn-rule-title-short, check: title_length, severity: warn, params: {max_chars: 50}, formats: [link_submission, show_hn], text: "Aim for 50 characters or fewer: such link stories had a median of 199 points vs 146 in our sample (mib-posts-2026-11-18). HN's own 80-character limit is the fail rule; this is a weight."}
+      - {key: hn-rule-title-statement, check: title_question, severity: warn, formats: [link_submission], text: "A statement, not a question: question titles were 8 of the 100 best-scored stories and 19 of the 100 lowest in our sample (mib-posts-2026-11-18)."}
       - {key: hn-rule-hype, check: hype_words, severity: fail, text: "No marketing words anywhere."}
       - {key: hn-rule-show, check: manual, severity: manual, formats: [show_hn], text: "Show HN only for a tool people can use now without signing up."}
       - {key: hn-rule-votes, check: manual, severity: manual, text: "Never ask anyone to upvote or share the link."}
@@ -440,6 +585,28 @@ platforms:
         text: >-
           Starter packs: accounts included gained up to 85% more followers
           (Lancaster University study via PostEverywhere; not verified by us).
+      - key: bs-res-posts-shape
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          What Bluesky posts about AI models look like (400 of the 7,306 our
+          fetches retrieved, newest first, 1 Aug-18 Nov 2026): median 214
+          characters (30 words) in 2 short lines, about two-thirds of the
+          300-character limit. 159 carried a link card, 129 were text only, 87
+          had images, 17 video. Hashtags in 134 posts: unlike on X they are
+          used to reach topic feeds (most in art and game-dev posts). The usual
+          shape is a first-person observation: what I tried, what happened.
+      - key: bs-res-posts-engagement
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          Too little engagement to rank formats: the median post had 0 likes
+          and the best-liked quarter starts at 1. Within that, link-card posts
+          were 45 of the lowest 100 and 30 of the best 100, and hashtags 26 vs
+          53. A lead to test with our own posts, not evidence; no rule is built
+          on it.
     rules:
       - {key: bs-rule-length, check: length, severity: fail, params: {max_chars: 300}, text: "300 characters per post."}
       - {key: bs-rule-chart, check: manual, severity: manual, text: "Pair a finding with a chart image."}
@@ -450,7 +617,7 @@ platforms:
         text: >-
           Cheap to run alongside X. Later, a custom feed of launch verdicts and
           a starter pack of model-evaluation accounts.
-    topics: [launch_verdict, price_change, news_digest]
+    topics: [launch_verdict, model_trajectory, price_change, news_digest]
 
   - key: substack
     name: Substack
@@ -495,7 +662,7 @@ platforms:
           A weekly digest: releases, price changes and launch verdicts. Start it
           once the other channels give it readers; meanwhile pitch one counted
           finding a month to AI newsletters.
-    topics: [weekly_digest, price_change, launch_verdict]
+    topics: [weekly_digest, price_change, launch_verdict, model_trajectory]
 
   - key: medium
     name: Medium
@@ -527,6 +694,18 @@ platforms:
         text: >-
           Weaker fit for AI developers than dev.to; no audience figure found.
           Syndicate with a canonical link to our page; keep it free to read.
+      - key: md-res-devto-shape
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          We do not fetch Medium; the nearest measured long form is dev.to (400
+          of the 5,033 articles about AI models our fetches retrieved, 1 Aug-18
+          Nov 2026): median 1,376 words (a 6-minute read). Headings in 383,
+          bullet lists in 340, code blocks in 196, tables in 194; 4 tags.
+          Title median 73 characters (12 words), with a colon in 194 ("Model
+          X: what developers should know"). 69 declared AI help. No engagement
+          signal (median 0 reactions), so this is the shape, not what works.
     rules:
       - {key: md-rule-human, check: ai_assisted, severity: warn, text: "Human-written; AI-written text loses distribution."}
       - {key: md-rule-canonical, check: manual, severity: manual, text: "Import with the canonical link pointing to our page."}
@@ -569,9 +748,21 @@ platforms:
         text: >-
           Trending is not published; observers say recent star velocity (24-48
           hours). Automating stars is prohibited.
+      - key: gh-res-posts-shape
+        topic: format
+        source: mib-posts-2026-11-18
+        source_type: study
+        text: >-
+          What GitHub posts naming AI models look like (400 of the 1,631 our
+          fetches retrieved, 1 Aug-18 Nov 2026; 339 discussions): median 248
+          words. Headings in 248, bullet lists in 246, code blocks in 113,
+          tables in 79; a bracketed type tag opening the title ([Feature],
+          [Bug]) in 83, following each repository's own convention. Median 1
+          upvote, so this is the shape, not what works.
     rules:
       - {key: gh-rule-useful, check: manual, severity: manual, text: "Publish only something useful on its own (method, formulas, a data export of non-restricted fields)."}
       - {key: gh-rule-noraw, check: verbatim_quote, severity: warn, text: "No raw Reddit or X text in any file."}
+      - {key: gh-rule-structure, check: manual, severity: manual, formats: [discussion_post], text: "Lay it out as GitHub posts are: a title naming the thing (with the repository's tag prefix if it uses one), then short headed sections (what, how it was measured, what we ask) with bullets (mib-posts-2026-11-18)."}
     recommendations:
       - key: gh-rec-1
         source: recommendation
@@ -628,6 +819,10 @@ platforms:
       - {key: yt-rule-desc, check: length, severity: fail, params: {max_chars: 5000}, formats: [video_metadata, shorts_metadata], text: "Description under 5,000 characters, with sources and timestamps."}
       - {key: yt-rule-shortslink, check: link_placement, severity: warn, params: {mode: not_clickable}, formats: [shorts_metadata], text: "In Shorts metadata, links are not clickable; point to a long-form video instead."}
       - {key: yt-rule-synthetic, check: manual, severity: manual, formats: [video_metadata, shorts_metadata], text: "Disclose realistic synthetic voices or faces."}
+      - {key: yt-rule-chapters, check: yt_chapters, severity: warn, params: {min_chapters: 3, min_seconds: 10}, formats: [video_metadata], text: "Chapters, if any, follow YouTube's rules: the first at 0:00, at least 3, each at least 10 seconds (YouTube Help)."}
+      - {key: yt-rule-tags, check: tags_budget, severity: fail, params: {max_chars: 500}, formats: [video_metadata, shorts_metadata], text: "Tags stay within YouTube's 500-character limit (YouTube Help)."}
+      - {key: yt-rule-pinned, check: manual, severity: manual, formats: [video_metadata, comment], text: "Pin a comment with the model page link: in a long-form video's pinned comment it is clickable; in Shorts it is not."}
+      - {key: yt-rule-comment-length, check: length, severity: fail, params: {max_chars: 10000}, formats: [comment], text: "A comment stays under 10,000 characters (as commonly reported)."}
     recommendations:
       - key: yt-rec-1
         source: recommendation
@@ -690,6 +885,9 @@ platforms:
       - {key: ig-rule-length, check: length, severity: fail, params: {max_chars: 2200}, formats: [caption, carousel_text], text: "Caption under 2,200 characters."}
       - {key: ig-rule-hashtags, check: hashtags, severity: warn, params: {max: 5}, formats: [caption, carousel_text], text: "At most 5 hashtags (a reported cap; 30 is the documented maximum)."}
       - {key: ig-rule-send, check: manual, severity: manual, formats: [caption, carousel_text], text: "Write for a named recipient: \"send this to the teammate who...\"."}
+      - {key: ig-rule-hook, check: hook_length, severity: warn, params: {max_chars: 125}, formats: [caption], text: "The point lands in the first ~125 characters, before \"more\" (a commonly reported cut-off; not in our research files)."}
+      - {key: ig-rule-comment-link, check: link_placement, severity: fail, params: {mode: not_clickable}, formats: [comment], text: "No URL in a comment (not clickable); say \"link in bio\"."}
+      - {key: ig-rule-comment-length, check: length, severity: fail, params: {max_chars: 2200}, formats: [comment], text: "A comment stays under 2,200 characters (as commonly reported)."}
     recommendations:
       - key: ig-rec-1
         source: recommendation

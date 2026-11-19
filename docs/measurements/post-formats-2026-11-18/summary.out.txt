@@ -1,0 +1,259 @@
+
+==== reddit  n=400 of pool 2250  eng median 36.0  top-quarter from 167
+  kinds: [('text', 248), ('image', 78), ('link', 43), ('video', 17), ('gallery', 13), ('rich:video', 1)]
+  kinds_top_quarter: [('image', 35), ('text', 34), ('link', 18), ('video', 8), ('gallery', 5)]
+  kinds_bottom_quarter: [('text', 73), ('image', 9), ('video', 8), ('link', 6), ('gallery', 3), ('rich:video', 1)]
+  groups: [('GeminiAI', 36), ('ClaudeAI', 33), ('codex', 31), ('LocalLLaMA', 23), ('DeepSeek', 19), ('SillyTavernAI', 17), ('google_antigravity', 17), ('kimi', 9), ('ChatGPT', 9), ('ClaudeCode', 8), ('LocalLLM', 8), ('OpenAI', 8)]
+  flair: [('Discussion', 96), (None, 68), ('News', 15), ('Question', 15), ('Other', 9), ('Complaint', 8), ('New Model', 7), ('Resources', 7), ('Showcase', 7), ('Praise', 6), ('Question about Claude models', 6), ('Discussion ', 6)]
+  feature: all | top quarter | bottom quarter   (numbers are p25/median/p75)
+    chars                 231/572.5/683 |       92/448.5/667 |      325/572.5/823
+    words                     39/89/119 |         8/68.5/113 |        54/89.5/132
+    lines                         1/3/6 |              1/3/5 |              1/3/7
+    paras                         1/3/5 |              1/3/5 |              1/3/5
+    first_line_chars         64/134/233 |        40/92.5/159 |         82/165/294
+    t_chars                    34/53/74 |         37/57.5/79 |         38/56.5/74
+    t_words                      6/9/13 |            6/10/15 |            7/10/14
+    hashtags                      0/0/0 |              0/0/0 |              0/0/0
+    links                         0/0/0 |              0/0/1 |              0/0/0
+    bullets                      35/400 |              9/100 |             11/100
+    headings                      9/400 |              2/100 |              2/100
+    code                          0/400 |              0/100 |              0/100
+    table                         3/400 |              0/100 |              1/100
+    link_in_text                 88/400 |             29/100 |             21/100
+    hashtag                       5/400 |              1/100 |              3/100
+    mention                       4/400 |              1/100 |              2/100
+    emoji                        21/400 |              4/100 |              6/100
+    any_question                162/400 |             22/100 |             54/100
+    ends_question                53/400 |              7/100 |             19/100
+    has_number                  279/400 |             66/100 |             73/100
+    empty_body                   34/400 |             18/100 |              5/100
+    t_question                   97/400 |              7/100 |             35/100
+    t_digit                     282/400 |             88/100 |             51/100
+    t_colon                      39/400 |             12/100 |             13/100
+    t_tag                         6/400 |              1/100 |              4/100
+    t_excl                       22/400 |             13/100 |              1/100
+
+==== x  n=400 of pool 3355  eng median 39.5  top-quarter from 163
+  kinds: [('video', 152), ('photo', 126), ('text', 91), ('link', 25), ('animated_gif', 4), ('photo+video', 2)]
+  kinds_top_quarter: [('photo', 43), ('video', 37), ('text', 16), ('link', 2), ('animated_gif', 1), ('photo+video', 1)]
+  kinds_bottom_quarter: [('text', 43), ('photo', 23), ('video', 20), ('link', 13), ('photo+video', 1)]
+  long_post: 246/400
+  long_post_top: 71/100
+  quote: 113/400
+  bookmarks_per_like_median_top: 0.3425067892102223
+  feature: all | top quarter | bottom quarter   (numbers are p25/median/p75)
+    chars                203/335.5/1032 |     246/408.5/1028 |      157/248.5/408
+    words                     29/53/168 |          40/71/174 |         18/34.5/52
+    lines                        3/6/12 |             3/6/10 |            2/4.5/8
+    paras                         3/4/8 |              3/4/7 |              1/3/5
+    first_line_chars           37/57/91 |          42/69/104 |           33/51/93
+    hashtags                      0/0/0 |              0/0/0 |              0/0/1
+    links                         0/0/0 |              0/0/0 |              0/0/0
+    bullets                      88/400 |             22/100 |             13/100
+    headings                      1/400 |              0/100 |              1/100
+    code                          1/400 |              0/100 |              1/100
+    table                         0/400 |              0/100 |              0/100
+    link_in_text                 85/400 |             13/100 |             20/100
+    hashtag                      48/400 |              3/100 |             27/100
+    mention                      58/400 |             21/100 |             12/100
+    emoji                       120/400 |             29/100 |             29/100
+    any_question                 70/400 |             13/100 |             21/100
+    ends_question                20/400 |              4/100 |              9/100
+    has_number                  337/400 |             88/100 |             74/100
+    empty_body                    0/400 |              0/100 |              0/100
+
+==== bluesky  n=400 of pool 7306  eng median 0.0  top-quarter from 1
+  kinds: [('external', 159), ('text', 129), ('images', 87), ('video', 17), ('record', 7), ('recordWithMedia', 1)]
+  kinds_top_quarter: [('text', 42), ('external', 30), ('images', 15), ('video', 8), ('record', 4), ('recordWithMedia', 1)]
+  kinds_bottom_quarter: [('external', 45), ('text', 31), ('images', 22), ('video', 2)]
+  feature: all | top quarter | bottom quarter   (numbers are p25/median/p75)
+    chars                 151/214.5/279 |        158/227/285 |      149/199.5/276
+    words                      17/30/41 |           20/33/41 |           14/28/41
+    lines                         1/2/3 |              2/3/4 |              1/2/3
+    paras                         1/2/3 |              1/2/3 |              1/2/3
+    first_line_chars        54/87.5/156 |          44/84/143 |          55/73/157
+    hashtags                      0/0/2 |              0/1/3 |              0/0/1
+    links                         0/0/1 |              0/0/0 |              0/0/1
+    bullets                      15/400 |              3/100 |              4/100
+    headings                      0/400 |              0/100 |              0/100
+    code                          0/400 |              0/100 |              0/100
+    table                         0/400 |              0/100 |              0/100
+    link_in_text                100/400 |             15/100 |             32/100
+    hashtag                     134/400 |             53/100 |             26/100
+    mention                      18/400 |              2/100 |              3/100
+    emoji                        97/400 |             25/100 |             18/100
+    any_question                 51/400 |             19/100 |             10/100
+    ends_question                 3/400 |              0/100 |              1/100
+    has_number                  344/400 |             85/100 |             87/100
+    empty_body                    0/400 |              0/100 |              0/100
+
+==== hackernews  n=400 of pool 1362  eng median 151.0  top-quarter from 368
+  kinds: [('link', 346), ('show_hn', 27), ('ask_hn', 18), ('text', 9)]
+  kinds_top_quarter: [('link', 94), ('show_hn', 3), ('ask_hn', 2), ('text', 1)]
+  kinds_bottom_quarter: [('link', 69), ('ask_hn', 15), ('show_hn', 13), ('text', 3)]
+  domains: [('github.com', 45), ('', 28), ('anthropic.com', 11), ('twitter.com', 11), ('openai.com', 9), ('artificialanalysis.ai', 6), ('blog.google', 5), ('youtube.com', 4), ('reuters.com', 4), ('apple.com', 3), ('theverge.com', 3), ('simonwillison.net', 3)]
+  feature: all | top quarter | bottom quarter   (numbers are p25/median/p75)
+    chars                         0/0/0 |             0/0/70 |              0/0/0
+    words                         0/0/0 |              0/0/1 |              0/0/0
+    lines                         0/0/0 |              0/0/1 |              0/0/0
+    paras                         0/0/0 |              0/0/1 |              0/0/0
+    first_line_chars              0/0/0 |             0/0/70 |              0/0/0
+    t_chars                    34/52/67 |           31/47/65 |         37/54.5/69
+    t_words                      6/8/11 |             5/7/11 |             6/9/12
+    hashtags                      0/0/0 |              0/0/0 |              0/0/0
+    links                         0/0/0 |              0/0/0 |              0/0/0
+    bullets                       1/400 |              0/100 |              1/100
+    headings                      0/400 |              0/100 |              0/100
+    code                          0/400 |              0/100 |              0/100
+    table                         0/400 |              0/100 |              0/100
+    link_in_text                  0/400 |              0/100 |              0/100
+    hashtag                       0/400 |              0/100 |              0/100
+    mention                       0/400 |              0/100 |              0/100
+    emoji                         0/400 |              0/100 |              0/100
+    any_question                 28/400 |             12/100 |             12/100
+    ends_question                11/400 |              1/100 |              9/100
+    has_number                   55/400 |             29/100 |             11/100
+    empty_body                  332/400 |             71/100 |             80/100
+    t_question                   38/400 |              8/100 |             19/100
+    t_digit                     149/400 |             38/100 |             40/100
+    t_colon                      92/400 |             14/100 |             41/100
+    t_tag                         0/400 |              0/100 |              0/100
+    t_excl                        0/400 |              0/100 |              0/100
+
+==== devto  n=400 of pool 5033  eng median 0.0  top-quarter from 0
+  kinds: [('article', 400)]
+  kinds_top_quarter: [('article', 100)]
+  kinds_bottom_quarter: [('article', 100)]
+  reading_min: 4/6.0/8
+  reading_min_top: 6.0
+  cover: 174/400
+  cover_top: 43/100
+  ai_disclosure: [('not_disclosed', 330), ('some_ai', 47), ('fully_autonomous', 22), ('no_ai', 1)]
+  tags: [('ai', 322), ('llm', 104), ('opensource', 52), ('productivity', 49), ('machinelearning', 48), ('agents', 45), ('programming', 43), ('webdev', 39), ('python', 34), ('security', 32), ('api', 32), ('claude', 29), ('tutorial', 23), ('openai', 20), ('claudecode', 16)]
+  tags_per_post: 4.0
+  feature: all | top quarter | bottom quarter   (numbers are p25/median/p75)
+    chars             6094/9109.5/13264 |    6151/9161/14655 |  5692/8839.5/13007
+    words               888/1376.5/1986 |    915/1320.5/1964 |    821/1310.5/1958
+    lines                     42/72/115 |          41/72/125 |        44/63.5/105
+    paras                      27/41/61 |           26/42/64 |           27/38/58
+    first_line_chars         52/129/286 |         54/114/235 |         46/113/286
+    t_chars                    58/73/86 |         58/73.5/87 |           59/75/85
+    t_words                    10/12/15 |           10/12/15 |           10/12/15
+    hashtags                      0/0/0 |              0/0/0 |              0/0/0
+    links                        2/6/12 |             3/7/12 |           2/5.5/11
+    bullets                     340/400 |             84/100 |             84/100
+    headings                    383/400 |             93/100 |             95/100
+    code                        196/400 |             50/100 |             44/100
+    table                       194/400 |             46/100 |             43/100
+    link_in_text                367/400 |             93/100 |             93/100
+    hashtag                      26/400 |              9/100 |              4/100
+    mention                      61/400 |             20/100 |             15/100
+    emoji                        60/400 |             22/100 |             12/100
+    any_question                289/400 |             73/100 |             70/100
+    ends_question                 9/400 |              1/100 |              1/100
+    has_number                  399/400 |             99/100 |            100/100
+    empty_body                    0/400 |              0/100 |              0/100
+    t_question                   20/400 |              1/100 |              4/100
+    t_digit                     195/400 |             46/100 |             49/100
+    t_colon                     194/400 |             48/100 |             48/100
+    t_tag                         2/400 |              1/100 |              0/100
+    t_excl                        1/400 |              1/100 |              0/100
+
+==== github  n=400 of pool 1631  eng median 1.0  top-quarter from 1
+  kinds: [('discussion', 339), (None, 61)]
+  kinds_top_quarter: [('discussion', 100)]
+  kinds_bottom_quarter: [('discussion', 54), (None, 46)]
+  groups: [(None, 61), ('deepseek-ai/deepseek-harness', 36), ('pingdotgg/t3code', 24), ('github/gh-aw', 15), ('jqknono/coding-plans-for-copilot', 11), ('ikaijua/Awesome-AITools', 10), ('korosuke613/mynewshq', 9), ('google-gemini/gemini-cli', 6), ('PrimeIntellect-ai/prime-agent', 5), ('community/community', 5), ('flywheel-labs/agentweekly-ai', 5), ('hgKwak/Brain-cognition-inspired-AI', 5)]
+  feature: all | top quarter | bottom quarter   (numbers are p25/median/p75)
+    chars                 867/1849/3920 |      919/1681/3549 |      892/2604/5028
+    words                 108/248.5/475 |      126/240.5/420 |      126/275.5/547
+    lines                       8/20/40 |          9/19.5/30 |           11/31/63
+    paras                       5/10/20 |           5/9.5/17 |            6/16/26
+    first_line_chars        19/45.5/127 |        17/63.5/169 |         20/30.5/59
+    t_chars                    44/65/87 |           41/62/89 |           39/59/83
+    t_words                      6/9/13 |            5/10/14 |             5/8/12
+    hashtags                      0/0/0 |              0/0/0 |              0/0/0
+    links                         0/1/3 |              0/1/2 |              1/1/5
+    bullets                     246/400 |             59/100 |             72/100
+    headings                    248/400 |             52/100 |             84/100
+    code                        113/400 |             27/100 |             27/100
+    table                        79/400 |             19/100 |             30/100
+    link_in_text                274/400 |             63/100 |             76/100
+    hashtag                       7/400 |              2/100 |              0/100
+    mention                      85/400 |             28/100 |             18/100
+    emoji                        72/400 |             10/100 |             34/100
+    any_question                155/400 |             32/100 |             36/100
+    ends_question                12/400 |              2/100 |              0/100
+    has_number                  376/400 |             95/100 |             96/100
+    empty_body                    1/400 |              0/100 |              1/100
+    t_question                   19/400 |              3/100 |              1/100
+    t_digit                     235/400 |             44/100 |             84/100
+    t_colon                     109/400 |             30/100 |             21/100
+    t_tag                        83/400 |             15/100 |             26/100
+    t_excl                        8/400 |              0/100 |              1/100
+
+==== forum  n=400 of pool 2140  eng median 0.0  top-quarter from 1
+  kinds: [('topic', 400)]
+  kinds_top_quarter: [('topic', 100)]
+  kinds_bottom_quarter: [('topic', 100)]
+  groups: [('discuss.ai.google.dev', 400)]
+  feature: all | top quarter | bottom quarter   (numbers are p25/median/p75)
+    chars                608/985.5/1628 |      653/1002/1614 |       521/897/1669
+    words                    93/146/242 |         93/147/240 |         86/134/238
+    lines                       5/10/17 |            5/12/18 |            4/10/17
+    paras                        4/8/13 |             4/8/12 |             4/8/13
+    first_line_chars          23/38/116 |        28/44.5/116 |           20/36/91
+    t_chars                   59/79/100 |         62/79.5/98 |         55/73.5/99
+    t_words                     9/12/15 |            9/12/15 |            8/11/14
+    hashtags                      0/0/0 |              0/0/0 |              0/0/0
+    links                         0/0/0 |              0/0/0 |              0/0/0
+    bullets                     200/400 |             57/100 |             50/100
+    headings                     35/400 |             11/100 |              7/100
+    code                         19/400 |              4/100 |              5/100
+    table                         7/400 |              1/100 |              0/100
+    link_in_text                 52/400 |             14/100 |             10/100
+    hashtag                       0/400 |              0/100 |              0/100
+    mention                       7/400 |              3/100 |              3/100
+    emoji                        13/400 |              2/100 |              5/100
+    any_question                216/400 |             63/100 |             43/100
+    ends_question                19/400 |              6/100 |              4/100
+    has_number                  338/400 |             90/100 |             82/100
+    empty_body                    0/400 |              0/100 |              0/100
+    t_question                   27/400 |             10/100 |              4/100
+    t_digit                     159/400 |             43/100 |             33/100
+    t_colon                     121/400 |             26/100 |             37/100
+    t_tag                        31/400 |             10/100 |              5/100
+    t_excl                        3/400 |              0/100 |              3/100
+
+==== huggingface  n=325 of pool 337  eng median 0  top-quarter from 1
+  kinds: [('discussion', 239), ('pull_request', 86)]
+  kinds_top_quarter: [('discussion', 74), ('pull_request', 7)]
+  kinds_bottom_quarter: [('discussion', 54), ('pull_request', 27)]
+  groups: [('model', 325)]
+  feature: all | top quarter | bottom quarter   (numbers are p25/median/p75)
+    chars                    71/233/742 |         88/276/915 |         57/219/626
+    words                      9/32/106 |          13/41/124 |            6/28/81
+    lines                         1/2/6 |              1/3/6 |              1/3/5
+    paras                         1/1/4 |              1/1/4 |              1/2/4
+    first_line_chars          26/78/146 |          35/81/150 |          18/74/116
+    t_chars                    19/35/57 |           21/40/63 |           22/37/56
+    t_words                       2/5/9 |             3/6/11 |              3/4/8
+    hashtags                      0/0/0 |              0/0/0 |              0/0/0
+    links                         0/0/1 |              0/0/1 |              0/0/1
+    bullets                      52/325 |               9/81 |              18/81
+    headings                     20/325 |               5/81 |               6/81
+    code                         19/325 |               6/81 |               4/81
+    table                        25/325 |               8/81 |               4/81
+    link_in_text                102/325 |              21/81 |              25/81
+    hashtag                       1/325 |               0/81 |               1/81
+    mention                       5/325 |               1/81 |               1/81
+    emoji                        15/325 |               4/81 |               5/81
+    any_question                106/325 |              37/81 |              19/81
+    ends_question                36/325 |              15/81 |               7/81
+    has_number                  200/325 |              56/81 |              50/81
+    empty_body                   29/325 |               2/81 |              12/81
+    t_question                   47/325 |              18/81 |               8/81
+    t_digit                     130/325 |              29/81 |              41/81
+    t_colon                      36/325 |               9/81 |               6/81
+    t_tag                         9/325 |               2/81 |               0/81
+    t_excl                       14/325 |               5/81 |               3/81

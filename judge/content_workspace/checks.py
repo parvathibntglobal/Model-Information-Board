@@ -51,7 +51,11 @@ def _parts(d: dict[str, Any], cfg: dict[str, Any]) -> list[str]:
 
 
 def _words_text(d: dict[str, Any]) -> str:
-    return f"{d.get('title') or ''}\n{d.get('body') or ''}"
+    """Everything published with the post: title, text and the first comment
+    or reply. Word, quote, handle and link checks read all of it; length and
+    link-placement checks read the post's text only."""
+    return (f"{d.get('title') or ''}\n{d.get('body') or ''}\n"
+            f"{d.get('first_comment') or ''}")
 
 
 def _need(params: dict[str, Any], key: str) -> Any:
@@ -93,6 +97,19 @@ def check_title_length(d, params, cfg) -> Result:
     if len(title) > limit:
         return False, f"title is {len(title)} characters, over {limit}"
     return True, f"title {len(title)} of {limit} characters"
+
+
+def check_title_question(d, params, cfg) -> Result:
+    """A title that asks instead of stating. Measured, and so a weight (rule 8):
+    question titles scored lower in 5 of 7 large AI subreddits, and were 8 of HN's
+    top 100 stories vs 19 of its bottom 100 - one sample of posts our fetches
+    retrieved, 2026-08-01..11-18 (docs/measurements/post-formats-2026-11-18)."""
+    title = (d.get("title") or "").strip()
+    if not title:
+        return None, "no title written, so nothing to check"
+    if title.endswith("?"):
+        return False, "the title is a question; state the finding instead"
+    return True, "the title states rather than asks"
 
 
 def check_hook_length(d, params, cfg) -> Result:
@@ -215,7 +232,7 @@ def check_utm(d, params, cfg, *, hosts: list[str]) -> Result:
     if not hosts:
         return None, ("the site address is not set (workspace.yaml site.hosts), "
                       "so no link is checked")
-    ours = [u for u in URL.findall(d.get("body") or "")
+    ours = [u for u in URL.findall(_words_text(d))
             if any((urlsplit(u).hostname or "").endswith(h) for h in hosts)]
     if not ours:
         return True, "no link to our site"
@@ -225,9 +242,74 @@ def check_utm(d, params, cfg, *, hosts: list[str]) -> Result:
     return True, f"all {len(ours)} links to our site carry utm_source"
 
 
+def check_no_post_links(d, params, cfg) -> Result:
+    hosts = [h.lower() for h in cfg["post_link_domains"]]
+    links = [u for u in URL.findall(_words_text(d))
+             if any((urlsplit(u).hostname or "").lower() == h
+                    or (urlsplit(u).hostname or "").lower().endswith("." + h) for h in hosts)]
+    if links:
+        return False, (f"links to somebody's post: {', '.join(links[:3])}; "
+                       "link the model page instead")
+    return True, "no link to anyone's post"
+
+
+CHAPTER = re.compile(r"^\s*((?:\d{1,2}:)?\d{1,2}:\d{2})\s+\S", re.M)
+CHAPTER_TODO = re.compile(r"^\s*\[m+:s+\]", re.M | re.I)
+
+
+def _seconds(stamp: str) -> int:
+    parts = [int(x) for x in stamp.split(":")]
+    return sum(v * 60 ** i for i, v in enumerate(reversed(parts)))
+
+
+def check_yt_chapters(d, params, cfg) -> Result:
+    """YouTube chapters, as YouTube documents them: the first at 0:00, at
+    least `min_chapters`, ascending, each at least `min_seconds` long. A
+    description with no timestamps has no chapters, which is allowed."""
+    body = d.get("body") or ""
+    min_n, min_s = _need(params, "min_chapters"), _need(params, "min_seconds")
+    if min_n is None or min_s is None:
+        return None, "this rule sets no min_chapters or min_seconds"
+    todo = len(CHAPTER_TODO.findall(body))
+    stamps = [_seconds(s) for s in CHAPTER.findall(body)]
+    if todo:
+        return False, f"{todo} chapter line{'s' if todo != 1 else ''} still to fill ([m:ss])"
+    if not stamps:
+        return True, "no chapters (allowed; chapters help viewers and search)"
+    problems = []
+    if stamps[0] != 0:
+        problems.append("the first chapter must start at 0:00")
+    if len(stamps) < min_n:
+        problems.append(f"{len(stamps)} chapters, YouTube needs at least {int(min_n)}")
+    gaps = [b - a for a, b in zip(stamps, stamps[1:], strict=False)]
+    if any(g <= 0 for g in gaps):
+        problems.append("timestamps are not in order")
+    elif any(g < min_s for g in gaps):
+        problems.append(f"a chapter is shorter than {int(min_s)} seconds")
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"{len(stamps)} chapters from 0:00"
+
+
+def check_tags_budget(d, params, cfg) -> Result:
+    limit = _need(params, "max_chars")
+    if limit is None:
+        return None, "this rule sets no max_chars"
+    tags = [t for t in d.get("tags") or [] if t.strip()]
+    # YouTube counts the tags and the commas between them.
+    used = sum(len(t) for t in tags) + max(0, len(tags) - 1)
+    if used > limit:
+        return False, f"{used} characters of tags, over {int(limit)}"
+    return True, f"{len(tags)} tags, {used} of {int(limit)} characters"
+
+
 CHECKS: dict[str, Callable[..., Result] | None] = {
+    "yt_chapters": check_yt_chapters,
+    "tags_budget": check_tags_budget,
+    "no_post_links": check_no_post_links,
     "length": check_length,
     "title_length": check_title_length,
+    "title_question": check_title_question,
     "hook_length": check_hook_length,
     "denominator": check_denominator,
     "hashtags": check_hashtags,

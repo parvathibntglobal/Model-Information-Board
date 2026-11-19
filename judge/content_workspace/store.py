@@ -31,11 +31,13 @@ class WorkspaceRequestError(ValueError):
 def load_seed(conn: Any, data: dict[str, Any] | None = None) -> dict[str, int]:
     """Insert platforms and notes the database does not hold yet.
 
-    A platform already present is left as it is, and a note whose seed_key is
-    already present is never touched, so a re-run cannot overwrite an edit.
-    Returns how many platforms and notes were added."""
+    A note whose seed_key is already present is never touched, so a re-run
+    cannot overwrite an edit. A platform already present gains any format or
+    topic kind the seed lists that it lacks (those lists are not edited in the
+    page, so adding cannot undo a person's choice); nothing else about it
+    changes. Returns how many platforms, notes and new list entries were added."""
     data = data or settings.seed()
-    added = {"platforms": 0, "notes": 0}
+    added = {"platforms": 0, "notes": 0, "platform_lists": 0}
     for p in data["platforms"]:
         row = conn.execute(
             "INSERT INTO cw_platform (key, name, sort_order, formats, topic_kinds,"
@@ -45,6 +47,18 @@ def load_seed(conn: Any, data: dict[str, Any] | None = None) -> dict[str, int]:
              p["video_creation"], p["ai_writer_allowed"], p["researched"]),
         ).fetchone()
         added["platforms"] += row is not None
+        if row is None:
+            have_f, have_t = conn.execute(
+                "SELECT formats, topic_kinds FROM cw_platform WHERE key = %s", (p["key"],)
+            ).fetchone()
+            new_f = [f for f in p["formats"] if f not in have_f]
+            new_t = [t for t in p["topics"] if t not in have_t]
+            if new_f or new_t:
+                conn.execute(
+                    "UPDATE cw_platform SET formats = formats || %s::text[],"
+                    " topic_kinds = topic_kinds || %s::text[] WHERE key = %s",
+                    (new_f, new_t, p["key"]))
+                added["platform_lists"] += len(new_f) + len(new_t)
     blocks = [(None, data["common"])] + [(p["key"], p) for p in data["platforms"]]
     for platform_key, block in blocks:
         for section in settings.SECTIONS:
@@ -218,11 +232,11 @@ def note_history(conn: Any, note_id: int) -> list[dict[str, Any]]:
 # ── drafts ───────────────────────────────────────────────────────────────────
 
 
-DRAFT_COLUMNS = ("id", "platform_key", "format", "topic_kind", "title", "body", "tags",
-                 "suggestion", "ai_assisted", "status", "posted_url", "posted_at",
+DRAFT_COLUMNS = ("id", "platform_key", "format", "topic_kind", "title", "body", "first_comment",
+                 "tags", "suggestion", "ai_assisted", "status", "posted_url", "posted_at",
                  "created_at", "created_by", "updated_at", "updated_by")
-DRAFT_FIELDS = ("format", "topic_kind", "title", "body", "tags", "suggestion", "ai_assisted",
-                "status", "posted_url")
+DRAFT_FIELDS = ("format", "topic_kind", "title", "body", "first_comment", "tags", "suggestion",
+                "ai_assisted", "status", "posted_url")
 
 
 def _draft(row: tuple) -> dict[str, Any]:
@@ -239,9 +253,12 @@ def drafts(conn: Any, platform_key: str | None = None) -> list[dict[str, Any]]:
         (platform_key, platform_key),
     ).fetchall()
     out = [_draft(r) for r in rows]
-    latest = latest_checks(conn, [d["id"] for d in out])
+    ids = [d["id"] for d in out]
+    latest, saved = latest_checks(conn, ids), ticks(conn, ids)
     for d in out:
         d["last_check"] = latest.get(d["id"])
+        d["ticks"] = {str(k): v for k, v in saved.get(d["id"], {}).items()}
+        d["content_sha"] = content_sha(d)
     return out
 
 
@@ -252,6 +269,8 @@ def draft(conn: Any, draft_id: int) -> dict[str, Any]:
         raise WorkspaceRequestError(f"no draft {draft_id}", 404)
     d = _draft(row)
     d["last_check"] = latest_checks(conn, [draft_id]).get(draft_id)
+    d["ticks"] = {str(k): v for k, v in ticks(conn, [draft_id]).get(draft_id, {}).items()}
+    d["content_sha"] = content_sha(d)
     return d
 
 
@@ -281,11 +300,11 @@ def create_draft(conn: Any, platform_key: str, fields: dict[str, Any],
         raise WorkspaceRequestError("a draft names its format")
     _check_draft_fields(p, fields)
     row = conn.execute(
-        "INSERT INTO cw_draft (platform_key, format, topic_kind, title, body, tags, suggestion,"
-        " ai_assisted, created_by, updated_by) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-        " RETURNING id",
+        "INSERT INTO cw_draft (platform_key, format, topic_kind, title, body, first_comment, tags,"
+        " suggestion, ai_assisted, created_by, updated_by)"
+        " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
         (platform_key, fields["format"], fields.get("topic_kind"), fields.get("title"),
-         fields.get("body") or "", fields.get("tags") or [],
+         fields.get("body") or "", fields.get("first_comment") or None, fields.get("tags") or [],
          Jsonb(fields["suggestion"]) if fields.get("suggestion") else None,
          bool(fields.get("ai_assisted")), by, by),
     ).fetchone()
@@ -320,7 +339,7 @@ def update_draft(conn: Any, draft_id: int, changes: dict[str, Any],
 
 def content_sha(d: dict[str, Any]) -> str:
     """What a check run checked: the fields a check reads."""
-    keys = ("format", "title", "body", "tags", "ai_assisted")
+    keys = ("format", "title", "body", "first_comment", "tags", "ai_assisted")
     raw = json.dumps({k: d.get(k) for k in keys}, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
@@ -346,3 +365,36 @@ def latest_checks(conn: Any, draft_ids: list[int]) -> dict[int, dict[str, Any]]:
     ).fetchall()
     return {r[0]: {"id": r[1], "ran_at": r[2].isoformat(), "content_sha": r[3],
                    "results": r[4], "counts": r[5]} for r in rows}
+
+
+# ── saved ticks for rules checked by hand ────────────────────────────────────
+
+
+def ticks(conn: Any, draft_ids: list[int]) -> dict[int, dict[int, dict[str, Any]]]:
+    """The latest tick per (draft, rule): {draft_id: {note_id: {...}}}."""
+    if not draft_ids:
+        return {}
+    out: dict[int, dict[int, dict[str, Any]]] = {}
+    for draft_id, note_id, ticked, sha, at, by in conn.execute(
+            "SELECT DISTINCT ON (draft_id, note_id) draft_id, note_id, ticked, content_sha, at,"
+            " by_whom FROM cw_tick WHERE draft_id = ANY(%s)"
+            " ORDER BY draft_id, note_id, at DESC, id DESC", (draft_ids,)).fetchall():
+        out.setdefault(draft_id, {})[note_id] = {
+            "ticked": ticked, "content_sha": sha, "at": at.isoformat(), "by": by}
+    return out
+
+
+def set_tick(conn: Any, draft_id: int, note_id: int, ticked: bool,
+             by: str | None) -> dict[str, Any]:
+    """Record a person ticking (or unticking) a hand-checked rule on a draft,
+    against the draft's content as it is now (`content_sha`)."""
+    d = draft(conn, draft_id)
+    n = note(conn, note_id)
+    if n["section"] != "rule" or (n["severity"] != "manual" and n["check_id"] != "manual"):
+        raise WorkspaceRequestError("only a rule checked by hand can be ticked")
+    if n["platform_key"] not in (None, d["platform_key"]):
+        raise WorkspaceRequestError("that rule belongs to another platform")
+    conn.execute(
+        "INSERT INTO cw_tick (draft_id, note_id, ticked, content_sha, by_whom)"
+        " VALUES (%s,%s,%s,%s,%s)", (draft_id, note_id, bool(ticked), content_sha(d), by))
+    return ticks(conn, [draft_id]).get(draft_id, {})

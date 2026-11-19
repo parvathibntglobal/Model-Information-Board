@@ -23,6 +23,7 @@ site:
     compare: /compare
     methodology: /methodology
     blogs: /blogs
+    glossary: /glossary
 
 checks:
   # Matched as whole words, case-insensitive. A hit is a warning or a failure
@@ -70,6 +71,23 @@ checks:
   part_separator: "---"
   # Formats whose body is split into parts and checked per part.
   per_part_formats: [thread, carousel_text, document_carousel_text]
+  # A link to one of these hosts (or a subdomain) is a link to somebody's post.
+  # Posts link to the model page for proof, never to the posts themselves
+  # (anooj, 2026-11-17).
+  post_link_domains:
+    - reddit.com
+    - redd.it
+    - x.com
+    - twitter.com
+    - t.co
+    - bsky.app
+    - news.ycombinator.com
+    - lobste.rs
+    - linkedin.com
+    - mastodon.social
+    - threads.net
+    - discord.com
+    - dev.to
 
 recommender:
   # How far back each board source is read, in days.
@@ -78,6 +96,13 @@ recommender:
     price_moves: 14
     news: 3
     verdicts: 30
+    retirements: 30
+  # CALENDAR ITEMS JOINED TO THE BOARD (topic selection B, 2026-11-19): every
+  # launch, price move and retirement shown carries, per model, the people who
+  # reported on it in this many days to today, and how many since the event.
+  # An event nobody reported on stays listed and is LABELLED a calendar item
+  # only (rule 8: a label, not a filter).
+  evidence_days: 30
   # A launch younger than this has no verdict yet worth posting.
   verdict_min_days: 2
   # At most this many launches get their verdict counts read per request
@@ -85,12 +110,159 @@ recommender:
   verdict_max_models: 8
   # At most this many suggestions per topic kind.
   max_per_kind: 6
+  # Proof: the evidence feed's paraphrased reports (judge/verdict.py `_said`;
+  # code-checked paraphrases, never a user's words) carried with a verdict,
+  # per window and side. Their source links are dropped: a post links to the
+  # model page, never to somebody's post.
+  proof_per_window_per_side: 2
+  # A verdict or trajectory whose busiest period has fewer people than this is
+  # LABELLED a small sample (it stays listed and usable; rule 8: a label, not a
+  # filter). A reading choice made 2026-11-17, not a measured threshold: one
+  # person's report was being offered as a "launch verdict". People are never
+  # summed across periods (the same person posts in several).
+  small_sample_people: 5
+
+# A model's trajectory, week by week (judge/verdict.py `week`). Starts on the
+# model's release date unless a start is given.
+trajectory:
+  weeks: 4
+  max_weeks: 8
+  proof_per_week_per_side: 1
+  top_topics_per_week: 3
+  model_search_limit: 12
+
+# A model's reports split by capability and job over a span of days (topic
+# selection A, decided 2026-11-19): which capabilities people reported on, and
+# how many people on each side. PEOPLE are distinct authors; a report with no
+# author is counted as a post but not as a person. Counted exactly as public
+# counts are (judge/verdict.py COUNTED, publication.sql_counted_document).
+# Metric reports are left out: the board does not score metric polarity.
+# Each capability carries a LABEL in words, never a score, and a label hides
+# nothing (rule 8): the list is ordered by how many people reported, and every
+# label sits beside the counts it came from.
+capability_split:
+  days: 14            # span from the start date when no span is given
+  max_days: 60
+  top: 8              # capabilities listed; the rest are counted as "more"
+  sections: [capability, best_for]
+  # The label thresholds are NOT here: they are the board's own E7 ones
+  # (judge/curate/gate.py), read by recommend.split_label, so a label here
+  # can never disagree with what "mixed" means on a model page.
+
+# PAIN ANGLES (topic selection C, decided by anooj 2026-11-19): a pain theme
+# from the team's private pain research (2026-11-10: Reddit, Hacker News and
+# GitHub), mapped by hand to the board's `section:slug` keys that count it. It
+# chooses the ANGLE of an evidence-led or calendar topic, never a topic on its
+# own. Counts are NOT stored here: they are read live with the capability split
+# (recommend.capability_split), people counted once per theme across its slugs.
+# A theme under 3 people taking a side says "too few to say" (the board's E7
+# threshold). `says` is the team's paraphrase; no post text, handle or link.
+# `fit`: well = the slugs are the pain; partly = they count part of it.
+pain_angles:
+  - key: hallucination
+    label: Confidently wrong answers
+    says: Models state wrong or invented facts with confidence.
+    fit: well
+    slugs: [capability:hallucination, capability:factual-accuracy, capability:accuracy, capability:citation-accuracy, capability:grounding]
+  - key: agent_reliability
+    label: Agents that break things
+    says: Agents make mistakes, act unasked, or fail without saying so.
+    fit: well
+    slugs: [capability:reliability, capability:agentic-tool-use, capability:autonomous-execution]
+  - key: usage_limits
+    label: Hitting the limits
+    says: Rate and usage caps cut work off mid-task.
+    fit: well
+    slugs: [capability:usage-limits, capability:usage-limit-reset]
+  - key: code_quality
+    label: Code that's hard to keep
+    says: Generated code works today and costs later to maintain.
+    fit: well
+    slugs: [capability:code-quality, capability:large-scale-refactoring]
+  - key: complex_tasks
+    label: Falling apart on hard problems
+    says: Multi-step and layered tasks are where models give out.
+    fit: well
+    slugs: [capability:reasoning, capability:planning, best_for:planning]
+  - key: context_memory
+    label: Forgetting the middle
+    says: Long inputs and long sessions lose track of what came earlier.
+    fit: well
+    slugs: [capability:long-context, capability:context-window, capability:memory-recall, capability:context-awareness]
+  - key: intent
+    label: Not doing what was asked
+    says: Instructions are skipped, stretched or misread.
+    fit: well
+    slugs: [capability:instruction-following, capability:scope-adherence, capability:steerability]
+  - key: speed
+    label: Too slow to work with
+    says: Waiting on the model breaks the flow of work.
+    fit: well
+    slugs: [capability:speed, capability:latency, capability:throughput, capability:prefill-speed, capability:decode-speed]
+  - key: generic_output
+    label: Output that reads as AI-made
+    says: Writing comes out bland and interchangeable.
+    fit: partly
+    slugs: [capability:writing-quality, capability:creative-writing, best_for:creative-writing, capability:writing-style, capability:communication-style, capability:conversational-quality]
+  - key: cost
+    label: The bill
+    says: Running a model costs more, or less predictably, than planned.
+    fit: partly
+    slugs: [capability:cost-efficiency, capability:token-efficiency, best_for:value-for-price, capability:value-for-price, capability:subscription-value]
+  - key: refusals
+    label: Refusing or steering
+    says: Models refuse ordinary requests or lean politically.
+    fit: partly
+    slugs: [capability:over-refusal, capability:refusal, capability:censorship, capability:political-bias]
+  - key: honesty
+    label: Telling you what you want to hear
+    says: Models flatter, overstate what they finished, or hide uncertainty.
+    fit: partly
+    slugs: [capability:honesty, capability:sycophancy, capability:transparency, capability:trust-calibration, capability:task-completion-honesty]
+  - key: integration
+    label: Wiring it in
+    says: Tool calls, API quirks and setup get in the way.
+    fit: partly
+    slugs: [capability:function-calling, capability:api-compatibility, capability:setup-difficulty, capability:integration-limitations]
+  - key: safety
+    label: Safe to let loose?
+    says: Whether a model holds its safety boundaries and writes secure code.
+    fit: partly
+    slugs: [capability:safety, capability:jailbreak-resistance, capability:safety-boundary-adherence, capability:secure-code-generation]
+  - key: design
+    label: Design output
+    says: Generated designs and interfaces miss the mark.
+    fit: partly
+    slugs: [capability:visual-design, capability:web-design, capability:ui-design, best_for:design, best_for:ui-design, best_for:frontend-development]
+
+# Pains the research found that the board cannot count, said on the page so
+# their absence never reads as "nobody has this problem" (rule 4). The first
+# seven have no board capability; the last three map to slugs with under 10
+# people in 30 days (read 2026-11-19), and join pain_angles when that changes.
+pain_not_counted:
+  - Job insecurity
+  - Content saturation
+  - Overwhelm and burnout
+  - Business misuse
+  - Loss of critical thinking
+  - Replacing human collaboration
+  - Hype
+  - Customer service
+  - Marketing content
+  - Vendor lock-in
 
 # What each topic kind suggests and where its material comes from. A
 # platform's seed lists which kinds it uses.
-#   signal: launches | verdicts | price_moves | price_cuts | news |
-#           week_summary | workspace_drafts | evergreen
+#   signal: launches | verdicts | price_moves | price_cuts | retirements |
+#           news | week_summary | workspace_drafts | evergreen | trajectory
 topic_kinds:
+  model_trajectory:
+    label: Model trajectory
+    signal: trajectory
+    angle: >-
+      One model over its first month (or any span of weeks), week by week:
+      how many people reported, what held up, what broke, backed by one or
+      two paraphrased reports per week. Link the model page for the rest.
   release_reaction:
     label: Release reaction
     signal: launches
@@ -115,6 +287,13 @@ topic_kinds:
     angle: >-
       A list price moved and held: old and new price, the date, and what it
       changes for someone running that model.
+  retirement:
+    label: Retirement
+    signal: retirements
+    angle: >-
+      A model is retiring or has retired: the date, and what the board's
+      reports say about the models people could move to. Nobody reporting on
+      it is said, not implied.
   cheaper_alternative:
     label: Cheaper alternative
     signal: price_cuts
@@ -165,6 +344,15 @@ topic_kinds:
     link: vram_calculator
     angle: >-
       A tool people can try without signing up, presented by whoever built it.
+  glossary_explainer:
+    label: Term explainer
+    signal: evergreen
+    link: glossary
+    angle: >-
+      One term people use without being sure of it (context window, reasoning
+      effort, quantisation, a benchmark's name), explained by the team in
+      plain words, with what engineers report about it on the board. Points
+      to the board's glossary.
   method_post:
     label: Method write-up
     signal: evergreen
@@ -197,3 +385,227 @@ topic_kinds:
     from_platform: linkedin
     angle: >-
       Re-use the text of a LinkedIn carousel written here as Instagram slides.
+
+# THE LOOKS (approved by anooj 2026-11-19). Media is made outside the page, in
+# Claude Code, by each look's generator (kept outside the repo for now), and
+# stored on a draft through `media-add`. A look is chosen PER TOPIC KIND, never
+# one for everything: the first carousels all looked alike because they
+# inherited the website's own tokens, which are tuned for reading a product,
+# not for a feed.
+looks:
+  field_report:
+    label: Field report
+    suits: >-
+      First-hand observation over time: a model's first weeks, what held up and
+      what broke. Paper and ruled lines, one dot per person, tallies per post.
+  data_card:
+    label: Data card
+    suits: >-
+      A number that carries the story: a price move, a cost, a count across
+      models. Big numerals on a colour block, bars side by side.
+  evidence_board:
+    label: Evidence board
+    suits: >-
+      Reports weighed against each other: where a model holds up and where it
+      does not, a term explained through what people report. Pinned cards, one
+      pin per person.
+
+# TOPIC RECIPES: each topic kind's look, and on each platform that uses it, the
+# format and the media to make. `look: none` carries a reason; `inherit` takes
+# the source draft's look. An empty media list means text only. Checked by
+# judge/content_workspace/recipes.py against the seed's platforms and formats
+# and media.KINDS; a (platform, kind) pair added later without a recipe shows
+# "no recipe yet" on the page rather than a guess (rule 6).
+topic_recipes:
+  model_trajectory:
+    look: field_report
+    platforms:
+      x: {format: thread, media: [card_png]}
+      linkedin: {format: document_carousel_text, media: [carousel_pdf]}
+      reddit: {format: image_post, media: [chart_png]}
+      bluesky: {format: post, media: [chart_png]}
+      substack: {format: newsletter_issue, media: [chart_png]}
+  launch_verdict:
+    look: field_report
+    platforms:
+      x: {format: thread, media: [card_png]}
+      linkedin: {format: document_carousel_text, media: [carousel_pdf]}
+      reddit: {format: image_post, media: [chart_png]}
+      bluesky: {format: post, media: [card_png]}
+      substack: {format: newsletter_issue, media: [chart_png]}
+      facebook: {format: post, media: [card_png]}
+  release_reaction:
+    look: data_card
+    platforms:
+      x: {format: post, media: [card_png]}
+  price_change:
+    look: data_card
+    platforms:
+      x: {format: post, media: [card_png]}
+      linkedin: {format: post, media: [card_png]}
+      reddit: {format: image_post, media: [card_png]}
+      bluesky: {format: post, media: [card_png]}
+      substack: {format: newsletter_issue, media: [card_png]}
+  retirement:
+    look: data_card
+    platforms:
+      x: {format: post, media: [card_png]}
+      linkedin: {format: post, media: [card_png]}
+  cheaper_alternative:
+    look: evidence_board
+    platforms:
+      linkedin: {format: document_carousel_text, media: [carousel_pdf]}
+      instagram: {format: carousel_text, media: [card_png]}
+  cost_explainer:
+    look: data_card
+    platforms:
+      linkedin: {format: post, media: [chart_png]}
+  glossary_explainer:
+    look: evidence_board
+    platforms:
+      linkedin: {format: document_carousel_text, media: [carousel_pdf]}
+  weekly_digest:
+    look: data_card
+    platforms:
+      substack: {format: newsletter_issue, media: [chart_png]}
+  vram_table:
+    look: data_card
+    platforms:
+      reddit: {format: image_post, media: [chart_png]}
+      github: {format: readme, media: []}
+  data_study:
+    look: data_card
+    platforms:
+      hackernews: {format: link_submission, media: []}
+  news_digest:
+    look: none
+    why: Links to outside stories; there is no figure of ours to draw.
+    platforms:
+      x: {format: post, media: []}
+      bluesky: {format: post, media: []}
+  vram_answer:
+    look: none
+    why: A reply in text, with the calculator's figure and its assumptions.
+    platforms:
+      x: {format: reply, media: []}
+  method_post:
+    look: none
+    why: A written method; a diagram for it is a separate decision.
+    platforms:
+      reddit: {format: text_post, media: []}
+      hackernews: {format: link_submission, media: []}
+      medium: {format: article, media: []}
+      github: {format: discussion_post, media: []}
+  show_hn_tool:
+    look: none
+    why: A link to a tool people try; the tool is the picture.
+    platforms:
+      hackernews: {format: show_hn, media: []}
+  guide_syndication:
+    look: none
+    why: Re-publishes a finished guide as text with its canonical link.
+    platforms:
+      medium: {format: article, media: []}
+  video_metadata_verdict:
+    look: none
+    why: Video metadata only; no video is being made yet.
+    platforms:
+      youtube: {format: video_metadata, media: []}
+  video_metadata_vram:
+    look: none
+    why: Video metadata only; no video is being made yet.
+    platforms:
+      youtube: {format: video_metadata, media: []}
+  comment_reply:
+    look: none
+    why: A reply written by a person.
+    platforms:
+      youtube: {format: comment, media: []}
+      instagram: {format: comment, media: []}
+  carousel_from_linkedin:
+    look: inherit
+    platforms:
+      instagram: {format: carousel_text, media: [card_png]}
+
+# Phase 2: the AI writer (judge/content_workspace/writer.py). Runs only for a
+# platform whose cw_platform.ai_writer_allowed is true (X and LinkedIn). It
+# proposes; code checks; a person decides. Spend is recorded in the
+# workspace's own cw_writer_run table, not the board's spend_ledger, and is
+# held to `daily_budget_usd` (UTC day; a call is refused once it is reached, so
+# a day can overshoot by the one call in flight).
+writer:
+  # OFF for now (anooj, 2026-11-17): proposals are written in Claude Code from
+  # the material `python -m judge.content_workspace material <draft>` exports,
+  # and come back through `ingest`, which runs the same checks. The API
+  # writer below stays ready; the team picks its model after the workspace
+  # is presented. While false, the page's "Propose text" makes no call.
+  api_enabled: false
+  model: deepseek/deepseek-v4-flash
+  # A platform listed here uses its own model instead (an OpenRouter id).
+  # Empty: every platform uses `model`. The served-model check still applies.
+  model_by_platform: {}
+  max_tokens: 1200
+  temperature: 0.4
+  reasoning_effort: none
+  daily_budget_usd: 1.00
+  # Calls per "Propose": after a refusal the model gets the refusal reasons
+  # and one more try; code checks every attempt again and each is its own
+  # recorded run. 1 = no retry.
+  attempts: 2
+  # Shape refusals, per platform and format: code counts what a style rule
+  # can be counted by, and a proposal past it is refused and retried with the
+  # reason. Only the writer's proposals; a person may write anything.
+  #   max_weeks_named: a post naming more distinct weeks than this walks the
+  #   weeks like a report instead of telling one story (anooj, 2026-11-17).
+  shape:
+    linkedin:
+      post: {max_weeks_named: 2}
+  # The proposal's free-text note to the editor is capped at this many characters.
+  editor_note_max_chars: 400
+
+# Phase 3: the tracked link and the results log (judge/content_workspace/results.py).
+tracking:
+  # utm_source = the platform's key; utm_campaign = the draft's topic kind, or
+  # this when it has none; utm_content = "draft-<id>".
+  utm_medium: social
+  campaign_without_topic: post
+  # The site has no analytics (looked for on 2026-11-17: no Plausible, Umami,
+  # GA, PostHog or similar in web/ or judge/), so a tracked link's visits
+  # cannot be counted yet. Shown as "not measured", never as zero.
+  site_visits_measured: false
+  site_visits_why: >-
+    the site has no analytics that could count visits from a tracked link
+    (looked for on 2026-11-17)
+
+# What a person copies from each platform's own analytics into the results
+# log. A metric with no entry is "not recorded", never zero (rule 6).
+results:
+  metrics:
+    impressions: Impressions
+    reach: Reach (accounts)
+    views: Views
+    watch_time_minutes: Watch time (minutes)
+    reactions: Reactions, likes or upvotes
+    comments: Comments
+    shares: Shares or reposts
+    saves: Saves or bookmarks
+    link_clicks: Link clicks
+    profile_visits: Profile visits
+    followers_gained: Followers or subscribers gained
+  by_platform:
+    x: [impressions, reactions, comments, shares, saves, link_clicks, profile_visits, followers_gained]
+    linkedin: [impressions, reactions, comments, shares, link_clicks, followers_gained]
+    reddit: [views, reactions, comments, shares]
+    hackernews: [reactions, comments]
+    bluesky: [reactions, comments, shares]
+    substack: [views, link_clicks, followers_gained]
+    medium: [views, reactions, comments]
+    github: [views, reactions]
+    youtube: [views, watch_time_minutes, reactions, comments, shares, followers_gained]
+    instagram: [reach, views, reactions, comments, shares, saves, profile_visits]
+    facebook: [reach, reactions, comments, shares, link_clicks]
+
+# Media files per draft (judge/content_workspace/media.py): made in Claude Code
+# with the media skills, stored in the workspace database, internal only.
+media:
+  max_bytes: 10000000
