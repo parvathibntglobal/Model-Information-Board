@@ -36,7 +36,7 @@ import threading
 import time
 import traceback
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 # ⚠ REPO ROOT ON THE PATH BEFORE ANY FIRST-PARTY IMPORT. When this file is run
@@ -1471,7 +1471,26 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                detail=f"RapidAPI search for {len(queries)} variant(s), then comments "
                       f"for up to {max_threads} thread(s)")
 
-    inserted = hits = threads = errors = adult = unnamed = excluded = already = 0
+    # A STALE POST KEEPS ITS PLACE, NOT ITS COMMENTS REQUEST (2026-11-19, #610).
+    # The search ranks by relevance, so it returns months-old threads; their
+    # comments are fetched, stored, and then never read, because extraction
+    # takes only threads with a post inside `extraction_window_days`. On
+    # 2026-11-18 OpenClaw spent 4 of its 5 comment requests that way and its
+    # extraction read none of them.
+    #
+    # A search hit carries the POST's date, not its newest comment's, so the
+    # test is on the post, with a cutoff wider than the window. The cutoff and
+    # its measurement are in contract/scheduler.yaml.
+    #
+    # NOT ON A FIRST FETCH, which reads the backlog without the window
+    # (`FIRST_FETCH`), and an UNDATED post is not an old one (rule 6). Kept like
+    # an unnamed post: a recorded skip of a cost, never a drop of evidence (rule 8).
+    stale_after = None
+    if not FIRST_FETCH.get("window_off"):
+        from judge.scheduler import reddit_comments_max_post_age_days
+        stale_after = datetime.now(UTC) - timedelta(days=reddit_comments_max_post_age_days())
+
+    inserted = hits = threads = errors = adult = unnamed = excluded = already = stale = 0
     failures: list[str] = []
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     # NOT RUN IS NOT AN ERROR, which is what X already does (#327). A missing
@@ -1534,11 +1553,19 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 # being fetched, and only its listed subreddits (tracked_agents.yaml).
                 in_own_sub = (str(getattr(post, "subreddit", "")).casefold()
                               in AGENT_SUBREDDITS)
-                if not in_own_sub and not _names_a_variant(post.sieve_text, variants):
+                is_unnamed = not in_own_sub and not _names_a_variant(post.sieve_text, variants)
+                posted = getattr(post, "created_at", None)
+                is_stale = (not is_unnamed and stale_after is not None
+                            and posted is not None and posted < stale_after)
+                if is_unnamed or is_stale:
                     # THE POST IS KEPT, ITS COMMENTS ARE NOT FETCHED (Anooj's
                     # condition on #602): a recorded skip of a cost, never a
-                    # drop of evidence (rule 8). One payload, no request.
-                    unnamed += 1
+                    # drop of evidence (rule 8). One payload, no request, and
+                    # no comment slot used, so the slot goes to a fresher post.
+                    if is_unnamed:
+                        unnamed += 1
+                    else:
+                        stale += 1
                     blob = json.dumps(getattr(post, "raw", None) or {},
                                       ensure_ascii=False, sort_keys=True)
                     wrote = reddit_write(
@@ -1640,6 +1667,10 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     if unnamed:
         detail += (f" — {unnamed} post(s) kept without their comments: the post does "
                    f"not name the model in any of its spellings")
+    if stale:
+        detail += (f" — {stale} post(s) kept without their comments: posted before "
+                   f"{stale_after:%Y-%m-%d}, older than the comments cutoff "
+                   f"(contract/scheduler.yaml reddit_comments_max_post_age_days)")
     if excluded:
         detail += (f" — {excluded} hit(s) from excluded subreddits not stored "
                    f"(contract/sources.yaml search_excluded)")
@@ -1649,7 +1680,7 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     if errors:
         detail += f" — {errors} request(s) failed: " + "; ".join(failures[:3])
     prog.stage("E2R", "Harvest · Reddit", _harvest_verdict(errors, hits),
-               search_hits=hits, search_hits_unnamed=unnamed,
+               search_hits=hits, search_hits_unnamed=unnamed, search_hits_stale=stale,
                search_hits_excluded=excluded, threads_already_read=already,
                threads_fetched=threads, documents_inserted=inserted,
                http_errors=errors, adult_skipped=adult,
