@@ -92,6 +92,26 @@ These are the rules a helpful refactor will otherwise quietly violate.
    `web/src/kitepulse/outreach/prompts/shortlist/`. The Reply Writer (step
    `draft`) is not covered by this entry.
 
+   **The content workspace's AI writer, PROPOSED 2026-11-19 (anooj; for
+   Parvathi's review with the content-workspace PR, not in force until it
+   merges):** `judge/content_workspace/writer.py` asks a model, by one forced
+   tool call, for the text of an X or LinkedIn post, and that text is a
+   PROPOSAL shown beside a person's draft in Admin -> Content workspace. Code
+   checks every attempt and stores a failing one as `refused` with its
+   reasons, never corrected: every number in digits must appear in the
+   material the model was given, every URL or bare domain must be one of its
+   links, and no handle may appear. A passing proposal reaches the draft only
+   when a person uses it (the draft is then marked AI-assisted), and posting
+   is always a person's act, by hand: the workspace posts nowhere. It decides
+   nothing the board computes. **Not checked:** faithfulness beyond numbers and
+   links; that is the person's job. Its calls are rows in the workspace's OWN
+   database (`cw_writer_run`), not `spend_ledger`, under
+   `writer.daily_budget_usd` in `judge/content_workspace/config/workspace.yaml`,
+   outside the extraction budget. **It is OFF** (`writer.api_enabled: false`,
+   anooj 2026-11-17): until the team picks its model, proposals are written in
+   Claude Code from exported material and come back through `ingest`, which
+   runs the same checks.
+
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 
