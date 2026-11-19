@@ -48,6 +48,33 @@ refresh_thread_cap: 25
 #: undated" never reads as "nothing to read" (rule 4, rule 6).
 extraction_window_days: 14
 
+#: REDDIT COMMENTS ONLY FOR A POST THE WINDOW CAN STILL REACH (2026-11-19,
+#: anooj; PROPOSED for review, #610). On a refresh, a Reddit search hit posted
+#: longer ago than this is stored WITHOUT its comments request, and does not
+#: use one of the fetch's comment slots, so the slot goes to a fresher post.
+#: Not on a first fetch (it reads the backlog without the window). An undated
+#: post is never treated as old. Must be >= extraction_window_days.
+#:
+#: Why: the search ranks by relevance and returns months-old threads. Their
+#: comments are fetched and stored, and the extraction above never reads them.
+#: The search shows the post's date, not its newest comment's, so the cutoff is
+#: on the post and wider than the window.
+#:
+#: MEASURED 2026-11-19 (read-only, shared DB). Population: the 1,383 thread
+#: contexts with a Reddit root assembled 12-19 Nov, 244 of which had a comment
+#: inside the 14-day window when assembled. That population was chosen by the
+#: Reddit search and RapidAPI, not by this rule (rule 8).
+#:
+#:     cutoff   requests skipped   threads with a fresh comment lost
+#:     14 d     617 (45%)          40 of 244 (16%)
+#:     30 d     439 (32%)          15 of 244 (6%)     <- chosen
+#:     60 d     234 (17%)           6 of 244 (2.5%)
+#:
+#: A lost thread's post is still stored, but this arm will never fetch its
+#: comments, because a post only gets older. So the 15 are a real cost, stated
+#: here so a reviewer can trade it against the 439 requests.
+reddit_comments_max_post_age_days: 30
+
 #: THREADS READ AT ONCE IN E5 (2026-11-13, anooj; for review). Extraction is one
 #: model call per thread, and it was made one at a time: E5 was 57-61% of every
 #: fetch's time (fetch_log, runs since 2026-11-10: agent first fetches median 26

@@ -95,6 +95,32 @@ def extract_concurrency() -> int:
     return v
 
 
+@lru_cache(maxsize=1)
+def reddit_comments_max_post_age_days() -> int:
+    """contract/scheduler.yaml `reddit_comments_max_post_age_days`: a Reddit
+    search hit posted longer ago than this is stored without its comments
+    request on a refresh (scripts/fetch_model.py `harvest_reddit`). Read apart
+    from `policy()` so the Policy shape is unchanged. Required, a positive
+    integer no smaller than `extraction_window_days`, because a cutoff inside
+    the window would skip posts the extraction reads. No default in code
+    (rule 12)."""
+    from judge.config import _read
+
+    v = (_read("scheduler.yaml") or {}).get("reddit_comments_max_post_age_days")
+    if not isinstance(v, int) or isinstance(v, bool) or v < 1:
+        raise SchedulerPolicyError(
+            "contract/scheduler.yaml `reddit_comments_max_post_age_days` must be a "
+            f"positive integer, not {v!r}"
+        )
+    window = policy().extraction_window_days
+    if v < window:
+        raise SchedulerPolicyError(
+            f"contract/scheduler.yaml `reddit_comments_max_post_age_days` ({v}) is inside "
+            f"`extraction_window_days` ({window}): it would skip posts the extraction reads"
+        )
+    return v
+
+
 @dataclass(frozen=True)
 class DueModel:
     model_version_id: str
