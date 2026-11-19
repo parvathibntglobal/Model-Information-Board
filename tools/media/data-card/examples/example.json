@@ -1,0 +1,123 @@
+{
+  "slug": "example-capability",
+  "topic": "Example capability",
+  "filed_under": "example capability",
+  "path": "/reviews/capabilities/example-capability",
+  "window": {
+    "from": "2026-10-20",
+    "to": "2026-11-19"
+  },
+  "read_on": "2026-11-19",
+  "population": "SYNTHETIC EXAMPLE: invented model names and text; figures illustrative only. Never publish.",
+  "headline": "people reported on an AI model's usage limits",
+  "sides": {
+    "negative": {
+      "stat": "reported a problem with the limits",
+      "legend": "reported a problem",
+      "bar": "problem"
+    },
+    "positive": {
+      "stat": "reported the limits held up",
+      "legend": "reported it held up",
+      "bar": "held up"
+    }
+  },
+  "totals": {
+    "people": 51,
+    "negative": 44,
+    "positive": 6,
+    "models": 19,
+    "entries": 68,
+    "no_author_entries": 0
+  },
+  "rows": [
+    {
+      "model": "Example Model A",
+      "people": 10,
+      "negative": 10,
+      "positive": 0
+    },
+    {
+      "model": "Example Model B",
+      "people": 9,
+      "negative": 9,
+      "positive": 0
+    },
+    {
+      "model": "Example Model C",
+      "people": 8,
+      "negative": 5,
+      "positive": 3
+    },
+    {
+      "model": "Example Model D",
+      "people": 7,
+      "negative": 7,
+      "positive": 0
+    },
+    {
+      "model": "Example Model E",
+      "people": 2,
+      "negative": 1,
+      "positive": 0
+    },
+    {
+      "model": "Example Model F",
+      "people": 2,
+      "negative": 2,
+      "positive": 0
+    },
+    {
+      "model": "Example Model G",
+      "people": 2,
+      "negative": 1,
+      "positive": 0
+    },
+    {
+      "model": "Example Model H",
+      "people": 2,
+      "negative": 2,
+      "positive": 1
+    }
+  ],
+  "rest": {
+    "models": 11,
+    "people_min": 1,
+    "people_max": 1,
+    "negative": 7,
+    "positive": 2,
+    "neither": 2
+  },
+  "sources": [
+    {
+      "platform": "dev.to",
+      "people": 7
+    },
+    {
+      "platform": "Hacker News",
+      "people": 3
+    },
+    {
+      "platform": "GitHub",
+      "people": 2
+    },
+    {
+      "platform": "Forum",
+      "people": 1
+    }
+  ],
+  "sources_not_named": {
+    "people": 38,
+    "platforms": 3
+  },
+  "page2_head": [
+    "Where the limit",
+    "was reported"
+  ],
+  "page2_note": "A model with no bar had no report in these {window_days} days, which is not the same as having no limit.",
+  "page3_head": [
+    "{platforms_word} platforms,",
+    "one subject"
+  ],
+  "not_a_measurement": "of any plan's actual limit: what people reported about it."
+}

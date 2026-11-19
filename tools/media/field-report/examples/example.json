@@ -1,0 +1,61 @@
+{
+  "topic": "model_trajectory",
+  "file_slug": "example",
+  "source": "SYNTHETIC EXAMPLE: invented model names and text; figures illustrative only. Never publish.",
+  "title": "Example Model 1",
+  "subtitle": "in the hands of engineers, week by week",
+  "path": "/models/example/example-model-1",
+  "release_date": "2026-09-22",
+  "start": "2026-09-22",
+  "read_on": "2026-11-17",
+  "weeks": [
+    {
+      "from": "2026-09-22",
+      "to": "2026-09-28",
+      "people": 75,
+      "posts": 85,
+      "pos": 70,
+      "neg": 17
+    },
+    {
+      "from": "2026-09-29",
+      "to": "2026-10-05",
+      "people": 99,
+      "posts": 113,
+      "pos": 86,
+      "neg": 30
+    },
+    {
+      "from": "2026-10-06",
+      "to": "2026-10-12",
+      "people": 58,
+      "posts": 64,
+      "pos": 53,
+      "neg": 16
+    },
+    {
+      "from": "2026-10-13",
+      "to": "2026-10-19",
+      "people": 54,
+      "posts": 63,
+      "pos": 52,
+      "neg": 13
+    }
+  ],
+  "proofs": [
+    {
+      "side": "positive",
+      "week": 1,
+      "platform": "Hacker News",
+      "date": "2026-09-27",
+      "text": "An engineer found it kept a forty-file refactor consistent from the first prompt to the last."
+    },
+    {
+      "side": "negative",
+      "week": 3,
+      "platform": "dev.to",
+      "date": "2026-10-10",
+      "text": "Another found it dropped a style rule given at the start once the session ran long."
+    }
+  ]
+}
