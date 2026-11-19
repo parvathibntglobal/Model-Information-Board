@@ -2231,8 +2231,9 @@ columns:
       state: read
       why: 'Written by collect/registry/events.py. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. The release day when model_version.release_date is empty.'
     payload:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'Written by collect/registry/events.py. Read by judge/content_workspace/media_specs.py evidence_board_rows (2026-11-19): the evidence board media spec builds its price table from the from/to price_in and price_out of each price-change event, refusing an event that lacks one (a missing price is not 0).'
     source_url:
       reviewed: false
       state: reserved
