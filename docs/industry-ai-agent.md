@@ -91,14 +91,32 @@ both query keys**.
 
 **Where it differs:**
 - **The sieve:** a watched post needs an AI term; an industry term is optional.
-- **The label (option A):**
-  - a watched post that names industry terms is filed under **every domain whose terms
-    it names**, flagged `domain_from_terms:<domain>`;
+- **The label (option A), for a post found ONLY by watch lists:**
+  - one that names industry terms is filed under **every domain whose terms it
+    names**, flagged `domain_from_terms:<domain>`;
   - one that names none is kept as **General AI** (flag `general_ai`).
   - General AI is counted apart from "domain unconfirmed", which means a keyword
     query's own domain was not confirmed. They are two different absences (rule 4).
+  - **A post a keyword query also found keeps the keyword agent's label and window**
+    (#650 review), so a post is never labelled differently just because a watch list
+    also saw it.
+- **The watch window** (#650 review, point 1):
+  - a post found only by watch lists is kept if it was posted within
+    `watch.lookback_days` of when the lane **first saw it** (`first_seen_at`);
+  - otherwise it is dropped as `outside_watch_window`.
+  - **Why it is needed:** Reddit's newest page and Bluesky's `from:` feed return posts
+    of any age. X (`since:`) and Hacker News (`created_at_i>`) already ask for the
+    window.
+  - **Measured from first sight, not from today,** so a later `--relabel` never drops
+    a watched post just because time has passed.
 - **Its own switch and caps:** `watch.enabled` and `watch.max_requests`, so watching
   can never spend the keyword queries' budget.
+  - **Quota:** with the watch lists on, a weekly run spends up to 30 more X and 25
+    more Reddit requests, on top of the keyword queries' 110 and 40, from the same
+    monthly RapidAPI quota the model fetches use.
+- **One query loop:** both loops run each query through `_run_query`, so watched
+  sources get #648's failure handling too. A failed request is marked `error`, never
+  "0 items".
 
 **The lists** (`contract/industry_ai.yaml` `watch:`, at most 20 per platform for now):
 

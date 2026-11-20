@@ -2123,7 +2123,7 @@ columns:
       reviewed: true
       state: defaulted
       why: >-
-        DEFAULT now() on insert; when the agent first stored the item. No reader yet: the page dates items by when they were posted, not stored.
+        DEFAULT now() on insert; when the agent first stored the item. READ by collect/industry_ai/store.py load_items (2026-11-20, #650 review point 1): pipeline.evaluate measures the observer's watch window from it, so a post found only by watch lists is kept if posted within watch.lookback_days of first sight, and a later --relabel never drops it for age. The page still dates items by when they were posted.
     flags:
       reviewed: true
       state: read

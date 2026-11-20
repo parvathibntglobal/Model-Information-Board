@@ -42,6 +42,9 @@ class Item:
     discovery_ref: str | None = None
     domain_hints: set[str] = field(default_factory=set)
     query_keys: set[str] = field(default_factory=set)
+    #: When this lane first stored it (`iai_item.first_seen_at`); None for an item
+    #: from this run's harvest, not yet stored. The watch window is measured from it.
+    first_seen_at: datetime | None = None
 
     @property
     def text(self) -> str:
@@ -293,6 +296,13 @@ def is_watched(item: Item) -> bool:
     return any(k.startswith(WATCH_KEY_PREFIX) for k in item.query_keys)
 
 
+def is_watch_only(item: Item) -> bool:
+    """Found by watch lists and by NO keyword query. Only these get the observer's own
+    rules (the watch window, option A); a post a keyword query also found keeps the
+    keyword agent's (#650 review)."""
+    return bool(item.query_keys) and all(k.startswith(WATCH_KEY_PREFIX) for k in item.query_keys)
+
+
 def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, dict], list[str]]:
     """(drop reason or None, domain -> what matched, AI terms found). Needs an AI
     term and a term of ANY domain or group; which domain it is gets decided in
@@ -380,19 +390,21 @@ def label(item: Item, matched: dict[str, dict], cfg: Config) -> Verdict:
     matched, as "<domain>/<group>".
     """
     confirmed = {d for d in item.domain_hints if d in matched}
-    if is_watched(item):
-        # A WATCHED post has no finding query to say its domain (option A, anooj,
-        # 2026-11-20): it is filed under EVERY domain whose own terms it names,
-        # flagged so those can be counted or filtered apart. Naming none, it is
-        # General AI - a different absence from "domain unconfirmed" (rule 4).
-        from_terms = sorted(set(matched) - confirmed)
-        domains = sorted(confirmed | set(matched))
-        flags = [f"domain_from_terms:{d}" for d in from_terms]
-        if not domains:
-            flags.append("general_ai")
+    if is_watch_only(item):
+        # A post ONLY watch lists found has no finding query to say its domain
+        # (option A, anooj, 2026-11-20): it is filed under EVERY domain whose own
+        # terms it names, flagged so those can be counted or filtered apart.
+        domains = sorted(matched)
+        flags = [f"domain_from_terms:{d}" for d in domains]
     else:
+        # A keyword query found it (and maybe a watch list too): the keyword agent's
+        # rule, the same label whether or not a watch list also found it (#650 review).
         domains = sorted(confirmed)
         flags = [f"also_matches:{d}" for d in sorted(matched) if d not in item.domain_hints]
+    if not matched and is_watched(item):
+        # Naming no industry at all, it is General AI - kept only because a watch list
+        # found it - a different absence from "domain unconfirmed" (rule 4).
+        flags.append("general_ai")
     groups = sorted(f"{d}/{g}" for d in domains for g in matched[d]["groups"])
     text = item.text
 

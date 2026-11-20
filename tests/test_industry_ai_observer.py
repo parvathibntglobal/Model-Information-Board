@@ -58,7 +58,7 @@ def watched(text, *, key="watch:x:(from:karpathy)", platform="x", iid=None):
 
 
 def one(cfg, it):
-    results, c = evaluate([it], cfg, since=SINCE)
+    results, c = evaluate([it], cfg, since=SINCE, now=NOW)
     return results[it.id], c
 
 
@@ -156,12 +156,47 @@ def test_general_and_unconfirmed_are_counted_apart(cfg):
     kw = watched("I used ChatGPT to draft our ad copy for the spring sale and it saved hours.",
                  key="iai:retail:x:q", iid="x:k1")
     kw.domain_hints = {"retail"}  # found by a retail query; names marketing's term only
-    results, c = evaluate([gen, kw], cfg, since=SINCE)
+    results, c = evaluate([gen, kw], cfg, since=SINCE, now=NOW)
     assert results["x:g1"].verdict == "kept" and "general_ai" in results["x:g1"].flags
     assert c["domains"]["general"]["kept"] == 1
     if results["x:k1"].verdict == "kept" and not results["x:k1"].domains:
         assert c["domains"]["unconfirmed"]["kept"] == 1
     assert counts([gen, kw], results)["domains"]["general"]["kept"] == 1
+
+
+# ── the watch window (#650 review, point 1) ──────────────────────────────────
+
+AI_SEO = ("I used Claude to write our SEO content and ad copy for the launch, and it saved our "
+          "small team a full day of work.")
+
+
+def test_a_watched_post_older_than_the_lookback_is_dropped(cfg):
+    """Reddit's newest page and Bluesky's from: feed return posts of any age."""
+    it = watched(AI_SEO, key="watch:reddit:r/ChatGPTPro", platform="reddit")
+    it.created_at = NOW - timedelta(days=30)  # inside the run window, outside the watch's
+    r, c = one(cfg, it)
+    assert r.verdict == "dropped" and r.stage == "window" and r.reason == "outside_watch_window"
+    assert c["dropped"] == {"window:outside_watch_window": 1}
+
+
+def test_the_watch_window_is_measured_from_first_sight_not_from_now(cfg):
+    """A --relabel weeks later must not drop a watched post just because time passed."""
+    it = watched(AI_SEO, key="watch:reddit:r/ChatGPTPro", platform="reddit")
+    it.created_at = NOW - timedelta(days=30)
+    it.first_seen_at = NOW - timedelta(days=28)  # stored two days after it was posted
+    r, _ = one(cfg, it)
+    assert r.verdict == "kept", r.reason
+
+
+def test_a_post_a_keyword_query_also_found_keeps_the_run_window_and_its_label(cfg):
+    it = watched(AI_SEO, key="watch:reddit:r/ChatGPTPro", platform="reddit")
+    it.query_keys.add("iai:marketing:reddit:SEO content AI")
+    it.domain_hints = {"marketing"}
+    it.created_at = NOW - timedelta(days=30)
+    r, _ = one(cfg, it)
+    assert r.verdict == "kept", r.reason  # the run window (365 days), not the watch's 7
+    assert r.domains == ["marketing"]  # the keyword agent's label: confirmed hints only
+    assert not [f for f in r.flags if f.startswith("domain_from_terms:")]
 
 
 # ── harvest ──────────────────────────────────────────────────────────────────
@@ -181,7 +216,7 @@ def test_watch_sources_run_under_their_own_caps_with_no_domain_hint(cfg, monkeyp
             it = watched(f"post for {query}", key="placeholder",
                          platform="hackernews", iid=f"hackernews:{len(calls)}")
             it.query_keys = set()
-            return [it], 1, ""
+            return [it], 1, "", None
 
     monkeypatch.setitem(h._RUNNERS, "hackernews", Fake)
     w = {**cfg.watch, "max_requests": {**cfg.watch["max_requests"], "hackernews": 3}}

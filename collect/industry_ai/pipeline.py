@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from collect.industry_ai.config import Config
 from collect.industry_ai.rules import (
@@ -22,6 +22,7 @@ from collect.industry_ai.rules import (
     canonical_url,
     filter_reason,
     is_article_link,
+    is_watch_only,
     label,
     normalized_text,
     outside_window,
@@ -110,9 +111,25 @@ def _dedupe(items: list[Item], results: dict[str, Result]) -> None:
 
 
 def evaluate(
-    items: list[Item], cfg: Config, *, since: datetime, is_bot=lambda item: False
+    items: list[Item],
+    cfg: Config,
+    *,
+    since: datetime,
+    is_bot=lambda item: False,
+    now: datetime | None = None,
 ) -> tuple[dict[str, Result], dict]:
-    """Every item's Result, and the counts by stage. Nothing is deleted."""
+    """Every item's Result, and the counts by stage. Nothing is deleted.
+
+    THE WATCH WINDOW (#650 review, point 1): a post found ONLY by watch lists is kept
+    if it was posted within `watch.lookback_days` of when this lane first saw it
+    (`first_seen_at`; `now` for this run's fresh items). Reddit's newest page and
+    Bluesky's `from:` feed return posts of any age, so without this "the observer
+    reads the last week" would really mean "the newest page, up to a year back".
+    Measured from first sight, not from now, so a later `--relabel` never drops a
+    watched post just because time has passed. A post a keyword query also found
+    keeps the run window (`since`)."""
+    now = now or datetime.now(UTC)
+    lookback = timedelta(days=int(cfg.watch["lookback_days"]))
     results: dict[str, Result] = {it.id: Result(verdict="kept") for it in items}
     matched: dict[str, dict] = {}
     passed: list[Item] = []
@@ -121,6 +138,11 @@ def evaluate(
         r = results[it.id]
         if outside_window(it, since):
             r.verdict, r.stage, r.reason = "dropped", "window", "outside_window"
+            continue
+        if (is_watch_only(it) and it.created_at is not None
+                and it.created_at < (it.first_seen_at or now) - lookback):
+            # Its own reason, so the log says WHICH window dropped it.
+            r.verdict, r.stage, r.reason = "dropped", "window", "outside_watch_window"
             continue
         why, terms, ai = sieve(it, cfg)
         r.ai_terms, r.matched_terms = ai, terms
