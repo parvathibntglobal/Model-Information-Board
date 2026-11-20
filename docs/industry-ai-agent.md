@@ -437,7 +437,10 @@ tune):
 14. **A failed search must not read as "found nothing".** In the first dry run, GitHub's
     9 searches (401, an invalid local token) and 4 of dev.to's 14 (429, rate limited)
     showed as `ok` with 0 items, because the runners read no failure from the
-    adapters. A failed search should be marked `error` in the run log (rule 4).
+    adapters. **Fixed in #648:** `harvest.failure_of` reads each adapter's record
+    (`http_errors`, `rate_limited`, `empty_response`), and such a search is marked
+    `error` with the reason, keeping any items the pages that answered gave. A real
+    zero result (the site answered, nothing matched) stays `ok` (rule 4).
 
 ---
 
