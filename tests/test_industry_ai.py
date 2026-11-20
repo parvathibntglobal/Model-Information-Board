@@ -664,3 +664,61 @@ def test_an_inactive_domain_is_not_run(cfg, monkeypatch):
     )
     with pytest.raises(SystemExit, match="active: false"):
         script.main(["--plan", "--domains", "hospitality"])
+
+
+# ── a failed search is an error, never "found nothing" (rule 4) ──────────────
+
+
+def test_failure_of_reads_what_each_adapter_records():
+    """The first dry run (#646): GitHub's 401s and dev.to's 429s showed as `ok`
+    with 0 items, because nothing read the adapters' own failure records."""
+    from types import SimpleNamespace
+
+    from collect.industry_ai.harvest import failure_of
+
+    assert failure_of(SimpleNamespace(http_errors=0)) is None
+    assert failure_of(SimpleNamespace(http_errors=1, failures=["HTTP 429"])) == (
+        "1 request(s) failed (HTTP 429)"
+    )
+    assert "rate-limited" in failure_of(SimpleNamespace(http_errors=1, rate_limited=True))
+    assert "empty" in failure_of(SimpleNamespace(http_errors=0, empty_response=2))
+    assert failure_of(SimpleNamespace()) is None  # a record with no such fields
+
+
+def test_a_failed_search_is_logged_as_error_and_keeps_partial_items(cfg, monkeypatch):
+    import dataclasses
+
+    from collect.industry_ai import harvest as h
+
+    partial = item(
+        "Our bank uses an LLM for loan customers.", platform="hackernews", iid="hackernews:9"
+    )
+
+    class Failing(h._Runner):
+        def __init__(self, *a, **k):
+            pass
+
+        def run(self, query):
+            return [partial], 1, "", "1 request(s) failed (HTTP 401)"
+
+    monkeypatch.setitem(h._RUNNERS, "hackernews", Failing)
+    run = {**cfg.run, "max_requests": {**cfg.run["max_requests"], "hackernews": 1}}
+
+    class Contract:
+        platforms = [{"id": "hackernews"}]
+        feeds = []
+        rulings = {}
+
+    out = h.harvest(
+        dataclasses.replace(cfg, run=run),
+        domains=["finance"],
+        platforms=["hackernews"],
+        contract=Contract(),
+        store=None,
+        client_factory=lambda **k: None,
+        since=SINCE,
+        log=lambda s: None,
+    )
+    first = out.queries[0]
+    assert first.status == "error" and "HTTP 401" in first.detail
+    assert "hackernews:9" in out.items  # what did come back is kept
