@@ -66,15 +66,30 @@ def one(cfg, it):
 # ── the contract ─────────────────────────────────────────────────────────────
 
 
-def test_the_real_contract_loads_with_five_domains(cfg):
-    assert list(cfg.domains) == [
-        "finance",
-        "healthcare",
-        "hospitality",
-        "engineering",
-        "governance",
-    ]
+def test_the_real_contract_loads_with_the_umbrellas_and_five_active(cfg):
+    # The 20 persona umbrellas (anooj, 2026-11-20); Parvathi's first five are among them.
+    assert {"finance", "healthcare", "hospitality", "engineering", "governance"} <= set(cfg.domains)
+    assert len(cfg.domains) == 20
+    assert set(cfg.active_domains) == {
+        "marketing",
+        "design_creative",
+        "security_it",
+        "retail",
+        "leaders_founders",
+    }
     assert cfg.type_order[-1] == "discussion"
+
+
+def test_every_x_query_in_the_contract_gets_its_clubbed_pages(cfg):
+    """Each grouped X query clubs at least `x_clubbed_min_keywords` keywords, so none of
+    them silently falls back to one page (the generator balances the lists)."""
+    lists = [d.terms for d in cfg.domains.values()] + [
+        g.terms for d in cfg.domains.values() for g in d.groups.values()
+    ]
+    for t in lists:
+        for q in t.queries["x"]["search"]:
+            if q.count('" OR "'):
+                assert cfg.x_pages(q) == cfg.run["pages_per_query"]["x_clubbed"], q
 
 
 @pytest.mark.parametrize(
@@ -372,7 +387,12 @@ def test_a_query_past_the_cap_is_not_run_and_says_so(cfg, monkeypatch):
     )
     assert len(calls) == 2 and out.requests["hackernews"] == 2
     statuses = [q.status for q in out.queries]
-    assert statuses == ["ok", "ok", "capped"]
+    # As many HN queries as the contract gives finance: the first two run, every one after
+    # the cap is named "capped", never silently skipped. Counted from the contract, so adding
+    # queries there does not break this test.
+    n = len(cfg.domains["finance"].terms.queries["hackernews"]["search"])
+    assert n > 2
+    assert statuses == ["ok", "ok"] + ["capped"] * (n - 2)
 
 
 def test_the_plan_lists_every_query_without_a_request(cfg):
