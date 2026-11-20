@@ -342,6 +342,15 @@ const SECTIONS = [
     render: () => <FeedSummaryPanel />,
   },
   {
+    // A PAGE, NOT A PANEL (2026-11-17): eleven platforms with six tabs each
+    // need the width a panel does not have, as Blogs' logs did. Its rows are
+    // cw_* tables in the board's database (judge/content_workspace/).
+    id: 'content-workspace',
+    title: 'Content workspace',
+    blurb: 'Write and check posts for each social platform',
+    href: '/admin/content',
+  },
+  {
     id: 'discussions',
     title: 'Discussions',
     blurb: 'Readers’ posts from the Discussions page, held for review',

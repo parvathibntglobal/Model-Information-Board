@@ -43,6 +43,11 @@ dependencies = [
   # CI - which installs from scratch - failed to import it on #532; every
   # laptop that had run the generator already had it installed (12.1.1).
   "pillow>=10",
+  # Content workspace media (judge/content_workspace/media.py): an uploaded
+  # carousel is read as a real PDF and its pages counted, never trusted from its
+  # name. Undeclared until 2026-11-19, when CI failed to import it on #640 - the
+  # laptop that wrote it already had it installed (6.19.0). Same shape as pillow.
+  "pypdf>=4",
 ]
 
 [project.optional-dependencies]

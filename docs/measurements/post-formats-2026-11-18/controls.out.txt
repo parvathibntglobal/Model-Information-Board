@@ -1,0 +1,23 @@
+X posts with >= 500 views: 291 of 400
+  hashtag              yes n= 18 median likes/1k views 5.0 | no n=273 median likes/1k views 10.6
+  media photo/video    yes n=229 median likes/1k views 10.4 | no n= 62 median likes/1k views 9.9
+  text only            yes n= 50 median likes/1k views 9.6 | no n=241 median likes/1k views 10.4
+  link card/url        yes n= 12 median likes/1k views 11.2 | no n=279 median likes/1k views 10.3
+  long post >280       yes n=201 median likes/1k views 10.8 | no n= 90 median likes/1k views 8.6
+  bullets/arrows       yes n= 75 median likes/1k views 13.0 | no n=216 median likes/1k views 9.3
+  ends with question   yes n= 12 median likes/1k views 11.9 | no n=279 median likes/1k views 10.3
+  quote post           yes n=101 median likes/1k views 10.7 | no n=190 median likes/1k views 9.9
+  link in text         yes n= 66 median likes/1k views 10.9 | no n=225 median likes/1k views 9.8
+  X bookmarks per 1k views, long vs short: 4.4493882091212456 1.424881187540754
+
+Reddit, median score within subreddit (subs with >= 15 sampled posts)
+  r/GeminiAI             n= 36 image/video/gallery 239 (n=14)  link 80 (n=3)  text 7 (n=19) | title '?' 34.5 (n=8) vs not 50 (n=28)
+  r/ClaudeAI             n= 33 image/video/gallery 2096 (n=10)  link 1293.5 (n=4)  text 72 (n=19) | title '?' 13 (n=11) vs not 1070 (n=22)
+  r/codex                n= 31 image/video/gallery 270 (n=4)  link 143 (n=3)  text 19.5 (n=24) | title '?' 4.0 (n=12) vs not 124 (n=19)
+  r/LocalLLaMA           n= 23 image/video/gallery 368 (n=9)  link 188 (n=4)  text 58.5 (n=10) | title '?' 62.5 (n=4) vs not 230 (n=19)
+  r/DeepSeek             n= 19 image/video/gallery 317 (n=3)  link 81 (n=3)  text 74 (n=13) | title '?' 37.5 (n=4) vs not 92 (n=15)
+  r/SillyTavernAI        n= 17 image/video/gallery 90.5 (n=6)  text 22 (n=11) | title '?' 52.0 (n=6) vs not 47 (n=11)
+  r/google_antigravity   n= 17 image/video/gallery 171.5 (n=4)  link 302 (n=1)  text 32 (n=12) | title '?' 44.0 (n=4) vs not 45 (n=13)
+
+HN link stories: median points by title colon: 185.5 42 vs 182.5 304
+HN link stories: median points by title chars <=50 vs >50: 199 179 vs 146 167

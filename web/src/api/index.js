@@ -459,6 +459,70 @@ export const outreachReopen = (id) =>
 export const outreachCheck = (id, text) =>
   request(`/admin/outreach/threads/${id}/check`, { method: 'POST', body: { text } })
 
+// THE CONTENT WORKSPACE (judge/content_workspace/, 2026-11-17). Per-platform
+// notes people edit, coded topic suggestions read from the board, drafts and
+// the platform fit check. Its own database; nothing here posts anywhere.
+export const contentPlatforms = () => request('/admin/content/platforms')
+export const contentPlatform = (key, archived = false) =>
+  request(`/admin/content/platforms/${encodeURIComponent(key)}${archived ? '?archived=true' : ''}`)
+export const contentSuggestions = (key) =>
+  request(`/admin/content/platforms/${encodeURIComponent(key)}/suggestions`)
+export const contentNoteCreate = (note) =>
+  request('/admin/content/notes', { method: 'POST', body: note })
+export const contentNoteUpdate = (id, changes) =>
+  request(`/admin/content/notes/${id}`, { method: 'POST', body: changes })
+export const contentNoteHistory = (id) => request(`/admin/content/notes/${id}/history`)
+export const contentDraftCreate = (draft) =>
+  request('/admin/content/drafts', { method: 'POST', body: draft })
+export const contentDraftUpdate = (id, changes) =>
+  request(`/admin/content/drafts/${id}`, { method: 'POST', body: changes })
+// The platform fit check on a saved draft. Advisory: it blocks nothing.
+export const contentDraftCheck = (id) =>
+  request(`/admin/content/drafts/${id}/check`, { method: 'POST' })
+// A model week by week, with paraphrased proof, as a suggestion to draft from.
+export const contentModels = (q) => request(`/admin/content/models?q=${encodeURIComponent(q)}`)
+export const contentTrajectory = (model, { start = '', weeks = '' } = {}) => {
+  const q = new URLSearchParams({ model })
+  if (start) q.set('start', start)
+  if (weeks) q.set('weeks', String(weeks))
+  return request(`/admin/content/trajectory?${q}`)
+}
+// The same model's reports by capability and job over a span of days (topic selection A).
+export const contentCapabilitySplit = (model, { start = '', days = '' } = {}) => {
+  const q = new URLSearchParams({ model })
+  if (start) q.set('start', start)
+  if (days) q.set('days', String(days))
+  return request(`/admin/content/capability-split?${q}`)
+}
+// Phase 2: the AI writer (X and LinkedIn). It proposes; a person uses and edits.
+export const contentWriterStatus = () => request('/admin/content/writer')
+export const contentProposals = (draftId) => request(`/admin/content/drafts/${draftId}/proposals`)
+export const contentPropose = (draftId, instructions) =>
+  request(`/admin/content/drafts/${draftId}/propose`, { method: 'POST', body: { instructions: instructions || null } })
+export const contentUseProposal = (runId) =>
+  request(`/admin/content/proposals/${runId}/use`, { method: 'POST' })
+// Phase 3: a coded starting template, the tracked link and the results log.
+export const contentTemplate = (draftId) => request(`/admin/content/drafts/${draftId}/template`)
+export const contentResults = (draftId) => request(`/admin/content/drafts/${draftId}/results`)
+export const contentAddResult = (draftId, reading) =>
+  request(`/admin/content/drafts/${draftId}/results`, { method: 'POST', body: reading })
+// Saved ticks for rules checked by hand; the results overview per platform;
+// a draft's media files (made in Claude Code, stored in the workspace).
+export const contentTick = (draftId, noteId, ticked) =>
+  request(`/admin/content/drafts/${draftId}/ticks`, { method: 'POST', body: { note_id: noteId, ticked } })
+export const contentPlatformResults = (key) =>
+  request(`/admin/content/platforms/${encodeURIComponent(key)}/results`)
+export const contentMedia = (draftId) => request(`/admin/content/drafts/${draftId}/media`)
+// A media file's bytes, with the sign-in token (an <img src> cannot carry it:
+// the workspace stays behind the login, so its files do too).
+export const contentMediaBlob = async (mediaId) => {
+  const res = await fetch(`${BASE}/admin/content/media/${mediaId}`, {
+    headers: bearer() ? { Authorization: `Bearer ${bearer()}` } : {},
+  })
+  if (!res.ok) throw new ApiError(`media ${mediaId}: HTTP ${res.status}`, res.status, null)
+  return res.blob()
+}
+
 // THE BENCHMARKS PAGE (judge/benchmarks.py, 2026-10-22). Signed in: every call
 // carries the token. Values are the sources' own; the page formats, never computes.
 export const benchmarksTable = () => request('/benchmarks/table')
