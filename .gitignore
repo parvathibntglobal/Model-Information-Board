@@ -85,6 +85,15 @@ site/
 exports/
 _flattened_probe/
 
+# The media generators' renders and their Node install (tools/media/README.md).
+# Rendered pages are made on a person's machine and stored on a draft through
+# `media-add`; they never go into git. Neither do specs made from live data
+# (they can carry restated reports): only the synthetic examples are tracked.
+tools/media/node_modules/
+tools/media/**/out*/
+tools/media/**/specs/
+tools/media/**/*.html
+
 # E1's thread_context handoff. NOT a convenience entry.
 #
 # The blog half carries a `delete_after` date, and a retention date only some

@@ -70,18 +70,50 @@ def hold_entries(conn: Any, rows: list[dict], *, proposer_model: str,
     return held
 
 
-def held_by_name(conn: Any) -> dict[str, tuple[int, int]]:
-    """{surface: (entries still held, distinct authors)}, for the seating bar.
+#: ONE HELD NAME, ITS SPELLINGS TOGETHER: lowercase, every non-alphanumeric run removed.
+#: The SQL twin below and `/admin/held-models` fold the same way, so the script and the
+#: Admin panel count the same names (#602, reported 2026-11-09: `held_by_name` grouped by
+#: the raw surface, so "GPT Image 2.6 Flare" and "gpt-image-2.6-flare" each sat under the
+#: bar while together they met it).
+_FOLD_SQL = "lower(regexp_replace(u.surface, '[^0-9A-Za-z]+', '', 'g'))"
 
-    Authors through the held row's document: a report whose author is unknown
-    adds an entry and no author, as the catalogue counts voices.
+
+def fold_surface(surface: str) -> str:
+    """The held-name key: `fold_surface("GPT Image 2.6") == "gptimage26"`."""
+    # Filter THEN lowercase, as the SQL does: lowercasing first turns a non-ASCII capital
+    # ("İ") into ASCII plus a combining mark, and the two keys would differ.
+    return "".join(ch for ch in surface if ch.isascii() and ch.isalnum()).lower()
+
+
+def has_version(key: str) -> bool:
+    """Does a held name carry a version number? Rule 10: a name with no digit is a word,
+    a family, a codename, a company or a product (`Claude`, `Argon`, `codex`), and the
+    resolver refuses it by design. Such a name is never put to the seating bar as if
+    seating were the open question; whether it names ONE model is a person's ruling.
+
+    The digit is asked for here because the question IS "is there a version number" -
+    the same test `scripts/auto_seat.py` applies to a surface - not "is this a quantity",
+    which a version number would fool (rule 12, `_HAS_QUANTITY`).
+    """
+    return any(ch.isdigit() for ch in key)
+
+
+def held_by_name(conn: Any) -> dict[str, tuple[int, int]]:
+    """{folded name: (distinct quotes still held, distinct authors)}, for the seating bar.
+
+    Spellings fold together (`fold_surface`), and a quote held again after a
+    `pipeline_version` change counts once: the bar counts what people said, not how
+    often it was re-read - the same counting `/admin/held-models` has used since #612.
+    Authors through the held row's document: a report whose author is unknown adds an
+    entry and no author, as the catalogue counts voices.
     """
     rows = conn.execute(
-        "SELECT u.surface, count(*), count(DISTINCT d.author_id) "
+        f"SELECT {_FOLD_SQL}, count(DISTINCT (u.document_id, u.section, u.slug, u.quote)), "
+        "count(DISTINCT d.author_id) "
         "FROM unresolved_entry u JOIN document d ON d.id = u.document_id "
-        "WHERE u.attributed_at IS NULL GROUP BY u.surface"
+        f"WHERE u.attributed_at IS NULL GROUP BY {_FOLD_SQL}"
     ).fetchall()
-    return {s: (int(n), int(a)) for s, n, a in rows}
+    return {k: (int(n), int(a)) for k, n, a in rows}
 
 
 def held_surfaces(conn: Any) -> Counter:

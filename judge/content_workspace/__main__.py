@@ -25,6 +25,14 @@ ingest DRAFT FILE --author MODEL [--instructions TEXT]
 media-add DRAFT FILE --kind KIND --made-with TEXT [--note TEXT]
                       store a media file made in Claude Code (a PNG or PDF,
                       checked from its contents) for the page to show
+media-spec LOOK ...   READ-ONLY. Write the JSON spec a media generator
+                      (tools/media/<look>/) renders, from the board's data:
+                        field-report   --model ID [--weeks 4] [--start DATE]
+                        data-card      --capability SLUG --text FILE [--section capability]
+                                       [--days 30] [--to DATE] [--allow-running]
+                        evidence-board --model ID [--cards 6] [--text FILE]
+                      each with [--out FILE] [--force]; without --out the spec is
+                      printed. See tools/media/README.md for the whole route.
 """
 
 from __future__ import annotations
@@ -72,7 +80,81 @@ def _parser() -> argparse.ArgumentParser:
     md.add_argument("--made-with", required=True)
     md.add_argument("--note")
     md.add_argument("--development-write", action="store_true", help=DEV_WRITE_HELP)
+    ms = sub.add_parser("media-spec")
+    looks = ms.add_subparsers(dest="look", required=True)
+    fr = looks.add_parser("field-report")
+    fr.add_argument("--model", required=True, help="canonical id, e.g. anthropic/claude-opus-5.5")
+    fr.add_argument("--weeks", type=int, default=4)
+    fr.add_argument("--start", help="first day of week 1, YYYY-MM-DD (default: release date)")
+    dc = looks.add_parser("data-card")
+    dc.add_argument("--capability", required=True, help="the board label's slug, whole (rule 10)")
+    dc.add_argument("--section", default="capability")
+    dc.add_argument("--days", type=int, default=30)
+    dc.add_argument("--to", help="last day counted, YYYY-MM-DD (default: yesterday, UTC)")
+    dc.add_argument("--text", required=True, help="JSON file with the text a person writes")
+    dc.add_argument("--allow-running", action="store_true",
+                    help="allow a window that is not over (a snapshot; says so)")
+    eb = looks.add_parser("evidence-board")
+    eb.add_argument("--model", required=True, help="canonical id, e.g. minimax/minimax-m2.7")
+    eb.add_argument("--cards", type=int, default=6)
+    eb.add_argument("--text", help="JSON file: kicker, note, cards_head, page3_head, "
+                                   "card_documents")
+    for p in (fr, dc, eb):
+        p.add_argument("--out", help="where to write the spec (default: print it)")
+        p.add_argument("--force", action="store_true", help="replace an existing --out file")
     return ap
+
+
+def media_spec(args: argparse.Namespace) -> int:
+    """`media-spec`: READ-ONLY, so no write gate; it needs the board's
+    DATABASE_URL and none of the workspace's tables."""
+    from datetime import date
+
+    from judge.content_workspace import media_specs, settings
+    from judge.store.claims import DatabaseNotConfigured
+
+    out = Path(args.out) if args.out else None
+    if out and out.exists() and not args.force:
+        print(f"{out} exists; give another --out, or --force to replace it")
+        return 2
+    try:
+        text = (json.loads(Path(args.text).read_text(encoding="utf-8"))
+                if getattr(args, "text", None) else None)
+        conn = db.connect()
+    except DatabaseNotConfigured as e:
+        print(str(e))
+        return 2
+    try:
+        conn.execute("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY")
+        s = settings.load()
+        if args.look == "field-report":
+            spec = media_specs.field_report(
+                conn, args.model, s, weeks=args.weeks,
+                start=date.fromisoformat(args.start) if args.start else None)
+        elif args.look == "data-card":
+            spec = media_specs.data_card(
+                conn, args.capability, text, section=args.section, days=args.days,
+                to=date.fromisoformat(args.to) if args.to else None,
+                allow_running=args.allow_running)
+            if args.allow_running:
+                print("warning: --allow-running: the window is not over; these counts are a "
+                      "snapshot", file=sys.stderr)
+        else:
+            spec = media_specs.evidence_board(conn, args.model, s, cards=args.cards, text=text)
+    except media_specs.MediaSpecError as e:
+        print(f"refused: {e}")
+        return 2
+    finally:
+        conn.rollback()
+        conn.close()
+    body = json.dumps(spec, indent=2, ensure_ascii=False)
+    if out:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(body, encoding="utf-8")
+        print(f"wrote {out}")
+    else:
+        print(body)
+    return 0
 
 
 def write_gate(cmd: str, development_write: bool, dsn: str | None) -> str | None:
@@ -92,6 +174,8 @@ def write_gate(cmd: str, development_write: bool, dsn: str | None) -> str | None
 def main(argv: list[str]) -> int:
     load_dotenv()
     args = _parser().parse_args(argv)
+    if args.cmd == "media-spec":
+        return media_spec(args)
     refused = write_gate(args.cmd, getattr(args, "development_write", False),
                          os.environ.get("DATABASE_URL"))
     if refused:

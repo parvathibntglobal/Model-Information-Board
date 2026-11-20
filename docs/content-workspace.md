@@ -87,7 +87,7 @@ the board, and writes only its own `cw_*` tables.
 
 - **Recipes:** each topic kind gets a look (field report, data card, evidence board, or text only with a reason). Each platform that uses it gets a format and media kinds.
 - **The check:** `recipes.problems()` confirms every (platform, topic) pair in the seed has a recipe, every format exists on its platform, and every media kind is one `media.py` stores.
-- **The generators that make the media are not in this PR.** They run outside the repo for now, and their files reach a draft through `media-add`.
+- **The generators** (added in the PR stacked on this one) are in `tools/media/`, one per look, named by each look's `generator` in `workspace.yaml` and checked to exist by `recipes.problems()`. `python -m judge.content_workspace media-spec <look>` (`media_specs.py`) writes a generator's spec from the board, read-only and counted as public pages count. They render on a person's machine (Node and Chromium), never on Railway or in CI, and their files reach a draft through `media-add`. How-to: `tools/media/README.md`.
 
 ## The AI writer
 
@@ -122,7 +122,7 @@ A refused proposal is stored with its reasons, never corrected.
 
 ## Not in this PR
 
-- The media generators.
+- The media generators: they are in the PR stacked on this one (`tools/media/`).
 - The writer's API model.
 - `SITE_URL` and analytics (to be decided by the team).
 - Measuring our own posts.

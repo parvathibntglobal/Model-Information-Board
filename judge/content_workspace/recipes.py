@@ -10,11 +10,14 @@ guessing one (rule 6).
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from judge.content_workspace.media import KINDS as MEDIA_KINDS
 
 SPECIAL_LOOKS = ("none", "inherit")
+#: The repository root, which a look's `generator` path is relative to.
+REPO = Path(__file__).resolve().parents[2]
 
 
 def problems(settings: dict[str, Any], seed: dict[str, Any]) -> list[str]:
@@ -26,9 +29,12 @@ def problems(settings: dict[str, Any], seed: dict[str, Any]) -> list[str]:
     platforms = {p["key"]: p for p in seed["platforms"]}
 
     for name, look in looks.items():
-        for field in ("label", "suits"):
+        for field in ("label", "suits", "generator"):
             if not str(look.get(field) or "").strip():
                 out.append(f"look {name!r} has no {field}")
+        gen = str(look.get("generator") or "").strip()
+        if gen and not (REPO / gen).is_file():
+            out.append(f"look {name!r}: generator {gen} does not exist")
 
     for kind, r in recipes.items():
         if kind not in kinds:

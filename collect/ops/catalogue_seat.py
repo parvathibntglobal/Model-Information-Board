@@ -29,6 +29,11 @@ SET ASIDE, NEVER FORCED - each with its reason, for a person:
     `openrouter/*` routers, and `~...-latest` pointers (whichever model is current): not
     models. #616's 392 (2026-11-09) counted the listings and pointers; this writer's
     read-only plan on the shared database found 262 to seat on 2026-11-10.
+  - a TOMBSTONED id (contract/tombstoned_models.yaml): deleted on purpose, by ruling. The poll
+    already drops these before it writes (collect/ops/chain.py); this writer did not. Its
+    read-only plan on the shared database on 2026-11-20 would have re-created 99 of its 279
+    seats, every one deleted by the 2026-09-24 ruling. Undoing a tombstone is a PR to that
+    file, never a side effect of a catalogue listing.
   - kinds outside text, image, speech, transcription, video, decisions (anooj, 2026-11-09).
   - no usable name form: `name_forms` keeps a form only at 3+ characters, and a one-word form
     only with a digit (rule 10's ordinary-word case: "Sonar", "Reflex").
@@ -57,6 +62,7 @@ from collect.registry.aliases import (
     spelling_gaps,
 )
 from collect.registry.models import AliasSpec, SeedModel
+from collect.registry.tombstones import load_tombstones
 
 PROVENANCE = "catalogued"
 IN_SCOPE_KINDS = frozenset({"text", "image", "speech", "transcription", "video", "decisions"})
@@ -113,15 +119,22 @@ def _seed_model(canonical_id: str, provider: str, name: str, forms: tuple[str, .
                      aliases=AliasSpec(surface=primary, variants=list(dict.fromkeys(variants))))
 
 
-def plan(conn, *, owned_keys: dict[str, set[str]] | None = None) -> SeatPlan:
+def plan(conn, *, owned_keys: dict[str, set[str]] | None = None,
+         tombstoned: frozenset[str] | None = None) -> SeatPlan:
     """What would be seated, and what is set aside and why. Reads only.
 
     `owned_keys` maps a normalised name key to the canonical ids already owning it: every live
     alias, plus every name the resolver derives from registry display names. Built from the
     database when not given.
+
+    `tombstoned` is the set of ids deleted on purpose, read from contract/tombstoned_models.yaml
+    when not given - through `load_tombstones`, which RAISES on a missing or malformed file
+    (rule 12): an unreadable list must never plan as an empty one.
     """
     if owned_keys is None:
         owned_keys = existing_keys(conn)
+    if tombstoned is None:
+        tombstoned = load_tombstones()
     out = SeatPlan()
     rows = conn.execute(CANDIDATES).fetchall()
     out.candidates = len(rows)
@@ -141,6 +154,10 @@ def plan(conn, *, owned_keys: dict[str, set[str]] | None = None) -> SeatPlan:
             # `~anthropic/claude-opus-latest`: a POINTER to whichever model is current,
             # 25 of them on 2026-11-10. A row for it would file claims under a moving name.
             out.set_aside[canonical_id] = "latest pointer: names whichever model is current"
+            continue
+        if canonical_id in tombstoned:
+            out.set_aside[canonical_id] = ("tombstoned: deleted on purpose "
+                                           "(contract/tombstoned_models.yaml)")
             continue
         if kind not in IN_SCOPE_KINDS:
             out.set_aside[canonical_id] = f"out of scope: kind {kind}"

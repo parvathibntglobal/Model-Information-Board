@@ -1,0 +1,9 @@
+{
+  "name": "mib-media",
+  "private": true,
+  "type": "module",
+  "description": "The content workspace's media generators: one per approved look. Run on a person's machine (needs Chromium); never on Railway or in CI.",
+  "dependencies": {
+    "playwright-core": "1.49.1"
+  }
+}
