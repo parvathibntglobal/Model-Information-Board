@@ -2413,9 +2413,7 @@ domains:
     - pet care
     - wedding planning
     - journaling
-    - mental health
     - relationship advice
-    - health questions
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -2425,34 +2423,28 @@ domains:
         - personalfinance
         - careerguidance
         search:
-        - mental health AI
         - journaling AI
         - job search AI
         - cover letters AI
       x:
         search:
-        - ("trip planning" OR "meal planning" OR "grocery lists" OR "workout plans" OR "diet tracking") (AI OR ChatGPT OR Claude OR LLM)
-        - ("personal budgeting" OR "personal finance" OR "debt payoff" OR "resume writing" OR "cover letters") (AI OR ChatGPT OR Claude OR LLM)
-        - ("job search" OR "interview prep" OR "self-learning" OR "parenting advice" OR "gift ideas") (AI OR ChatGPT OR Claude OR LLM)
-        - ("home organization" OR "home repairs" OR "DIY projects" OR "gardening tips" OR "pet care") (AI OR ChatGPT OR Claude OR LLM)
-        - ("wedding planning" OR "journaling" OR "mental health" OR "relationship advice" OR "health questions") (AI OR ChatGPT OR Claude OR LLM)
+        - ("trip planning" OR "meal planning" OR "grocery lists" OR "workout plans" OR "diet tracking" OR "personal budgeting") (AI OR ChatGPT OR Claude OR LLM)
+        - ("personal finance" OR "debt payoff" OR "resume writing" OR "cover letters" OR "job search" OR "interview prep") (AI OR ChatGPT OR Claude OR LLM)
+        - ("self-learning" OR "parenting advice" OR "gift ideas" OR "home organization" OR "home repairs" OR "DIY projects") (AI OR ChatGPT OR Claude OR LLM)
+        - ("gardening tips" OR "pet care" OR "wedding planning" OR "journaling" OR "relationship advice") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
-        - mental health llm
         - job search llm
       hackernews:
         search:
-        - AI mental health
         - AI job search
         - AI journaling
       devto:
         search:
-        - AI mental health
         - AI job search
         - AI journaling
       bluesky:
         search:
-        - AI mental health
         - AI journaling
         - AI job search
       feeds: []
