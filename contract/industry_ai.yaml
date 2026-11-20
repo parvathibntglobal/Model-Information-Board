@@ -1664,8 +1664,12 @@ domains:
         - model fine-tuning
         - LLM evaluation
         ambiguous_terms: {}
+        # "prompt engineering" is NOT excluded here (anooj, 2026-11-20): it is software and AI
+        # work, and one of this group's keywords (941 HN posts/comments with "AI" in the last
+        # 730 days; 10 of Reddit's top 25 for "prompt engineering AI", 2026-11-20). Excluding
+        # it deleted the keyword before matching, so it could never confirm a post. It stays
+        # excluded in `physical`, where it is noise.
         exclude_phrases:
-        - \bprompt engineering\b
         - \bcontext engineering\b
         queries:
           reddit:

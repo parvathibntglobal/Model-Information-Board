@@ -92,6 +92,21 @@ def test_every_x_query_in_the_contract_gets_its_clubbed_pages(cfg):
                 assert cfg.x_pages(q) == cfg.run["pages_per_query"]["x_clubbed"], q
 
 
+def test_no_term_is_deleted_by_its_own_exclusions(cfg):
+    """A domain or group term that its own `exclude_phrases` (or the global ones) remove can
+    never confirm a post: the exclusions run before the terms are matched. Found on #645:
+    `software_ai` excluded "prompt engineering" while listing it as a keyword."""
+    dead = []
+    for dk, d in cfg.domains.items():
+        blocks = [(dk, d.terms)] + [(f"{dk}/{gk}", g.terms) for gk, g in d.groups.items()]
+        for where, t in blocks:
+            patterns = list(t.exclude_phrases) + list(cfg.global_exclude)
+            for term in t.domain_terms:
+                if any(p.search(term) for p in patterns):
+                    dead.append(f"{where}: {term!r}")
+    assert not dead, "terms their own exclusions delete: " + "; ".join(dead)
+
+
 @pytest.mark.parametrize(
     "mutate, says",
     [
@@ -147,7 +162,10 @@ def test_a_pilot_is_a_use_case_pilot(cfg):
     assert r.content_type == "use_case" and r.stage_guess == "pilot" and r.domains == ["healthcare"]
 
 
-def test_prompt_engineering_is_not_engineering(cfg):
+def test_prompt_engineering_is_software_ai_not_physical(cfg):
+    # Changed 2026-11-20 (anooj, #645): prompt engineering is software and AI work, so it
+    # counts for engineering/software_ai. It must still never count for engineering/physical,
+    # which keeps the exclusion - the flood the plan's risk table was about.
     r = one(
         cfg,
         item(
@@ -155,7 +173,10 @@ def test_prompt_engineering_is_not_engineering(cfg):
             hints=("engineering",),
         ),
     )
-    assert r.verdict == "dropped" and r.reason == "no_domain_term"
+    assert r.verdict == "kept"
+    assert r.domains == ["engineering"]
+    assert "engineering/software_ai" in r.groups
+    assert "engineering/physical" not in r.groups
 
 
 def test_an_ai_file_is_not_an_ai_term(cfg):
