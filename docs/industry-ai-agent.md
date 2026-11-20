@@ -17,9 +17,13 @@ source):
   function`, roles that cut across industries), with about 536 two-word workflow
   keywords as their terms.
 - **Five are `active` for the first test run:** Marketing, Content & SEO; Design &
-  Creative; Security & IT; Retail & E-commerce; Leaders & Founders. They were chosen
-  as the umbrellas with the highest share of keywords showing strong AI evidence on
-  Reddit and Hacker News (#645).
+  Creative; Security & IT; Retail & E-commerce; Personal & Everyday Life. They were
+  chosen as the umbrellas with the highest share of keywords showing strong AI
+  evidence on Reddit and Hacker News (#645).
+  - **Recounted in #646:** a keyword that carries "AI" itself passes that evidence
+    test by construction, so those keywords are left out of the count.
+  - That took Leaders & Founders from 14/23 to 10/19 strong, so Personal & Everyday
+    Life (15/25) replaced it.
 - **The build's starter five** (Finance, Healthcare, Hospitality, Engineering,
   Governance) stay in the file, complete, with `active: false`. Each is one line to
   switch back on.
@@ -381,26 +385,38 @@ measurements.
 
 **From the #645 review** (the umbrellas' contract, read 2026-11-20; the team's to tune):
 
-6. **Terms that pass the AI test by themselves.** Leaders & Founders' "AI adoption",
-   "AI strategy", "AI transformation" and "AI implementation" contain "AI", so a post
-   naming one passes both sieve checks with one phrase, and general AI commentary
-   counts as Leaders & Founders. The same is true of `<keyword> AI` evidence for those
-   four, so up to 4 of the 14 "strong" keywords that helped choose Leaders & Founders
-   are strong by construction. The same shape is in Governance's AI-policy group.
-   Candidates for `ambiguous_terms` with a leaders context.
-7. **Terms that name the AI capability, not the work:** Design & Creative's "image
-   generation" and "image upscaling" mostly bring in model and tool news.
+6. **Terms that pass the AI test by themselves. Fixed in #646 for Leaders & Founders.**
+   - **The problem:** "AI adoption", "AI strategy", "AI transformation" and "AI
+     implementation" contain "AI", so a post naming one passed both sieve checks with
+     one phrase.
+   - **The fix:** they are now `ambiguous_terms`, counted only with a leaders word
+     nearby (founder, startup, CEO, CTO, our team, our company, board, leadership), and
+     no longer searched on their own.
+   - **The recount:** they were also strong by construction in the evidence test, so
+     the domain choice was recounted without them (§1).
+   - **A test now pins this:** no active domain has an AI term as a domain term.
+   - **Still open:** Governance's AI-policy group has the same shape. Fix it before
+     Governance is switched on.
+7. **Terms that name the AI capability, not the work. Fixed in #646.** Design &
+   Creative's "image generation" and "image upscaling" are now `ambiguous_terms`,
+   counted only with a design word nearby (designer, client, brand, studio, agency,
+   our team), and no longer searched on their own.
 8. **Broad phrases in the active five:** "blog posts", "landing pages", "LinkedIn
    posts", "product launches", "small business", "fundraising", "cost cutting",
    "pricing strategy", "product reviews".
-9. **The X AI group's bare `agent`** also matches travel, real-estate and support
-   agents. The sieve drops those, but they use up each query's pages.
+9. **The X AI group's bare `agent`: fixed in #646.** It also matched travel,
+   real-estate and support agents. The group is now `(AI OR ChatGPT OR Claude OR LLM)`
+   in all 93 X queries.
 10. **Governance's domain-level terms** (government, public sector, courts and others)
     sit in no group, so its group counts would be incomplete. Move them into its
     groups before Governance is switched on.
-11. **Quota.** The X cap is exactly 20 queries × 5 pages, so a new X query is capped
-    until the cap rises, and a weekly run spends up to 100 X and 40 Reddit requests
-    from the RapidAPI quota the model fetches share.
+11. **Quota.**
+    - **X:** since #646 the cap is 110, for the active five's 21 queries × 5 pages
+      (105 requests), so a new X query is capped until the cap rises.
+    - **Per run:** a weekly run spends up to 110 X and 40 Reddit requests from the
+      RapidAPI quota the model fetches share.
+    - **The first dry run** (2026-11-20, on #646's contract) used 105 X and 35 Reddit.
+      Its counts are on #646.
 
 ---
 
