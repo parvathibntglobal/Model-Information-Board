@@ -104,13 +104,17 @@ These are the rules a helpful refactor will otherwise quietly violate.
    when a person uses it (the draft is then marked AI-assisted), and posting
    is always a person's act, by hand: the workspace posts nowhere. It decides
    nothing the board computes. **Not checked:** faithfulness beyond numbers and
-   links; that is the person's job. Its calls are rows in the workspace's OWN
-   database (`cw_writer_run`), not `spend_ledger`, under
-   `writer.daily_budget_usd` in `judge/content_workspace/config/workspace.yaml`,
-   outside the extraction budget. **It is OFF** (`writer.api_enabled: false`,
-   anooj 2026-11-17): until the team picks its model, proposals are written in
-   Claude Code from exported material and come back through `ingest`, which
-   runs the same checks.
+   links; that is the person's job. Its calls are rows in `cw_writer_run`, a
+   table in the board's database since #640, under `writer.daily_budget_usd` in
+   `judge/content_workspace/config/workspace.yaml`, outside the extraction
+   budget. **It is OFF** (`writer.api_enabled: false`, anooj 2026-11-17): until
+   the team picks its model, proposals are written in Claude Code from exported
+   material and come back through `ingest`, which runs the same checks.
+   **Condition before `api_enabled` is set to true (Parvathi, #640 review,
+   2026-11-20):** each call must ALSO be written to `spend_ledger`. The writer
+   spends on the same OpenRouter key as the board, so its spend has to appear
+   in one place with the board's. `cw_writer_run` and its own daily budget
+   stay as they are.
 
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
@@ -242,6 +246,13 @@ These are the rules a helpful refactor will otherwise quietly violate.
 
 5. **Config in versioned YAML, not code.** Thresholds, weights, half-lives, the
    capability list, alias variants and filter rules all live in `contract/`.
+
+   **One deliberate exception (Parvathi, #640 review, 2026-11-20):**
+   `judge/content_workspace/config/workspace.yaml` stays outside `contract/`.
+   It holds settings that only the signed-in content workspace reads (platform
+   rules, looks, topic recipes, the writer's switch and budget), and nothing on
+   the board reads them. It is still versioned YAML with no defaults in code.
+   A setting the board would read does not belong there.
 
 6. **A missing value is never silently converted into a definite one.** Absent
    data stays absent through every layer that reads it. An unpublished
