@@ -1,0 +1,116 @@
+# The Industry AI agent, weekly (2026-11-20).
+#
+# scripts/run_industry_ai.py harvests data about AI in five industries with the
+# queries in contract/industry_ai.yaml, labels it with the code rules there and
+# stores it in `iai_item` / `iai_run` only. No language model is called. A
+# SEPARATE LANE: it reads and writes none of the model board's tables.
+#
+# SWITCHED OFF UNTIL THE TEAM TURNS IT ON. It runs only when the repository
+# variable INDUSTRY_AI_ENABLED is '1' - set after the first dry runs and the
+# sample check (plan §13). Unset, a scheduled run says so and does nothing.
+#
+# SPEND: Reddit and X are metered (RapidAPI) and share their monthly quota with
+# the model fetches. Every platform has a request cap per run in the contract
+# (`run.max_requests`), checked before each query. A hand start can run a dry
+# run (harvest and count, write nothing) or narrow the domains and platforms.
+#
+# Writes are to `iai_item` and `iai_run` only. judge/writeguard refuses a
+# remote write unless ENVIRONMENT=staging, which is why it is set here.
+
+name: Industry AI harvest
+
+on:
+  schedule:
+    - cron: "0 9 * * 3"          # Wednesdays 09:00 UTC, clear of the Monday sweep
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Harvest and count only; write nothing"
+        type: boolean
+        default: true
+      domains:
+        description: "Space-separated domains (empty = all), e.g. finance healthcare"
+        required: false
+        default: ""
+      platforms:
+        description: "Space-separated platforms (empty = all), e.g. hackernews devto"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  issues: write      # the run's counts go to INDUSTRY_AI_ISSUE
+
+concurrency:
+  group: industry-ai-harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      USER_AGENT: ${{ vars.USER_AGENT }}
+      RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+      X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
+      REDDIT_PROVIDER: ${{ vars.REDDIT_PROVIDER }}
+      SCRAPER_PROVIDER: ${{ vars.SCRAPER_PROVIDER }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+      INDUSTRY_AI_ENABLED: ${{ vars.INDUSTRY_AI_ENABLED }}
+      INDUSTRY_AI_ISSUE: ${{ vars.INDUSTRY_AI_ISSUE }}
+      RAW_STORE_PATH: raw_store
+      # THE SHARED RAW STORE: every payload this run stores is readable by every
+      # other machine. Without it the posts' text stays on this runner.
+      RAW_STORE_REMOTE: postgres
+      DRY_RUN: ${{ inputs.dry_run }}
+      DOMAINS: ${{ inputs.domains }}
+      PLATFORMS: ${{ inputs.platforms }}
+    steps:
+      - name: Is the Industry AI agent switched on, and configured?
+        id: gate
+        run: |
+          if [ "$INDUSTRY_AI_ENABLED" != "1" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "::notice::INDUSTRY_AI_ENABLED is not 1 - nothing harvested. This is the switch, not a failure."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=""
+          [ -n "$DATABASE_URL" ] || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$USER_AGENT" ]   || missing="$missing USER_AGENT"
+          if [ "$DRY_RUN" != "true" ]; then
+            [ -n "$INDUSTRY_AI_ISSUE" ] || missing="$missing INDUSTRY_AI_ISSUE"
+          fi
+          if [ -n "$missing" ]; then
+            echo "::error::Industry AI agent not configured:$missing"
+            exit 1
+          fi
+          [ -n "$RAPIDAPI_KEY" ]   || echo "::warning::RAPIDAPI_KEY not set - Reddit is skipped this run"
+          [ -n "$X_RAPIDAPI_KEY" ] || echo "::warning::X_RAPIDAPI_KEY not set - X is skipped this run"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v5
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - if: steps.gate.outputs.enabled == 'true'
+        run: pip install -e .
+
+      - name: Harvest, label and store
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          args=""
+          [ -n "$DOMAINS" ]   && args="$args --domains $DOMAINS"
+          [ -n "$PLATFORMS" ] && args="$args --platforms $PLATFORMS"
+          if [ "$DRY_RUN" = "true" ]; then
+            python scripts/run_industry_ai.py --dry-run $args
+          else
+            python scripts/run_industry_ai.py --post-summary $args
+          fi

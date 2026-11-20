@@ -1,0 +1,361 @@
+# THE INDUSTRY AI AGENT (2026-11-20): data about AI in five industries.
+#
+# A SEPARATE LANE from the model board. scripts/run_industry_ai.py harvests
+# with the queries below, keeps what passes the code rules below, and labels
+# each kept item with its domain(s) and a content type. No language model is
+# called anywhere in this lane. The signed-in "AI in industries" page
+# (/ai-in-industries) shows the counts; it never shows post text.
+#
+# EVERYTHING THE TEAM TUNES IS IN THIS FILE: queries, feeds, terms, excluded
+# phrases and patterns. Change them here, never in code. After a change,
+# `python scripts/run_industry_ai.py --relabel` re-applies the rules to every
+# stored item without a single request. This file is under contract/, so a
+# change is a PR with a second reviewer.
+#
+# HOW MATCHING WORKS (collect/industry_ai/rules.py):
+#   * a TERM (ai_terms, domain_terms, context words) is a plain phrase, matched
+#     case-insensitively as whole words; a space, hyphen or underscore inside it
+#     matches any of the three ("credit-card" = "credit card");
+#   * a PATTERN (*_patterns, exclude_phrases) is a Python regular expression,
+#     matched case-insensitively. Write \b for a word boundary and \d for a digit.
+#   * only an item's TITLE and BODY are read - never its comments.
+
+version: 1
+
+# Bump when the rules change meaning, so stored labels say which rules made them.
+pipeline_version: iai-1
+
+run:
+  # false stops the scheduled run without deleting anything.
+  enabled: true
+  cadence: weekly
+  # Items posted earlier than this many days ago are not kept (first harvest:
+  # how far back to look).
+  window_days: 365
+  # REQUEST CAPS PER PLATFORM PER RUN. Reddit and X are metered (RapidAPI) and
+  # share their monthly quota with the model fetch - keep these small. A query
+  # that would pass its platform's cap is not run, and the run log says so.
+  max_requests:
+    reddit: 20
+    x: 10
+    github: 10
+    hackernews: 25
+    devto: 25
+    bluesky: 25
+    feeds: 30
+  # Search result pages per query.
+  pages_per_query:
+    reddit: 1
+    x: 1
+  # Below this many characters of title + body (links removed), an item is too
+  # short to say anything and is dropped as `too_short`.
+  min_text_chars: 40
+  # How close a context word must be to an ambiguous domain term, in words.
+  context_window_words: 12
+  # Engagement at or below this is flagged `low_engagement` (a flag, never a drop).
+  low_engagement_max: 0
+
+# Appended to every query on these platforms, where the platform supports it.
+query_suffix:
+  x: "lang:en -is:retweet -hiring -giveaway"
+
+# AI TERMS. An item must name at least one (title or body). Registry model
+# names are added at run time, read-only.
+ai_terms:
+  - artificial intelligence
+  - machine learning
+  - deep learning
+  - generative AI
+  - gen AI
+  - genai
+  - LLM
+  - LLMs
+  - large language model
+  - language model
+  - ChatGPT
+  - GPT
+  - Claude
+  - Gemini
+  - Copilot
+  - Llama
+  - Mistral
+  - DeepSeek
+  - Perplexity
+  - AI agent
+  - AI agents
+  - agentic
+  - AI assistant
+  - AI model
+  - AI tool
+  - AI tools
+  - AI-powered
+  - neural network
+  - computer vision
+  - NLP
+  - RAG
+  - chatbot
+
+# THE BARE WORD "AI" counts as an AI term when written in capitals, as a whole
+# word: "AI fraud detection" counts; "ai" in lower case, and ".ai" (a file type
+# or a web domain, removed below), do not.
+
+# REMOVED FROM THE TEXT BEFORE ANY TERM IS MATCHED, in every domain.
+global_exclude_phrases:
+  - '\.ai\b'                       # Adobe Illustrator files, .ai domains
+  - '\bai file'
+  - '\bartificial insemination\b'
+  - '\bA\.I\. Artist\b'
+
+# DROPPED: spam, scams and engagement bait.
+spam_patterns:
+  - '\bAI trading bot'
+  - '\b\d{3,}\s?% (returns?|profit|gains?)'
+  - '\bsignals? group\b'
+  - '\bguaranteed (profit|returns?|income)\b'
+  - '\b(pump|moon(ing)?|100x)\b.*\b(crypto|token|coin)\b'
+  - '\blike (and|&) (retweet|rt|share)\b'
+  - '\bcomment ["''“]?AI["''”]? (and|&) I.?ll (dm|send)'
+  - '\bgiveaway\b'
+  - '\bfollow (me )?for more\b'
+
+# DROPPED: a course, webinar or event post that is mainly a sign-up ad...
+ad_patterns:
+  - '\bregister (now|today|here)\b'
+  - '\benrol+ (now|today)\b'
+  - '\blimited (seats|spots)\b'
+  - '\blink in (my )?bio\b'
+  - '\bsign up (now|today|free)\b'
+  - '\b(use|with) (code|coupon)\b'
+  - '\b\d{1,2}\s?% off\b'
+# ...UNLESS it also teaches something: then it is kept, as `how_to`.
+teach_patterns:
+  - '\bhow to\b'
+  - '\bstep[- ]by[- ]step\b'
+  - '\bhere(’|'')?s how\b'
+  - '\bguide\b'
+  - '\btutorial\b'
+  - '\bexample\b'
+  - '\blesson\b'
+
+# DROPPED: hiring and job posts.
+hiring_patterns:
+  - '\bwe(’|'')?re hiring\b'
+  - '\bnow hiring\b'
+  - '\bjob (opening|opportunity|posting)\b'
+  - '\bapply (now|here|today)\b'
+  - '\bopen (role|position)s?\b'
+  - '\b(linkedin\.com/jobs|greenhouse\.io|lever\.co|workable\.com)\b'
+
+# DROPPED: sponsored, affiliate or discount content.
+promo_patterns:
+  - '#(ad|sponsored|partner)\b'
+  - '\b(sponsored|paid partnership|in partnership with)\b'
+  - '[?&](ref|aff|affiliate|via)=\w+'
+  - '\bpromo code\b'
+  - '\bdiscount code\b'
+
+# CONTENT TYPE: the first type in `type_order` with a matching pattern wins.
+# An item that matches none is `discussion`.
+type_order: [use_case, how_to, tool_or_product, research, news, discussion]
+type_patterns:
+  use_case:
+    - '\bwe (deployed|rolled out|implemented|integrated|launched|use|are using|started using|switched to)\b'
+    - '\b(in|into) production\b'
+    - '\bpilot(ed|ing)?\b'
+    - '\bour (team|firm|practice|clinic|hospital|hotel|bank|company|department|agency) (uses|is using|started using|has been using|now uses)\b'
+    - '\bI (used|use|tried|have been using|started using) (\w+ ){0,3}(to|for)\b'
+    - '\bsince (january|february|march|april|may|june|july|august|september|october|november|december)\b'
+    - '\bautomated (our|the)\b'
+    - '\b(cut|reduced|saved|lowered) (\w+ ){0,3}by \d'
+    - '\bcase study\b'
+  how_to:
+    - '\b\d+ (helpful |useful |best |great )?(prompts|tips|ways|tricks)\b'
+    - '\bhow to\b'
+    - '\bguide\b'
+    - '\btutorial\b'
+    - '\bstep[- ]by[- ]step\b'
+    - '\bcheat ?sheet\b'
+    - '\bprompts? for\b'
+    - '\bcourse\b'
+  tool_or_product:
+    - '\b(launched|introducing|announcing|meet)\b'
+    - '\bopen[- ]source\b'
+    - '\bgithub\.com/'
+    - '\bour (new )?(tool|product|platform|app)\b'
+    - '\bI built\b'
+    - '\bshow hn\b'
+  research:
+    - '\barxiv\.org/'
+    - '\bdoi\.org/'
+    - '\b(study|paper|preprint|survey|meta-analysis)\b'
+  news:
+    - '\b(announces?|announced|unveils?|will roll out|plans to|is set to)\b'
+    - '\breport(s|ed)? that\b'
+  discussion:
+    - '\?\s*$'
+    - '\bwhat do you think\b'
+    - '\bwill AI\b'
+
+# A use case's stage, from the first pattern that matches.
+stage_patterns:
+  pilot:
+    - '\bpilot(ed|ing)?\b'
+    - '\btrial(led|ing)?\b'
+  deployed:
+    - '\b(in|into) production\b'
+    - '\b(deployed|rolled out|implemented|went live)\b'
+    - '\bwe (use|are using)\b'
+  first_hand:
+    - '\bI (used|use|tried|have been using|started using)\b'
+
+# THE FIVE DOMAINS. For each:
+#   definition       what is in scope (the page shows it)
+#   domain_terms     at least one must appear, outside the excluded phrases
+#   ambiguous_terms  a term with other meanings counts only with one of its
+#                    context words within `run.context_window_words`
+#   exclude_phrases  removed before domain terms are matched
+#   queries          per platform; a query's domain is a HINT, confirmed by terms
+#   feeds            feed ids from contract/sources.yaml `feeds:` (each has a
+#                    terms ruling there; add new feeds there first)
+domains:
+  finance:
+    name: Finance
+    definition: AI used in banking, accounting, insurance, lending, payments, trading and corporate finance.
+    domain_terms: [accounting, accountant, accountants, bookkeeping, audit, auditor, auditing, tax, invoice, invoicing, payroll, fintech, banking, lending, loan, loans, underwriting, mortgage, insurance, insurer, actuarial, fraud detection, anti-money laundering, AML, KYC, payments, wealth management, financial advisor, asset management, CFO, finance team, financial services, credit risk, reconciliation]
+    ambiguous_terms:
+      bank: [loan, account, customer, lending, deposit, credit, branch, banking, mortgage]
+      claims: [insurance, insurer, policyholder, adjuster, underwriting]
+      trading: [stock, equity, market, broker, portfolio, hedge fund, desk]
+      finance: [team, department, company, firm, corporate, CFO]
+    exclude_phrases: ['\bdecentrali[sz]ed finance\b', '\bmemecoin']
+    queries:
+      reddit:
+        subreddits: [Accounting, FinancialCareers, fintech]
+        search: ["AI accounting firm", "AI underwriting bank", "AI fraud detection bank"]
+      x:
+        search: ['"AI" accounting firm', '"AI" bank underwriting']
+      github:
+        search: ["fintech llm", "accounting automation llm"]
+      hackernews:
+        search: ["AI accounting", "AI banking", "LLM insurance"]
+      devto:
+        search: ["AI fintech", "LLM accounting"]
+      bluesky:
+        search: ["AI accounting", "AI banking"]
+      feeds: []
+
+  healthcare:
+    name: Healthcare
+    definition: AI used in clinical care, hospitals, diagnostics, medical records, pharma and health administration.
+    domain_terms: [healthcare, health care, hospital, hospitals, clinic, clinical, clinician, clinicians, physician, physicians, doctor, doctors, nurse, nurses, nursing, radiology, radiologist, pathology, diagnosis, diagnostic, EHR, EMR, electronic health record, medical, medicine, pharma, pharmaceutical, drug discovery, telehealth, ambient scribe, medical coding, prior authorization]
+    ambiguous_terms:
+      patient: [hospital, clinic, care, doctor, nurse, medical, treatment]
+      patients: [hospital, clinic, care, doctor, nurse, medical, treatment]
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits: [medicine, nursing, healthIT]
+        search: ["AI scribe clinic", "AI radiology hospital"]
+      x:
+        search: ['"AI" hospital deployed', '"AI" clinicians pilot']
+      github:
+        search: ["clinical llm", "ehr llm"]
+      hackernews:
+        search: ["AI hospital", "AI clinicians", "LLM medical"]
+      devto:
+        search: ["AI healthcare", "LLM medical"]
+      bluesky:
+        search: ["AI hospital", "AI clinicians"]
+      feeds: []
+
+  hospitality:
+    name: Hospitality
+    definition: AI used in hotels, restaurants, travel, tourism, events and guest services.
+    domain_terms: [hospitality, hotel, hotels, hotelier, hoteliers, resort, restaurant, restaurants, guest experience, front desk, concierge, booking, bookings, reservation, reservations, travel agency, tourism, airline, airlines, food service, catering, revenue management]
+    ambiguous_terms:
+      guests: [hotel, stay, room, restaurant, check-in, booking]
+      menu: [restaurant, chef, kitchen, diners, dishes]
+    exclude_phrases: ['\bguest post\b', '\bmenu bar\b']
+    queries:
+      reddit:
+        subreddits: [hospitality, TalesFromTheFrontDesk, restaurateur]
+        search: ["AI hotel guests", "AI restaurant orders"]
+      x:
+        search: ['"AI" hotel guests', '"AI" restaurant']
+      github:
+        search: ["hotel booking llm", "restaurant ai assistant"]
+      hackernews:
+        search: ["AI hotel", "AI restaurant", "AI travel booking"]
+      devto:
+        search: ["AI hospitality", "AI restaurant"]
+      bluesky:
+        search: ["AI hotel", "AI restaurant"]
+      feeds: []
+
+  engineering:
+    name: Engineering
+    definition: AI used in civil, mechanical, electrical, chemical and manufacturing engineering, construction and industrial operations. Not "prompt engineering" or general software development.
+    domain_terms: [civil engineering, mechanical engineering, electrical engineering, chemical engineering, structural engineering, manufacturing, factory, factories, plant floor, predictive maintenance, CAD, BIM, construction, construction site, simulation, finite element, FEA, CFD, PLC, SCADA, digital twin, quality inspection, supply chain, engineers]
+    ambiguous_terms:
+      engineering: [civil, mechanical, electrical, chemical, structural, plant, factory, construction, manufacturing, design, firm]
+      maintenance: [predictive, equipment, machine, plant, asset, factory]
+      inspection: [quality, visual, defect, weld, bridge, site]
+    exclude_phrases:
+      - '\bprompt engineering\b'
+      - '\bcontext engineering\b'
+      - '\bsocial engineering\b'
+      - '\breverse engineering\b'
+      - '\bsoftware engineering\b'
+      - '\bsoftware engineers?\b'
+      - '\bfeature engineering\b'
+      - '\bdata engineering\b'
+      - '\bML engineers?\b'
+      - '\bAI engineers?\b'
+    queries:
+      reddit:
+        subreddits: [civilengineering, MechanicalEngineering, manufacturing]
+        search: ["AI predictive maintenance plant", "AI construction site"]
+      x:
+        search: ['"AI" predictive maintenance factory', '"AI" construction engineering']
+      github:
+        search: ["predictive maintenance llm", "cad llm"]
+      hackernews:
+        search: ["AI manufacturing", "AI civil engineering", "AI construction"]
+      devto:
+        search: ["AI manufacturing", "AI industrial"]
+      bluesky:
+        search: ["AI manufacturing", "AI construction"]
+      feeds: []
+
+  governance:
+    name: Governance
+    # SCOPE IS THE TEAM'S CALL (plan §11): public-sector use of AI only, for now.
+    # To include AI-governance practice, remove the 'AI governance' exclusion
+    # below and add its terms.
+    definition: AI used by governments and the public sector - public services, agencies, courts, councils, policing and public administration. AI-governance practice is not in scope yet.
+    domain_terms: [government, governments, public sector, public service, public services, agency, agencies, council, councils, municipality, city hall, federal, ministry, civil service, civil servants, courts, judiciary, legislature, parliament, public administration, procurement, policing, police department, benefits claims, tax authority, e-government, govtech]
+    ambiguous_terms:
+      state: [agency, department, government, legislature, governor]
+      city: [council, government, services, residents, mayor]
+    exclude_phrases:
+      - '\bAI governance\b'
+      - '\bdata governance\b'
+      - '\bcorporate governance\b'
+      - '\bmodel governance\b'
+      - '\bstate of the art\b'
+      - '\bstate[- ]of[- ]the[- ]art\b'
+    queries:
+      reddit:
+        subreddits: [govtech, publicadministration, localgovernment]
+        search: ["AI government agency", "AI council services"]
+      x:
+        search: ['"AI" government agency pilot', '"AI" public services']
+      github:
+        search: ["government llm", "public sector ai"]
+      hackernews:
+        search: ["AI government", "AI public sector", "AI agency"]
+      devto:
+        search: ["AI government", "AI public sector"]
+      bluesky:
+        search: ["AI government", "AI public sector"]
+      feeds: []

@@ -3683,6 +3683,19 @@ def news_page(days: int | None = None) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/industry-ai")
+def industry_ai_page() -> dict:
+    """The "AI in industries" page: how much data the Industry AI agent holds per
+    domain - kept items by content type, platform and month, distinct authors,
+    reach, and what was filtered out and why. COUNTS ONLY: no post text, link or
+    author leaves this route. Signed-in only (not a public read: judge/gate.py).
+    See judge/industry_ai/view.py and contract/industry_ai.yaml."""
+    from judge.industry_ai.view import industry_ai_view
+
+    with _conn() as conn:
+        return industry_ai_view(conn)
+
+
 @app.get("/news/{item_id}")
 def news_story(item_id: str) -> dict:
     """One story's page: what its source gave (title, summary, picture), the

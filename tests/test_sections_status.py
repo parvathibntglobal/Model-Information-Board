@@ -76,7 +76,7 @@ def test_schedules_reads_each_workflows_own_runs_and_switch(monkeypatch):
     monkeypatch.setattr(sections_status, "_bench_runs", lambda limit: {"runs": []})
     out = sections_status.schedules(MONDAY)
     by = {f["key"]: f for f in out["feeds"]}
-    assert asked == ["benchmarks.yml", "registry-poll.yml"]
+    assert asked == ["benchmarks.yml", "registry-poll.yml", "industry-ai-harvest.yml"]
     assert by["benchmarks"]["switch"]["v"] == "BENCHMARKS_SCHEDULE_ENABLED"
     # The registry poll has no switch, and none is invented for it.
     assert "switch" not in by["registry-poll"]

@@ -81,6 +81,7 @@ const BlogLogs = page(() => import('./routes/BlogLogs'))
 const Keywords = page(() => import('./routes/Keywords'))
 const PriceChanges = page(() => import('./routes/PriceChanges'))
 const News = page(() => import('./routes/News'))
+const IndustryAI = page(() => import('./routes/IndustryAI'))
 const NewsStory = page(() => import('./routes/NewsStory'))
 const Updates = page(() => import('./routes/Updates'))
 const AiUpdates = page(() => import('./routes/AiUpdates'))
@@ -209,6 +210,7 @@ export default function App() {
           <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />
           <Route path="/price-changes" element={<Require session={session}><PriceChanges /></Require>} />
           <Route path="/news" element={<Require session={session}><News /></Require>} />
+          <Route path="/ai-in-industries" element={<Require session={session}><IndustryAI /></Require>} />
           <Route path="/news/:id" element={<Require session={session}><NewsStory /></Require>} />
           <Route path="/updates" element={<Require session={session}><Updates /></Require>} />
           {/* Public: the updates a person approved on /updates (2026-10-30). */}

@@ -50,6 +50,13 @@ FEEDS: tuple[dict[str, Any], ...] = (
         "variable": None,
         "feeds": "AI updates: new models and price changes",
     },
+    {
+        # The Industry AI agent (2026-11-20): its own weekly run and switch.
+        "key": "industry-ai",
+        "file": "industry-ai-harvest.yml",
+        "variable": "INDUSTRY_AI_ENABLED",
+        "feeds": "AI in industries: data about AI in five industries",
+    },
 )
 
 _DAYS = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")

@@ -1656,6 +1656,223 @@ columns:
       state: read
       why: every retrieval rate must be quoted with its truncation share beside it; the column already
         holds result-ceiling on 126 of 1,019 runs
+  iai_item:
+    author_id:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py; read by store.load_items (repeat-poster dedupe) and by judge/industry_ai/view.py (distinct authors per domain). Never shown.
+    body:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    canonical_of:
+      reviewed: true
+      state: write_only
+      why: >-
+        The item this one duplicates (stage 3 dedupe), written by store.write_labels. Intended reader: an Admin drill-down of duplicates for the team's tuning; none yet.
+    canonical_url:
+      reviewed: true
+      state: write_only
+      why: >-
+        The normalised article link used for cross-platform dedupe, written by store.write_labels. Intended reader: the same Admin drill-down; none yet.
+    content_type:
+      reviewed: true
+      state: read_not_by_query
+      why: >-
+        Written by store.write_labels; read by judge/industry_ai/view.py _count_by(conn, 'content_type'), whose column name is an argument the audit cannot see.
+    created_at:
+      reviewed: true
+      state: read
+      why: >-
+        When the item was posted (NULL when the platform does not say, rule 6). Read by store.load_items (window) and judge/industry_ai/view.py (by month, undated count).
+    discovery_ref:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    domain_hints:
+      reviewed: true
+      state: read
+      why: >-
+        The domains whose queries found the item. Read by store.load_items (label confirms them) and judge/industry_ai/view.py (found per domain).
+    domains:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py; read by judge/industry_ai/view.py for the AI in industries page (kept items per confirmed domain; empty means domain unconfirmed).
+    drop_reason:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py; read by judge/industry_ai/view.py for the AI in industries page (filtered out, by reason).
+    drop_stage:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py; read by judge/industry_ai/view.py for the AI in industries page (filtered out, by stage).
+    engagement:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    external_id:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    first_run_id:
+      reviewed: true
+      state: write_only
+      why: >-
+        The run that first stored the item, written by store.upsert_items. Intended reader: the run log's per-run new-item list; none yet.
+    first_seen_at:
+      reviewed: true
+      state: defaulted
+      why: >-
+        DEFAULT now() on insert; when the agent first stored the item. No reader yet: the page dates items by when they were posted, not stored.
+    flags:
+      reviewed: true
+      state: write_only
+      why: >-
+        low_engagement, link_share, repeat_author and also_matches:<domain> flags, written by store.write_labels for the team's sample check (plan §7). Intended reader: an Admin drill-down; none yet.
+    id:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    labelled_at:
+      reviewed: true
+      state: write_only
+      why: >-
+        When the rules last labelled the row, written by store.write_labels. No reader yet; pipeline_version says which rules.
+    lang:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    last_seen_at:
+      reviewed: true
+      state: read
+      why: >-
+        Refreshed when a later run finds the item again (store.upsert_items, ON CONFLICT ... last_seen_at = now()).
+    link:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    matched_pattern:
+      reviewed: true
+      state: write_only
+      why: >-
+        The contract pattern that decided the content type, written by store.write_labels for the team's sample check (plan §7). Intended reader: an Admin drill-down; none yet.
+    pipeline_version:
+      reviewed: true
+      state: read
+      why: >-
+        contract/industry_ai.yaml pipeline_version that labelled the row; written by store.write_labels.
+    platform:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py; read by judge/industry_ai/view.py for the AI in industries page (kept items per platform).
+    query_keys:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    share_count:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py; read by judge/industry_ai/view.py for the AI in industries page (reach: copies and shares deduped onto an item).
+    stage_guess:
+      reviewed: true
+      state: read_not_by_query
+      why: >-
+        Written by store.write_labels; read by judge/industry_ai/view.py _count_by(conn, 'stage_guess'), whose column name is an argument the audit cannot see.
+    title:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    url:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    verdict:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py; read by judge/industry_ai/view.py for the AI in industries page (kept or dropped).
+  iai_run:
+    counts:
+      reviewed: true
+      state: write_only
+      why: >-
+        The run's counts by stage, domain, type and platform, as printed in the run log and posted to INDUSTRY_AI_ISSUE. Kept for history; the page computes live counts from iai_item.
+    detail:
+      reviewed: true
+      state: write_only
+      why: >-
+        A run's one-line outcome or error. Intended reader: an Admin run list; none yet.
+    domains:
+      reviewed: true
+      state: write_only
+      why: >-
+        The domains a run covered. Intended reader: an Admin run list; none yet.
+    finished_at:
+      reviewed: true
+      state: read
+      why: >-
+        Read by judge/industry_ai/view.py (the last run's date).
+    id:
+      reviewed: true
+      state: read
+      why: >-
+        Written by collect/industry_ai/store.py start_run; read by judge/industry_ai/view.py (the last run).
+    mode:
+      reviewed: true
+      state: read
+      why: >-
+        harvest or relabel; read by judge/industry_ai/view.py (the last run).
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: >-
+        The rules version a run labelled with. Intended reader: an Admin run list; none yet.
+    platforms:
+      reviewed: true
+      state: write_only
+      why: >-
+        The platforms a run covered. Intended reader: an Admin run list; none yet.
+    queries:
+      reviewed: true
+      state: write_only
+      why: >-
+        Per-query yield (requests, items, status) for the prune? review; printed in the run log. Intended reader: an Admin query-yield view; none yet.
+    quota:
+      reviewed: true
+      state: write_only
+      why: >-
+        RapidAPI quota as read from response headers during the run. Intended reader: an Admin run list; none yet.
+    requests:
+      reviewed: true
+      state: read
+      why: >-
+        Requests per platform; read by judge/industry_ai/view.py (the last run).
+    started_at:
+      reviewed: true
+      state: read
+      why: >-
+        Read by judge/industry_ai/view.py (the last run, and its order).
+    status:
+      reviewed: true
+      state: read
+      why: >-
+        running, ok or error; read by judge/industry_ai/view.py (the last run).
   job_run:
     detail:
       reviewed: false
