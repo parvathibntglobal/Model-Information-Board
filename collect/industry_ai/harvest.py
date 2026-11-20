@@ -314,11 +314,11 @@ def harvest(
                 )
                 continue
             try:
-                got = runner.run(q)
-                # (items, used, detail[, failure]): a runner may report what its
-                # adapter recorded as failed (see `failure_of`).
-                items, used, detail = got[:3]
-                failure = got[3] if len(got) > 3 else None
+                # (items, used, detail, failure): every runner reports what its
+                # adapter recorded as failed (see `failure_of`). Unpacked strictly,
+                # so a runner that leaves `failure` out raises and its query is
+                # marked `error`, never read as "nothing failed" (rule 12; #648).
+                items, used, detail, failure = runner.run(q)
             except Exception as e:  # noqa: BLE001 - one failed query must not stop the platform
                 stat.status, stat.detail = "error", f"{type(e).__name__}: {str(e)[:160]}"
                 budget.spend(platform, cost)
@@ -372,9 +372,13 @@ def failure_of(run) -> str | None:
     `rate_limited`, `empty_response`) and hands back what it has, so an empty
     result can mean "nothing found" or "not answered". Only the record tells
     them apart (rule 4).
+
+    `http_errors` is read directly: every adapter's run record has it, and a
+    record without it raises rather than reading as "nothing failed" (rule 12).
+    The other fields are per platform and read when present.
     """
     parts = []
-    n = int(getattr(run, "http_errors", 0) or 0)
+    n = int(run.http_errors or 0)
     if n:
         kinds = sorted({str(f) for f in (getattr(run, "failures", None) or [])})
         parts.append(f"{n} request(s) failed" + (f" ({', '.join(kinds)})" if kinds else ""))
