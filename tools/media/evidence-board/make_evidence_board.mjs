@@ -148,12 +148,12 @@ const p1 = `<section>
 const card = (c, i) => `<div class="card" style="--r:${[-1.4, 1.1, 0.8, -1.0, -0.6, 1.3][i]}deg; --tack:${c.side === 'for' ? C.forPin : C.againstPin}; padding: 44px 32px 24px;">
   <span class="stamp" style="color:${c.side === 'for' ? C.forInk : C.againstInk}; --s:${i % 2 ? 2 : -2}deg; font-size: 18px;">${c.side === 'for' ? 'FOR' : 'AGAINST'} · ${esc(c.what.toUpperCase())}</span>
   <p class="typed" style="margin-top: 16px; font-size: 20px; line-height: 1.42;">${esc(c.text)}</p>
-  <p class="src">${esc(c.source)} · ${fmt(c.date, true)} · restated by the board</p></div>`
+  <p class="src" style="white-space: normal;">${esc(c.source)} · ${fmt(c.date, true)} · restated by the board</p></div>`
 
 const p2 = `<section>
   <p class="kicker">${WORDS[CARDS.length]} of the reports, as filed</p>
   <h2 style="margin-top: 18px;">${esc(S.cards_head)}</h2>
-  <div style="margin-top: 42px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 34px; row-gap: 28px;">
+  <div style="margin-top: 42px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 34px; row-gap: 28px;">
     ${CARDS.map(card).join('')}
   </div>
   ${footer(2)}
