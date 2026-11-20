@@ -251,8 +251,8 @@ These are the rules a helpful refactor will otherwise quietly violate.
    `judge/content_workspace/config/workspace.yaml` stays outside `contract/`.
    It holds settings that only the signed-in content workspace reads (platform
    rules, looks, topic recipes, the writer's switch and budget), and nothing on
-   the board reads them. It is still versioned YAML with no defaults in code.
-   A setting the board would read does not belong there.
+   the board reads them. It is still versioned YAML. A setting the board would
+   read does not belong there.
 
 6. **A missing value is never silently converted into a definite one.** Absent
    data stays absent through every layer that reads it. An unpublished
