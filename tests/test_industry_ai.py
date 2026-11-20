@@ -70,14 +70,31 @@ def test_the_real_contract_loads_with_the_umbrellas_and_five_active(cfg):
     # The 20 persona umbrellas (anooj, 2026-11-20); Parvathi's first five are among them.
     assert {"finance", "healthcare", "hospitality", "engineering", "governance"} <= set(cfg.domains)
     assert len(cfg.domains) == 20
+    # Recounted 2026-11-20 (#645 review, point 1): personal replaced leaders_founders.
     assert set(cfg.active_domains) == {
         "marketing",
         "design_creative",
         "security_it",
         "retail",
-        "leaders_founders",
+        "personal",
     }
     assert cfg.type_order[-1] == "discussion"
+
+
+def test_no_active_domain_term_is_an_ai_term_by_itself(cfg):
+    """A domain term that names an AI term ("AI adoption") passes the AI test and the domain
+    test with one phrase, so general AI talk is filed under that domain (#645 review, point 1).
+    In an ACTIVE domain such a phrase belongs in `ambiguous_terms`, with a context. Inactive
+    domains (governance's ai_policy group) are fixed before they are switched on."""
+    from collect.industry_ai.rules import ai_terms_found
+
+    found = []
+    for dk in cfg.active_domains:
+        d = cfg.domains[dk]
+        blocks = [(dk, d.terms)] + [(f"{dk}/{gk}", g.terms) for gk, g in d.groups.items()]
+        for where, t in blocks:
+            found += [f"{where}: {term!r}" for term in t.domain_terms if ai_terms_found(term, cfg)]
+    assert not found, "AI-term domain terms in active domains: " + "; ".join(found)
 
 
 def test_every_x_query_in_the_contract_gets_its_clubbed_pages(cfg):

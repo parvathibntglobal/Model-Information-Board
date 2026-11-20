@@ -41,7 +41,7 @@ run:
     # Sized for the five active domains (2026-11-20): ~20 grouped X queries x 5 pages,
     # and per domain ~3 subreddit listings + 4 searches on Reddit.
     reddit: 40
-    x: 100
+    x: 110
     github: 10
     hackernews: 25
     devto: 25
@@ -251,7 +251,11 @@ stage_patterns:
 #     keywords showing strong AI evidence (Reddit top-25 for "<keyword> AI", phrase + an AI
 #     term counted in code; or 25+ HN posts/comments with the phrase and "AI", last 730 days;
 #     both checks 2026-11-20): marketing 20/23, design_creative 18/23, security_it 16/24,
-#     retail 15/23, leaders_founders 14/23. The rest are complete and switched off.
+#     retail 15/23, personal 15/25. RECOUNTED 2026-11-20 (#645 review, point 1): a keyword
+#     carrying "AI" itself passes that test by construction, so those are left out of the
+#     count - leaders_founders fell from 14/23 to 10/19 and personal took its place. The
+#     rest are complete and switched off. The X AI group no longer has the bare word
+#     `agent` (travel, real-estate and support agents; #645 review, point 4).
 #   * domain_terms: our two-word workflow keywords (one keyword, one umbrella). Parvathi's five
 #     domains (finance, healthcare, hospitality, engineering, governance) keep their own terms,
 #     ambiguous terms, exclusions and queries; ours are added after hers.
@@ -381,16 +385,11 @@ domains:
         search:
         - '"AI" accounting firm'
         - '"AI" bank underwriting'
-        - ("invoice reconciliation" OR "bank reconciliation" OR "month-end close" OR "accounts payable"
-          OR "accounts receivable") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("expense categorization" OR "financial forecasting" OR "variance analysis" OR "tax preparation"
-          OR "tax returns") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("audit automation" OR "receipt scanning" OR "financial statements" OR "cash flow" OR "transaction
-          categorization") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("payroll processing" OR "loan underwriting" OR "credit scoring" OR "fraud detection" OR "claims
-          processing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("KYC checks" OR "portfolio analysis" OR "earnings analysis" OR "financial modeling" OR "revenue
-          recognition") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("invoice reconciliation" OR "bank reconciliation" OR "month-end close" OR "accounts payable" OR "accounts receivable") (AI OR ChatGPT OR Claude OR LLM)
+        - ("expense categorization" OR "financial forecasting" OR "variance analysis" OR "tax preparation" OR "tax returns") (AI OR ChatGPT OR Claude OR LLM)
+        - ("audit automation" OR "receipt scanning" OR "financial statements" OR "cash flow" OR "transaction categorization") (AI OR ChatGPT OR Claude OR LLM)
+        - ("payroll processing" OR "loan underwriting" OR "credit scoring" OR "fraud detection" OR "claims processing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("KYC checks" OR "portfolio analysis" OR "earnings analysis" OR "financial modeling" OR "revenue recognition") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - fintech llm
@@ -514,14 +513,10 @@ domains:
         search:
         - '"AI" hospital deployed'
         - '"AI" clinicians pilot'
-        - ("clinical documentation" OR "medical scribe" OR "patient notes" OR "ambient scribe" OR "prior
-          authorization" OR "medical coding") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("medical transcription" OR "medical billing" OR "claim denials" OR "patient intake" OR "patient
-          scheduling" OR "symptom triage") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("radiology reports" OR "lab results" OR "drug interactions" OR "chart summarization" OR "clinical
-          trials" OR "patient education") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("care plans" OR "clinical notes" OR "therapy notes" OR "medical diagnosis" OR "drug discovery"
-          OR "protein design") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("clinical documentation" OR "medical scribe" OR "patient notes" OR "ambient scribe" OR "prior authorization" OR "medical coding") (AI OR ChatGPT OR Claude OR LLM)
+        - ("medical transcription" OR "medical billing" OR "claim denials" OR "patient intake" OR "patient scheduling" OR "symptom triage") (AI OR ChatGPT OR Claude OR LLM)
+        - ("radiology reports" OR "lab results" OR "drug interactions" OR "chart summarization" OR "clinical trials" OR "patient education") (AI OR ChatGPT OR Claude OR LLM)
+        - ("care plans" OR "clinical notes" OR "therapy notes" OR "medical diagnosis" OR "drug discovery" OR "protein design") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - clinical llm
@@ -636,14 +631,10 @@ domains:
         search:
         - '"AI" hotel guests'
         - '"AI" restaurant'
-        - ("guest messaging" OR "hotel chatbot" OR "review responses" OR "hotel reservations" OR "booking
-          management" OR "revenue management") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("dynamic pricing" OR "menu descriptions" OR "voice ordering" OR "recipe generation" OR "table
-          reservations" OR "restaurant marketing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("drive-thru ordering" OR "travel itineraries" OR "group bookings" OR "event planning" OR "concierge
-          chatbot" OR "travel recommendations") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("virtual receptionist" OR "hotel marketing" OR "loyalty programs" OR "front desk" OR "itinerary
-          generation" OR "food safety") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("guest messaging" OR "hotel chatbot" OR "review responses" OR "hotel reservations" OR "booking management" OR "revenue management") (AI OR ChatGPT OR Claude OR LLM)
+        - ("dynamic pricing" OR "menu descriptions" OR "voice ordering" OR "recipe generation" OR "table reservations" OR "restaurant marketing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("drive-thru ordering" OR "travel itineraries" OR "group bookings" OR "event planning" OR "concierge chatbot" OR "travel recommendations") (AI OR ChatGPT OR Claude OR LLM)
+        - ("virtual receptionist" OR "hotel marketing" OR "loyalty programs" OR "front desk" OR "itinerary generation" OR "food safety") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - hotel booking llm
@@ -677,8 +668,7 @@ domains:
     name: Legal & Compliance
     kind: industry
     active: false
-    definition: AI used in legal work and compliance - contract review, legal research, e-discovery, litigation
-      and regulatory filings.
+    definition: AI used in legal work and compliance - contract review, legal research, e-discovery, litigation and regulatory filings.
     domain_terms:
     - contract review
     - contract drafting
@@ -719,14 +709,10 @@ domains:
         - patent drafting AI
       x:
         search:
-        - ("contract review" OR "contract drafting" OR "contract analysis" OR "clause extraction" OR "legal
-          drafting" OR "legal research") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("case law" OR "due diligence" OR "document review" OR "e-discovery" OR "legal memos" OR "legal
-          briefs") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("litigation support" OR "case summaries" OR "court filings" OR "patent drafting" OR "trademark
-          search" OR "legal intake") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("case management" OR "compliance monitoring" OR "regulatory filings" OR "legal translation"
-          OR "GDPR compliance" OR "privacy policies") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("contract review" OR "contract drafting" OR "contract analysis" OR "clause extraction" OR "legal drafting" OR "legal research") (AI OR ChatGPT OR Claude OR LLM)
+        - ("case law" OR "due diligence" OR "document review" OR "e-discovery" OR "legal memos" OR "legal briefs") (AI OR ChatGPT OR Claude OR LLM)
+        - ("litigation support" OR "case summaries" OR "court filings" OR "patent drafting" OR "trademark search" OR "legal intake") (AI OR ChatGPT OR Claude OR LLM)
+        - ("case management" OR "compliance monitoring" OR "regulatory filings" OR "legal translation" OR "GDPR compliance" OR "privacy policies") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - due diligence llm
@@ -751,8 +737,7 @@ domains:
     name: Education & Research
     kind: industry
     active: false
-    definition: AI used in teaching, learning and academic research - lesson planning, grading, tutoring,
-      study and research writing.
+    definition: AI used in teaching, learning and academic research - lesson planning, grading, tutoring, study and research writing.
     domain_terms:
     - lesson planning
     - curriculum design
@@ -792,14 +777,10 @@ domains:
         - language learning AI
       x:
         search:
-        - ("lesson planning" OR "curriculum design" OR "grading essays" OR "essay feedback" OR "quiz generation"
-          OR "rubric creation") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("homework help" OR "tutoring sessions" OR "study guides" OR "flashcards" OR "exam prep" OR
-          "course design") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("lecture notes" OR "academic writing" OR "literature review" OR "research papers" OR "citation
-          management" OR "thesis writing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("peer review" OR "student feedback" OR "language learning" OR "classroom management" OR "plagiarism
-          detection") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("lesson planning" OR "curriculum design" OR "grading essays" OR "essay feedback" OR "quiz generation" OR "rubric creation") (AI OR ChatGPT OR Claude OR LLM)
+        - ("homework help" OR "tutoring sessions" OR "study guides" OR "flashcards" OR "exam prep" OR "course design") (AI OR ChatGPT OR Claude OR LLM)
+        - ("lecture notes" OR "academic writing" OR "literature review" OR "research papers" OR "citation management" OR "thesis writing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("peer review" OR "student feedback" OR "language learning" OR "classroom management" OR "plagiarism detection") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - research papers llm
@@ -824,8 +805,7 @@ domains:
     name: Retail & E-commerce
     kind: industry
     active: true
-    definition: AI used in retail and e-commerce - product listings, catalogues, pricing, inventory, shopping
-      assistants and store operations.
+    definition: AI used in retail and e-commerce - product listings, catalogues, pricing, inventory, shopping assistants and store operations.
     domain_terms:
     - product descriptions
     - product listings
@@ -865,14 +845,10 @@ domains:
         - product photography AI
       x:
         search:
-        - ("product descriptions" OR "product listings" OR "listing generation" OR "product photography"
-          OR "catalog management" OR "inventory management") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("price monitoring" OR "competitor pricing" OR "pricing strategy" OR "product reviews" OR "Shopify
-          store" OR "Amazon listings") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("Etsy shop" OR "abandoned carts" OR "order tracking" OR "review analysis" OR "product recommendations"
-          OR "virtual try-on") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("store layout" OR "product mockups" OR "shopping assistant" OR "dropshipping store" OR "product
-          research") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("product descriptions" OR "product listings" OR "listing generation" OR "product photography" OR "catalog management" OR "inventory management") (AI OR ChatGPT OR Claude OR LLM)
+        - ("price monitoring" OR "competitor pricing" OR "pricing strategy" OR "product reviews" OR "Shopify store" OR "Amazon listings") (AI OR ChatGPT OR Claude OR LLM)
+        - ("Etsy shop" OR "abandoned carts" OR "order tracking" OR "review analysis" OR "product recommendations" OR "virtual try-on") (AI OR ChatGPT OR Claude OR LLM)
+        - ("store layout" OR "product mockups" OR "shopping assistant" OR "dropshipping store" OR "product research") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - product recommendations llm
@@ -897,8 +873,7 @@ domains:
     name: Manufacturing, Supply Chain & Logistics
     kind: industry
     active: false
-    definition: AI used in manufacturing operations, supply chain and logistics - planning, forecasting,
-      warehousing, freight and quality.
+    definition: AI used in manufacturing operations, supply chain and logistics - planning, forecasting, warehousing, freight and quality.
     domain_terms:
     - demand forecasting
     - supply chain
@@ -938,14 +913,10 @@ domains:
         - visual inspection AI
       x:
         search:
-        - ("demand forecasting" OR "supply chain" OR "inventory optimization" OR "route optimization"
-          OR "freight matching" OR "shipment tracking") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("warehouse robotics" OR "logistics optimization" OR "visual inspection" OR "purchase orders"
-          OR "procurement automation" OR "vendor management") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("spend analysis" OR "quality inspection" OR "defect detection" OR "predictive maintenance"
-          OR "production scheduling" OR "work instructions") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("root-cause analysis" OR "BOM management" OR "trade compliance" OR "demand planning" OR "lean
-          manufacturing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("demand forecasting" OR "supply chain" OR "inventory optimization" OR "route optimization" OR "freight matching" OR "shipment tracking") (AI OR ChatGPT OR Claude OR LLM)
+        - ("warehouse robotics" OR "logistics optimization" OR "visual inspection" OR "purchase orders" OR "procurement automation" OR "vendor management") (AI OR ChatGPT OR Claude OR LLM)
+        - ("spend analysis" OR "quality inspection" OR "defect detection" OR "predictive maintenance" OR "production scheduling" OR "work instructions") (AI OR ChatGPT OR Claude OR LLM)
+        - ("root-cause analysis" OR "BOM management" OR "trade compliance" OR "demand planning" OR "lean manufacturing") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - supply chain llm
@@ -970,8 +941,7 @@ domains:
     name: Media, Entertainment & Creators
     kind: industry
     active: false
-    definition: AI used by journalists, creators, podcasters, streamers and game studios - scripts, clips,
-      transcription, writing and game content.
+    definition: AI used by journalists, creators, podcasters, streamers and game studios - scripts, clips, transcription, writing and game content.
     domain_terms:
     - YouTube scripts
     - video scripts
@@ -1011,14 +981,10 @@ domains:
         - game assets AI
       x:
         search:
-        - ("YouTube scripts" OR "video scripts" OR "YouTube thumbnails" OR "video clipping" OR "clip generation"
-          OR "podcast production") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("show notes" OR "podcast transcripts" OR "interview transcription" OR "news summaries" OR "fact
-          checking" OR "headline writing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("newsletter writing" OR "game dialogue" OR "NPC dialogue" OR "level design" OR "game assets"
-          OR "ghostwriting") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("news writing" OR "video summaries" OR "comment moderation" OR "YouTube automation" OR "game
-          development") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("YouTube scripts" OR "video scripts" OR "YouTube thumbnails" OR "video clipping" OR "clip generation" OR "podcast production") (AI OR ChatGPT OR Claude OR LLM)
+        - ("show notes" OR "podcast transcripts" OR "interview transcription" OR "news summaries" OR "fact checking" OR "headline writing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("newsletter writing" OR "game dialogue" OR "NPC dialogue" OR "level design" OR "game assets" OR "ghostwriting") (AI OR ChatGPT OR Claude OR LLM)
+        - ("news writing" OR "video summaries" OR "comment moderation" OR "YouTube automation" OR "game development") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - game development llm
@@ -1043,8 +1009,7 @@ domains:
     name: Governance & Public Sector
     kind: industry
     active: false
-    definition: AI used by government and the public sector, and AI policy and governance practice - regulation,
-      compliance and internal AI policies.
+    definition: AI used by government and the public sector, and AI policy and governance practice - regulation, compliance and internal AI policies.
     domain_terms:
     - government
     - governments
@@ -1200,14 +1165,10 @@ domains:
             - form filling AI
           x:
             search:
-            - ("grant writing" OR "grant applications" OR "case notes" OR "benefits eligibility" OR "policy
-              analysis" OR "public comments") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("FOIA requests" OR "government services" OR "form filling" OR "document digitization" OR
-              "policy summaries" OR "bill analysis") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("public records" OR "public procurement" OR "nonprofit fundraising" OR "fundraising letters"
-              OR "donor research" OR "impact reports") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("program evaluation" OR "language access" OR "public consultation" OR "emergency response"
-              OR "records management") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("grant writing" OR "grant applications" OR "case notes" OR "benefits eligibility" OR "policy analysis" OR "public comments") (AI OR ChatGPT OR Claude OR LLM)
+            - ("FOIA requests" OR "government services" OR "form filling" OR "document digitization" OR "policy summaries" OR "bill analysis") (AI OR ChatGPT OR Claude OR LLM)
+            - ("public records" OR "public procurement" OR "nonprofit fundraising" OR "fundraising letters" OR "donor research" OR "impact reports") (AI OR ChatGPT OR Claude OR LLM)
+            - ("program evaluation" OR "language access" OR "public consultation" OR "emergency response" OR "records management") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - government services llm
@@ -1269,14 +1230,10 @@ domains:
             - AI literacy
           x:
             search:
-            - ("AI governance" OR "AI regulation" OR "AI Act" OR "AI policy" OR "responsible AI" OR "AI
-              ethics") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("AI compliance" OR "AI audits" OR "algorithmic accountability" OR "AI transparency" OR
-              "AI accountability" OR "model governance") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("model risk" OR "AI literacy" OR "AI guidelines" OR "AI standards" OR "ISO 42001" OR "AI
-              oversight") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("AI legislation" OR "AI disclosure" OR "AI watermarking" OR "deepfake regulation" OR "AI
-              copyright" OR "AI liability") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("AI governance" OR "AI regulation" OR "AI Act" OR "AI policy" OR "responsible AI" OR "AI ethics") (AI OR ChatGPT OR Claude OR LLM)
+            - ("AI compliance" OR "AI audits" OR "algorithmic accountability" OR "AI transparency" OR "AI accountability" OR "model governance") (AI OR ChatGPT OR Claude OR LLM)
+            - ("model risk" OR "AI literacy" OR "AI guidelines" OR "AI standards" OR "ISO 42001" OR "AI oversight") (AI OR ChatGPT OR Claude OR LLM)
+            - ("AI legislation" OR "AI disclosure" OR "AI watermarking" OR "deepfake regulation" OR "AI copyright" OR "AI liability") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - AI Act llm
@@ -1301,8 +1258,7 @@ domains:
     name: Film Industry
     kind: industry
     active: false
-    definition: AI used in film production - pre-production and storyboarding, visual effects and virtual
-      sets, voice and dubbing, distribution and audience reach.
+    definition: AI used in film production - pre-production and storyboarding, visual effects and virtual sets, voice and dubbing, distribution and audience reach.
     domain_terms: []
     ambiguous_terms: {}
     exclude_phrases: []
@@ -1348,9 +1304,7 @@ domains:
             - script coverage AI
           x:
             search:
-            - ("storyboarding" OR "screenplay writing" OR "script coverage" OR "script breakdown" OR "shot
-              lists" OR "previs" OR "location scouting" OR "script analysis") (AI OR ChatGPT OR Claude
-              OR LLM OR agent)
+            - ("storyboarding" OR "screenplay writing" OR "script coverage" OR "script breakdown" OR "shot lists" OR "previs" OR "location scouting" OR "script analysis") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - storyboarding llm
@@ -1399,10 +1353,8 @@ domains:
             - Gaussian splatting AI
           x:
             search:
-            - ("rotoscoping" OR "compositing" OR "VFX shots" OR "virtual production" OR "de-aging") (AI
-              OR ChatGPT OR Claude OR LLM OR agent)
-            - ("digital doubles" OR "set extensions" OR "motion capture" OR "text-to-video" OR "Gaussian
-              splatting") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("rotoscoping" OR "compositing" OR "VFX shots" OR "virtual production" OR "de-aging") (AI OR ChatGPT OR Claude OR LLM)
+            - ("digital doubles" OR "set extensions" OR "motion capture" OR "text-to-video" OR "Gaussian splatting") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - text-to-video llm
@@ -1449,9 +1401,7 @@ domains:
             - audio description AI
           x:
             search:
-            - ("video dubbing" OR "voice cloning" OR "lip sync" OR "subtitle generation" OR "dubbed movies"
-              OR "dialogue replacement" OR "voice acting" OR "audio description") (AI OR ChatGPT OR Claude
-              OR LLM OR agent)
+            - ("video dubbing" OR "voice cloning" OR "lip sync" OR "subtitle generation" OR "dubbed movies" OR "dialogue replacement" OR "voice acting" OR "audio description") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - voice cloning llm
@@ -1498,9 +1448,7 @@ domains:
             - audience insights AI
           x:
             search:
-            - ("audience insights" OR "box office" OR "audience testing" OR "movie trailers" OR "poster
-              design" OR "festival submissions" OR "streaming recommendations" OR "movie posters") (AI
-              OR ChatGPT OR Claude OR LLM OR agent)
+            - ("audience insights" OR "box office" OR "audience testing" OR "movie trailers" OR "poster design" OR "festival submissions" OR "streaming recommendations" OR "movie posters") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - box office llm
@@ -1525,8 +1473,7 @@ domains:
     name: Automotive
     kind: industry
     active: false
-    definition: AI used in the automotive trade - diagnostics, repair, dealerships, fleets, telematics
-      and driver-assistance work.
+    definition: AI used in the automotive trade - diagnostics, repair, dealerships, fleets, telematics and driver-assistance work.
     domain_terms:
     - car diagnostics
     - fault codes
@@ -1567,14 +1514,10 @@ domains:
         - car buying AI
       x:
         search:
-        - ("car diagnostics" OR "fault codes" OR "car repair" OR "damage assessment" OR "repair manuals"
-          OR "parts lookup") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("dealership chatbot" OR "self-driving" OR "warranty claims" OR "car buying" OR "car infotainment"
-          OR "car valuation") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("auto financing" OR "test drives" OR "fleet management" OR "fleet maintenance" OR "fleet analytics"
-          OR "driver behavior") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("EV charging" OR "battery health" OR "vehicle inspection" OR "autonomous driving" OR "driver
-          monitoring" OR "dashcam footage") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("car diagnostics" OR "fault codes" OR "car repair" OR "damage assessment" OR "repair manuals" OR "parts lookup") (AI OR ChatGPT OR Claude OR LLM)
+        - ("dealership chatbot" OR "self-driving" OR "warranty claims" OR "car buying" OR "car infotainment" OR "car valuation") (AI OR ChatGPT OR Claude OR LLM)
+        - ("auto financing" OR "test drives" OR "fleet management" OR "fleet maintenance" OR "fleet analytics" OR "driver behavior") (AI OR ChatGPT OR Claude OR LLM)
+        - ("EV charging" OR "battery health" OR "vehicle inspection" OR "autonomous driving" OR "driver monitoring" OR "dashcam footage") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - self-driving llm
@@ -1599,8 +1542,7 @@ domains:
     name: Engineering
     kind: function
     active: false
-    definition: AI used in engineering work - software and AI engineering, and the physical disciplines
-      (civil, mechanical, electrical, chemical, manufacturing, construction).
+    definition: AI used in engineering work - software and AI engineering, and the physical disciplines (civil, mechanical, electrical, chemical, manufacturing, construction).
     domain_terms: []
     ambiguous_terms: {}
     exclude_phrases: []
@@ -1622,8 +1564,7 @@ domains:
     groups:
       software_ai:
         name: Software & AI
-        definition: AI in software and AI engineering work - code review, test automation, RAG pipelines,
-          coding agents.
+        definition: AI in software and AI engineering work - code review, test automation, RAG pipelines, coding agents.
         domain_terms:
         - software engineering
         - software engineer
@@ -1688,16 +1629,11 @@ domains:
             search:
             - '"AI" code review team'
             - '"coding agent" production'
-            - ("code review" OR "code generation" OR "bug fixing" OR "debugging" OR "code refactoring"
-              OR "code migration") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("test automation" OR "unit tests" OR "code documentation" OR "pull requests" OR "CI pipelines"
-              OR "Terraform scripts") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("Kubernetes configs" OR "log analysis" OR "incident postmortems" OR "schema design" OR
-              "API integration" OR "frontend development") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("mobile apps" OR "web apps" OR "vibe coding" OR "MVP building" OR "app prototyping") (AI
-              OR ChatGPT OR Claude OR LLM OR agent)
-            - ("agent workflows" OR "RAG pipelines" OR "prompt engineering" OR "model fine-tuning" OR
-              "LLM evaluation") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("code review" OR "code generation" OR "bug fixing" OR "debugging" OR "code refactoring" OR "code migration") (AI OR ChatGPT OR Claude OR LLM)
+            - ("test automation" OR "unit tests" OR "code documentation" OR "pull requests" OR "CI pipelines" OR "Terraform scripts") (AI OR ChatGPT OR Claude OR LLM)
+            - ("Kubernetes configs" OR "log analysis" OR "incident postmortems" OR "schema design" OR "API integration" OR "frontend development") (AI OR ChatGPT OR Claude OR LLM)
+            - ("mobile apps" OR "web apps" OR "vibe coding" OR "MVP building" OR "app prototyping") (AI OR ChatGPT OR Claude OR LLM)
+            - ("agent workflows" OR "RAG pipelines" OR "prompt engineering" OR "model fine-tuning" OR "LLM evaluation") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - llm code review
@@ -1725,8 +1661,7 @@ domains:
           feeds: []
       physical:
         name: Physical
-        definition: AI in civil, mechanical, electrical, chemical and manufacturing engineering, construction
-          and industrial operations.
+        definition: AI in civil, mechanical, electrical, chemical and manufacturing engineering, construction and industrial operations.
         domain_terms:
         - civil engineering
         - mechanical engineering
@@ -1846,15 +1781,10 @@ domains:
             search:
             - '"AI" predictive maintenance factory'
             - '"AI" construction engineering'
-            - ("CAD modeling" OR "parametric design" OR "technical drawings" OR "engineering drawings"
-              OR "design review" OR "FEA simulation") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("physics simulation" OR "structural analysis" OR "load calculations" OR "generative design"
-              OR "material selection" OR "failure analysis") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("structural design" OR "circuit design" OR "PCB layout" OR "schematic review" OR "engineering
-              documentation" OR "CAD automation") (AI OR ChatGPT OR Claude OR LLM OR agent)
-            - ("design optimization" OR "process simulation" OR "PLC programming" OR "control systems"
-              OR "robot programming" OR "technical specifications") (AI OR ChatGPT OR Claude OR LLM OR
-              agent)
+            - ("CAD modeling" OR "parametric design" OR "technical drawings" OR "engineering drawings" OR "design review" OR "FEA simulation") (AI OR ChatGPT OR Claude OR LLM)
+            - ("physics simulation" OR "structural analysis" OR "load calculations" OR "generative design" OR "material selection" OR "failure analysis") (AI OR ChatGPT OR Claude OR LLM)
+            - ("structural design" OR "circuit design" OR "PCB layout" OR "schematic review" OR "engineering documentation" OR "CAD automation") (AI OR ChatGPT OR Claude OR LLM)
+            - ("design optimization" OR "process simulation" OR "PLC programming" OR "control systems" OR "robot programming" OR "technical specifications") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - predictive maintenance llm
@@ -1888,8 +1818,7 @@ domains:
     name: Data & Analytics
     kind: function
     active: false
-    definition: AI used in data and analytics work - SQL, cleaning, dashboards, spreadsheets, statistics
-      and pipelines.
+    definition: AI used in data and analytics work - SQL, cleaning, dashboards, spreadsheets, statistics and pipelines.
     domain_terms:
     - SQL queries
     - text-to-SQL
@@ -1929,14 +1858,10 @@ domains:
         - data visualization AI
       x:
         search:
-        - ("SQL queries" OR "text-to-SQL" OR "data cleaning" OR "data visualization" OR "dashboard building"
-          OR "report automation") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("Excel automation" OR "spreadsheet formulas" OR "pivot tables" OR "exploratory analysis" OR
-          "statistical analysis" OR "A/B testing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("time series" OR "cohort analysis" OR "customer segmentation" OR "survey analysis" OR "ETL
-          pipelines" OR "dbt models") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("data modeling" OR "metric definitions" OR "BI dashboards" OR "Jupyter notebooks" OR "data
-          labeling") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("SQL queries" OR "text-to-SQL" OR "data cleaning" OR "data visualization" OR "dashboard building" OR "report automation") (AI OR ChatGPT OR Claude OR LLM)
+        - ("Excel automation" OR "spreadsheet formulas" OR "pivot tables" OR "exploratory analysis" OR "statistical analysis" OR "A/B testing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("time series" OR "cohort analysis" OR "customer segmentation" OR "survey analysis" OR "ETL pipelines" OR "dbt models") (AI OR ChatGPT OR Claude OR LLM)
+        - ("data modeling" OR "metric definitions" OR "BI dashboards" OR "Jupyter notebooks" OR "data labeling") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - time series llm
@@ -1961,8 +1886,7 @@ domains:
     name: Marketing, Content & SEO
     kind: function
     active: true
-    definition: AI used in marketing, content and SEO - copy, ads, social posts, campaigns, research and
-      launches.
+    definition: AI used in marketing, content and SEO - copy, ads, social posts, campaigns, research and launches.
     domain_terms:
     - SEO content
     - keyword research
@@ -2002,14 +1926,10 @@ domains:
         - copywriting AI
       x:
         search:
-        - ("SEO content" OR "keyword research" OR "meta descriptions" OR "blog posts" OR "copywriting"
-          OR "ad copy") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("ad creatives" OR "PPC campaigns" OR "social captions" OR "LinkedIn posts" OR "content calendar"
-          OR "content repurposing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("email campaigns" OR "landing pages" OR "brand voice" OR "campaign planning" OR "ad targeting"
-          OR "competitor research") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("market research" OR "customer personas" OR "press releases" OR "product launches" OR "influencer
-          outreach") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("SEO content" OR "keyword research" OR "meta descriptions" OR "blog posts" OR "copywriting" OR "ad copy") (AI OR ChatGPT OR Claude OR LLM)
+        - ("ad creatives" OR "PPC campaigns" OR "social captions" OR "LinkedIn posts" OR "content calendar" OR "content repurposing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("email campaigns" OR "landing pages" OR "brand voice" OR "campaign planning" OR "ad targeting" OR "competitor research") (AI OR ChatGPT OR Claude OR LLM)
+        - ("market research" OR "customer personas" OR "press releases" OR "product launches" OR "influencer outreach") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - blog posts llm
@@ -2034,8 +1954,7 @@ domains:
     name: Sales & Customer Support
     kind: function
     active: false
-    definition: AI used in sales and customer support - prospecting, calls, CRM, proposals, tickets, chatbots
-      and retention.
+    definition: AI used in sales and customer support - prospecting, calls, CRM, proposals, tickets, chatbots and retention.
     domain_terms:
     - cold emails
     - prospect research
@@ -2076,14 +1995,10 @@ domains:
         - support tickets AI
       x:
         search:
-        - ("cold emails" OR "prospect research" OR "lead scoring" OR "lead qualification" OR "sales calls"
-          OR "call summaries") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("CRM updates" OR "follow-up emails" OR "objection handling" OR "sales playbooks" OR "sales
-          emails" OR "deal forecasting") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("proposal writing" OR "RFP responses" OR "support tickets" OR "ticket triage" OR "ticket routing"
-          OR "support chatbot") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("knowledge base" OR "canned responses" OR "customer onboarding" OR "customer retention" OR
-          "sentiment analysis" OR "call QA") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("cold emails" OR "prospect research" OR "lead scoring" OR "lead qualification" OR "sales calls" OR "call summaries") (AI OR ChatGPT OR Claude OR LLM)
+        - ("CRM updates" OR "follow-up emails" OR "objection handling" OR "sales playbooks" OR "sales emails" OR "deal forecasting") (AI OR ChatGPT OR Claude OR LLM)
+        - ("proposal writing" OR "RFP responses" OR "support tickets" OR "ticket triage" OR "ticket routing" OR "support chatbot") (AI OR ChatGPT OR Claude OR LLM)
+        - ("knowledge base" OR "canned responses" OR "customer onboarding" OR "customer retention" OR "sentiment analysis" OR "call QA") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - knowledge base llm
@@ -2108,8 +2023,7 @@ domains:
     name: Design & Creative
     kind: function
     active: true
-    definition: AI used in design and creative work - UI/UX, branding, graphics, image and video editing,
-      illustration and music.
+    definition: AI used in design and creative work - UI/UX, branding, graphics, image and video editing, illustration and music.
     domain_terms:
     - UI design
     - UX research
@@ -2123,9 +2037,7 @@ domains:
     - icon design
     - packaging design
     - mood boards
-    - image generation
     - photo editing
-    - image upscaling
     - video editing
     - motion graphics
     - color grading
@@ -2134,7 +2046,27 @@ domains:
     - 3D rendering
     - music production
     - song writing
-    ambiguous_terms: {}
+    # Name the AI capability, not design work (#645 review, point 2): they count
+    # only with a design context nearby, and are no longer searched on their own.
+    ambiguous_terms:
+      image generation:
+      - designer
+      - designers
+      - client
+      - clients
+      - brand
+      - studio
+      - agency
+      - our team
+      image upscaling:
+      - designer
+      - designers
+      - client
+      - clients
+      - brand
+      - studio
+      - agency
+      - our team
     exclude_phrases: []
     queries:
       reddit:
@@ -2149,26 +2081,19 @@ domains:
         - logo design AI
       x:
         search:
-        - ("UI design" OR "UX research" OR "wireframing" OR "Figma prototypes" OR "design systems" OR
-          "usability testing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("logo design" OR "brand identity" OR "graphic design" OR "icon design" OR "packaging design"
-          OR "mood boards") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("image generation" OR "photo editing" OR "image upscaling" OR "video editing" OR "motion graphics"
-          OR "color grading") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("illustration" OR "concept art" OR "3D rendering" OR "music production" OR "song writing")
-          (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("UI design" OR "UX research" OR "wireframing" OR "Figma prototypes" OR "design systems" OR "usability testing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("logo design" OR "brand identity" OR "graphic design" OR "icon design" OR "packaging design" OR "mood boards") (AI OR ChatGPT OR Claude OR LLM)
+        - ("image generation" OR "photo editing" OR "image upscaling" OR "video editing" OR "motion graphics" OR "color grading") (AI OR ChatGPT OR Claude OR LLM)
+        - ("illustration" OR "concept art" OR "3D rendering" OR "music production" OR "song writing") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
-        - image generation llm
         - illustration llm
       hackernews:
         search:
-        - AI image generation
         - AI illustration
         - AI design systems
       devto:
         search:
-        - AI image generation
         - AI illustration
         - AI design systems
       bluesky:
@@ -2181,8 +2106,7 @@ domains:
     name: Operations, HR & Admin
     kind: function
     active: false
-    definition: AI used in operations, HR and admin - workflow automation, documents, meetings, scheduling,
-      recruiting and onboarding.
+    definition: AI used in operations, HR and admin - workflow automation, documents, meetings, scheduling, recruiting and onboarding.
     domain_terms:
     - workflow automation
     - Zapier workflows
@@ -2224,16 +2148,11 @@ domains:
         - job descriptions AI
       x:
         search:
-        - ("workflow automation" OR "Zapier workflows" OR "n8n workflows" OR "data entry" OR "document
-          processing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("process documentation" OR "SOP writing" OR "meeting notes" OR "action items" OR "email triage")
-          (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("inbox management" OR "calendar scheduling" OR "task management" OR "project planning" OR "status
-          reports") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("meeting transcription" OR "expense reports" OR "shift scheduling" OR "resume screening" OR
-          "candidate sourcing") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("job descriptions" OR "interview scheduling" OR "employee onboarding" OR "performance reviews"
-          OR "HR policies") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("workflow automation" OR "Zapier workflows" OR "n8n workflows" OR "data entry" OR "document processing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("process documentation" OR "SOP writing" OR "meeting notes" OR "action items" OR "email triage") (AI OR ChatGPT OR Claude OR LLM)
+        - ("inbox management" OR "calendar scheduling" OR "task management" OR "project planning" OR "status reports") (AI OR ChatGPT OR Claude OR LLM)
+        - ("meeting transcription" OR "expense reports" OR "shift scheduling" OR "resume screening" OR "candidate sourcing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("job descriptions" OR "interview scheduling" OR "employee onboarding" OR "performance reviews" OR "HR policies") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - workflow automation llm
@@ -2258,8 +2177,7 @@ domains:
     name: Security & IT
     kind: function
     active: true
-    definition: AI used in security and IT work - threat detection, incident response, testing, audits,
-      identity and helpdesk.
+    definition: AI used in security and IT work - threat detection, incident response, testing, audits, identity and helpdesk.
     domain_terms:
     - threat detection
     - threat intelligence
@@ -2300,14 +2218,10 @@ domains:
         - SOC 2 AI
       x:
         search:
-        - ("threat detection" OR "threat intelligence" OR "log triage" OR "alert triage" OR "incident
-          response" OR "vulnerability scanning") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("penetration testing" OR "exploit development" OR "malware analysis" OR "reverse engineering"
-          OR "phishing detection" OR "security questionnaires") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("security audits" OR "SOC 2" OR "security automation" OR "identity management" OR "patch management"
-          OR "endpoint security") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("cloud security" OR "SAST scanning" OR "IT helpdesk" OR "device management" OR "password resets"
-          OR "CTF challenges") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("threat detection" OR "threat intelligence" OR "log triage" OR "alert triage" OR "incident response" OR "vulnerability scanning") (AI OR ChatGPT OR Claude OR LLM)
+        - ("penetration testing" OR "exploit development" OR "malware analysis" OR "reverse engineering" OR "phishing detection" OR "security questionnaires") (AI OR ChatGPT OR Claude OR LLM)
+        - ("security audits" OR "SOC 2" OR "security automation" OR "identity management" OR "patch management" OR "endpoint security") (AI OR ChatGPT OR Claude OR LLM)
+        - ("cloud security" OR "SAST scanning" OR "IT helpdesk" OR "device management" OR "password resets" OR "CTF challenges") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - reverse engineering llm
@@ -2331,9 +2245,8 @@ domains:
   leaders_founders:
     name: Leaders & Founders
     kind: function
-    active: true
-    definition: AI used by leaders and founders - planning, fundraising, strategy, AI adoption, hiring
-      and team productivity.
+    active: false
+    definition: AI used by leaders and founders - planning, fundraising, strategy, AI adoption, hiring and team productivity.
     domain_terms:
     - business plan
     - pitch deck
@@ -2347,18 +2260,57 @@ domains:
     - customer discovery
     - roadmap planning
     - strategy planning
-    - AI transformation
     - hiring plans
     - workforce planning
-    - AI adoption
-    - AI strategy
     - tool evaluation
     - vendor evaluation
     - cost cutting
     - team productivity
     - small business
-    - AI implementation
-    ambiguous_terms: {}
+    # These four carry "AI" themselves, so alone they would pass the AI test and the
+    # domain test at once (#645 review, point 1): they count only with a leaders
+    # context nearby, and are no longer searched on their own.
+    ambiguous_terms:
+      AI transformation:
+      - founder
+      - founders
+      - startup
+      - CEO
+      - CTO
+      - our team
+      - our company
+      - board
+      - leadership
+      AI adoption:
+      - founder
+      - founders
+      - startup
+      - CEO
+      - CTO
+      - our team
+      - our company
+      - board
+      - leadership
+      AI strategy:
+      - founder
+      - founders
+      - startup
+      - CEO
+      - CTO
+      - our team
+      - our company
+      - board
+      - leadership
+      AI implementation:
+      - founder
+      - founders
+      - startup
+      - CEO
+      - CTO
+      - our team
+      - our company
+      - board
+      - leadership
     exclude_phrases: []
     queries:
       reddit:
@@ -2373,28 +2325,19 @@ domains:
         - business plan AI
       x:
         search:
-        - ("business plan" OR "pitch deck" OR "investor updates" OR "fundraising" OR "cap table" OR "financial
-          projections") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("market sizing" OR "go-to-market" OR "idea validation" OR "customer discovery" OR "roadmap
-          planning" OR "strategy planning") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("AI transformation" OR "hiring plans" OR "workforce planning" OR "AI adoption" OR "AI strategy"
-          OR "tool evaluation") (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("vendor evaluation" OR "cost cutting" OR "team productivity" OR "small business" OR "AI implementation")
-          (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("business plan" OR "pitch deck" OR "investor updates" OR "fundraising" OR "cap table" OR "financial projections") (AI OR ChatGPT OR Claude OR LLM)
+        - ("market sizing" OR "go-to-market" OR "idea validation" OR "customer discovery" OR "roadmap planning" OR "strategy planning") (AI OR ChatGPT OR Claude OR LLM)
+        - ("AI transformation" OR "hiring plans" OR "workforce planning" OR "AI adoption" OR "AI strategy" OR "tool evaluation") (AI OR ChatGPT OR Claude OR LLM)
+        - ("vendor evaluation" OR "cost cutting" OR "team productivity" OR "small business" OR "AI implementation") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
-        - AI adoption llm
         - small business llm
       hackernews:
         search:
-        - AI adoption
         - AI small business
-        - AI strategy
       devto:
         search:
-        - AI adoption
         - AI small business
-        - AI strategy
       bluesky:
         search:
         - AI pitch deck
@@ -2404,7 +2347,7 @@ domains:
   personal:
     name: Personal & Everyday Life
     kind: function
-    active: false
+    active: true
     definition: AI used in everyday life - trips, meals, fitness, money, careers, learning, home and wellbeing.
     domain_terms:
     - trip planning
@@ -2447,16 +2390,11 @@ domains:
         - cover letters AI
       x:
         search:
-        - ("trip planning" OR "meal planning" OR "grocery lists" OR "workout plans" OR "diet tracking")
-          (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("personal budgeting" OR "personal finance" OR "debt payoff" OR "resume writing" OR "cover letters")
-          (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("job search" OR "interview prep" OR "self-learning" OR "parenting advice" OR "gift ideas")
-          (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("home organization" OR "home repairs" OR "DIY projects" OR "gardening tips" OR "pet care")
-          (AI OR ChatGPT OR Claude OR LLM OR agent)
-        - ("wedding planning" OR "journaling" OR "mental health" OR "relationship advice" OR "health questions")
-          (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("trip planning" OR "meal planning" OR "grocery lists" OR "workout plans" OR "diet tracking") (AI OR ChatGPT OR Claude OR LLM)
+        - ("personal budgeting" OR "personal finance" OR "debt payoff" OR "resume writing" OR "cover letters") (AI OR ChatGPT OR Claude OR LLM)
+        - ("job search" OR "interview prep" OR "self-learning" OR "parenting advice" OR "gift ideas") (AI OR ChatGPT OR Claude OR LLM)
+        - ("home organization" OR "home repairs" OR "DIY projects" OR "gardening tips" OR "pet care") (AI OR ChatGPT OR Claude OR LLM)
+        - ("wedding planning" OR "journaling" OR "mental health" OR "relationship advice" OR "health questions") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - mental health llm
