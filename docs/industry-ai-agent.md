@@ -418,6 +418,27 @@ measurements.
     - **The first dry run** (2026-11-20, on #646's contract) used 105 X and 35 Reddit.
       Its counts are on #646.
 
+**From the #646 review** (Personal & Everyday Life, active since #646; the team's to
+tune):
+
+12. **"self-learning" is also an AI phrase.** "self-learning algorithm / agents / AI"
+    are common in AI research and tool news. A post like that names an AI term too, so
+    it would count as Personal. Make it ambiguous with a learner's context (learn,
+    course, study, skill, language, myself), or exclude
+    `\bself-learning (AI|model|system|agent|algorithm)s?\b`.
+13. **"mental health" and "health questions" bring the most sensitive posts in the
+    collection.** "mental health" is Personal's first search on Reddit, Hacker News,
+    dev.to and Bluesky: people's own accounts of using chatbots for therapy, and news
+    about AI and mental-health harms. The page shows counts only, but `iai_item.body`
+    stores that text in the shared database, so point 5's retention question is most
+    pressing here. **Decide before Personal's first real (non-dry) run:** a retention
+    limit for this lane, or not keeping `body` for Personal items beyond what
+    `--relabel` needs.
+14. **A failed search must not read as "found nothing".** In the first dry run, GitHub's
+    9 searches (401, an invalid local token) and 4 of dev.to's 14 (429, rate limited)
+    showed as `ok` with 0 items, because the runners read no failure from the
+    adapters. A failed search should be marked `error` in the run log (rule 4).
+
 ---
 
 ## 11. Open points
