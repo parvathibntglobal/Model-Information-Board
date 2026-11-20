@@ -155,9 +155,14 @@ def _summary(run_id: str, mode: str, requests: dict, counts: dict, queries: list
             f"{t.get('news', 0)} | {t.get('discussion', 0)} | {c['authors']} |"
         )
     capped = [q for q in queries if q["status"] == "capped"]
+    failed = [q for q in queries if q["status"] == "error"]
     prune = [q for q in queries if q["status"] == "ok" and q["items"] == 0]
     if capped:
         lines += ["", f"{len(capped)} query(ies) not run: request cap reached."]
+    if failed:
+        # A failed search is not a prune candidate, so without this line it would
+        # appear nowhere in the issue (rule 4; #648 review).
+        lines += ["", f"{len(failed)} query(ies) failed - see the run log."]
     if prune:
         lines += ["", f"{len(prune)} query(ies) returned nothing - prune?"]
     return "\n".join(lines) + "\n"
