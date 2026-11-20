@@ -399,7 +399,7 @@ def test_a_query_past_the_cap_is_not_run_and_says_so(cfg, monkeypatch):
 
         def run(self, query):
             calls.append(query)
-            return [], 1, ""
+            return [], 1, "", None
 
     monkeypatch.setitem(h._RUNNERS, "hackernews", Fake)
     import dataclasses
@@ -664,3 +664,101 @@ def test_an_inactive_domain_is_not_run(cfg, monkeypatch):
     )
     with pytest.raises(SystemExit, match="active: false"):
         script.main(["--plan", "--domains", "hospitality"])
+
+
+# ── a failed search is an error, never "found nothing" (rule 4) ──────────────
+
+
+def test_failure_of_reads_what_each_adapter_records():
+    """The first dry run (#646): GitHub's 401s and dev.to's 429s showed as `ok`
+    with 0 items, because nothing read the adapters' own failure records."""
+    from types import SimpleNamespace
+
+    from collect.industry_ai.harvest import failure_of
+
+    assert failure_of(SimpleNamespace(http_errors=0)) is None
+    assert failure_of(SimpleNamespace(http_errors=1, failures=["HTTP 429"])) == (
+        "1 request(s) failed (HTTP 429)"
+    )
+    assert "rate-limited" in failure_of(SimpleNamespace(http_errors=1, rate_limited=True))
+    assert "empty" in failure_of(SimpleNamespace(http_errors=0, empty_response=2))
+    # A record without `http_errors` is a wrong input, not "nothing failed" (rule 12).
+    with pytest.raises(AttributeError):
+        failure_of(SimpleNamespace())
+
+
+def test_a_failed_search_is_logged_as_error_and_keeps_partial_items(cfg, monkeypatch):
+    import dataclasses
+
+    from collect.industry_ai import harvest as h
+
+    partial = item(
+        "Our bank uses an LLM for loan customers.", platform="hackernews", iid="hackernews:9"
+    )
+
+    class Failing(h._Runner):
+        def __init__(self, *a, **k):
+            pass
+
+        def run(self, query):
+            return [partial], 1, "", "1 request(s) failed (HTTP 401)"
+
+    monkeypatch.setitem(h._RUNNERS, "hackernews", Failing)
+    run = {**cfg.run, "max_requests": {**cfg.run["max_requests"], "hackernews": 1}}
+
+    class Contract:
+        platforms = [{"id": "hackernews"}]
+        feeds = []
+        rulings = {}
+
+    out = h.harvest(
+        dataclasses.replace(cfg, run=run),
+        domains=["finance"],
+        platforms=["hackernews"],
+        contract=Contract(),
+        store=None,
+        client_factory=lambda **k: None,
+        since=SINCE,
+        log=lambda s: None,
+    )
+    first = out.queries[0]
+    assert first.status == "error" and "HTTP 401" in first.detail
+    assert "hackernews:9" in out.items  # what did come back is kept
+
+    # A runner written on the old three-value shape is an error, never "ok, 0 items".
+    class OldShape(h._Runner):
+        def __init__(self, *a, **k):
+            pass
+
+        def run(self, query):
+            return [], 1, ""
+
+    monkeypatch.setitem(h._RUNNERS, "hackernews", OldShape)
+    out = h.harvest(
+        dataclasses.replace(cfg, run=run),
+        domains=["finance"],
+        platforms=["hackernews"],
+        contract=Contract(),
+        store=None,
+        client_factory=lambda **k: None,
+        since=SINCE,
+        log=lambda s: None,
+    )
+    assert out.queries[0].status == "error" and "ValueError" in out.queries[0].detail
+
+
+def test_the_issue_summary_counts_failed_searches(cfg):
+    """#648 review: a failed search is not a prune candidate, so the summary must
+    name it, or the issue shows it nowhere."""
+    import scripts.run_industry_ai as script
+
+    queries = [
+        {"status": "error", "items": 0},
+        {"status": "error", "items": 3},
+        {"status": "ok", "items": 0},
+    ]
+    body = script._summary(
+        "r1", "dry-run", {}, {"items": 3, "kept": 0, "domains": {}}, queries, cfg
+    )
+    assert "2 query(ies) failed - see the run log." in body
+    assert "1 query(ies) returned nothing - prune?" in body

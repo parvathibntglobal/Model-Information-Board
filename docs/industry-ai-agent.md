@@ -418,6 +418,39 @@ measurements.
     - **The first dry run** (2026-11-20, on #646's contract) used 105 X and 35 Reddit.
       Its counts are on #646.
 
+**From the #646 review** (Personal & Everyday Life, active since #646; the team's to
+tune):
+
+12. **"self-learning" is also an AI phrase.** "self-learning algorithm / agents / AI"
+    are common in AI research and tool news. A post like that names an AI term too, so
+    it would count as Personal. Make it ambiguous with a learner's context (learn,
+    course, study, skill, language, myself), or exclude
+    `\bself-learning (AI|model|system|agent|algorithm)s?\b` in **Personal's own**
+    `exclude_phrases`, not `global_exclude_phrases`: a domain's exclusions only remove
+    text before that domain's terms are matched, while the global ones also apply
+    before AI terms are found, so there it would remove "AI" from "self-learning AI"
+    for every domain (anooj, #648 review).
+13. **"mental health" and "health questions" bring the most sensitive posts in the
+    collection.** They reach six platforms: "mental health" is Personal's first search
+    on Reddit, Hacker News, dev.to, Bluesky and GitHub (`mental health llm`), and both
+    keywords are in one of its grouped X queries. They bring people's own accounts of
+    using chatbots for therapy, and news about AI and mental-health harms. The page
+    shows counts only, but `iai_item.body` stores that text in the shared database, so
+    point 5's retention question is most pressing here.
+
+    **Decided for the test run** (anooj, 2026-11-20): both keywords and their queries
+    are removed from Personal, and its X groups are rebuilt so each still clubs 5 or
+    more keywords (in the observer PR). **Before they come back:** (a) no stored `body`
+    for Personal items beyond what `--relabel` needs, or (b) a retention limit for the
+    lane.
+14. **A failed search must not read as "found nothing".** In the first dry run
+    (2026-11-20), GitHub's 9 searches (401, an invalid local token) and 4 of dev.to's
+    14 (429, rate limited) showed as `ok` with 0 items, because the runners read no
+    failure from the adapters. **Fixed in #648:** `harvest.failure_of` reads each adapter's record
+    (`http_errors`, `rate_limited`, `empty_response`), and such a search is marked
+    `error` with the reason, keeping any items the pages that answered gave. A real
+    zero result (the site answered, nothing matched) stays `ok` (rule 4).
+
 ---
 
 ## 11. Open points

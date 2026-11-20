@@ -314,7 +314,11 @@ def harvest(
                 )
                 continue
             try:
-                items, used, detail = runner.run(q)
+                # (items, used, detail, failure): every runner reports what its
+                # adapter recorded as failed (see `failure_of`). Unpacked strictly,
+                # so a runner that leaves `failure` out raises and its query is
+                # marked `error`, never read as "nothing failed" (rule 12; #648).
+                items, used, detail, failure = runner.run(q)
             except Exception as e:  # noqa: BLE001 - one failed query must not stop the platform
                 stat.status, stat.detail = "error", f"{type(e).__name__}: {str(e)[:160]}"
                 budget.spend(platform, cost)
@@ -323,6 +327,12 @@ def harvest(
             budget.spend(platform, used)
             out.requests[platform] += used
             stat.requests, stat.items, stat.detail = used, len(items), detail
+            # A FAILED SEARCH MUST NOT READ AS "FOUND NOTHING" (rule 4; the first
+            # dry run, #646: GitHub's 401s and dev.to's 429s showed as ok, 0 items).
+            # Items from the pages that did answer are still kept.
+            if failure:
+                stat.status = "error"
+                stat.detail = "; ".join(x for x in (failure, detail) if x)
             if platform == "feeds":
                 seen_feed[q] = items
             for it in items:
@@ -348,8 +358,36 @@ class _Runner:
     def cost(self, query: str) -> int:
         return 1
 
-    def run(self, query: str) -> tuple[list[Item], int, str]:
+    def run(self, query: str) -> tuple[list[Item], int, str, str | None]:
+        """(items, requests used, detail, failure). `failure` is None unless the
+        adapter recorded a failed request - see `failure_of`."""
         raise NotImplementedError
+
+
+def failure_of(run) -> str | None:
+    """What an adapter's run object recorded as failed, or None.
+
+    THE ADAPTERS RECORD FAILURES; THIS READS THEM. Each adapter swallows a failed
+    request into its run record (`http_errors`, and per platform `failures`,
+    `rate_limited`, `empty_response`) and hands back what it has, so an empty
+    result can mean "nothing found" or "not answered". Only the record tells
+    them apart (rule 4).
+
+    `http_errors` is read directly: every adapter's run record has it, and a
+    record without it raises rather than reading as "nothing failed" (rule 12).
+    The other fields are per platform and read when present.
+    """
+    parts = []
+    n = int(run.http_errors or 0)
+    if n:
+        kinds = sorted({str(f) for f in (getattr(run, "failures", None) or [])})
+        parts.append(f"{n} request(s) failed" + (f" ({', '.join(kinds)})" if kinds else ""))
+    if getattr(run, "rate_limited", False):
+        parts.append("rate-limited")
+    empty = int(getattr(run, "empty_response", 0) or 0)
+    if empty:
+        parts.append(f"{empty} page(s) came back empty after retries")
+    return "; ".join(parts) or None
 
 
 def _gated(rows, contract, platform_id: str, factory, **kwargs):
@@ -392,6 +430,7 @@ class _Reddit(_Runner):
             [_reddit_item(p) for p in run.posts],
             max(run.pages_fetched, 1),
             (f"truncated: {run.truncated_by}" if run.truncated_by else ""),
+            failure_of(run),
         )
 
     def close(self):
@@ -435,7 +474,7 @@ class _X(_Runner):
         if run.quota_limit is not None:
             self.quota = {"quota_limit": run.quota_limit, "quota_remaining": run.quota_remaining}
         detail = f"{pages} page(s)" + ("; quota exhausted" if run.quota_exhausted else "")
-        return [_x_item(p) for p in run.posts], max(run.search_calls, 1), detail
+        return [_x_item(p) for p in run.posts], max(run.search_calls, 1), detail, failure_of(run)
 
     def close(self):
         self.client.close()
@@ -482,7 +521,7 @@ class _GitHub(_Runner):
         run = QueryRun(request=req)
         hits = self.h.search(req, run)
         detail = f"truncated: {run.truncated_by}" if run.truncated_by else ""
-        return [_github_item(h) for h in hits], max(run.search_calls, 1), detail
+        return ([_github_item(h) for h in hits], max(run.search_calls, 1), detail, failure_of(run))
 
     def close(self):
         self.client.close()
@@ -504,8 +543,13 @@ class _HackerNews(_Runner):
         )
 
     def run(self, query):
-        hits = self.h.search_stories(query, since_ts=self.since, per_page=30)
-        return [_hn_item(h) for h in hits if h.get("objectID") and h.get("title")], 1, ""
+        from collect.adapters.hackernews import HnRun
+
+        # ITS OWN RUN RECORD, so a failed request is recorded and read.
+        run = HnRun(query=query, started_at=datetime.now(UTC))
+        hits = self.h.search_stories(query, since_ts=self.since, per_page=30, run=run)
+        items = [_hn_item(h) for h in hits if h.get("objectID") and h.get("title")]
+        return items, 1, "", failure_of(run)
 
     def close(self):
         self.client.close()
@@ -530,7 +574,7 @@ class _Devto(_Runner):
     def run(self, query):
         # dev.to answers HTTP 500 to a hyphenated query (harvest_topics.py, 2026-10-18).
         run = self.h.search(query.replace("-", " "))
-        return [_devto_item(h) for h in run.hits if h.url and h.title], 1, ""
+        return [_devto_item(h) for h in run.hits if h.url and h.title], 1, "", failure_of(run)
 
     def close(self):
         self.client.close()
@@ -552,8 +596,8 @@ class _Bluesky(_Runner):
         hits = []
         if payload is not None:
             hits = [h for h in (self.mod._hit_of(p) for p in payload.get("posts") or []) if h]
-        detail = "" if payload is not None else "; ".join(run.failures) or "no answer"
-        return [_bluesky_item(h) for h in hits], max(run.search_calls, 1), detail
+        failure = failure_of(run) or (None if payload is not None else "no answer")
+        return [_bluesky_item(h) for h in hits], max(run.search_calls, 1), "", failure
 
     def close(self):
         self.client.close()
@@ -583,7 +627,11 @@ class _Feeds(_Runner):
         )
         got = fetcher.fetch_feed(feed["endpoint"])
         items = [_feed_item(fid, e) for e in got.entries if e.url and e.title]
-        return items, 1, str(got.outcome)
+        # "error" and "robots-blocked" are not "an empty feed".
+        failure = None
+        if got.outcome in ("error", "robots-blocked"):
+            failure = f"feed {got.outcome}" + (f": {got.detail}" if got.detail else "")
+        return items, 1, str(got.outcome), failure
 
     def close(self):
         self.client.close()
