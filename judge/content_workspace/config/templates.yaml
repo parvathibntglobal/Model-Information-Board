@@ -1,0 +1,88 @@
+# Content workspace phase 3: starting templates per platform and format.
+#
+# Filled by code from the draft's suggestion (no model): a person edits the
+# result. Every figure comes from a placeholder, so the template itself states
+# no number. `[...]` marks text a person must write; the fit check flags what
+# is left unfilled where it can (chapters).
+#
+# Placeholders (anything else is refused, rule 12):
+#   {headline} {detail} {date} {price} {model_page}
+#   {evidence}  the suggestion's evidence lines, one per line, "- " prefixed
+#   {proof}     its paraphrased reports, one per line:
+#               "- <period>, <platform>: <paraphrase>"
+#   {topic}     the topic kind's label
+# A placeholder the suggestion cannot fill is left as "[no <name> in this
+# suggestion]" rather than dropped (rule 6).
+
+youtube:
+  video_metadata:
+    title: "{headline}"
+    body: |-
+      {detail}
+
+      What engineers reported, counted by the Model Information Board:
+      {evidence}
+
+      Reports behind the counts (the board's paraphrases, not quotes):
+      {proof}
+
+      {price}
+
+      Chapters:
+      0:00 [What we counted]
+      [m:ss] [Chapter]
+      [m:ss] [Chapter]
+
+      Every report, week by week: {model_page}
+      Counts, not scores: the board counts what engineers publicly report.
+    first_comment: "Every report, week by week: {model_page}"
+  shorts_metadata:
+    title: "{headline}"
+    body: |-
+      {detail}
+      {evidence}
+      Full breakdown in the related video and on the board.
+    first_comment: null
+  comment:
+    title: null
+    body: |-
+      [Answer the question in one line.]
+
+      What we counted: {evidence}
+      Every report is on the model's page (link in our pinned comment).
+    first_comment: null
+
+instagram:
+  caption:
+    title: null
+    body: |-
+      [One line the reader recognises.]
+
+      {headline}
+      {evidence}
+
+      [What it means for someone choosing a model, in one or two lines.]
+
+      Every report: link in bio.
+      #ai #llm
+    first_comment: null
+  carousel_text:
+    title: null
+    body: |-
+      {headline}
+      ---
+      {evidence}
+      ---
+      {proof}
+      ---
+      [What it means for you]
+      ---
+      Every report: link in bio
+    first_comment: null
+  comment:
+    title: null
+    body: |-
+      [Answer the question in one line.]
+      What we counted: {evidence}
+      Every report: link in our bio.
+    first_comment: null

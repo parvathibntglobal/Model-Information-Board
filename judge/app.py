@@ -3323,6 +3323,426 @@ def admin_outreach_check(thread_id: int, req: OutreachCheckRequest) -> dict:
     return _kp_call(lambda kp, conn: kp.check_reply(conn, thread_id, req.text))
 
 
+# THE CONTENT WORKSPACE (2026-11-17, anooj; branch feat/content-workspace):
+# Admin -> Content workspace. Per-platform philosophy, research, rules and
+# recommendations people edit; coded topic suggestions read from the board;
+# drafts people write and the platform fit check. Signed in only (no path here
+# is in judge/gate.py's public lists). Its rows are cw_* tables in the BOARD'S
+# database (anooj, 2026-11-19; contract/migrations/
+# 20261119T1200_content_workspace.sql), reached through the same pooled
+# connection as every admin page. Nothing on the board reads a cw_* table.
+
+
+def _cw_conn():
+    """The workspace's connection: the board's pool, since 2026-11-19 one
+    database. A seam of its own only so a test can give the workspace a
+    connection while the board read (`_conn`) fails."""
+    return _conn()
+
+
+def _cw_call(action):
+    """Run one action on the board's pooled connection, mapping refusals. A
+    missing cw_* table means the workspace migration has not run here, and the
+    503 says which command runs it."""
+    import psycopg
+
+    from judge.content_workspace import db as cw_db
+    from judge.content_workspace import store as cw_store
+
+    try:
+        with _cw_conn() as conn:
+            return action(conn)
+    except cw_store.WorkspaceRequestError as e:
+        raise HTTPException(status_code=e.status, detail=str(e)) from None
+    except psycopg.errors.UndefinedTable as e:
+        raise HTTPException(status_code=503, detail=(
+            f"content workspace: {str(e).splitlines()[0]}. {cw_db.MIGRATE_HINT}")) from None
+    except psycopg.Error as e:
+        raise HTTPException(status_code=503, detail=(
+            f"content workspace database: {type(e).__name__}: {e}".rstrip())) from None
+
+
+@app.get("/admin/content/platforms")
+def admin_content_platforms() -> dict:
+    from judge.content_workspace import checks as cw_checks
+    from judge.content_workspace import settings as cw_settings
+    from judge.content_workspace import store as cw_store
+    from judge.content_workspace import templates
+
+    s = cw_settings.load()
+    t = templates.load()
+    return _cw_call(lambda conn: {
+        "platforms": cw_store.platforms(conn),
+        "sections": list(cw_settings.SECTIONS),
+        "checks": sorted(cw_checks.CHECKS),
+        "severities": list(cw_store.SEVERITIES),
+        "statuses": list(cw_store.DRAFT_STATUSES),
+        "topic_kinds": {k: {"label": v["label"], "signal": v["signal"]}
+                        for k, v in s["topic_kinds"].items()},
+        # Which platform/format pairs have a starting template (phase 3).
+        "templates": {k: sorted(v) for k, v in t.items()},
+    })
+
+
+@app.get("/admin/content/platforms/{key}")
+def admin_content_platform(key: str, archived: bool = False) -> dict:
+    from judge.content_workspace import store as cw_store
+
+    return _cw_call(lambda conn: {
+        "platform": cw_store.platform(conn, key),
+        "notes": cw_store.notes(conn, key, archived=archived),
+        "drafts": cw_store.drafts(conn, key),
+    })
+
+
+class ContentNoteCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    platform_key: str | None
+    section: str
+    body: str
+    source: str
+    source_type: str | None = None
+    topic: str | None = None
+    check_id: str | None = None
+    severity: str | None = None
+    params: dict | None = None
+    formats: list[str] | None = None
+
+
+class ContentNoteUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    body: str | None = None
+    topic: str | None = None
+    source: str | None = None
+    source_type: str | None = None
+    check_id: str | None = None
+    severity: str | None = None
+    params: dict | None = None
+    formats: list[str] | None = None
+    archived: bool | None = None
+
+
+@app.post("/admin/content/notes")
+def admin_content_note_create(req: ContentNoteCreate,
+                              authorization: str | None = Header(default=None)) -> dict:
+    from judge.content_workspace import store as cw_store
+
+    by = _signed_in_as(authorization)
+    fields = req.model_dump(exclude={"platform_key", "section", "body", "source"})
+    return _cw_call(lambda conn: cw_store.create_note(
+        conn, platform_key=req.platform_key, section=req.section, body=req.body,
+        source=req.source, by=by, **fields))
+
+
+@app.post("/admin/content/notes/{note_id}")
+def admin_content_note_update(note_id: int, req: ContentNoteUpdate,
+                              authorization: str | None = Header(default=None)) -> dict:
+    from judge.content_workspace import store as cw_store
+
+    by = _signed_in_as(authorization)
+    return _cw_call(lambda conn: cw_store.update_note(
+        conn, note_id, req.model_dump(exclude_unset=True), by))
+
+
+@app.get("/admin/content/notes/{note_id}/history")
+def admin_content_note_history(note_id: int) -> dict:
+    from judge.content_workspace import store as cw_store
+
+    return _cw_call(lambda conn: {"edits": cw_store.note_history(conn, note_id)})
+
+
+@app.get("/admin/content/platforms/{key}/suggestions")
+def admin_content_suggestions(key: str) -> dict:
+    """Topic suggestions from the board's data. Reads the board, writes nothing."""
+    from judge.content_workspace import recommend
+    from judge.content_workspace import settings as cw_settings
+    from judge.content_workspace import store as cw_store
+
+    p, own = _cw_call(lambda conn: (cw_store.platform(conn, key), cw_store.drafts(conn)))
+    s = cw_settings.load()
+    try:
+        with _conn() as board:
+            return recommend.suggestions(board, p, s, workspace_drafts=own)
+    except HTTPException as e:
+        if e.status_code != 503:
+            raise
+        # The board's database is not reachable from here: every board-backed
+        # kind says so, and kinds that need no board data still show.
+        return recommend.suggestions(None, p, s, workspace_drafts=own,
+                                     board_error=str(e.detail))
+
+
+class ContentDraftCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    platform_key: str
+    format: str
+    topic_kind: str | None = None
+    title: str | None = None
+    body: str = ""
+    first_comment: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    suggestion: dict | None = None
+    ai_assisted: bool = False
+
+
+class ContentDraftUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    format: str | None = None
+    topic_kind: str | None = None
+    title: str | None = None
+    body: str | None = None
+    first_comment: str | None = None
+    tags: list[str] | None = None
+    ai_assisted: bool | None = None
+    status: str | None = None
+    posted_url: str | None = None
+
+
+@app.post("/admin/content/drafts")
+def admin_content_draft_create(req: ContentDraftCreate,
+                               authorization: str | None = Header(default=None)) -> dict:
+    from judge.content_workspace import store as cw_store
+
+    by = _signed_in_as(authorization)
+    fields = req.model_dump(exclude={"platform_key"})
+    return _cw_call(lambda conn: cw_store.create_draft(conn, req.platform_key, fields, by))
+
+
+@app.post("/admin/content/drafts/{draft_id}")
+def admin_content_draft_update(draft_id: int, req: ContentDraftUpdate,
+                               authorization: str | None = Header(default=None)) -> dict:
+    from judge.content_workspace import store as cw_store
+
+    by = _signed_in_as(authorization)
+    changes = req.model_dump(exclude_unset=True)
+    for k in ("format", "body", "tags", "ai_assisted", "status"):
+        if k in changes and changes[k] is None:
+            raise HTTPException(status_code=400, detail=f"{k} cannot be emptied to null")
+    return _cw_call(lambda conn: cw_store.update_draft(conn, draft_id, changes, by))
+
+
+@app.post("/admin/content/drafts/{draft_id}/check")
+def admin_content_draft_check(draft_id: int,
+                              authorization: str | None = Header(default=None)) -> dict:
+    """The platform fit check on a saved draft, recorded as a check run.
+    Advisory: it blocks nothing (rule 8)."""
+    from judge.content_workspace import checks as cw_checks
+    from judge.content_workspace import settings as cw_settings
+    from judge.content_workspace import store as cw_store
+
+    by = _signed_in_as(authorization)
+    s = cw_settings.load()
+
+    def run(conn):
+        d = cw_store.draft(conn, draft_id)
+        rules = cw_store.notes(conn, d["platform_key"])["rule"]
+        return cw_store.record_check(conn, d, cw_checks.run(d, rules, s), by)
+
+    return _cw_call(run)
+
+
+# CONTENT WORKSPACE PHASE 2 (2026-11-17, uncommitted while it is tested): the
+# AI writer for platforms that allow one (X, LinkedIn). It PROPOSES; code
+# checks the proposal (judge/content_workspace/writer.py); a person uses and
+# edits it, or not. Spend is in the workspace database, not spend_ledger.
+
+
+# CONTENT WORKSPACE PHASE 3 (2026-11-17, uncommitted while it is tested):
+# coded starting templates (YouTube and Instagram have no AI writer), the
+# tracked link, and the results log a person fills from each platform's own
+# analytics. Nothing here fetches from a platform or calls a model.
+
+
+@app.get("/admin/content/drafts/{draft_id}/template")
+def admin_content_template(draft_id: int) -> dict:
+    """The draft's platform/format template filled from its suggestion. Not
+    saved: the page puts it in the editor for a person to finish."""
+    from judge.content_workspace import settings as cw_settings
+    from judge.content_workspace import store as cw_store
+    from judge.content_workspace import templates
+
+    def run(conn):
+        d = cw_store.draft(conn, draft_id)
+        return templates.fill(d, cw_store.platform(conn, d["platform_key"]), cw_settings.load())
+
+    return _cw_call(run)
+
+
+@app.get("/admin/content/drafts/{draft_id}/results")
+def admin_content_results(draft_id: int) -> dict:
+    from judge.content_workspace import results
+    from judge.content_workspace import settings as cw_settings
+
+    return _cw_call(lambda conn: results.view(conn, draft_id, cw_settings.load()))
+
+
+class ContentResultRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    metric: str
+    value: int
+    source: str
+    observed_at: datetime | None = None
+    note: str | None = None
+
+
+@app.post("/admin/content/drafts/{draft_id}/results")
+def admin_content_add_result(draft_id: int, req: ContentResultRequest,
+                             authorization: str | None = Header(default=None)) -> dict:
+    from judge.content_workspace import results
+    from judge.content_workspace import settings as cw_settings
+
+    by = _signed_in_as(authorization)
+    at = req.observed_at
+    if at is not None and at.tzinfo is None:
+        at = at.replace(tzinfo=UTC)
+    return _cw_call(lambda conn: results.add(
+        conn, draft_id, metric=req.metric, value=req.value, source=req.source,
+        observed_at=at, note=req.note, by=by, s=cw_settings.load()))
+
+
+class ContentTickRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    note_id: int
+    ticked: bool
+
+
+@app.post("/admin/content/drafts/{draft_id}/ticks")
+def admin_content_tick(draft_id: int, req: ContentTickRequest,
+                       authorization: str | None = Header(default=None)) -> dict:
+    """Save a person's tick on a rule checked by hand, against the draft's
+    content as it is now."""
+    from judge.content_workspace import store as cw_store
+
+    by = _signed_in_as(authorization)
+    return _cw_call(lambda conn: {"ticks": {str(k): v for k, v in cw_store.set_tick(
+        conn, draft_id, req.note_id, req.ticked, by).items()}})
+
+
+@app.get("/admin/content/platforms/{key}/results")
+def admin_content_platform_results(key: str) -> dict:
+    from judge.content_workspace import results
+    from judge.content_workspace import settings as cw_settings
+
+    return _cw_call(lambda conn: results.overview(conn, key, cw_settings.load()))
+
+
+@app.get("/admin/content/drafts/{draft_id}/media")
+def admin_content_media(draft_id: int) -> dict:
+    from judge.content_workspace import media
+
+    return _cw_call(lambda conn: {"media": media.listing(conn, draft_id)})
+
+
+@app.get("/admin/content/media/{media_id}")
+def admin_content_media_file(media_id: int):
+    """One media file's bytes, for a signed-in person only (no path here is
+    public: the workspace stays behind the login)."""
+    from fastapi.responses import Response
+
+    from judge.content_workspace import media
+
+    data, content_type, filename = _cw_call(lambda conn: media.fetch(conn, media_id))
+    return Response(content=data, media_type=content_type, headers={
+        "Content-Disposition": f'inline; filename="{filename}"',
+        "Cache-Control": "private, no-store"})
+
+
+@app.get("/admin/content/models")
+def admin_content_models(q: str = "") -> dict:
+    """Models on the board matching a name, for the trajectory picker. Reads only."""
+    from judge.content_workspace import recommend
+    from judge.content_workspace import settings as cw_settings
+
+    with _conn() as board:
+        return {"models": recommend.find_models(board, q, cw_settings.load())}
+
+
+@app.get("/admin/content/trajectory")
+def admin_content_trajectory(model: str, start: str | None = None,
+                             weeks: int | None = None) -> dict:
+    """A model week by week, with counts and paraphrased proof, as a topic
+    suggestion a draft can start from. Reads the board, writes nothing."""
+    from datetime import date as _date
+
+    from judge.content_workspace import recommend
+    from judge.content_workspace import settings as cw_settings
+
+    try:
+        begin = _date.fromisoformat(start) if start else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="start is a date, YYYY-MM-DD") from None
+    with _conn() as board:
+        try:
+            return recommend.trajectory(board, model, cw_settings.load(), start=begin,
+                                        weeks=weeks)
+        except recommend.TrajectoryRequestError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+@app.get("/admin/content/capability-split")
+def admin_content_capability_split(model: str, start: str | None = None,
+                                   days: int | None = None) -> dict:
+    """A model's reports by capability and job over a span of days (topic
+    selection A): people for, against and neutral on each. Reads the board."""
+    from datetime import date as _date
+
+    from judge.content_workspace import recommend
+    from judge.content_workspace import settings as cw_settings
+
+    try:
+        begin = _date.fromisoformat(start) if start else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="start is a date, YYYY-MM-DD") from None
+    with _conn() as board:
+        try:
+            return recommend.capability_split(board, model, cw_settings.load(), start=begin,
+                                              days=days)
+        except recommend.TrajectoryRequestError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+@app.get("/admin/content/writer")
+def admin_content_writer() -> dict:
+    from judge.content_workspace import settings as cw_settings
+    from judge.content_workspace import writer
+
+    return _cw_call(lambda conn: writer.status(conn, cw_settings.load()))
+
+
+@app.get("/admin/content/drafts/{draft_id}/proposals")
+def admin_content_proposals(draft_id: int) -> dict:
+    from judge.content_workspace import writer
+
+    return _cw_call(lambda conn: {"proposals": writer.runs(conn, draft_id)})
+
+
+class ContentProposeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    instructions: str | None = None
+
+
+@app.post("/admin/content/drafts/{draft_id}/propose")
+def admin_content_propose(draft_id: int, req: ContentProposeRequest,
+                          authorization: str | None = Header(default=None)) -> dict:
+    """One writer call. A failed or refused answer is a 200 with its state and
+    reasons (it was paid for and is recorded); only a refusal to call at all
+    (platform not allowed, budget spent) is an error."""
+    from judge.content_workspace import writer
+
+    by = _signed_in_as(authorization)
+    return _cw_call(lambda conn: writer.propose(conn, draft_id, instructions=req.instructions,
+                                                by=by))
+
+
+@app.post("/admin/content/proposals/{run_id}/use")
+def admin_content_use_proposal(run_id: int,
+                               authorization: str | None = Header(default=None)) -> dict:
+    from judge.content_workspace import writer
+
+    by = _signed_in_as(authorization)
+    return _cw_call(lambda conn: writer.use(conn, run_id, by))
+
+
 # THE BENCHMARKS PAGE (2026-10-22, Parvathi): signed in only (every route here
 # needs the token - none is in judge/gate.py's public lists). Published
 # benchmark results for the tracked text models, scraped by collect/benchmarks/

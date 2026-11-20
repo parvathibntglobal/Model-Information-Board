@@ -1088,6 +1088,393 @@ columns:
     subject:
       reviewed: false
       state: unwired
+  # THE CONTENT WORKSPACE (cw_*), moved into the board's database 2026-11-19.
+  # Not evidence: nothing on the board reads these. Read through column
+  # tuples in judge/content_workspace/ that the audit cannot see in f-strings.
+  cw_check_run:
+    id:
+      reviewed: false
+      state: read
+    draft_id:
+      reviewed: false
+      state: read
+    ran_at:
+      reviewed: false
+      state: read
+    ran_by:
+      reviewed: false
+      state: write_only
+    content_sha:
+      reviewed: false
+      state: read
+    results:
+      reviewed: false
+      state: read
+    counts:
+      reviewed: false
+      state: read
+  cw_draft:
+    id:
+      reviewed: false
+      state: read
+    platform_key:
+      reviewed: false
+      state: read
+    format:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    topic_kind:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    title:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    body:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    tags:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    suggestion:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    ai_assisted:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    status:
+      reviewed: true
+      state: written_not_by_query
+      why: 'Written by judge/content_workspace/store.py update_draft(), an UPDATE whose SET list is built from DRAFT_FIELDS (posted_at = now() is appended when a draft becomes posted). Migration 20261119T1200.'
+    posted_url:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API. Written by judge/content_workspace/store.py update_draft(), an UPDATE whose SET list is built from DRAFT_FIELDS (posted_at = now() is appended when a draft becomes posted). Migration 20261119T1200.'
+    posted_at:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API. Written by judge/content_workspace/store.py update_draft(), an UPDATE whose SET list is built from DRAFT_FIELDS (posted_at = now() is appended when a draft becomes posted). Migration 20261119T1200.'
+    created_at:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API. Filled by DEFAULT now(). Migration 20261119T1200.'
+    created_by:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    updated_at:
+      reviewed: false
+      state: read
+    updated_by:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    first_comment:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py drafts() and draft() through DRAFT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+  cw_media:
+    id:
+      reviewed: true
+      state: defaulted
+      why: 'bigserial; no code writes it. Migration 20261119T1200.'
+    draft_id:
+      reviewed: false
+      state: read
+    kind:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    filename:
+      reviewed: false
+      state: read
+    content_type:
+      reviewed: false
+      state: read
+    data:
+      reviewed: false
+      state: read
+    size_bytes:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    width:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    height:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    pages:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    made_with:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    content_sha:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    note:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    created_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(); no code writes it. Migration 20261119T1200.'
+    created_by:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/media.py listing() through COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+  cw_note:
+    id:
+      reviewed: false
+      state: read
+    platform_key:
+      reviewed: false
+      state: read
+    section:
+      reviewed: false
+      state: read
+    seed_key:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py notes() and note() through NOTE_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    topic:
+      reviewed: false
+      state: read
+    source:
+      reviewed: false
+      state: read
+    source_type:
+      reviewed: false
+      state: read
+    body:
+      reviewed: false
+      state: read
+    check_id:
+      reviewed: false
+      state: read
+    severity:
+      reviewed: false
+      state: read
+    params:
+      reviewed: false
+      state: read
+    formats:
+      reviewed: false
+      state: read
+    sort_order:
+      reviewed: false
+      state: read
+    archived:
+      reviewed: true
+      state: written_not_by_query
+      why: 'Written by judge/content_workspace/store.py update_note(), an UPDATE whose SET list is built from NOTE_FIELDS. Migration 20261119T1200.'
+    created_at:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py notes() and note() through NOTE_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API. Filled by DEFAULT now(). Migration 20261119T1200.'
+    created_by:
+      reviewed: false
+      state: read
+    updated_at:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py notes() and note() through NOTE_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    updated_by:
+      reviewed: false
+      state: read
+  cw_note_edit:
+    id:
+      reviewed: false
+      state: read
+    note_id:
+      reviewed: false
+      state: read
+    before:
+      reviewed: false
+      state: read
+    after:
+      reviewed: false
+      state: read
+    edited_at:
+      reviewed: false
+      state: read
+    edited_by:
+      reviewed: false
+      state: read
+  cw_platform:
+    key:
+      reviewed: false
+      state: read
+    name:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py platforms() through PLATFORM_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    sort_order:
+      reviewed: false
+      state: read
+    formats:
+      reviewed: false
+      state: read
+    topic_kinds:
+      reviewed: false
+      state: read
+    video_creation:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py platforms() through PLATFORM_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    ai_writer_allowed:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py platforms() through PLATFORM_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    researched:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/store.py platforms() through PLATFORM_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    seeded_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(); nothing reads it yet. Migration 20261119T1200.'
+  cw_result:
+    id:
+      reviewed: true
+      state: defaulted
+      why: 'bigserial; no code writes it. Migration 20261119T1200.'
+    draft_id:
+      reviewed: false
+      state: read
+    metric:
+      reviewed: false
+      state: read
+    value:
+      reviewed: false
+      state: read
+    observed_at:
+      reviewed: false
+      state: read
+    source:
+      reviewed: false
+      state: read
+    note:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/results.py view() through RESULT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    recorded_at:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/results.py view() through RESULT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API. Filled by DEFAULT now(). Migration 20261119T1200.'
+    recorded_by:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/results.py view() through RESULT_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+  cw_tick:
+    id:
+      reviewed: false
+      state: read
+    draft_id:
+      reviewed: false
+      state: read
+    note_id:
+      reviewed: false
+      state: read
+    ticked:
+      reviewed: false
+      state: read
+    content_sha:
+      reviewed: false
+      state: read
+    at:
+      reviewed: false
+      state: read
+    by_whom:
+      reviewed: false
+      state: read
+  cw_writer_run:
+    id:
+      reviewed: false
+      state: read
+    draft_id:
+      reviewed: false
+      state: read
+    platform_key:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    format:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    instructions:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    model_asked:
+      reviewed: false
+      state: read
+    model_served:
+      reviewed: false
+      state: read
+    input_tokens:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    output_tokens:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    cost_usd:
+      reviewed: false
+      state: read
+    state:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    reasons:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    proposal:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    fit:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    prompt_sha:
+      reviewed: false
+      state: write_only
+    requested_by:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    created_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(); no code writes it. Migration 20261119T1200.'
+    used_at:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    used_by:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by judge/content_workspace/writer.py runs() and use() through RUN_COLUMNS (a column list the audit cannot see in an f-string) and returned in the workspace API at /admin/content. Migration 20261119T1200.'
+    replaced:
+      reviewed: false
+      state: write_only
   dedup_cluster:
     canonical_document_id:
       reviewed: true
