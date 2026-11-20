@@ -33,12 +33,16 @@ overlapping boxes also stop it, and nothing is written.
 paraphrases are the evidence feed's stored rows, and per-item human approval of
 those (#558) applies before any card is published.
 
-**A known layout limit.** The two columns of page 2 size to their content, and a
-card's source line does not wrap. A card whose source is a long name ("Hacker
-News", "Hugging Face") widens its column and pushes the other column past the
-page edge; the layout guard then refuses the render (nothing is written). Fixing
-it (letting the columns shrink, or wrapping the source line) changes the
-approved look's pixels, so it is a decision, not a silent fix.
+**Long source names (fixed 2026-11-20, #641 review).** Page 2's two columns are
+fixed halves (`minmax(0, 1fr)`), and a card's source line wraps. Before this, the
+columns sized to their content and the source line did not wrap, so a card whose
+source is a long name ("Hacker News", "Hugging Face") pushed the other column past
+the page edge, and the layout guard refused the render. A long source line now
+breaks onto a second line inside its card ("… · restated by the" / "board").
+Re-checked with `compare_pages.py`: both approved evidence boards (Kimi K2.5 and
+MiniMax M2.7) are pixel-identical before and after, because none of their sources
+needed to wrap. Only a board with a long source name looks different, and before
+the fix such a board could not be rendered at all.
 
 **Example:** `examples/example.json` is SYNTHETIC: an invented model and
 invented card text over the approved board's structure. Specs made from the
