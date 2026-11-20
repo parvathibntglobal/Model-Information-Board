@@ -1,23 +1,35 @@
-# Industry AI agent: AI data from five industries
+# Industry AI agent: AI data from industries and functions
 
 *Design and handover for the lane built in #644 (2026-11-20). Plan by Parvathi; the
-code points here as "docs/industry-ai-agent.md §N". Keep this file in step with the
-code: a change to how a stage works is a change here too.*
+code points here as "docs/industry-ai-agent.md §N". The domains, keywords and queries
+are the team's, loaded in #645 (anooj). Keep this file in step with the code: a change
+to how a stage works is a change here too. The contract file itself is the source for
+which domains, terms and queries exist; this document describes how they are used.*
 
 ## 1. Goal
 
 The **Industry AI agent** is a **separate part of the modelboard** that collects as
-much data as possible about **AI in five industries**:
-- **Finance**
-- **Healthcare**
-- **Hospitality**
-- **Engineering**
-- **Governance**
+much data as possible about **AI in industries and functions**.
+
+**The domains** (as loaded by #645, 2026-11-20; `contract/industry_ai.yaml` is the
+source):
+- **20 umbrellas:** 11 industries (`kind: industry`) and 9 functions (`kind:
+  function`, roles that cut across industries), with about 536 two-word workflow
+  keywords as their terms.
+- **Five are `active` for the first test run:** Marketing, Content & SEO; Design &
+  Creative; Security & IT; Retail & E-commerce; Leaders & Founders. They were chosen
+  as the umbrellas with the highest share of keywords showing strong AI evidence on
+  Reddit and Hacker News (#645).
+- **The build's starter five** (Finance, Healthcare, Hospitality, Engineering,
+  Governance) stay in the file, complete, with `active: false`. Each is one line to
+  switch back on.
+- **Groups:** Engineering (*Software & AI*, *Physical*), Film (four groups) and
+  Governance (*Public Sector & Nonprofit*, *AI Policy & Governance*).
 
 It harvests from Reddit, X, GitHub, Hacker News, dev.to, Bluesky and blog/RSS feeds,
 driven by **keywords per domain per platform** in `contract/industry_ai.yaml`.
 
-**The contract is built to hold more than five domains** (#644 review):
+**How the contract expresses this** (#644 review):
 - **`kind`:** each domain is an `industry` or a `function` (a role that cuts across
   industries, like marketing or support).
 - **`active`:** only `active: true` domains are harvested, so the file can hold every
@@ -125,8 +137,9 @@ items too.
 - **Queries are taken round-robin across domains** within each platform, so every
   domain gets its first query before any gets its second. Walked in file order, one
   cap per platform would starve whichever domains come last.
-- **X pages per query:** a query clubbing at least `run.x_clubbed_min_keywords` (6)
-  quoted keywords gets `pages_per_query.x_clubbed` (5) pages; any other gets
+- **X pages per query:** a query clubbing at least `run.x_clubbed_min_keywords` (5
+  since #645; a list rarely splits into sixes) quoted keywords gets
+  `pages_per_query.x_clubbed` (5) pages; any other gets
   `pages_per_query.x`.
   - Measured 2026-11-20 on our X route: a six-keyword `("a" OR "b" ...) (AI OR LLM
     ...)` query returned 100 distinct posts over 5 pages, with more after.
@@ -154,9 +167,12 @@ items too.
 - **Industry term:** a term of **any** domain or group, matched **outside** the
   excluded phrases. The order is: global exclusions, then the domain's (for all its
   terms), then a group's (for that group's own terms only):
-  - "prompt / context engineering" match neither Engineering group;
+  - "prompt engineering" counts for Engineering's *Software & AI* group (anooj,
+    #645) and never for *Physical*; "context engineering" matches neither;
   - "software engineering" and its relatives are excluded from *Physical* only;
     they are *Software & AI*'s own terms;
+  - a term must never be cancelled by its own exclusions: a test checks every
+    domain and group (#645);
   - "data / corporate governance" are not Governance;
   - `.ai` and "artificial insemination" are not AI.
 - **The matched terms are kept** (`matched_terms`, `ai_terms`): which terms of which
@@ -310,7 +326,7 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
 
 | Risk | Handling |
 |---|---|
-| "prompt engineering" floods Engineering | excluded phrase |
+| "prompt engineering" in Engineering | *Software & AI* only, never *Physical* (#645) |
 | "AI governance" vendor marketing in Governance | sampled on its own in §7 |
 | busy keywords crowd out quiet ones in a clubbed X query | per-keyword counts from `matched_terms` |
 | airline "pilots" read as pilot programmes | the pilot pattern needs a programme context |
@@ -363,12 +379,35 @@ measurements.
    database. It is never shown, but the main pipeline's Reddit data-retention
    question applies here too.
 
+**From the #645 review** (the umbrellas' contract, read 2026-11-20; the team's to tune):
+
+6. **Terms that pass the AI test by themselves.** Leaders & Founders' "AI adoption",
+   "AI strategy", "AI transformation" and "AI implementation" contain "AI", so a post
+   naming one passes both sieve checks with one phrase, and general AI commentary
+   counts as Leaders & Founders. The same is true of `<keyword> AI` evidence for those
+   four, so up to 4 of the 14 "strong" keywords that helped choose Leaders & Founders
+   are strong by construction. The same shape is in Governance's AI-policy group.
+   Candidates for `ambiguous_terms` with a leaders context.
+7. **Terms that name the AI capability, not the work:** Design & Creative's "image
+   generation" and "image upscaling" mostly bring in model and tool news.
+8. **Broad phrases in the active five:** "blog posts", "landing pages", "LinkedIn
+   posts", "product launches", "small business", "fundraising", "cost cutting",
+   "pricing strategy", "product reviews".
+9. **The X AI group's bare `agent`** also matches travel, real-estate and support
+   agents. The sieve drops those, but they use up each query's pages.
+10. **Governance's domain-level terms** (government, public sector, courts and others)
+    sit in no group, so its group counts would be incomplete. Move them into its
+    groups before Governance is switched on.
+11. **Quota.** The X cap is exactly 20 queries × 5 pages, so a new X query is capped
+    until the cap rises, and a weekly run spends up to 100 X and 40 Reddit requests
+    from the RapidAPI quota the model fetches share.
+
 ---
 
 ## 11. Open points
 
 - **Governance scope: decided** (anooj, #644 review). It covers the public sector's
-  use of AI **and** AI policy and governance practice.
+  use of AI **and** AI policy and governance practice, as two groups since #645.
 - **First-harvest lookback** (`run.window_days`, 365 to start).
 - **Domain feed lists.** Add feeds to `contract/sources.yaml` `feeds:` (each needs a
   terms ruling), then list them per domain.
