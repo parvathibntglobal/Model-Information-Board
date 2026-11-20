@@ -146,7 +146,8 @@ def write_labels(conn, results: dict[str, Result], *, pipeline_version: str) -> 
     for item_id, r in results.items():
         conn.execute(
             "UPDATE iai_item SET verdict = %s, drop_stage = %s, drop_reason = %s, flags = %s, "
-            "domains = %s, content_type = %s, matched_pattern = %s, stage_guess = %s, "
+            "domains = %s, groups = %s, matched_terms = %s, ai_terms = %s, "
+            "content_type = %s, matched_pattern = %s, stage_guess = %s, "
             "canonical_of = %s, share_count = %s, canonical_url = %s, pipeline_version = %s, "
             "labelled_at = %s WHERE id = %s",
             (
@@ -155,6 +156,9 @@ def write_labels(conn, results: dict[str, Result], *, pipeline_version: str) -> 
                 r.reason,
                 r.flags,
                 r.domains,
+                r.groups,
+                json.dumps(r.matched_terms),
+                r.ai_terms,
                 r.content_type,
                 r.matched_pattern,
                 r.stage_guess,

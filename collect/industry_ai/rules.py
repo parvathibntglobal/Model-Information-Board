@@ -17,7 +17,7 @@ from datetime import datetime
 from functools import lru_cache
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from collect.industry_ai.config import DEFAULT_TYPE, Config, Domain
+from collect.industry_ai.config import DEFAULT_TYPE, Config, Domain, Terms
 
 # ── the item ─────────────────────────────────────────────────────────────────
 
@@ -56,6 +56,7 @@ class Verdict:
     reason: str | None = None
     flags: list[str] = field(default_factory=list)
     domains: list[str] = field(default_factory=list)
+    groups: list[str] = field(default_factory=list)
     content_type: str | None = None
     matched_pattern: str | None = None
     stage_guess: str | None = None
@@ -234,21 +235,44 @@ def _near(words: list[str], i: int, context: tuple[str, ...], window: int) -> bo
     return any(has_term(span, c) for c in context)
 
 
-def domain_terms_found(text: str, domain: Domain, cfg: Config) -> list[str]:
-    """The domain's terms in the item, outside every excluded phrase. An
-    ambiguous term counts only with one of its context words nearby."""
-    clean = remove(remove(text, cfg.global_exclude), domain.exclude_phrases)
-    found = [t for t in domain.domain_terms if has_term(clean, t)]
-    if domain.ambiguous_terms:
+def _found(clean: str, terms: Terms, cfg: Config) -> list[str]:
+    """`terms`' words in already-cleaned text. An ambiguous term counts only with
+    one of its context words nearby."""
+    found = [t for t in terms.domain_terms if has_term(clean, t)]
+    if terms.ambiguous_terms:
         words = clean.split()
         window = int(cfg.run["context_window_words"])
-        for term, context in domain.ambiguous_terms.items():
+        for term, context in terms.ambiguous_terms.items():
             pat = term_pattern(term)
             for i, w in enumerate(words):
                 if pat.fullmatch(w.strip(".,;:!?()[]\"'")) and _near(words, i, context, window):
                     found.append(term)
                     break
     return found
+
+
+def domain_match(text: str, domain: Domain, cfg: Config) -> dict | None:
+    """What of one domain the item names: `{"terms": [...], "groups": {g: [...]}}`,
+    or None when nothing. The domain's exclusions apply to all of its terms; a
+    group's exclusions only to that group's own (#644 review, point 4)."""
+    clean = remove(remove(text, cfg.global_exclude), domain.terms.exclude_phrases)
+    terms = _found(clean, domain.terms, cfg)
+    groups = {}
+    for gkey, g in domain.groups.items():
+        hit = _found(remove(clean, g.terms.exclude_phrases), g.terms, cfg)
+        if hit:
+            groups[gkey] = hit
+    if not terms and not groups:
+        return None
+    return {"terms": terms, "groups": groups}
+
+
+def domain_terms_found(text: str, domain: Domain, cfg: Config) -> list[str]:
+    """Every term of the domain and its groups the item names (flattened)."""
+    m = domain_match(text, domain, cfg)
+    if m is None:
+        return []
+    return m["terms"] + [t for g in m["groups"].values() for t in g]
 
 
 # ── the stages ───────────────────────────────────────────────────────────────
@@ -260,16 +284,19 @@ def outside_window(item: Item, since: datetime) -> bool:
     return item.created_at is not None and item.created_at < since
 
 
-def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, list[str]]]:
-    """(drop reason or None, domain -> matched terms). Needs an AI term and a
-    domain term from ANY domain; which domain it is gets decided in `label`."""
+def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, dict], list[str]]:
+    """(drop reason or None, domain -> what matched, AI terms found). Needs an AI
+    term and a term of ANY domain or group; which domain it is gets decided in
+    `label`. The matched terms are KEPT (#644 review, point 2): they are what a
+    keyword's count is counted from, and a post can count for several."""
     text = item.text
-    if not ai_terms_found(text, cfg):
-        return "no_ai_term", {}
-    matched = {k: t for k, d in cfg.domains.items() if (t := domain_terms_found(text, d, cfg))}
+    ai = ai_terms_found(text, cfg)
+    if not ai:
+        return "no_ai_term", {}, []
+    matched = {k: m for k, d in cfg.domains.items() if (m := domain_match(text, d, cfg))}
     if not matched:
-        return "no_domain_term", {}
-    return None, matched
+        return "no_domain_term", {}, ai
+    return None, matched, ai
 
 
 def _english(item: Item) -> bool:
@@ -299,8 +326,9 @@ def filter_reason(
     min_chars = int(cfg.run["min_text_chars"])
 
     if len(bare) < min_chars:
-        # A PURE LINK POST IS NOT DROPPED OUTRIGHT when it shares an article:
-        # it is kept and deduped onto the article by its link (docs/industry-ai-agent.md §3 stage 4).
+        # A PURE LINK POST IS NOT DROPPED OUTRIGHT when it shares an article: it
+        # is kept and deduped onto the article by its link
+        # (docs/industry-ai-agent.md §3 stage 4).
         if is_article_link(item.link or first_link(text)):
             flags.append("link_share")
         else:
@@ -329,15 +357,17 @@ def filter_reason(
     return None, flags
 
 
-def label(item: Item, matched: dict[str, list[str]], cfg: Config) -> Verdict:
-    """Domain(s), content type and stage, for an item every filter kept.
+def label(item: Item, matched: dict[str, dict], cfg: Config) -> Verdict:
+    """Domain(s), group(s), content type and stage, for an item every filter kept.
 
     DOMAIN: the domains whose queries found the item, confirmed by their own
     terms. None confirmed means `domains` is empty - the "domain unconfirmed"
     bucket, never a guess; another domain whose terms matched is recorded as a
-    flag only.
+    flag only. GROUPS: within a confirmed domain, every group whose own terms
+    matched, as "<domain>/<group>".
     """
     domains = sorted(d for d in item.domain_hints if d in matched)
+    groups = sorted(f"{d}/{g}" for d in domains for g in matched[d]["groups"])
     flags = [f"also_matches:{d}" for d in sorted(matched) if d not in item.domain_hints]
     text = item.text
 
@@ -360,6 +390,7 @@ def label(item: Item, matched: dict[str, list[str]], cfg: Config) -> Verdict:
         kept=True,
         flags=flags,
         domains=domains,
+        groups=groups,
         content_type=content_type,
         matched_pattern=why,
         stage_guess=stage,

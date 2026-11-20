@@ -107,18 +107,40 @@ class Budget:
 
 
 def plan(cfg: Config, *, domains: list[str], platforms: list[str]) -> list[tuple[str, str, str]]:
-    """Every (domain, platform, query) a run would ask, in order. No network."""
+    """Every (scope, platform, query) a run would ask, in file order. `scope` is
+    the domain, or "<domain>/<group>" for a group's own queries. No network."""
     out = []
     for d in domains:
-        q = cfg.domains[d].queries
-        for p in platforms:
-            if p == "reddit":
-                out += [(d, p, f"r/{s}") for s in q["reddit"]["subreddits"]]
-                out += [(d, p, s) for s in q["reddit"]["search"]]
-            elif p == "feeds":
-                out += [(d, p, f) for f in q["feeds"]]
-            else:
-                out += [(d, p, s) for s in q[p]["search"]]
+        dom = cfg.domains[d]
+        scopes = [(d, dom.terms.queries)] + [
+            (f"{d}/{g}", grp.terms.queries) for g, grp in dom.groups.items()
+        ]
+        for scope, q in scopes:
+            for p in platforms:
+                if p == "reddit":
+                    out += [(scope, p, f"r/{s}") for s in q["reddit"]["subreddits"]]
+                    out += [(scope, p, s) for s in q["reddit"]["search"]]
+                elif p == "feeds":
+                    out += [(scope, p, f) for f in q["feeds"]]
+                else:
+                    out += [(scope, p, s) for s in q[p]["search"]]
+    return out
+
+
+def round_robin(wanted: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """One platform's (scope, query) list, taken a domain at a time in turn.
+
+    FAIR UNDER THE CAP (#644 review, point 7): walked in file order, one budget
+    per platform starved whichever domains were listed last, and the log read as
+    "those domains had nothing". In turn, every domain gets its first query
+    before any gets its second."""
+    by_domain: dict[str, list[tuple[str, str]]] = {}
+    for scope, q in wanted:
+        by_domain.setdefault(scope.split("/", 1)[0], []).append((scope, q))
+    lists = list(by_domain.values())
+    out = []
+    for i in range(max((len(x) for x in lists), default=0)):
+        out += [x[i] for x in lists if i < len(x)]
     return out
 
 
@@ -255,11 +277,11 @@ def harvest(
     budget = Budget({p: int(cfg.run["max_requests"][p]) for p in platforms})
     rows = {p.get("id"): p for p in contract.platforms}
     by_platform: dict[str, list[tuple[str, str]]] = {}
-    for d, p, q in plan(cfg, domains=domains, platforms=platforms):
-        by_platform.setdefault(p, []).append((d, q))
+    for scope, p, q in plan(cfg, domains=domains, platforms=platforms):
+        by_platform.setdefault(p, []).append((scope, q))
 
     for platform in platforms:
-        wanted = by_platform.get(platform, [])
+        wanted = round_robin(by_platform.get(platform, []))
         if not wanted:
             continue
         try:
@@ -281,7 +303,7 @@ def harvest(
             if platform == "feeds" and q in seen_feed:
                 # ONE FEED, ONE REQUEST, whichever domains list it.
                 for it in seen_feed[q]:
-                    out.add(it, domain=d, key=stat.key)
+                    out.add(it, domain=d.split("/", 1)[0], key=stat.key)
                 stat.items, stat.detail = len(seen_feed[q]), "same feed as another domain"
                 continue
             cost = runner.cost(q)
@@ -304,7 +326,7 @@ def harvest(
             if platform == "feeds":
                 seen_feed[q] = items
             for it in items:
-                out.add(it, domain=d, key=stat.key)
+                out.add(it, domain=d.split("/", 1)[0], key=stat.key)
         quota = getattr(runner, "quota", None)
         if quota:
             out.quota[platform] = quota
@@ -377,30 +399,42 @@ class _Reddit(_Runner):
 
 
 class _X(_Runner):
+    """X, with a page count PER QUERY: a query clubbing at least
+    `x_clubbed_min_keywords` keywords gets `x_clubbed` pages (Config.x_pages,
+    #644 review, point 10). One harvester per page count, built on first use."""
+
     def __init__(self, cfg, rows, contract, store, client_factory, since):
         from collect.adapters import x
 
+        self.cfg = cfg
         self.client = client_factory(timeout=30.0)
-        self.pages = int(cfg.run["pages_per_query"]["x"])
         self.suffix = cfg.query_suffix.get("x", "")
-        self.h = _gated(
+        self._build = lambda pages: _gated(
             rows,
             contract,
             "x",
             x.harvester_for_source,
             client=self.client,
             store=store,
-            max_pages=self.pages,
+            max_pages=pages,
         )
+        self._by_pages: dict[int, Any] = {}
+        self._build(int(cfg.run["pages_per_query"]["x"]))  # the gate, before any query
+
+    def _full(self, query: str) -> str:
+        return f"{query} {self.suffix}".strip()
 
     def cost(self, query):
-        return self.pages
+        return self.cfg.x_pages(query)
 
     def run(self, query):
-        run = self.h.search(f"{query} {self.suffix}".strip(), search_type="Latest")
+        pages = self.cfg.x_pages(query)
+        if pages not in self._by_pages:
+            self._by_pages[pages] = self._build(pages)
+        run = self._by_pages[pages].search(self._full(query), search_type="Latest")
         if run.quota_limit is not None:
             self.quota = {"quota_limit": run.quota_limit, "quota_remaining": run.quota_remaining}
-        detail = "quota exhausted" if run.quota_exhausted else ""
+        detail = f"{pages} page(s)" + ("; quota exhausted" if run.quota_exhausted else "")
         return [_x_item(p) for p in run.posts], max(run.search_calls, 1), detail
 
     def close(self):

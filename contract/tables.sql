@@ -2848,6 +2848,15 @@ CREATE TABLE IF NOT EXISTS iai_item (
   flags            text[] NOT NULL DEFAULT '{}',
   -- Confirmed domains; EMPTY on a kept item means "domain unconfirmed".
   domains          text[] NOT NULL DEFAULT '{}',
+  -- Within confirmed domains, the groups whose terms matched: '<domain>/<group>'.
+  groups           text[] NOT NULL DEFAULT '{}',
+  -- WHICH TERMS MATCHED, per domain: {"<domain>": {"terms": [...],
+  -- "groups": {"<group>": [...]}}}. The value a workflow keyword's count is
+  -- counted from (one post can count for several) - kept, not recomputed
+  -- (#644 review, point 2). Written for every item the sieve passed.
+  matched_terms    jsonb NOT NULL DEFAULT '{}',
+  -- The AI terms the item named.
+  ai_terms         text[] NOT NULL DEFAULT '{}',
   content_type     text,
   matched_pattern  text,
   stage_guess      text,

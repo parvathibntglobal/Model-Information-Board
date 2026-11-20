@@ -1,12 +1,13 @@
-"""Stages 2-6 over a set of items: window, sieve, dedupe, filter, label.
+"""Stages 2-5 over a set of items: sieve (window and terms), dedupe, filter, label.
 
 PURE, apart from the near-duplicate clustering it reuses: items in, one
 `Result` per item out, plus the counts the run log and the page read. The same
 function runs on a fresh harvest and on `--relabel` over every stored item, so a
 contract change re-labels the whole collection without a request.
 
-RUN ORDER IS THE NUMBERED ORDER (docs/industry-ai-agent.md §2): an item dropped at one stage is never
-looked at by a later one, and every drop names its stage and reason.
+RUN ORDER IS THE NUMBERED ORDER (docs/industry-ai-agent.md §2): an item dropped
+at one stage is never looked at by a later one, and every drop names its stage
+and reason.
 """
 
 from __future__ import annotations
@@ -37,6 +38,10 @@ class Result:
     reason: str | None = None
     flags: list[str] = field(default_factory=list)
     domains: list[str] = field(default_factory=list)
+    groups: list[str] = field(default_factory=list)  # "<domain>/<group>"
+    #: What matched, KEPT (#644 review, point 2): domain -> {"terms", "groups"}.
+    matched_terms: dict = field(default_factory=dict)
+    ai_terms: list[str] = field(default_factory=list)
     content_type: str | None = None
     matched_pattern: str | None = None
     stage_guess: str | None = None
@@ -117,7 +122,8 @@ def evaluate(
         if outside_window(it, since):
             r.verdict, r.stage, r.reason = "dropped", "window", "outside_window"
             continue
-        why, terms = sieve(it, cfg)
+        why, terms, ai = sieve(it, cfg)
+        r.ai_terms, r.matched_terms = ai, terms
         if why:
             r.verdict, r.stage, r.reason = "dropped", "sieve", why
             continue
@@ -136,7 +142,7 @@ def evaluate(
             r.verdict, r.stage, r.reason = "dropped", "filter", why
             continue
         v = label(it, matched[it.id], cfg)
-        r.domains, r.content_type = v.domains, v.content_type
+        r.domains, r.groups, r.content_type = v.domains, v.groups, v.content_type
         r.matched_pattern, r.stage_guess = v.matched_pattern, v.stage_guess
         r.flags = sorted(set(r.flags) | set(v.flags))
 
@@ -159,6 +165,7 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
                     "by_type": Counter(),
                     "by_platform": Counter(),
                     "by_stage": Counter(),
+                    "by_group": Counter(),
                     "reach": 0,
                     "authors": set(),
                 },
@@ -168,6 +175,9 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
             c["by_platform"][it.platform] += 1
             if r.stage_guess:
                 c["by_stage"][r.stage_guess] += 1
+            for g in r.groups:
+                if g.startswith(f"{d}/"):
+                    c["by_group"][g.split("/", 1)[1]] += 1
             c["reach"] += r.share_count
             if it.author_id:
                 c["authors"].add((it.platform, it.author_id))
@@ -181,6 +191,7 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
                 "by_type": dict(c["by_type"]),
                 "by_platform": dict(c["by_platform"]),
                 "by_stage": dict(c["by_stage"]),
+                "by_group": dict(c["by_group"]),
                 "authors": len(c["authors"]),
             }
             for d, c in sorted(per_domain.items())

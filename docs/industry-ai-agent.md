@@ -17,6 +17,14 @@ much data as possible about **AI in five industries**:
 It harvests from Reddit, X, GitHub, Hacker News, dev.to, Bluesky and blog/RSS feeds,
 driven by **keywords per domain per platform** in `contract/industry_ai.yaml`.
 
+**The contract is built to hold more than five domains** (#644 review):
+- **`kind`:** each domain is an `industry` or a `function` (a role that cuts across
+  industries, like marketing or support).
+- **`active`:** only `active: true` domains are harvested, so the file can hold every
+  umbrella while a few run.
+- **`groups`:** a domain may hold groups, each with its own terms, exclusions and
+  queries. Engineering has two: *Software & AI* and *Physical*.
+
 A signed-in **AI in industries** page (`/ai-in-industries`) shows how much data has
 been collected for each domain, by content type. It shows **counts only, never post
 text.**
@@ -100,7 +108,7 @@ items too.
 
 ### 1. Harvest (`harvest.py`)
 
-- **Queries:** the contract's queries per domain × platform:
+- **Queries:** the contract's queries per **active** domain, and per group, × platform:
   - Reddit: subreddit listings and searches;
   - X: searches, with `query_suffix` (`lang:en -is:retweet -hiring -giveaway`);
   - GitHub: issue searches;
@@ -114,6 +122,22 @@ items too.
 - **The request cap** (`run.max_requests`) is checked **before each query**. A query
   that would pass it is not run, and the run log says "capped". Every raw page is
   stored in the raw store before it is read.
+- **Queries are taken round-robin across domains** within each platform, so every
+  domain gets its first query before any gets its second. Walked in file order, one
+  cap per platform would starve whichever domains come last.
+- **X pages per query:** a query clubbing at least `run.x_clubbed_min_keywords` (6)
+  quoted keywords gets `pages_per_query.x_clubbed` (5) pages; any other gets
+  `pages_per_query.x`.
+  - Measured 2026-11-20 on our X route: a six-keyword `("a" OR "b" ...) (AI OR LLM
+    ...)` query returned 100 distinct posts over 5 pages, with more after.
+  - **An X query plus its suffix must stay within 480 characters.** X cuts a longer
+    query off rather than refusing it, so the loader refuses it instead.
+- **Platform quirks:**
+  - **The X suffix** (`lang:en -is:retweet ...`) is untested on our route (a
+    scraper). Record one query with and without it on the first dry run.
+  - **Reddit search ignores quotes, minus signs and OR** on our route, so a Reddit
+    query is loose words, and the sieve decides. Judge a Reddit query by its yield
+    in the run log.
 - **One item per id**, however many queries found it. Each finding domain becomes a
   **hint**, never a label.
 - **Not in this version: Reddit comments.** Only posts are read, which saves RapidAPI
@@ -127,11 +151,16 @@ items too.
   or a registry model name.
   - **"AI" in capitals counts on its own, as a whole word.** Lower-case "ai" and
     `.ai` (a file type or web domain) do not.
-- **Industry term:** a term of **any** domain, matched **outside** the excluded
-  phrases (`global_exclude_phrases`, each domain's `exclude_phrases`):
-  - "prompt / context / social / reverse / software engineering" are not Engineering;
-  - "AI governance" is not Governance while the scope excludes it (§11);
+- **Industry term:** a term of **any** domain or group, matched **outside** the
+  excluded phrases. The order is: global exclusions, then the domain's (for all its
+  terms), then a group's (for that group's own terms only):
+  - "prompt / context engineering" match neither Engineering group;
+  - "software engineering" and its relatives are excluded from *Physical* only;
+    they are *Software & AI*'s own terms;
+  - "data / corporate governance" are not Governance;
   - `.ai` and "artificial insemination" are not AI.
+- **The matched terms are kept** (`matched_terms`, `ai_terms`): which terms of which
+  domain and group an item named. One post can count for several keywords.
 - **Ambiguous terms** (`ambiguous_terms`, e.g. bank, claims, trading, patient, guests)
   count only with one of their context words within `run.context_window_words`.
 - **Drops:** `no_ai_term`, `no_domain_term`.
@@ -169,8 +198,10 @@ In order. The first that matches drops the item:
 
 ### 5. Label (`rules.label`)
 
-- **Domain:** the hinted domains whose own terms matched. If none was confirmed, the
-  item goes to **domain unconfirmed** (empty `domains`). Another domain whose terms
+- **Domain:** the hinted domains whose own terms (or their groups' terms) matched.
+  If none was confirmed, the item goes to **domain unconfirmed** (empty `domains`).
+- **Groups:** within a confirmed domain, every group whose own terms matched, stored
+  as `"<domain>/<group>"`. Another domain whose terms
   matched is recorded as the flag `also_matches:<domain>`. An item confirmed for two
   domains counts in both, and the page says so.
 - **Type:** the first of `type_order` with a matching pattern. GitHub items are
@@ -193,8 +224,9 @@ In order. The first that matches drops the item:
 - **Route:** `/ai-in-industries`, signed-in (`web/src/routes/IndustryAI.jsx`).
 - **API:** `GET /industry-ai` (`judge/industry_ai/view.py`), which reads `iai_item` and
   `iai_run` live.
-- **Per domain:**
+- **Per domain** (active domains, and any switched-off domain that still holds data):
   - kept, and found by its queries;
+  - kept per group;
   - distinct authors;
   - reach;
   - kept by content type, by platform, by use-case stage, and by month posted;
@@ -218,7 +250,9 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
     author_id, lang, engagement.
   - What found it: link, domain_hints, query_keys.
   - The verdict: verdict, drop_stage, drop_reason, flags.
-  - The labels: domains, content_type, matched_pattern, stage_guess.
+  - The labels: domains, groups, content_type, matched_pattern, stage_guess.
+  - What matched: matched_terms (`{domain: {"terms": [...], "groups": {group:
+    [...]}}}`) and ai_terms.
   - Dedupe: canonical_of, share_count, canonical_url.
   - pipeline_version.
 - **`iai_run`:** one row per run (harvest or relabel), holding status, requests per
@@ -238,6 +272,12 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
 - **The run log** prints every stage: requests and items per platform, capped or
   skipped queries, quota, drops by stage and reason, and kept items per domain by
   type and platform.
+- **Two switches:**
+  - `run.enabled` in the contract: `false` refuses a harvest, while `--plan`,
+    `--dry-run` and `--relabel` still work;
+  - `INDUSTRY_AI_ENABLED`, the repository variable for the scheduled workflow.
+- **Which domains run** is set in the contract (`active`). `--domains` narrows within
+  the active ones and refuses an inactive one.
 - **Workflow:** `.github/workflows/industry-ai-harvest.yml`.
   - Weekly, Wednesdays 09:00 UTC, with its own concurrency group.
   - **Off until `INDUSTRY_AI_ENABLED=1`.** A manual start defaults to a dry run.
@@ -260,6 +300,8 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
    - type accuracy (especially `use_case`);
    - wrong drops, by reason;
    - the size of "domain unconfirmed".
+
+   **Sample Governance on its own:** "AI governance" is common in vendor marketing.
 4. **Tune** the contract, then run `--relabel` (no requests) and re-check.
 
 ---
@@ -269,7 +311,9 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
 | Risk | Handling |
 |---|---|
 | "prompt engineering" floods Engineering | excluded phrase |
-| "AI governance" floods Governance | scope set in the contract (§11) |
+| "AI governance" vendor marketing in Governance | sampled on its own in §7 |
+| busy keywords crowd out quiet ones in a clubbed X query | per-keyword counts from `matched_terms` |
+| airline "pilots" read as pilot programmes | the pilot pattern needs a programme context |
 | `.ai` files, "artificial insemination" | excluded phrases; "AI" in capitals only |
 | finance scam spam | `spam_patterns` |
 | one article counted many times across platforms | link dedupe; shares count as reach |
@@ -304,12 +348,17 @@ measurements.
 1. **AI terms with other meanings.**
    - Acronyms ("RAG", "NLP", "LLM") match in any case, so "rag" counts as AI.
    - Gemini, Llama, Claude and Mistral are also ordinary words.
-2. **Broad industry terms:** "agency", "engineers", "booking", "tax", "payments",
-   "simulation" and "council" are candidates for `ambiguous_terms`.
+2. **Broad industry terms:** "agency/agencies", "council/councils", "engineers" and
+   "simulation" became `ambiguous_terms` in #644. "booking", "reservations", "tax" and
+   "payments" are still plain terms and are candidates too.
 3. **Type patterns.**
    - "launched", "introducing" and "meet" over-count `tool_or_product`.
    - The `use_case` phrasings are narrow.
 4. **Hacker News items are often a title only,** so they are judged on the headline.
+   Hacker News **comments** carry much of the first-hand work: in a 2026-11-12 sample
+   of board entries, 16 of 29 met the bar of first-hand plus concrete work plus a
+   named model. The comments phase, or the observer arm, should add Hacker News
+   comment search.
 5. **Retention.** `iai_item.body` stores post text, Reddit's included, in the shared
    database. It is never shown, but the main pipeline's Reddit data-retention
    question applies here too.
@@ -318,9 +367,8 @@ measurements.
 
 ## 11. Open points
 
-- **Governance scope:** public-sector use of AI only (the starter contract), or
-  AI-governance practice as well. To widen it, drop the `AI governance` exclusion
-  and add its terms.
+- **Governance scope: decided** (anooj, #644 review). It covers the public sector's
+  use of AI **and** AI policy and governance practice.
 - **First-harvest lookback** (`run.window_days`, 365 to start).
 - **Domain feed lists.** Add feeds to `contract/sources.yaml` `feeds:` (each needs a
   terms ruling), then list them per domain.
@@ -352,8 +400,13 @@ configuration and running.
 
 ### 1. Set up
 
-- **Run the migration on the shared database straight after merge**
-  (`python -m collect.cli db migrate`), and announce it.
+- **Run the migration on the shared database straight after merge, in the order
+  agreed on #644** (`python -m collect.cli db migrate`), and announce it.
+  - `db migrate` applies **every** pending migration. #640's content-workspace
+    migration (`20261119T1200`) was deliberately left unapplied, and it needs
+    `python -m judge.content_workspace seed --development-write` straight after.
+  - So either both run together with that seed, announced on both PRs, or this one
+    waits.
 - **Create the lane's summary issue and set the repository variables:**
   - `INDUSTRY_AI_ISSUE`: that issue's number;
   - `INDUSTRY_AI_ENABLED`: **leave unset (off)** until the tuning below is done.

@@ -73,7 +73,7 @@ function DomainCard({ d, types }) {
   return (
     <section className="card iai-card">
       <header className="iai-card-head">
-        <h2>{d.name}</h2>
+        <h2>{d.name}{d.kind === 'function' && <span className="dim iai-kind"> · function</span>}</h2>
         {d.definition && <p className="dim iai-def">{d.definition}</p>}
       </header>
       <div className="iai-figures">
@@ -82,6 +82,13 @@ function DomainCard({ d, types }) {
         <div><b className="tnum">{n(d.authors)}</b><span>distinct authors</span></div>
         <div><b className="tnum">{n(d.reach)}</b><span>shares & copies</span></div>
       </div>
+      {d.groups?.length > 0 && (
+        <>
+          <h3 className="iai-sub">By group</h3>
+          <Bars counts={Object.fromEntries(d.groups.map((g) => [g.key, g.kept]))}
+                labels={Object.fromEntries(d.groups.map((g) => [g.key, g.name]))} />
+        </>
+      )}
       <h3 className="iai-sub">By content type</h3>
       <Bars counts={d.by_type || {}} labels={TYPE_LABEL} order={types} />
       {stages.length > 0 && (
@@ -149,7 +156,10 @@ export default function IndustryAI() {
           )}
 
           <div className="iai-grid">
-            {data.domains.map((d) => <DomainCard key={d.key} d={d} types={data.types} />)}
+            {/* Active domains, and any switched-off one that still holds data: a
+                file of 20 umbrellas with five active shows five cards, not twenty. */}
+            {data.domains.filter((d) => d.active !== false || d.kept > 0)
+              .map((d) => <DomainCard key={d.key} d={d} types={data.types} />)}
           </div>
 
           {data.unconfirmed?.kept > 0 && (

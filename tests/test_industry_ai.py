@@ -195,9 +195,21 @@ def test_a_hiring_post_is_dropped(cfg):
     assert r.reason == "hiring"
 
 
-def test_ai_governance_is_out_of_governance_scope(cfg):
-    r = one(cfg, item("Our AI governance framework for LLM risk reviews.", hints=("governance",)))
-    assert r.reason == "no_domain_term"
+def test_ai_policy_is_in_governance_scope(cfg):
+    """anooj's decision, #644 review point 5: Governance covers AI policy and
+    governance practice too. Data and corporate governance stay out."""
+    r = one(
+        cfg,
+        item(
+            "Our AI governance framework for LLM risk reviews, under the AI Act.",
+            hints=("governance",),
+        ),
+    )
+    assert r.verdict == "kept" and r.domains == ["governance"]
+    out = one(
+        cfg, item("Our data governance team adopted an LLM catalogue tool.", hints=("governance",))
+    )
+    assert out.reason == "no_domain_term"
 
 
 def test_an_ambiguous_term_needs_its_context(cfg):
@@ -316,8 +328,8 @@ def test_a_dropped_item_is_never_labelled(cfg):
 
 
 def test_sieve_needs_any_domains_terms(cfg):
-    why, matched = sieve(item("ChatGPT wrote my poem."), cfg)
-    assert why == "no_domain_term" and matched == {}
+    why, matched, ai = sieve(item("ChatGPT wrote my poem."), cfg)
+    assert why == "no_domain_term" and matched == {} and ai == ["ChatGPT"]
 
 
 # ── the request cap ──────────────────────────────────────────────────────────
@@ -438,8 +450,159 @@ def test_store_label_and_the_page_counts_only(conn, cfg):
     assert view["collected"] == 2 and view["kept"] == 1
     assert finance["kept"] == 1 and finance["by_type"] == {"use_case": 1}
     assert {r["reason"] for r in view["dropped"]} == {"spam"}
+    engineering = next(d for d in view["domains"] if d["key"] == "engineering")
+    assert [g["key"] for g in engineering["groups"]] == ["software_ai", "physical"]
+    row = conn.execute(
+        "SELECT matched_terms, ai_terms FROM iai_item WHERE id = 'reddit:1'"
+    ).fetchone()
+    assert "finance" in row[0] and row[1]
     assert view["last_run"]["status"] == "ok"
     # COUNTS ONLY: no post text, link or author anywhere in the payload.
     blob = repr(view)
     for leak in ("fraud detection model", "signals group", "https://e.x", "t2_a", "t2_b"):
         assert leak not in blob
+
+
+# ── #644 review: structure, matched terms, fairness, switches, X ─────────────
+
+
+def _raw():
+    return copy.deepcopy(yaml.safe_load(CONTRACT.read_text(encoding="utf-8")))
+
+
+@pytest.mark.parametrize(
+    "mutate, says",
+    [
+        (lambda r: r["domains"]["finance"].update(accounts=["@x"]), "unknown key"),
+        (lambda r: r["domains"]["finance"]["queries"]["x"].update(accounts=["@x"]), "unknown key"),
+        (lambda r: r["run"].update(observer=True), "unknown key"),
+        (lambda r: r.update(subcategories={}), "unknown key"),
+        (lambda r: r["domains"]["finance"].update(kind="sector"), "kind"),
+        (lambda r: r["domains"]["finance"].pop("active"), "active"),
+        (lambda r: [d.update(active=False) for d in r["domains"].values()], "active: true"),
+        (
+            lambda r: r["domains"]["finance"]["queries"]["x"]["search"].append(
+                " OR ".join(f'"keyword number {i}"' for i in range(30))
+            ),
+            "480",
+        ),
+    ],
+)
+def test_the_contract_refuses_what_the_code_does_not_read(mutate, says):
+    """#644 review, points 3, 6 and 8: an unimplemented block (say X accounts
+    before the observer exists) is refused, not ignored, and so is an X query X
+    would cut off (point 10)."""
+    raw = _raw()
+    mutate(raw)
+    with pytest.raises(IndustryAIConfigError, match=says):
+        iai_config.parse(raw)
+
+
+def test_engineering_has_two_groups_and_software_is_in_scope(cfg):
+    """#644 review, point 4: Software & AI is a group of Engineering, and the
+    software exclusions apply to the Physical group only."""
+    sw = one(
+        cfg,
+        item(
+            "Our team rolled out an AI code review step for every pull request.",
+            hints=("engineering",),
+        ),
+    )
+    assert sw.verdict == "kept" and sw.domains == ["engineering"]
+    assert sw.groups == ["engineering/software_ai"]
+    ph = one(
+        cfg,
+        item(
+            "Our plant uses an LLM to plan predictive maintenance on the factory floor.",
+            hints=("engineering",),
+        ),
+    )
+    assert ph.groups == ["engineering/physical"]
+
+
+def test_the_matched_terms_are_kept(cfg):
+    """#644 review, point 2: which terms matched is stored, per domain and group."""
+    r = one(cfg, item("Our accounting firm uses ChatGPT for invoice reconciliation every week."))
+    assert set(r.matched_terms["finance"]["terms"]) >= {"accounting", "reconciliation", "invoice"}
+    assert "ChatGPT" in r.ai_terms
+
+
+def test_an_airline_pilot_is_not_a_pilot_programme(cfg):
+    """#644 review, point 13."""
+    r = one(
+        cfg, item("Airline pilots now use an AI tool to brief flights.", hints=("hospitality",))
+    )
+    assert r.content_type != "use_case" or r.stage_guess != "pilot"
+    prog = one(
+        cfg,
+        item(
+            "The hotel ran a pilot program with an AI concierge for guests at the front desk.",
+            hints=("hospitality",),
+        ),
+    )
+    assert prog.content_type == "use_case" and prog.stage_guess == "pilot"
+
+
+def test_x_pages_follow_the_number_of_keywords(cfg):
+    six = " OR ".join(
+        f'"{k}"'
+        for k in (
+            "invoice reconciliation",
+            "bank reconciliation",
+            "month-end close",
+            "accounts payable",
+            "accounts receivable",
+            "expense categorization",
+        )
+    )
+    assert cfg.x_pages(f"({six}) (AI OR LLM)") == cfg.run["pages_per_query"]["x_clubbed"]
+    assert cfg.x_pages('"AI" accounting firm') == cfg.run["pages_per_query"]["x"]
+
+
+def test_round_robin_gives_every_domain_its_first_query_first():
+    """#644 review, point 7: under one cap per platform, file order no longer
+    decides which domains get anything."""
+    from collect.industry_ai.harvest import round_robin
+
+    wanted = [
+        ("finance", "f1"),
+        ("finance", "f2"),
+        ("finance", "f3"),
+        ("healthcare", "h1"),
+        ("governance", "g1"),
+        ("governance", "g2"),
+    ]
+    assert round_robin(wanted)[:3] == [
+        ("finance", "f1"),
+        ("healthcare", "h1"),
+        ("governance", "g1"),
+    ]
+
+
+def test_run_enabled_false_refuses_a_harvest(cfg, monkeypatch, capsys):
+    """#644 review, point 9: the switch in the contract is read."""
+    import dataclasses
+
+    import scripts.run_industry_ai as script
+    from collect.industry_ai import harvest
+
+    off = dataclasses.replace(cfg, run={**cfg.run, "enabled": False})
+    monkeypatch.setattr(iai_config, "load", lambda path=None: off)
+    monkeypatch.setattr(harvest, "harvest", lambda *a, **k: pytest.fail("harvested while off"))
+    assert script.main([]) == 0
+    assert "run.enabled is false" in capsys.readouterr().out
+
+
+def test_an_inactive_domain_is_not_run(cfg, monkeypatch):
+    """#644 review, point 6: --domains narrows within the active domains."""
+    import dataclasses
+
+    import scripts.run_industry_ai as script
+
+    domains = dict(cfg.domains)
+    domains["hospitality"] = dataclasses.replace(domains["hospitality"], active=False)
+    monkeypatch.setattr(
+        iai_config, "load", lambda path=None: dataclasses.replace(cfg, domains=domains)
+    )
+    with pytest.raises(SystemExit, match="active: false"):
+        script.main(["--plan", "--domains", "hospitality"])

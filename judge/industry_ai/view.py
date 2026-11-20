@@ -90,17 +90,42 @@ def industry_ai_view(conn) -> dict[str, Any]:
             "GROUP BY 1, 2 ORDER BY 3 DESC"
         ).fetchall()
     ]
+    # KEPT ITEMS PER GROUP, "<domain>/<group>" (#644 review, point 3).
+    by_group: dict[str, dict[str, int]] = {}
+    for g, n in conn.execute(
+        "SELECT g, count(*) FROM iai_item, unnest(groups) AS g WHERE verdict = 'kept' GROUP BY 1"
+    ).fetchall():
+        d, _, gk = g.partition("/")
+        by_group.setdefault(d, {})[gk] = int(n)
     last = conn.execute(
         "SELECT id, mode, status, started_at, finished_at, requests FROM iai_run "
         "ORDER BY started_at DESC LIMIT 1"
     ).fetchone()
 
-    def block(key: str, name: str, definition: str | None) -> dict:
+    def block(
+        key: str,
+        name: str,
+        definition: str | None,
+        kind: str | None = None,
+        active: bool | None = None,
+        groups: dict | None = None,
+    ) -> dict:
         s = stats.get(key, {"kept": 0, "authors": 0, "reach": 0, "undated": 0})
         return {
             "key": key,
             "name": name,
             "definition": definition,
+            "kind": kind,
+            "active": active,
+            # Each group's kept items, in the contract's order (0 when none).
+            "groups": [
+                {
+                    "key": gk,
+                    "name": (g or {}).get("name", gk),
+                    "kept": by_group.get(key, {}).get(gk, 0),
+                }
+                for gk, g in (groups or {}).items()
+            ],
             # How many items its queries found (before any rule), and how many
             # were kept under it: the denominator beside the count (rule 7).
             "found": found.get(key),
@@ -112,7 +137,15 @@ def industry_ai_view(conn) -> dict[str, Any]:
         }
 
     domains = [
-        block(k, d.get("name", k), d.get("definition")) for k, d in contract["domains"].items()
+        block(
+            k,
+            d.get("name", k),
+            d.get("definition"),
+            d.get("kind"),
+            d.get("active"),
+            d.get("groups"),
+        )
+        for k, d in contract["domains"].items()
     ]
     return {
         "domains": domains,

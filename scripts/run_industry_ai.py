@@ -118,6 +118,11 @@ def print_counts(counts: dict, cfg) -> None:
         )
         say(f"  {name:<20} kept {c['kept']:<5} authors {c['authors']:<5} reach {c['reach']}")
         say(f"    types: {types or '-'}")
+        if c.get("by_group"):
+            groups = ", ".join(
+                f"{g} {n}" for g, n in sorted(c["by_group"].items(), key=lambda x: -x[1])
+            )
+            say(f"    groups: {groups}")
         say(f"    platforms: {plats or '-'}")
 
 
@@ -175,10 +180,28 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     cfg = iai_config.load()
-    domains = args.domains or list(cfg.domains)
+    # THE CONTRACT CHOOSES WHICH DOMAINS RUN (`active`, #644 review, point 6);
+    # --domains narrows within them and never widens past them.
+    active = cfg.active_domains
+    domains = args.domains or active
     unknown = [d for d in domains if d not in cfg.domains]
     if unknown:
         raise SystemExit(f"unknown domain(s) {unknown}; the contract has {list(cfg.domains)}")
+    inactive = [d for d in domains if d not in active]
+    if inactive:
+        raise SystemExit(
+            f"domain(s) {inactive} are `active: false` in contract/industry_ai.yaml; "
+            f"active: {active}"
+        )
+    # `run.enabled: false` REFUSES A HARVEST (#644 review, point 9). Plan, dry
+    # run and relabel make no stored request, so they still run.
+    harvesting = not (args.plan or args.dry_run or args.relabel)
+    if harvesting and not cfg.run["enabled"]:
+        say(
+            "run.enabled is false in contract/industry_ai.yaml - nothing harvested. "
+            "This is the switch, not a failure."
+        )
+        return 0
     platforms = args.platforms or list(PLATFORMS)
     run_id = f"iai-{datetime.now(UTC):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}"
     since = datetime.now(UTC) - timedelta(days=int(cfg.run["window_days"]))
@@ -189,16 +212,18 @@ def main(argv: list[str] | None = None) -> int:
         f"window {cfg.run['window_days']} days"
     )
 
-    from collect.industry_ai.harvest import plan
+    from collect.industry_ai.harvest import plan, round_robin
 
     if args.plan:
         planned = plan(cfg, domains=domains, platforms=platforms)
         say(f"\n1 Harvest (plan only; nothing is requested): {len(planned)} query(ies)")
         for p in platforms:
             qs = [(d, q) for d, pp, q in planned if pp == p]
+            qs = round_robin(qs)
             say(f"  {p}: {len(qs)} query(ies), cap {cfg.run['max_requests'][p]} request(s)")
             for d, q in qs:
-                say(f"    {d:<12} {q}")
+                extra = f"  [{cfg.x_pages(q)} page(s)]" if p == "x" else ""
+                say(f"    {d:<24} {q}{extra}")
         return 0
 
     import psycopg

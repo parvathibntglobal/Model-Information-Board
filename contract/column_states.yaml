@@ -2044,6 +2044,11 @@ columns:
       why: every retrieval rate must be quoted with its truncation share beside it; the column already
         holds result-ceiling on 126 of 1,019 runs
   iai_item:
+    ai_terms:
+      reviewed: true
+      state: write_only
+      why: >-
+        The AI terms an item named, written by store.write_labels for the team's sample check (docs/industry-ai-agent.md §7). Intended reader: an Admin drill-down; none yet.
     author_id:
       reviewed: true
       state: read
@@ -2124,6 +2129,11 @@ columns:
       state: write_only
       why: >-
         low_engagement, link_share, repeat_author and also_matches:<domain> flags, written by store.write_labels for the team's sample check (docs/industry-ai-agent.md §7). Intended reader: an Admin drill-down; none yet.
+    groups:
+      reviewed: true
+      state: read
+      why: >-
+        "<domain>/<group>" for the groups whose terms matched within a confirmed domain, written by store.write_labels; read by judge/industry_ai/view.py (kept items per group, #644 review point 3).
     id:
       reviewed: true
       state: read
@@ -2149,6 +2159,11 @@ columns:
       state: read
       why: >-
         Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    matched_terms:
+      reviewed: true
+      state: write_only
+      why: >-
+        Which terms matched per domain and group, written by store.write_labels (#644 review, point 2): what a workflow keyword's count is counted from. Intended reader: the per-keyword counts the team's umbrella PR adds; none yet.
     matched_pattern:
       reviewed: true
       state: write_only
