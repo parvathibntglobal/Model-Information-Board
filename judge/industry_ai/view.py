@@ -51,8 +51,11 @@ def _count_by(conn, column: str, where: str = "verdict = 'kept'") -> dict[str, d
         "SELECT d, v, count(*) FROM ("
         "  SELECT CASE WHEN cardinality(domains) = 0 AND 'general_ai' = ANY(flags) "
         "THEN ARRAY['general'] WHEN cardinality(domains) = 0 THEN ARRAY['unconfirmed'] "
-        f"ELSE domains END AS ds, {column} AS v FROM iai_item WHERE {where}"
-        ") x, unnest(ds) AS d GROUP BY 1, 2"
+        f"ELSE domains END AS ds, flags AS fl, {column} AS v FROM iai_item WHERE {where}"
+        ") x, unnest(ds) AS d "
+        # A post a WATCH LIST filed under this domain by its terms is counted apart
+        # (`from_watch`), never in the domain's own figures (anooj, 2026-11-20, (a)).
+        "WHERE NOT ('domain_from_terms:' || d = ANY(fl)) GROUP BY 1, 2"
     ).fetchall():
         if value is not None:
             out.setdefault(domain, {})[str(value)] = int(n)
@@ -83,13 +86,23 @@ def industry_ai_view(conn) -> dict[str, Any]:
         "  count(*) FILTER (WHERE created_at IS NULL) FROM ("
         "  SELECT CASE WHEN cardinality(domains) = 0 AND 'general_ai' = ANY(flags) "
         "THEN ARRAY['general'] WHEN cardinality(domains) = 0 THEN ARRAY['unconfirmed'] "
-        "ELSE domains END AS ds, platform, author_id, share_count, created_at "
+        "ELSE domains END AS ds, flags AS fl, platform, author_id, share_count, created_at "
         "  FROM iai_item WHERE verdict = 'kept'"
-        ") x, unnest(ds) AS d GROUP BY 1"
+        ") x, unnest(ds) AS d WHERE NOT ('domain_from_terms:' || d = ANY(fl)) GROUP BY 1"
     ).fetchall()
     stats = {
         d: {"kept": int(n), "authors": int(a), "reach": int(r), "undated": int(u)}
         for d, n, a, r, u in rows
+    }
+    # FROM THE WATCH LISTS, COUNTED APART (anooj, 2026-11-20, option (a)): a domain's
+    # own figures count what ITS keyword queries found and confirmed; a watched post
+    # filed there by its terms (option A) is a different population, shown beside them.
+    from_watch = {
+        d: int(n)
+        for d, n in conn.execute(
+            "SELECT d, count(*) FROM iai_item, unnest(domains) AS d WHERE verdict = 'kept' "
+            "AND 'domain_from_terms:' || d = ANY(flags) GROUP BY 1"
+        ).fetchall()
     }
     found = {
         d: int(n)
@@ -107,7 +120,8 @@ def industry_ai_view(conn) -> dict[str, Any]:
     # KEPT ITEMS PER GROUP, "<domain>/<group>" (#644 review, point 3).
     by_group: dict[str, dict[str, int]] = {}
     for g, n in conn.execute(
-        "SELECT g, count(*) FROM iai_item, unnest(groups) AS g WHERE verdict = 'kept' GROUP BY 1"
+        "SELECT g, count(*) FROM iai_item, unnest(groups) AS g WHERE verdict = 'kept' "
+        "AND NOT ('domain_from_terms:' || split_part(g, '/', 1) = ANY(flags)) GROUP BY 1"
     ).fetchall():
         d, _, gk = g.partition("/")
         by_group.setdefault(d, {})[gk] = int(n)
@@ -144,6 +158,9 @@ def industry_ai_view(conn) -> dict[str, Any]:
             # were kept under it: the denominator beside the count (rule 7).
             "found": found.get(key),
             **s,
+            # Kept posts the watch lists filed here by their terms: NOT in `kept` or in
+            # any breakdown above, shown beside them (option (a)).
+            "from_watch": from_watch.get(key, 0),
             "by_type": by_type.get(key, {}),
             "by_platform": by_platform.get(key, {}),
             "by_stage": by_stage.get(key, {}),

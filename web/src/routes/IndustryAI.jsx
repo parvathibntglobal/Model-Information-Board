@@ -79,6 +79,9 @@ function DomainCard({ d, types }) {
       <div className="iai-figures">
         <div><b className="tnum">{n(d.kept)}</b><span>kept</span></div>
         <div><b className="tnum">{d.found == null ? '–' : n(d.found)}</b><span>found by its queries</span></div>
+        {d.from_watch > 0 && (
+          <div><b className="tnum">{n(d.from_watch)}</b><span>more from watch lists, counted apart</span></div>
+        )}
         <div><b className="tnum">{n(d.authors)}</b><span>distinct authors</span></div>
         <div><b className="tnum">{n(d.reach)}</b><span>shares & copies</span></div>
       </div>
@@ -158,7 +161,7 @@ export default function IndustryAI() {
           <div className="iai-grid">
             {/* Active domains, and any switched-off one that still holds data: a
                 file of 20 umbrellas with five active shows five cards, not twenty. */}
-            {data.domains.filter((d) => d.active !== false || d.kept > 0)
+            {data.domains.filter((d) => d.active !== false || d.kept > 0 || d.from_watch > 0)
               .map((d) => <DomainCard key={d.key} d={d} types={data.types} />)}
           </div>
 

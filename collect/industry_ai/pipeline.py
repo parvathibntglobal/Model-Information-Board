@@ -188,6 +188,7 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
                 d,
                 {
                     "kept": 0,
+                    "from_watch": 0,
                     "by_type": Counter(),
                     "by_platform": Counter(),
                     "by_stage": Counter(),
@@ -196,6 +197,12 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
                     "authors": set(),
                 },
             )
+            if f"domain_from_terms:{d}" in r.flags:
+                # A watch list filed it here by its terms (option A): counted APART,
+                # never in the domain's own figures, which count what its keyword
+                # queries found (anooj, 2026-11-20, option (a); the page does the same).
+                c["from_watch"] += 1
+                continue
             c["kept"] += 1
             c["by_type"][r.content_type] += 1
             c["by_platform"][it.platform] += 1

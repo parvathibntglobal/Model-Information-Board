@@ -125,7 +125,10 @@ def print_counts(counts: dict, cfg) -> None:
         plats = ", ".join(
             f"{p} {n}" for p, n in sorted(c["by_platform"].items(), key=lambda x: -x[1])
         )
-        say(f"  {name:<20} kept {c['kept']:<5} authors {c['authors']:<5} reach {c['reach']}")
+        watch_note = (f"  (+ {c['from_watch']} from watch lists, counted apart)"
+                      if c.get("from_watch") else "")
+        say(f"  {name:<20} kept {c['kept']:<5} authors {c['authors']:<5} reach {c['reach']}"
+            + watch_note)
         say(f"    types: {types or '-'}")
         if c.get("by_group"):
             groups = ", ".join(

@@ -1,6 +1,7 @@
 """The Industry AI observer (watch lists; anooj, 2026-11-20): the keyword agent's twin.
 
-Pure tests - no database, no network. What each one pins:
+No network. All but the last are pure; the last uses the disposable test database
+(TEST_DATABASE_URL), like test_industry_ai.py's page test. What each one pins:
   * the `watch:` block is read strictly (an unread list is refused, never ignored);
   * the watch queries' shape, and X pages for an account query;
   * a WATCHED post needs an AI term only: naming no industry it is kept as General AI,
@@ -164,6 +165,23 @@ def test_general_and_unconfirmed_are_counted_apart(cfg):
     assert counts([gen, kw], results)["domains"]["general"]["kept"] == 1
 
 
+def test_watched_posts_filed_by_terms_are_counted_apart_from_a_domains_own(cfg):
+    """Option (a), anooj 2026-11-20: a domain's `kept` counts what its keyword queries
+    found; a watched post filed there by its terms goes to `from_watch`, beside it."""
+    w = watched("I used Claude to write our ad copy this week, and it also helped with "
+                "incident response notes for the security team.", iid="x:w1")
+    k = watched("I used ChatGPT to write our ad copy for the spring launch and it saved hours.",
+                key="iai:marketing:x:q", iid="x:k2")
+    k.domain_hints = {"marketing"}
+    results, c = evaluate([w, k], cfg, since=SINCE, now=NOW)
+    assert "domain_from_terms:marketing" in results["x:w1"].flags
+    mk = c["domains"]["marketing"]
+    assert mk["kept"] == 1 and mk["from_watch"] == 1  # the keyword post, and the watched one
+    assert sum(mk["by_type"].values()) == 1  # breakdowns count the domain's own only
+    assert c["domains"]["security_it"] == {**c["domains"]["security_it"], "kept": 0,
+                                           "from_watch": 1}
+
+
 # ── the watch window (#650 review, point 1) ──────────────────────────────────
 
 AI_SEO = ("I used Claude to write our SEO content and ad copy for the launch, and it saved our "
@@ -304,3 +322,49 @@ def test_the_page_buckets_are_one_expression_written_twice():
     assert len(cases) == 2, cases
     assert cases[0] == cases[1]
     assert "'general_ai' = ANY(flags)" in cases[0] and "ARRAY['general']" in cases[0]
+
+
+@pytest.fixture
+def conn(test_dsn):
+    from collect.db import apply_schema, connect
+    from tests.conftest import assert_disposable, assert_safe_target
+
+    assert_safe_target(test_dsn)
+    connection = connect(test_dsn)
+    try:
+        assert_disposable(connection, test_dsn)
+        connection.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        apply_schema(connection)
+        connection.commit()
+        yield connection
+    finally:
+        connection.rollback()
+        connection.close()
+
+
+def test_the_page_counts_watched_posts_apart_and_general_ai_on_its_own(conn, cfg):
+    """Through the real store and the page builder: option (a) on the card, General AI as
+    its own bucket, and no watched post inside a domain's own figures."""
+    from collect.industry_ai import store
+    from judge.industry_ai.view import industry_ai_view
+
+    store.start_run(conn, "iai-obs", mode="harvest", domains=["marketing"],
+                    platforms=["x"], pipeline_version=cfg.pipeline_version)
+    w = watched("I used Claude to write our ad copy this week, and it also helped with "
+                "incident response notes for the security team.", iid="x:w1")
+    k = watched("I used ChatGPT to write our ad copy for the spring launch and it saved hours.",
+                key="iai:marketing:x:q", iid="x:k2")
+    k.domain_hints = {"marketing"}
+    g = watched("A new open LLM was released today with a longer context window and faster "
+                "inference for everyone who runs it locally.", iid="x:g3")
+    store.upsert_items(conn, [w, k, g], run_id="iai-obs")
+    results, counts_ = evaluate(store.load_items(conn), cfg, since=SINCE)
+    store.write_labels(conn, results, pipeline_version=cfg.pipeline_version)
+    conn.commit()
+
+    view = industry_ai_view(conn)
+    by = {d["key"]: d for d in view["domains"]}
+    assert by["marketing"]["kept"] == 1 and by["marketing"]["from_watch"] == 1
+    assert sum(by["marketing"]["by_type"].values()) == 1
+    assert by["security_it"]["kept"] == 0 and by["security_it"]["from_watch"] == 1
+    assert view["general"]["kept"] == 1 and view["unconfirmed"]["kept"] == 0
