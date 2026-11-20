@@ -38,8 +38,10 @@ run:
   # share their monthly quota with the model fetch - keep these small. A query
   # that would pass its platform's cap is not run, and the run log says so.
   max_requests:
-    reddit: 20
-    x: 10
+    # Sized for the five active domains (2026-11-20): ~20 grouped X queries x 5 pages,
+    # and per domain ~3 subreddit listings + 4 searches on Reddit.
+    reddit: 40
+    x: 100
     github: 10
     hackernews: 25
     devto: 25
@@ -54,7 +56,9 @@ run:
     reddit: 1
     x: 1
     x_clubbed: 5
-  x_clubbed_min_keywords: 6
+  # 5, not 6 (anooj, 2026-11-20): a keyword list rarely splits into sixes, and a
+  # five-keyword remainder deserves its five pages too.
+  x_clubbed_min_keywords: 5
   # Below this many characters of title + body (links removed), an item is too
   # short to say anything and is dropped as `too_short`.
   min_text_chars: 40
@@ -239,196 +243,2237 @@ stage_patterns:
 #                    its own terms only; the domain's apply to all of them.
 # Any other key is refused, not ignored: an unimplemented block would look like
 # it is working.
+
+# ── THE DOMAINS: our 20 persona umbrellas (anooj, 2026-11-20) ─────────────────
+# Generated from the persona keyword work; edit freely here from now on.
+#   * kind: industry (where the work is done) or function (a role in every industry).
+#   * active: the FIVE for the first test run are the umbrellas with the highest share of
+#     keywords showing strong AI evidence (Reddit top-25 for "<keyword> AI", phrase + an AI
+#     term counted in code; or 25+ HN posts/comments with the phrase and "AI", last 730 days;
+#     both checks 2026-11-20): marketing 20/23, design_creative 18/23, security_it 16/24,
+#     retail 15/23, leaders_founders 14/23. The rest are complete and switched off.
+#   * domain_terms: our two-word workflow keywords (one keyword, one umbrella). Parvathi's five
+#     domains (finance, healthcare, hospitality, engineering, governance) keep their own terms,
+#     ambiguous terms, exclusions and queries; ours are added after hers.
+#   * x.search: keywords clubbed with OR, ~6 per query and never under 5 where the list allows,
+#     ANDed with an AI group - measured 2026-11-20: 100 distinct posts over 5 pages, 89 with a
+#     keyword, 92 with an AI term (11 of 20 without the AI group).
+#   * reddit.search / hackernews / devto / bluesky / github: each list's best-evidenced
+#     keywords. Reddit ignores quotes and minus signs on our route; the sieve decides.
+#   * feeds: empty until each feed has a terms ruling in contract/sources.yaml.
+
 domains:
   finance:
-    name: Finance
+    name: Finance & Banking
     kind: industry
-    active: true
+    active: false
     definition: AI used in banking, accounting, insurance, lending, payments, trading and corporate finance.
-    domain_terms: [accounting, accountant, accountants, bookkeeping, audit, auditor, auditing, tax, invoice, invoicing, payroll, fintech, banking, lending, loan, loans, underwriting, mortgage, insurance, insurer, actuarial, fraud detection, anti-money laundering, AML, KYC, payments, wealth management, financial advisor, asset management, CFO, finance team, financial services, credit risk, reconciliation]
+    domain_terms:
+    - accounting
+    - accountant
+    - accountants
+    - bookkeeping
+    - audit
+    - auditor
+    - auditing
+    - tax
+    - invoice
+    - invoicing
+    - payroll
+    - fintech
+    - banking
+    - lending
+    - loan
+    - loans
+    - underwriting
+    - mortgage
+    - insurance
+    - insurer
+    - actuarial
+    - fraud detection
+    - anti-money laundering
+    - AML
+    - KYC
+    - payments
+    - wealth management
+    - financial advisor
+    - asset management
+    - CFO
+    - finance team
+    - financial services
+    - credit risk
+    - reconciliation
+    - invoice reconciliation
+    - bank reconciliation
+    - month-end close
+    - accounts payable
+    - accounts receivable
+    - expense categorization
+    - financial forecasting
+    - variance analysis
+    - tax preparation
+    - tax returns
+    - audit automation
+    - receipt scanning
+    - financial statements
+    - cash flow
+    - transaction categorization
+    - payroll processing
+    - loan underwriting
+    - credit scoring
+    - claims processing
+    - KYC checks
+    - portfolio analysis
+    - earnings analysis
+    - financial modeling
+    - revenue recognition
     ambiguous_terms:
-      bank: [loan, account, customer, lending, deposit, credit, branch, banking, mortgage]
-      claims: [insurance, insurer, policyholder, adjuster, underwriting]
-      trading: [stock, equity, market, broker, portfolio, hedge fund, desk]
-      finance: [team, department, company, firm, corporate, CFO]
-    exclude_phrases: ['\bdecentrali[sz]ed finance\b', '\bmemecoin']
+      bank:
+      - loan
+      - account
+      - customer
+      - lending
+      - deposit
+      - credit
+      - branch
+      - banking
+      - mortgage
+      claims:
+      - insurance
+      - insurer
+      - policyholder
+      - adjuster
+      - underwriting
+      trading:
+      - stock
+      - equity
+      - market
+      - broker
+      - portfolio
+      - hedge fund
+      - desk
+      finance:
+      - team
+      - department
+      - company
+      - firm
+      - corporate
+      - CFO
+    exclude_phrases:
+    - \bdecentrali[sz]ed finance\b
+    - \bmemecoin
     queries:
       reddit:
-        subreddits: [Accounting, FinancialCareers, fintech]
-        search: ["AI accounting firm", "AI underwriting bank", "AI fraud detection bank"]
+        subreddits:
+        - Accounting
+        - FinancialCareers
+        - fintech
+        - Bookkeeping
+        search:
+        - AI accounting firm
+        - AI underwriting bank
+        - AI fraud detection bank
+        - cash flow AI
+        - accounts payable AI
+        - fraud detection AI
+        - tax preparation AI
       x:
-        search: ['"AI" accounting firm', '"AI" bank underwriting']
+        search:
+        - '"AI" accounting firm'
+        - '"AI" bank underwriting'
+        - ("invoice reconciliation" OR "bank reconciliation" OR "month-end close" OR "accounts payable"
+          OR "accounts receivable") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("expense categorization" OR "financial forecasting" OR "variance analysis" OR "tax preparation"
+          OR "tax returns") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("audit automation" OR "receipt scanning" OR "financial statements" OR "cash flow" OR "transaction
+          categorization") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("payroll processing" OR "loan underwriting" OR "credit scoring" OR "fraud detection" OR "claims
+          processing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("KYC checks" OR "portfolio analysis" OR "earnings analysis" OR "financial modeling" OR "revenue
+          recognition") (AI OR ChatGPT OR Claude OR LLM OR agent)
       github:
-        search: ["fintech llm", "accounting automation llm"]
+        search:
+        - fintech llm
+        - accounting automation llm
+        - cash flow llm
+        - fraud detection llm
       hackernews:
-        search: ["AI accounting", "AI banking", "LLM insurance"]
+        search:
+        - AI accounting
+        - AI banking
+        - LLM insurance
+        - AI cash flow
+        - AI fraud detection
+        - AI financial statements
       devto:
-        search: ["AI fintech", "LLM accounting"]
+        search:
+        - AI fintech
+        - LLM accounting
+        - AI cash flow
+        - AI fraud detection
+        - AI financial statements
       bluesky:
-        search: ["AI accounting", "AI banking"]
+        search:
+        - AI accounting
+        - AI banking
+        - AI cash flow
+        - AI accounts payable
+        - AI fraud detection
       feeds: []
-
   healthcare:
-    name: Healthcare
+    name: Healthcare & Life Sciences
     kind: industry
-    active: true
+    active: false
     definition: AI used in clinical care, hospitals, diagnostics, medical records, pharma and health administration.
-    domain_terms: [healthcare, health care, hospital, hospitals, clinic, clinical, clinician, clinicians, physician, physicians, doctor, doctors, nurse, nurses, nursing, radiology, radiologist, pathology, diagnosis, diagnostic, EHR, EMR, electronic health record, medical, medicine, pharma, pharmaceutical, drug discovery, telehealth, ambient scribe, medical coding, prior authorization]
+    domain_terms:
+    - healthcare
+    - health care
+    - hospital
+    - hospitals
+    - clinic
+    - clinical
+    - clinician
+    - clinicians
+    - physician
+    - physicians
+    - doctor
+    - doctors
+    - nurse
+    - nurses
+    - nursing
+    - radiology
+    - radiologist
+    - pathology
+    - diagnosis
+    - diagnostic
+    - EHR
+    - EMR
+    - electronic health record
+    - medical
+    - medicine
+    - pharma
+    - pharmaceutical
+    - drug discovery
+    - telehealth
+    - ambient scribe
+    - medical coding
+    - prior authorization
+    - clinical documentation
+    - medical scribe
+    - patient notes
+    - medical transcription
+    - medical billing
+    - claim denials
+    - patient intake
+    - patient scheduling
+    - symptom triage
+    - radiology reports
+    - lab results
+    - drug interactions
+    - chart summarization
+    - clinical trials
+    - patient education
+    - care plans
+    - clinical notes
+    - therapy notes
+    - medical diagnosis
+    - protein design
     ambiguous_terms:
-      patient: [hospital, clinic, care, doctor, nurse, medical, treatment]
-      patients: [hospital, clinic, care, doctor, nurse, medical, treatment]
+      patient:
+      - hospital
+      - clinic
+      - care
+      - doctor
+      - nurse
+      - medical
+      - treatment
+      patients:
+      - hospital
+      - clinic
+      - care
+      - doctor
+      - nurse
+      - medical
+      - treatment
     exclude_phrases: []
     queries:
       reddit:
-        subreddits: [medicine, nursing, healthIT]
-        search: ["AI scribe clinic", "AI radiology hospital"]
+        subreddits:
+        - medicine
+        - nursing
+        - healthIT
+        - FamilyMedicine
+        search:
+        - AI scribe clinic
+        - AI radiology hospital
+        - drug discovery AI
+        - protein design AI
+        - medical scribe AI
+        - clinical trials AI
       x:
-        search: ['"AI" hospital deployed', '"AI" clinicians pilot']
+        search:
+        - '"AI" hospital deployed'
+        - '"AI" clinicians pilot'
+        - ("clinical documentation" OR "medical scribe" OR "patient notes" OR "ambient scribe" OR "prior
+          authorization" OR "medical coding") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("medical transcription" OR "medical billing" OR "claim denials" OR "patient intake" OR "patient
+          scheduling" OR "symptom triage") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("radiology reports" OR "lab results" OR "drug interactions" OR "chart summarization" OR "clinical
+          trials" OR "patient education") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("care plans" OR "clinical notes" OR "therapy notes" OR "medical diagnosis" OR "drug discovery"
+          OR "protein design") (AI OR ChatGPT OR Claude OR LLM OR agent)
       github:
-        search: ["clinical llm", "ehr llm"]
+        search:
+        - clinical llm
+        - ehr llm
+        - drug discovery llm
+        - clinical trials llm
       hackernews:
-        search: ["AI hospital", "AI clinicians", "LLM medical"]
+        search:
+        - AI hospital
+        - AI clinicians
+        - LLM medical
+        - AI drug discovery
+        - AI clinical trials
+        - AI medical diagnosis
       devto:
-        search: ["AI healthcare", "LLM medical"]
+        search:
+        - AI healthcare
+        - LLM medical
+        - AI drug discovery
+        - AI clinical trials
+        - AI medical diagnosis
       bluesky:
-        search: ["AI hospital", "AI clinicians"]
+        search:
+        - AI hospital
+        - AI clinicians
+        - AI drug discovery
+        - AI protein design
+        - AI medical scribe
       feeds: []
-
   hospitality:
-    name: Hospitality
+    name: Hospitality, Travel & Food
     kind: industry
-    active: true
+    active: false
     definition: AI used in hotels, restaurants, travel, tourism, events and guest services.
-    domain_terms: [hospitality, hotel, hotels, hotelier, hoteliers, resort, restaurant, restaurants, guest experience, front desk, concierge, booking, bookings, reservation, reservations, travel agency, tourism, airline, airlines, food service, catering, revenue management]
+    domain_terms:
+    - hospitality
+    - hotel
+    - hotels
+    - hotelier
+    - hoteliers
+    - resort
+    - restaurant
+    - restaurants
+    - guest experience
+    - front desk
+    - concierge
+    - booking
+    - bookings
+    - reservation
+    - reservations
+    - travel agency
+    - tourism
+    - airline
+    - airlines
+    - food service
+    - catering
+    - revenue management
+    - guest messaging
+    - hotel chatbot
+    - review responses
+    - hotel reservations
+    - booking management
+    - dynamic pricing
+    - menu descriptions
+    - voice ordering
+    - recipe generation
+    - table reservations
+    - restaurant marketing
+    - drive-thru ordering
+    - travel itineraries
+    - group bookings
+    - event planning
+    - concierge chatbot
+    - travel recommendations
+    - virtual receptionist
+    - hotel marketing
+    - loyalty programs
+    - itinerary generation
+    - food safety
     ambiguous_terms:
-      guests: [hotel, stay, room, restaurant, check-in, booking]
-      menu: [restaurant, chef, kitchen, diners, dishes]
-    exclude_phrases: ['\bguest post\b', '\bmenu bar\b']
+      guests:
+      - hotel
+      - stay
+      - room
+      - restaurant
+      - check-in
+      - booking
+      menu:
+      - restaurant
+      - chef
+      - kitchen
+      - diners
+      - dishes
+    exclude_phrases:
+    - \bguest post\b
+    - \bmenu bar\b
     queries:
       reddit:
-        subreddits: [hospitality, TalesFromTheFrontDesk, restaurateur]
-        search: ["AI hotel guests", "AI restaurant orders"]
+        subreddits:
+        - hospitality
+        - TalesFromTheFrontDesk
+        - restaurateur
+        - KitchenConfidential
+        search:
+        - AI hotel guests
+        - AI restaurant orders
+        - front desk AI
+        - dynamic pricing AI
+        - virtual receptionist AI
+        - revenue management AI
       x:
-        search: ['"AI" hotel guests', '"AI" restaurant']
+        search:
+        - '"AI" hotel guests'
+        - '"AI" restaurant'
+        - ("guest messaging" OR "hotel chatbot" OR "review responses" OR "hotel reservations" OR "booking
+          management" OR "revenue management") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("dynamic pricing" OR "menu descriptions" OR "voice ordering" OR "recipe generation" OR "table
+          reservations" OR "restaurant marketing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("drive-thru ordering" OR "travel itineraries" OR "group bookings" OR "event planning" OR "concierge
+          chatbot" OR "travel recommendations") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("virtual receptionist" OR "hotel marketing" OR "loyalty programs" OR "front desk" OR "itinerary
+          generation" OR "food safety") (AI OR ChatGPT OR Claude OR LLM OR agent)
       github:
-        search: ["hotel booking llm", "restaurant ai assistant"]
+        search:
+        - hotel booking llm
+        - restaurant ai assistant
+        - dynamic pricing llm
+        - food safety llm
       hackernews:
-        search: ["AI hotel", "AI restaurant", "AI travel booking"]
+        search:
+        - AI hotel
+        - AI restaurant
+        - AI travel booking
+        - AI dynamic pricing
+        - AI food safety
+        - AI front desk
       devto:
-        search: ["AI hospitality", "AI restaurant"]
+        search:
+        - AI hospitality
+        - AI restaurant
+        - AI dynamic pricing
+        - AI food safety
+        - AI front desk
       bluesky:
-        search: ["AI hotel", "AI restaurant"]
+        search:
+        - AI hotel
+        - AI restaurant
+        - AI front desk
+        - AI dynamic pricing
+        - AI virtual receptionist
       feeds: []
-
-  engineering:
-    name: Engineering
+  legal:
+    name: Legal & Compliance
+    kind: industry
+    active: false
+    definition: AI used in legal work and compliance - contract review, legal research, e-discovery, litigation
+      and regulatory filings.
+    domain_terms:
+    - contract review
+    - contract drafting
+    - contract analysis
+    - clause extraction
+    - legal drafting
+    - legal research
+    - case law
+    - due diligence
+    - document review
+    - e-discovery
+    - legal memos
+    - legal briefs
+    - litigation support
+    - case summaries
+    - court filings
+    - patent drafting
+    - trademark search
+    - legal intake
+    - case management
+    - compliance monitoring
+    - regulatory filings
+    - legal translation
+    - GDPR compliance
+    - privacy policies
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - LawFirm
+        - Lawyertalk
+        - paralegal
+        search:
+        - due diligence AI
+        - legal research AI
+        - contract review AI
+        - patent drafting AI
+      x:
+        search:
+        - ("contract review" OR "contract drafting" OR "contract analysis" OR "clause extraction" OR "legal
+          drafting" OR "legal research") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("case law" OR "due diligence" OR "document review" OR "e-discovery" OR "legal memos" OR "legal
+          briefs") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("litigation support" OR "case summaries" OR "court filings" OR "patent drafting" OR "trademark
+          search" OR "legal intake") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("case management" OR "compliance monitoring" OR "regulatory filings" OR "legal translation"
+          OR "GDPR compliance" OR "privacy policies") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - due diligence llm
+        - case law llm
+      hackernews:
+        search:
+        - AI due diligence
+        - AI case law
+        - AI legal research
+      devto:
+        search:
+        - AI due diligence
+        - AI case law
+        - AI legal research
+      bluesky:
+        search:
+        - AI due diligence
+        - AI legal research
+        - AI contract review
+      feeds: []
+  education:
+    name: Education & Research
+    kind: industry
+    active: false
+    definition: AI used in teaching, learning and academic research - lesson planning, grading, tutoring,
+      study and research writing.
+    domain_terms:
+    - lesson planning
+    - curriculum design
+    - grading essays
+    - essay feedback
+    - quiz generation
+    - rubric creation
+    - homework help
+    - tutoring sessions
+    - study guides
+    - flashcards
+    - exam prep
+    - course design
+    - lecture notes
+    - academic writing
+    - literature review
+    - research papers
+    - citation management
+    - thesis writing
+    - peer review
+    - student feedback
+    - language learning
+    - classroom management
+    - plagiarism detection
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - Teachers
+        - edtech
+        - Professors
+        search:
+        - peer review AI
+        - flashcards AI
+        - literature review AI
+        - language learning AI
+      x:
+        search:
+        - ("lesson planning" OR "curriculum design" OR "grading essays" OR "essay feedback" OR "quiz generation"
+          OR "rubric creation") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("homework help" OR "tutoring sessions" OR "study guides" OR "flashcards" OR "exam prep" OR
+          "course design") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("lecture notes" OR "academic writing" OR "literature review" OR "research papers" OR "citation
+          management" OR "thesis writing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("peer review" OR "student feedback" OR "language learning" OR "classroom management" OR "plagiarism
+          detection") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - research papers llm
+        - peer review llm
+      hackernews:
+        search:
+        - AI research papers
+        - AI peer review
+        - AI language learning
+      devto:
+        search:
+        - AI research papers
+        - AI peer review
+        - AI language learning
+      bluesky:
+        search:
+        - AI peer review
+        - AI flashcards
+        - AI literature review
+      feeds: []
+  retail:
+    name: Retail & E-commerce
     kind: industry
     active: true
-    definition: AI used in engineering work - software and AI engineering, and the physical disciplines (civil, mechanical, electrical, chemical, manufacturing, construction).
-    # Terms and queries live in the two groups below (#644 review, point 4).
+    definition: AI used in retail and e-commerce - product listings, catalogues, pricing, inventory, shopping
+      assistants and store operations.
+    domain_terms:
+    - product descriptions
+    - product listings
+    - listing generation
+    - product photography
+    - catalog management
+    - inventory management
+    - price monitoring
+    - competitor pricing
+    - pricing strategy
+    - product reviews
+    - Shopify store
+    - Amazon listings
+    - Etsy shop
+    - abandoned carts
+    - order tracking
+    - review analysis
+    - product recommendations
+    - virtual try-on
+    - store layout
+    - product mockups
+    - shopping assistant
+    - dropshipping store
+    - product research
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - ecommerce
+        - shopify
+        - FulfillmentByAmazon
+        search:
+        - product descriptions AI
+        - virtual try-on AI
+        - Shopify store AI
+        - product photography AI
+      x:
+        search:
+        - ("product descriptions" OR "product listings" OR "listing generation" OR "product photography"
+          OR "catalog management" OR "inventory management") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("price monitoring" OR "competitor pricing" OR "pricing strategy" OR "product reviews" OR "Shopify
+          store" OR "Amazon listings") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("Etsy shop" OR "abandoned carts" OR "order tracking" OR "review analysis" OR "product recommendations"
+          OR "virtual try-on") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("store layout" OR "product mockups" OR "shopping assistant" OR "dropshipping store" OR "product
+          research") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - product recommendations llm
+        - product descriptions llm
+      hackernews:
+        search:
+        - AI product recommendations
+        - AI product descriptions
+        - AI product reviews
+      devto:
+        search:
+        - AI product recommendations
+        - AI product descriptions
+        - AI product reviews
+      bluesky:
+        search:
+        - AI product descriptions
+        - AI virtual try-on
+        - AI Shopify store
+      feeds: []
+  supply_chain:
+    name: Manufacturing, Supply Chain & Logistics
+    kind: industry
+    active: false
+    definition: AI used in manufacturing operations, supply chain and logistics - planning, forecasting,
+      warehousing, freight and quality.
+    domain_terms:
+    - demand forecasting
+    - supply chain
+    - inventory optimization
+    - route optimization
+    - freight matching
+    - shipment tracking
+    - warehouse robotics
+    - logistics optimization
+    - visual inspection
+    - purchase orders
+    - procurement automation
+    - vendor management
+    - spend analysis
+    - quality inspection
+    - defect detection
+    - predictive maintenance
+    - production scheduling
+    - work instructions
+    - root-cause analysis
+    - BOM management
+    - trade compliance
+    - demand planning
+    - lean manufacturing
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - supplychain
+        - logistics
+        - SupplyChainLogistics
+        search:
+        - supply chain AI
+        - root-cause analysis AI
+        - predictive maintenance AI
+        - visual inspection AI
+      x:
+        search:
+        - ("demand forecasting" OR "supply chain" OR "inventory optimization" OR "route optimization"
+          OR "freight matching" OR "shipment tracking") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("warehouse robotics" OR "logistics optimization" OR "visual inspection" OR "purchase orders"
+          OR "procurement automation" OR "vendor management") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("spend analysis" OR "quality inspection" OR "defect detection" OR "predictive maintenance"
+          OR "production scheduling" OR "work instructions") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("root-cause analysis" OR "BOM management" OR "trade compliance" OR "demand planning" OR "lean
+          manufacturing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - supply chain llm
+        - root-cause analysis llm
+      hackernews:
+        search:
+        - AI supply chain
+        - AI root-cause analysis
+        - AI predictive maintenance
+      devto:
+        search:
+        - AI supply chain
+        - AI root-cause analysis
+        - AI predictive maintenance
+      bluesky:
+        search:
+        - AI supply chain
+        - AI root-cause analysis
+        - AI predictive maintenance
+      feeds: []
+  media:
+    name: Media, Entertainment & Creators
+    kind: industry
+    active: false
+    definition: AI used by journalists, creators, podcasters, streamers and game studios - scripts, clips,
+      transcription, writing and game content.
+    domain_terms:
+    - YouTube scripts
+    - video scripts
+    - YouTube thumbnails
+    - video clipping
+    - clip generation
+    - podcast production
+    - show notes
+    - podcast transcripts
+    - interview transcription
+    - news summaries
+    - fact checking
+    - headline writing
+    - newsletter writing
+    - game dialogue
+    - NPC dialogue
+    - level design
+    - game assets
+    - ghostwriting
+    - news writing
+    - video summaries
+    - comment moderation
+    - YouTube automation
+    - game development
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - NewTubers
+        - podcasting
+        - Journalism
+        search:
+        - NPC dialogue AI
+        - level design AI
+        - fact checking AI
+        - game assets AI
+      x:
+        search:
+        - ("YouTube scripts" OR "video scripts" OR "YouTube thumbnails" OR "video clipping" OR "clip generation"
+          OR "podcast production") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("show notes" OR "podcast transcripts" OR "interview transcription" OR "news summaries" OR "fact
+          checking" OR "headline writing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("newsletter writing" OR "game dialogue" OR "NPC dialogue" OR "level design" OR "game assets"
+          OR "ghostwriting") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("news writing" OR "video summaries" OR "comment moderation" OR "YouTube automation" OR "game
+          development") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - game development llm
+        - fact checking llm
+      hackernews:
+        search:
+        - AI game development
+        - AI fact checking
+        - AI level design
+      devto:
+        search:
+        - AI game development
+        - AI fact checking
+        - AI level design
+      bluesky:
+        search:
+        - AI NPC dialogue
+        - AI level design
+        - AI fact checking
+      feeds: []
+  governance:
+    name: Governance & Public Sector
+    kind: industry
+    active: false
+    definition: AI used by government and the public sector, and AI policy and governance practice - regulation,
+      compliance and internal AI policies.
+    domain_terms:
+    - government
+    - governments
+    - public sector
+    - public service
+    - public services
+    - municipality
+    - city hall
+    - federal
+    - ministry
+    - civil service
+    - civil servants
+    - courts
+    - judiciary
+    - legislature
+    - parliament
+    - public administration
+    - procurement
+    - policing
+    - police department
+    - benefits claims
+    - tax authority
+    - e-government
+    - govtech
+    - AI governance
+    - AI policy
+    - AI policies
+    - AI regulation
+    - AI Act
+    - responsible AI
+    - AI risk management
+    - AI compliance
+    - model risk management
+    - AI audit
+    - AI ethics
+    ambiguous_terms:
+      state:
+      - agency
+      - department
+      - government
+      - legislature
+      - governor
+      city:
+      - council
+      - government
+      - services
+      - residents
+      - mayor
+      agency:
+      - government
+      - federal
+      - public
+      - state
+      - department
+      - city
+      agencies:
+      - government
+      - federal
+      - public
+      - state
+      - department
+      - city
+      council:
+      - city
+      - county
+      - local
+      - borough
+      - town
+      - district
+      councils:
+      - city
+      - county
+      - local
+      - borough
+      - town
+      - district
+    exclude_phrases:
+    - \bdata governance\b
+    - \bcorporate governance\b
+    - \bstate of the art\b
+    - \bstate[- ]of[- ]the[- ]art\b
+    queries:
+      reddit:
+        subreddits:
+        - govtech
+        - publicadministration
+        - localgovernment
+        search:
+        - AI government agency
+        - AI council services
+      x:
+        search:
+        - '"AI" government agency pilot'
+        - '"AI" public services'
+      github:
+        search:
+        - government llm
+        - public sector ai
+      hackernews:
+        search:
+        - AI government
+        - AI public sector
+        - AI agency
+      devto:
+        search:
+        - AI government
+        - AI public sector
+      bluesky:
+        search:
+        - AI government
+        - AI public sector
+      feeds: []
+    groups:
+      public_sector:
+        name: Public Sector & Nonprofit
+        definition: Public-sector and nonprofit use of AI - services, case work, records, grants.
+        domain_terms:
+        - grant writing
+        - grant applications
+        - case notes
+        - benefits eligibility
+        - policy analysis
+        - public comments
+        - FOIA requests
+        - government services
+        - form filling
+        - document digitization
+        - policy summaries
+        - bill analysis
+        - public records
+        - public procurement
+        - nonprofit fundraising
+        - fundraising letters
+        - donor research
+        - impact reports
+        - program evaluation
+        - language access
+        - public consultation
+        - emergency response
+        - records management
+        ambiguous_terms: {}
+        exclude_phrases: []
+        queries:
+          reddit:
+            subreddits:
+            - govtech
+            - publicadministration
+            - localgovernment
+            search:
+            - grant writing AI
+            - public records AI
+            - government services AI
+            - form filling AI
+          x:
+            search:
+            - ("grant writing" OR "grant applications" OR "case notes" OR "benefits eligibility" OR "policy
+              analysis" OR "public comments") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("FOIA requests" OR "government services" OR "form filling" OR "document digitization" OR
+              "policy summaries" OR "bill analysis") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("public records" OR "public procurement" OR "nonprofit fundraising" OR "fundraising letters"
+              OR "donor research" OR "impact reports") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("program evaluation" OR "language access" OR "public consultation" OR "emergency response"
+              OR "records management") (AI OR ChatGPT OR Claude OR LLM OR agent)
+          github:
+            search:
+            - government services llm
+            - grant applications llm
+          hackernews:
+            search:
+            - AI government services
+            - AI grant applications
+            - AI form filling
+          devto:
+            search:
+            - AI government services
+            - AI grant applications
+            - AI form filling
+          bluesky:
+            search:
+            - AI grant writing
+            - AI public records
+            - AI government services
+          feeds: []
+      ai_policy:
+        name: AI Policy & Governance
+        definition: AI policy and governance practice - regulation, compliance, audits, internal AI policies.
+        domain_terms:
+        - AI governance
+        - AI regulation
+        - AI Act
+        - AI policy
+        - responsible AI
+        - AI ethics
+        - AI compliance
+        - AI audits
+        - algorithmic accountability
+        - AI transparency
+        - AI accountability
+        - model governance
+        - model risk
+        - AI literacy
+        - AI guidelines
+        - AI standards
+        - ISO 42001
+        - AI oversight
+        - AI legislation
+        - AI disclosure
+        - AI watermarking
+        - deepfake regulation
+        - AI copyright
+        - AI liability
+        ambiguous_terms: {}
+        exclude_phrases: []
+        queries:
+          reddit:
+            subreddits:
+            - AI_Governance
+            search:
+            - AI disclosure
+            - ISO 42001 AI
+            - AI governance
+            - AI literacy
+          x:
+            search:
+            - ("AI governance" OR "AI regulation" OR "AI Act" OR "AI policy" OR "responsible AI" OR "AI
+              ethics") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("AI compliance" OR "AI audits" OR "algorithmic accountability" OR "AI transparency" OR
+              "AI accountability" OR "model governance") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("model risk" OR "AI literacy" OR "AI guidelines" OR "AI standards" OR "ISO 42001" OR "AI
+              oversight") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("AI legislation" OR "AI disclosure" OR "AI watermarking" OR "deepfake regulation" OR "AI
+              copyright" OR "AI liability") (AI OR ChatGPT OR Claude OR LLM OR agent)
+          github:
+            search:
+            - AI Act llm
+            - AI policy llm
+          hackernews:
+            search:
+            - AI Act
+            - AI policy
+            - AI regulation
+          devto:
+            search:
+            - AI Act
+            - AI policy
+            - AI regulation
+          bluesky:
+            search:
+            - AI disclosure
+            - AI ISO 42001
+            - AI governance
+          feeds: []
+  film:
+    name: Film Industry
+    kind: industry
+    active: false
+    definition: AI used in film production - pre-production and storyboarding, visual effects and virtual
+      sets, voice and dubbing, distribution and audience reach.
     domain_terms: []
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
-      reddit: {subreddits: [], search: []}
-      x: {search: []}
-      github: {search: []}
-      hackernews: {search: []}
-      devto: {search: []}
-      bluesky: {search: []}
+      reddit:
+        subreddits: []
+        search: []
+      x:
+        search: []
+      github:
+        search: []
+      hackernews:
+        search: []
+      devto:
+        search: []
+      bluesky:
+        search: []
+      feeds: []
+    groups:
+      pre_production:
+        name: Pre-Production & Storyboarding
+        definition: Script, story and shot planning before a shoot.
+        domain_terms:
+        - storyboarding
+        - screenplay writing
+        - script coverage
+        - script breakdown
+        - shot lists
+        - previs
+        - location scouting
+        - script analysis
+        ambiguous_terms: {}
+        exclude_phrases: []
+        queries:
+          reddit:
+            subreddits:
+            - Filmmakers
+            - Screenwriting
+            search:
+            - previs AI
+            - shot lists AI
+            - storyboarding AI
+            - script coverage AI
+          x:
+            search:
+            - ("storyboarding" OR "screenplay writing" OR "script coverage" OR "script breakdown" OR "shot
+              lists" OR "previs" OR "location scouting" OR "script analysis") (AI OR ChatGPT OR Claude
+              OR LLM OR agent)
+          github:
+            search:
+            - storyboarding llm
+            - previs llm
+          hackernews:
+            search:
+            - AI storyboarding
+            - AI previs
+            - AI shot lists
+          devto:
+            search:
+            - AI storyboarding
+            - AI previs
+            - AI shot lists
+          bluesky:
+            search:
+            - AI previs
+            - AI shot lists
+            - AI storyboarding
+          feeds: []
+      vfx_virtual_sets:
+        name: Visual Effects & Virtual Sets
+        definition: Visual effects, compositing, virtual production and digital performers.
+        domain_terms:
+        - rotoscoping
+        - compositing
+        - VFX shots
+        - virtual production
+        - de-aging
+        - digital doubles
+        - set extensions
+        - motion capture
+        - text-to-video
+        - Gaussian splatting
+        ambiguous_terms: {}
+        exclude_phrases: []
+        queries:
+          reddit:
+            subreddits:
+            - vfx
+            - virtualproduction
+            search:
+            - motion capture AI
+            - compositing AI
+            - rotoscoping AI
+            - Gaussian splatting AI
+          x:
+            search:
+            - ("rotoscoping" OR "compositing" OR "VFX shots" OR "virtual production" OR "de-aging") (AI
+              OR ChatGPT OR Claude OR LLM OR agent)
+            - ("digital doubles" OR "set extensions" OR "motion capture" OR "text-to-video" OR "Gaussian
+              splatting") (AI OR ChatGPT OR Claude OR LLM OR agent)
+          github:
+            search:
+            - text-to-video llm
+            - compositing llm
+          hackernews:
+            search:
+            - AI text-to-video
+            - AI compositing
+            - AI Gaussian splatting
+          devto:
+            search:
+            - AI text-to-video
+            - AI compositing
+            - AI Gaussian splatting
+          bluesky:
+            search:
+            - AI motion capture
+            - AI compositing
+            - AI rotoscoping
+          feeds: []
+      voice_dubbing:
+        name: Voice, Dubbing & Localization
+        definition: Voice, dubbing, lip sync, subtitles and localization.
+        domain_terms:
+        - video dubbing
+        - voice cloning
+        - lip sync
+        - subtitle generation
+        - dubbed movies
+        - dialogue replacement
+        - voice acting
+        - audio description
+        ambiguous_terms: {}
+        exclude_phrases: []
+        queries:
+          reddit:
+            subreddits:
+            - VoiceActing
+            - dubbing
+            search:
+            - lip sync AI
+            - voice acting AI
+            - voice cloning AI
+            - audio description AI
+          x:
+            search:
+            - ("video dubbing" OR "voice cloning" OR "lip sync" OR "subtitle generation" OR "dubbed movies"
+              OR "dialogue replacement" OR "voice acting" OR "audio description") (AI OR ChatGPT OR Claude
+              OR LLM OR agent)
+          github:
+            search:
+            - voice cloning llm
+            - lip sync llm
+          hackernews:
+            search:
+            - AI voice cloning
+            - AI lip sync
+            - AI voice acting
+          devto:
+            search:
+            - AI voice cloning
+            - AI lip sync
+            - AI voice acting
+          bluesky:
+            search:
+            - AI lip sync
+            - AI voice acting
+            - AI voice cloning
+          feeds: []
+      distribution:
+        name: Distribution & Audience Reach
+        definition: Trailers, posters, marketing, release and audience reach.
+        domain_terms:
+        - audience insights
+        - box office
+        - audience testing
+        - movie trailers
+        - poster design
+        - festival submissions
+        - streaming recommendations
+        - movie posters
+        ambiguous_terms: {}
+        exclude_phrases: []
+        queries:
+          reddit:
+            subreddits:
+            - filmmarketing
+            - FilmIndustryLA
+            search:
+            - box office AI
+            - movie posters AI
+            - poster design AI
+            - audience insights AI
+          x:
+            search:
+            - ("audience insights" OR "box office" OR "audience testing" OR "movie trailers" OR "poster
+              design" OR "festival submissions" OR "streaming recommendations" OR "movie posters") (AI
+              OR ChatGPT OR Claude OR LLM OR agent)
+          github:
+            search:
+            - box office llm
+            - movie trailers llm
+          hackernews:
+            search:
+            - AI box office
+            - AI movie trailers
+            - AI poster design
+          devto:
+            search:
+            - AI box office
+            - AI movie trailers
+            - AI poster design
+          bluesky:
+            search:
+            - AI box office
+            - AI movie posters
+            - AI poster design
+          feeds: []
+  automotive:
+    name: Automotive
+    kind: industry
+    active: false
+    definition: AI used in the automotive trade - diagnostics, repair, dealerships, fleets, telematics
+      and driver-assistance work.
+    domain_terms:
+    - car diagnostics
+    - fault codes
+    - car repair
+    - damage assessment
+    - repair manuals
+    - parts lookup
+    - dealership chatbot
+    - self-driving
+    - warranty claims
+    - car buying
+    - car infotainment
+    - car valuation
+    - auto financing
+    - test drives
+    - fleet management
+    - fleet maintenance
+    - fleet analytics
+    - driver behavior
+    - EV charging
+    - battery health
+    - vehicle inspection
+    - autonomous driving
+    - driver monitoring
+    - dashcam footage
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - MechanicAdvice
+        - SelfDrivingCars
+        - Justrolledintotheshop
+        search:
+        - self-driving AI
+        - EV charging AI
+        - fleet management AI
+        - car buying AI
+      x:
+        search:
+        - ("car diagnostics" OR "fault codes" OR "car repair" OR "damage assessment" OR "repair manuals"
+          OR "parts lookup") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("dealership chatbot" OR "self-driving" OR "warranty claims" OR "car buying" OR "car infotainment"
+          OR "car valuation") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("auto financing" OR "test drives" OR "fleet management" OR "fleet maintenance" OR "fleet analytics"
+          OR "driver behavior") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("EV charging" OR "battery health" OR "vehicle inspection" OR "autonomous driving" OR "driver
+          monitoring" OR "dashcam footage") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - self-driving llm
+        - autonomous driving llm
+      hackernews:
+        search:
+        - AI self-driving
+        - AI autonomous driving
+        - AI fleet management
+      devto:
+        search:
+        - AI self-driving
+        - AI autonomous driving
+        - AI fleet management
+      bluesky:
+        search:
+        - AI self-driving
+        - AI EV charging
+        - AI fleet management
+      feeds: []
+  engineering:
+    name: Engineering
+    kind: function
+    active: false
+    definition: AI used in engineering work - software and AI engineering, and the physical disciplines
+      (civil, mechanical, electrical, chemical, manufacturing, construction).
+    domain_terms: []
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits: []
+        search: []
+      x:
+        search: []
+      github:
+        search: []
+      hackernews:
+        search: []
+      devto:
+        search: []
+      bluesky:
+        search: []
       feeds: []
     groups:
       software_ai:
         name: Software & AI
-        definition: AI in software and AI engineering work - code review, test automation, RAG pipelines, coding agents.
-        domain_terms: [software engineering, software engineer, software engineers, code review, test automation, unit tests, CI pipeline, RAG pipeline, coding agent, coding assistant, vibe coding, pull request, refactoring, debugging, DevOps]
+        definition: AI in software and AI engineering work - code review, test automation, RAG pipelines,
+          coding agents.
+        domain_terms:
+        - software engineering
+        - software engineer
+        - software engineers
+        - code review
+        - test automation
+        - unit tests
+        - CI pipeline
+        - RAG pipeline
+        - coding agent
+        - coding assistant
+        - vibe coding
+        - pull request
+        - refactoring
+        - debugging
+        - DevOps
+        - code generation
+        - bug fixing
+        - code refactoring
+        - code migration
+        - code documentation
+        - pull requests
+        - CI pipelines
+        - Terraform scripts
+        - Kubernetes configs
+        - log analysis
+        - incident postmortems
+        - schema design
+        - API integration
+        - frontend development
+        - mobile apps
+        - web apps
+        - MVP building
+        - app prototyping
+        - agent workflows
+        - RAG pipelines
+        - prompt engineering
+        - model fine-tuning
+        - LLM evaluation
         ambiguous_terms: {}
-        exclude_phrases: ['\bprompt engineering\b', '\bcontext engineering\b']
+        # "prompt engineering" is NOT excluded here (anooj, 2026-11-20): it is software and AI
+        # work, and one of this group's keywords (941 HN posts/comments with "AI" in the last
+        # 730 days; 10 of Reddit's top 25 for "prompt engineering AI", 2026-11-20). Excluding
+        # it deleted the keyword before matching, so it could never confirm a post. It stays
+        # excluded in `physical`, where it is noise.
+        exclude_phrases:
+        - \bcontext engineering\b
         queries:
           reddit:
-            subreddits: [ExperiencedDevs, softwareengineering]
-            search: ["AI code review team", "coding agent production"]
+            subreddits:
+            - ExperiencedDevs
+            - softwareengineering
+            - ChatGPTCoding
+            search:
+            - AI code review team
+            - coding agent production
+            - pull requests AI
+            - debugging AI
+            - code review AI
+            - unit tests AI
           x:
-            search: ['"AI" code review team', '"coding agent" production']
+            search:
+            - '"AI" code review team'
+            - '"coding agent" production'
+            - ("code review" OR "code generation" OR "bug fixing" OR "debugging" OR "code refactoring"
+              OR "code migration") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("test automation" OR "unit tests" OR "code documentation" OR "pull requests" OR "CI pipelines"
+              OR "Terraform scripts") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("Kubernetes configs" OR "log analysis" OR "incident postmortems" OR "schema design" OR
+              "API integration" OR "frontend development") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("mobile apps" OR "web apps" OR "vibe coding" OR "MVP building" OR "app prototyping") (AI
+              OR ChatGPT OR Claude OR LLM OR agent)
+            - ("agent workflows" OR "RAG pipelines" OR "prompt engineering" OR "model fine-tuning" OR
+              "LLM evaluation") (AI OR ChatGPT OR Claude OR LLM OR agent)
           github:
-            search: ["llm code review", "ai test automation"]
+            search:
+            - llm code review
+            - ai test automation
+            - vibe coding llm
+            - debugging llm
           hackernews:
-            search: ["AI code review", "coding agents in production"]
+            search:
+            - AI code review
+            - coding agents in production
+            - AI vibe coding
+            - AI debugging
           devto:
-            search: ["AI code review", "AI test automation"]
+            search:
+            - AI code review
+            - AI test automation
+            - AI vibe coding
+            - AI debugging
           bluesky:
-            search: ["AI code review", "coding agent"]
+            search:
+            - AI code review
+            - coding agent
+            - AI pull requests
+            - AI debugging
           feeds: []
       physical:
         name: Physical
-        definition: AI in civil, mechanical, electrical, chemical and manufacturing engineering, construction and industrial operations.
-        domain_terms: [civil engineering, mechanical engineering, electrical engineering, chemical engineering, structural engineering, manufacturing, factory, factories, plant floor, predictive maintenance, CAD, BIM, construction, construction site, finite element, FEA, CFD, PLC, SCADA, digital twin, quality inspection, supply chain]
+        definition: AI in civil, mechanical, electrical, chemical and manufacturing engineering, construction
+          and industrial operations.
+        domain_terms:
+        - civil engineering
+        - mechanical engineering
+        - electrical engineering
+        - chemical engineering
+        - structural engineering
+        - manufacturing
+        - factory
+        - factories
+        - plant floor
+        - predictive maintenance
+        - CAD
+        - BIM
+        - construction
+        - construction site
+        - finite element
+        - FEA
+        - CFD
+        - PLC
+        - SCADA
+        - digital twin
+        - quality inspection
+        - supply chain
+        - CAD modeling
+        - parametric design
+        - technical drawings
+        - engineering drawings
+        - design review
+        - FEA simulation
+        - physics simulation
+        - structural analysis
+        - load calculations
+        - generative design
+        - material selection
+        - failure analysis
+        - structural design
+        - circuit design
+        - PCB layout
+        - schematic review
+        - engineering documentation
+        - CAD automation
+        - design optimization
+        - process simulation
+        - PLC programming
+        - control systems
+        - robot programming
+        - technical specifications
         ambiguous_terms:
-          engineering: [civil, mechanical, electrical, chemical, structural, plant, factory, construction, manufacturing, design, firm]
-          maintenance: [predictive, equipment, machine, plant, asset, factory]
-          inspection: [quality, visual, defect, weld, bridge, site]
-          simulation: [finite, structural, fluid, thermal, CFD, FEA, engineering]
-          engineers: [civil, mechanical, electrical, structural, plant, site, field]
+          engineering:
+          - civil
+          - mechanical
+          - electrical
+          - chemical
+          - structural
+          - plant
+          - factory
+          - construction
+          - manufacturing
+          - design
+          - firm
+          maintenance:
+          - predictive
+          - equipment
+          - machine
+          - plant
+          - asset
+          - factory
+          inspection:
+          - quality
+          - visual
+          - defect
+          - weld
+          - bridge
+          - site
+          simulation:
+          - finite
+          - structural
+          - fluid
+          - thermal
+          - CFD
+          - FEA
+          - engineering
+          engineers:
+          - civil
+          - mechanical
+          - electrical
+          - structural
+          - plant
+          - site
+          - field
         exclude_phrases:
-          - '\bprompt engineering\b'
-          - '\bcontext engineering\b'
-          - '\bsocial engineering\b'
-          - '\breverse engineering\b'
-          - '\bsoftware engineering\b'
-          - '\bsoftware engineers?\b'
-          - '\bfeature engineering\b'
-          - '\bdata engineering\b'
-          - '\bML engineers?\b'
-          - '\bAI engineers?\b'
+        - \bprompt engineering\b
+        - \bcontext engineering\b
+        - \bsocial engineering\b
+        - \breverse engineering\b
+        - \bsoftware engineering\b
+        - \bsoftware engineers?\b
+        - \bfeature engineering\b
+        - \bdata engineering\b
+        - \bML engineers?\b
+        - \bAI engineers?\b
         queries:
           reddit:
-            subreddits: [civilengineering, MechanicalEngineering, manufacturing]
-            search: ["AI predictive maintenance plant", "AI construction site"]
+            subreddits:
+            - civilengineering
+            - MechanicalEngineering
+            - manufacturing
+            - ElectricalEngineering
+            search:
+            - AI predictive maintenance plant
+            - AI construction site
+            - PLC programming AI
+            - structural analysis AI
+            - design review AI
+            - engineering drawings AI
           x:
-            search: ['"AI" predictive maintenance factory', '"AI" construction engineering']
+            search:
+            - '"AI" predictive maintenance factory'
+            - '"AI" construction engineering'
+            - ("CAD modeling" OR "parametric design" OR "technical drawings" OR "engineering drawings"
+              OR "design review" OR "FEA simulation") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("physics simulation" OR "structural analysis" OR "load calculations" OR "generative design"
+              OR "material selection" OR "failure analysis") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("structural design" OR "circuit design" OR "PCB layout" OR "schematic review" OR "engineering
+              documentation" OR "CAD automation") (AI OR ChatGPT OR Claude OR LLM OR agent)
+            - ("design optimization" OR "process simulation" OR "PLC programming" OR "control systems"
+              OR "robot programming" OR "technical specifications") (AI OR ChatGPT OR Claude OR LLM OR
+              agent)
           github:
-            search: ["predictive maintenance llm", "cad llm"]
+            search:
+            - predictive maintenance llm
+            - cad llm
+            - control systems llm
+            - physics simulation llm
           hackernews:
-            search: ["AI manufacturing", "AI civil engineering", "AI construction"]
+            search:
+            - AI manufacturing
+            - AI civil engineering
+            - AI construction
+            - AI control systems
+            - AI physics simulation
+            - AI design review
           devto:
-            search: ["AI manufacturing", "AI industrial"]
+            search:
+            - AI manufacturing
+            - AI industrial
+            - AI control systems
+            - AI physics simulation
+            - AI design review
           bluesky:
-            search: ["AI manufacturing", "AI construction"]
+            search:
+            - AI manufacturing
+            - AI construction
+            - AI PLC programming
+            - AI structural analysis
+            - AI design review
           feeds: []
-
-  governance:
-    name: Governance
-    kind: industry
-    active: true
-    # SCOPE (anooj, #644 review, point 5): the public sector's use of AI AND AI
-    # policy and governance practice. "AI governance" is common in vendor
-    # marketing, so the §7 hand-check samples Governance on its own.
-    definition: AI used by government and the public sector, and AI policy and governance practice - regulation, compliance and internal AI policies.
-    domain_terms: [government, governments, public sector, public service, public services, municipality, city hall, federal, ministry, civil service, civil servants, courts, judiciary, legislature, parliament, public administration, procurement, policing, police department, benefits claims, tax authority, e-government, govtech, AI governance, AI policy, AI policies, AI regulation, AI Act, responsible AI, AI risk management, AI compliance, model risk management, AI audit, AI ethics]
-    ambiguous_terms:
-      state: [agency, department, government, legislature, governor]
-      city: [council, government, services, residents, mayor]
-      agency: [government, federal, public, state, department, city]
-      agencies: [government, federal, public, state, department, city]
-      council: [city, county, local, borough, town, district]
-      councils: [city, county, local, borough, town, district]
-    exclude_phrases:
-      - '\bdata governance\b'
-      - '\bcorporate governance\b'
-      - '\bstate of the art\b'
-      - '\bstate[- ]of[- ]the[- ]art\b'
+  data_analytics:
+    name: Data & Analytics
+    kind: function
+    active: false
+    definition: AI used in data and analytics work - SQL, cleaning, dashboards, spreadsheets, statistics
+      and pipelines.
+    domain_terms:
+    - SQL queries
+    - text-to-SQL
+    - data cleaning
+    - data visualization
+    - dashboard building
+    - report automation
+    - Excel automation
+    - spreadsheet formulas
+    - pivot tables
+    - exploratory analysis
+    - statistical analysis
+    - A/B testing
+    - time series
+    - cohort analysis
+    - customer segmentation
+    - survey analysis
+    - ETL pipelines
+    - dbt models
+    - data modeling
+    - metric definitions
+    - BI dashboards
+    - Jupyter notebooks
+    - data labeling
+    ambiguous_terms: {}
+    exclude_phrases: []
     queries:
       reddit:
-        subreddits: [govtech, publicadministration, localgovernment]
-        search: ["AI government agency", "AI council services"]
+        subreddits:
+        - dataanalysis
+        - BusinessIntelligence
+        - analytics
+        search:
+        - text-to-SQL AI
+        - data labeling AI
+        - A/B testing AI
+        - data visualization AI
       x:
-        search: ['"AI" government agency pilot', '"AI" public services']
+        search:
+        - ("SQL queries" OR "text-to-SQL" OR "data cleaning" OR "data visualization" OR "dashboard building"
+          OR "report automation") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("Excel automation" OR "spreadsheet formulas" OR "pivot tables" OR "exploratory analysis" OR
+          "statistical analysis" OR "A/B testing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("time series" OR "cohort analysis" OR "customer segmentation" OR "survey analysis" OR "ETL
+          pipelines" OR "dbt models") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("data modeling" OR "metric definitions" OR "BI dashboards" OR "Jupyter notebooks" OR "data
+          labeling") (AI OR ChatGPT OR Claude OR LLM OR agent)
       github:
-        search: ["government llm", "public sector ai"]
+        search:
+        - time series llm
+        - A/B testing llm
       hackernews:
-        search: ["AI government", "AI public sector", "AI agency"]
+        search:
+        - AI time series
+        - AI A/B testing
+        - AI SQL queries
       devto:
-        search: ["AI government", "AI public sector"]
+        search:
+        - AI time series
+        - AI A/B testing
+        - AI SQL queries
       bluesky:
-        search: ["AI government", "AI public sector"]
+        search:
+        - AI text-to-SQL
+        - AI data labeling
+        - AI A/B testing
+      feeds: []
+  marketing:
+    name: Marketing, Content & SEO
+    kind: function
+    active: true
+    definition: AI used in marketing, content and SEO - copy, ads, social posts, campaigns, research and
+      launches.
+    domain_terms:
+    - SEO content
+    - keyword research
+    - meta descriptions
+    - blog posts
+    - copywriting
+    - ad copy
+    - ad creatives
+    - PPC campaigns
+    - social captions
+    - LinkedIn posts
+    - content calendar
+    - content repurposing
+    - email campaigns
+    - landing pages
+    - brand voice
+    - campaign planning
+    - ad targeting
+    - competitor research
+    - market research
+    - customer personas
+    - press releases
+    - product launches
+    - influencer outreach
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - marketing
+        - SEO
+        - content_marketing
+        search:
+        - brand voice AI
+        - keyword research AI
+        - market research AI
+        - copywriting AI
+      x:
+        search:
+        - ("SEO content" OR "keyword research" OR "meta descriptions" OR "blog posts" OR "copywriting"
+          OR "ad copy") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("ad creatives" OR "PPC campaigns" OR "social captions" OR "LinkedIn posts" OR "content calendar"
+          OR "content repurposing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("email campaigns" OR "landing pages" OR "brand voice" OR "campaign planning" OR "ad targeting"
+          OR "competitor research") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("market research" OR "customer personas" OR "press releases" OR "product launches" OR "influencer
+          outreach") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - blog posts llm
+        - press releases llm
+      hackernews:
+        search:
+        - AI blog posts
+        - AI press releases
+        - AI landing pages
+      devto:
+        search:
+        - AI blog posts
+        - AI press releases
+        - AI landing pages
+      bluesky:
+        search:
+        - AI brand voice
+        - AI keyword research
+        - AI market research
+      feeds: []
+  sales_support:
+    name: Sales & Customer Support
+    kind: function
+    active: false
+    definition: AI used in sales and customer support - prospecting, calls, CRM, proposals, tickets, chatbots
+      and retention.
+    domain_terms:
+    - cold emails
+    - prospect research
+    - lead scoring
+    - lead qualification
+    - sales calls
+    - call summaries
+    - CRM updates
+    - follow-up emails
+    - objection handling
+    - sales playbooks
+    - sales emails
+    - deal forecasting
+    - proposal writing
+    - RFP responses
+    - support tickets
+    - ticket triage
+    - ticket routing
+    - support chatbot
+    - knowledge base
+    - canned responses
+    - customer onboarding
+    - customer retention
+    - sentiment analysis
+    - call QA
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - sales
+        - CustomerSuccess
+        - customerservice
+        search:
+        - knowledge base AI
+        - lead qualification AI
+        - sentiment analysis AI
+        - support tickets AI
+      x:
+        search:
+        - ("cold emails" OR "prospect research" OR "lead scoring" OR "lead qualification" OR "sales calls"
+          OR "call summaries") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("CRM updates" OR "follow-up emails" OR "objection handling" OR "sales playbooks" OR "sales
+          emails" OR "deal forecasting") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("proposal writing" OR "RFP responses" OR "support tickets" OR "ticket triage" OR "ticket routing"
+          OR "support chatbot") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("knowledge base" OR "canned responses" OR "customer onboarding" OR "customer retention" OR
+          "sentiment analysis" OR "call QA") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - knowledge base llm
+        - sentiment analysis llm
+      hackernews:
+        search:
+        - AI knowledge base
+        - AI sentiment analysis
+        - AI support tickets
+      devto:
+        search:
+        - AI knowledge base
+        - AI sentiment analysis
+        - AI support tickets
+      bluesky:
+        search:
+        - AI knowledge base
+        - AI lead qualification
+        - AI sentiment analysis
+      feeds: []
+  design_creative:
+    name: Design & Creative
+    kind: function
+    active: true
+    definition: AI used in design and creative work - UI/UX, branding, graphics, image and video editing,
+      illustration and music.
+    domain_terms:
+    - UI design
+    - UX research
+    - wireframing
+    - Figma prototypes
+    - design systems
+    - usability testing
+    - logo design
+    - brand identity
+    - graphic design
+    - icon design
+    - packaging design
+    - mood boards
+    - image generation
+    - photo editing
+    - image upscaling
+    - video editing
+    - motion graphics
+    - color grading
+    - illustration
+    - concept art
+    - 3D rendering
+    - music production
+    - song writing
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - UXDesign
+        - graphic_design
+        - VideoEditing
+        search:
+        - concept art AI
+        - color grading AI
+        - motion graphics AI
+        - logo design AI
+      x:
+        search:
+        - ("UI design" OR "UX research" OR "wireframing" OR "Figma prototypes" OR "design systems" OR
+          "usability testing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("logo design" OR "brand identity" OR "graphic design" OR "icon design" OR "packaging design"
+          OR "mood boards") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("image generation" OR "photo editing" OR "image upscaling" OR "video editing" OR "motion graphics"
+          OR "color grading") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("illustration" OR "concept art" OR "3D rendering" OR "music production" OR "song writing")
+          (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - image generation llm
+        - illustration llm
+      hackernews:
+        search:
+        - AI image generation
+        - AI illustration
+        - AI design systems
+      devto:
+        search:
+        - AI image generation
+        - AI illustration
+        - AI design systems
+      bluesky:
+        search:
+        - AI concept art
+        - AI color grading
+        - AI motion graphics
+      feeds: []
+  operations:
+    name: Operations, HR & Admin
+    kind: function
+    active: false
+    definition: AI used in operations, HR and admin - workflow automation, documents, meetings, scheduling,
+      recruiting and onboarding.
+    domain_terms:
+    - workflow automation
+    - Zapier workflows
+    - n8n workflows
+    - data entry
+    - document processing
+    - process documentation
+    - SOP writing
+    - meeting notes
+    - action items
+    - email triage
+    - inbox management
+    - calendar scheduling
+    - task management
+    - project planning
+    - status reports
+    - meeting transcription
+    - expense reports
+    - shift scheduling
+    - resume screening
+    - candidate sourcing
+    - job descriptions
+    - interview scheduling
+    - employee onboarding
+    - performance reviews
+    - HR policies
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - automation
+        - n8n
+        - humanresources
+        search:
+        - data entry AI
+        - action items AI
+        - performance reviews AI
+        - job descriptions AI
+      x:
+        search:
+        - ("workflow automation" OR "Zapier workflows" OR "n8n workflows" OR "data entry" OR "document
+          processing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("process documentation" OR "SOP writing" OR "meeting notes" OR "action items" OR "email triage")
+          (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("inbox management" OR "calendar scheduling" OR "task management" OR "project planning" OR "status
+          reports") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("meeting transcription" OR "expense reports" OR "shift scheduling" OR "resume screening" OR
+          "candidate sourcing") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("job descriptions" OR "interview scheduling" OR "employee onboarding" OR "performance reviews"
+          OR "HR policies") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - workflow automation llm
+        - meeting notes llm
+      hackernews:
+        search:
+        - AI workflow automation
+        - AI meeting notes
+        - AI data entry
+      devto:
+        search:
+        - AI workflow automation
+        - AI meeting notes
+        - AI data entry
+      bluesky:
+        search:
+        - AI data entry
+        - AI action items
+        - AI performance reviews
+      feeds: []
+  security_it:
+    name: Security & IT
+    kind: function
+    active: true
+    definition: AI used in security and IT work - threat detection, incident response, testing, audits,
+      identity and helpdesk.
+    domain_terms:
+    - threat detection
+    - threat intelligence
+    - log triage
+    - alert triage
+    - incident response
+    - vulnerability scanning
+    - penetration testing
+    - exploit development
+    - malware analysis
+    - reverse engineering
+    - phishing detection
+    - security questionnaires
+    - security audits
+    - SOC 2
+    - security automation
+    - identity management
+    - patch management
+    - endpoint security
+    - cloud security
+    - SAST scanning
+    - IT helpdesk
+    - device management
+    - password resets
+    - CTF challenges
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - cybersecurity
+        - sysadmin
+        - AskNetsec
+        search:
+        - incident response AI
+        - penetration testing AI
+        - reverse engineering AI
+        - SOC 2 AI
+      x:
+        search:
+        - ("threat detection" OR "threat intelligence" OR "log triage" OR "alert triage" OR "incident
+          response" OR "vulnerability scanning") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("penetration testing" OR "exploit development" OR "malware analysis" OR "reverse engineering"
+          OR "phishing detection" OR "security questionnaires") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("security audits" OR "SOC 2" OR "security automation" OR "identity management" OR "patch management"
+          OR "endpoint security") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("cloud security" OR "SAST scanning" OR "IT helpdesk" OR "device management" OR "password resets"
+          OR "CTF challenges") (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - reverse engineering llm
+        - SOC 2 llm
+      hackernews:
+        search:
+        - AI reverse engineering
+        - AI SOC 2
+        - AI incident response
+      devto:
+        search:
+        - AI reverse engineering
+        - AI SOC 2
+        - AI incident response
+      bluesky:
+        search:
+        - AI incident response
+        - AI penetration testing
+        - AI reverse engineering
+      feeds: []
+  leaders_founders:
+    name: Leaders & Founders
+    kind: function
+    active: true
+    definition: AI used by leaders and founders - planning, fundraising, strategy, AI adoption, hiring
+      and team productivity.
+    domain_terms:
+    - business plan
+    - pitch deck
+    - investor updates
+    - fundraising
+    - cap table
+    - financial projections
+    - market sizing
+    - go-to-market
+    - idea validation
+    - customer discovery
+    - roadmap planning
+    - strategy planning
+    - AI transformation
+    - hiring plans
+    - workforce planning
+    - AI adoption
+    - AI strategy
+    - tool evaluation
+    - vendor evaluation
+    - cost cutting
+    - team productivity
+    - small business
+    - AI implementation
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - startups
+        - Entrepreneur
+        - SaaS
+        search:
+        - pitch deck AI
+        - small business AI
+        - fundraising AI
+        - business plan AI
+      x:
+        search:
+        - ("business plan" OR "pitch deck" OR "investor updates" OR "fundraising" OR "cap table" OR "financial
+          projections") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("market sizing" OR "go-to-market" OR "idea validation" OR "customer discovery" OR "roadmap
+          planning" OR "strategy planning") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("AI transformation" OR "hiring plans" OR "workforce planning" OR "AI adoption" OR "AI strategy"
+          OR "tool evaluation") (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("vendor evaluation" OR "cost cutting" OR "team productivity" OR "small business" OR "AI implementation")
+          (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - AI adoption llm
+        - small business llm
+      hackernews:
+        search:
+        - AI adoption
+        - AI small business
+        - AI strategy
+      devto:
+        search:
+        - AI adoption
+        - AI small business
+        - AI strategy
+      bluesky:
+        search:
+        - AI pitch deck
+        - AI small business
+        - AI fundraising
+      feeds: []
+  personal:
+    name: Personal & Everyday Life
+    kind: function
+    active: false
+    definition: AI used in everyday life - trips, meals, fitness, money, careers, learning, home and wellbeing.
+    domain_terms:
+    - trip planning
+    - meal planning
+    - grocery lists
+    - workout plans
+    - diet tracking
+    - personal budgeting
+    - personal finance
+    - debt payoff
+    - resume writing
+    - cover letters
+    - job search
+    - interview prep
+    - self-learning
+    - parenting advice
+    - gift ideas
+    - home organization
+    - home repairs
+    - DIY projects
+    - gardening tips
+    - pet care
+    - wedding planning
+    - journaling
+    - mental health
+    - relationship advice
+    - health questions
+    ambiguous_terms: {}
+    exclude_phrases: []
+    queries:
+      reddit:
+        subreddits:
+        - productivity
+        - personalfinance
+        - careerguidance
+        search:
+        - mental health AI
+        - journaling AI
+        - job search AI
+        - cover letters AI
+      x:
+        search:
+        - ("trip planning" OR "meal planning" OR "grocery lists" OR "workout plans" OR "diet tracking")
+          (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("personal budgeting" OR "personal finance" OR "debt payoff" OR "resume writing" OR "cover letters")
+          (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("job search" OR "interview prep" OR "self-learning" OR "parenting advice" OR "gift ideas")
+          (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("home organization" OR "home repairs" OR "DIY projects" OR "gardening tips" OR "pet care")
+          (AI OR ChatGPT OR Claude OR LLM OR agent)
+        - ("wedding planning" OR "journaling" OR "mental health" OR "relationship advice" OR "health questions")
+          (AI OR ChatGPT OR Claude OR LLM OR agent)
+      github:
+        search:
+        - mental health llm
+        - job search llm
+      hackernews:
+        search:
+        - AI mental health
+        - AI job search
+        - AI journaling
+      devto:
+        search:
+        - AI mental health
+        - AI job search
+        - AI journaling
+      bluesky:
+        search:
+        - AI mental health
+        - AI journaling
+        - AI job search
       feeds: []
