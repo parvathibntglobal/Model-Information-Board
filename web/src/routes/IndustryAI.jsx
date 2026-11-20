@@ -28,7 +28,12 @@ const PLATFORM_LABEL = {
 }
 const REASON_LABEL = {
   no_ai_term: 'No AI term', no_domain_term: 'No industry term',
-  outside_window: 'Older than the window', shared_link: 'Same article shared elsewhere',
+  // Two windows, named apart (#650 review). No day counts here: they live in
+  // contract/industry_ai.yaml (run.window_days, watch.lookback_days), so a number
+  // written in this file would go stale the day the contract changes (rule 11).
+  outside_window: 'Older than the run window',
+  outside_watch_window: 'Watched post older than the watch window (from first sight)',
+  shared_link: 'Same article shared elsewhere',
   repeat_post: 'Same author, same post again', near_duplicate: 'Near-duplicate text',
   too_short: 'Too short', bot: 'Bot account', non_english: 'Not English', spam: 'Spam or scam',
   promo: 'Sponsored or affiliate', hiring: 'Hiring or job ad', signup_ad: 'Sign-up ad',
