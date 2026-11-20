@@ -157,7 +157,11 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
     per_domain: dict[str, dict] = {}
     for i in kept:
         r, it = results[i], by_id[i]
-        for d in r.domains or ["unconfirmed"]:
+        # Two different absences, counted apart (rule 4): a keyword query's own
+        # domain not confirmed ("unconfirmed"), and a watched post naming no
+        # industry at all ("general").
+        empty = "general" if "general_ai" in r.flags else "unconfirmed"
+        for d in r.domains or [empty]:
             c = per_domain.setdefault(
                 d,
                 {

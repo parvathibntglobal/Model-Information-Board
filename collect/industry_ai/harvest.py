@@ -82,14 +82,16 @@ class Harvest:
     notes: list[str] = field(default_factory=list)
     quota: dict[str, Any] = field(default_factory=dict)
 
-    def add(self, item: Item, *, domain: str, key: str) -> None:
+    def add(self, item: Item, *, domain: str | None, key: str) -> None:
         """One item per id, however many queries found it; every finding
-        domain becomes a hint, every finding query a key."""
+        domain becomes a hint, every finding query a key. A watch source has no
+        domain (`None`): its items are filed by their own terms in `label`."""
         have = self.items.get(item.id)
         if have is None:
             self.items[item.id] = item
             have = item
-        have.domain_hints.add(domain)
+        if domain:
+            have.domain_hints.add(domain)
         have.query_keys.add(key)
 
 
@@ -203,8 +205,10 @@ def _hn_item(h: dict) -> Item:
         platform="hackernews",
         external_id=oid,
         url=f"https://news.ycombinator.com/item?id={oid}",
+        # A comment (a watched author's) has no title: its text is the body, and
+        # the story it sits under is not this item's title - never borrowed.
         title=plain(h.get("title")),
-        body=plain(h.get("story_text")),
+        body=plain(h.get("story_text") or h.get("comment_text")),
         created_at=when(h.get("created_at")),
         author_id=h.get("author"),
         engagement={"points": h.get("points"), "comments": h.get("num_comments")},
@@ -271,8 +275,13 @@ def harvest(
     client_factory: Callable[..., Any],
     since: datetime,
     log: Callable[[str], None] = print,
+    watch_since: datetime | None = None,
 ) -> Harvest:
-    """Run every planned query within its platform's cap. Returns all items."""
+    """Run every planned query within its platform's cap. Returns all items.
+
+    With `watch_since`, the observer's watch lists run too, after the keyword
+    queries, under their OWN caps (`watch.max_requests`), reading back to
+    `watch_since`."""
     out = Harvest()
     budget = Budget({p: int(cfg.run["max_requests"][p]) for p in platforms})
     rows = {p.get("id"): p for p in contract.platforms}
@@ -337,7 +346,64 @@ def harvest(
             f"  {platform}: {out.requests[platform]} request(s), "
             f"{sum(s.items for s in out.queries if s.platform == platform)} item(s)"
         )
+    if watch_since is not None:
+        _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, watch_since, log)
     return out
+
+
+def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, since, log) -> None:
+    """The observer's watch lists: one query key per source, `watch:<platform>:<source>`,
+    each with its own yield; no domain hint. Own caps, so watching never spends the
+    keyword queries' budget (anooj, 2026-11-20)."""
+    from collect.industry_ai.config import WATCH_PLATFORMS
+
+    caps = cfg.watch["max_requests"]
+    budget = Budget({p: caps[p] for p in WATCH_PLATFORMS if p in platforms})
+    by_platform: dict[str, list[str]] = {}
+    for p, q in cfg.watch_queries():
+        if p in platforms:
+            by_platform.setdefault(p, []).append(q)
+    for platform, wanted in by_platform.items():
+        try:
+            runner = _RUNNERS[platform](cfg, rows, contract, store, client_factory, since)
+        except Exception as e:  # noqa: BLE001 - one refused platform must not stop the rest
+            reason = str(e).splitlines()[0][:180] if str(e) else type(e).__name__
+            out.notes.append(f"watch {platform}: skipped - {reason}")
+            out.queries += [QueryStat(f"watch:{platform}:{q}", "watch", platform, q,
+                                      status="skipped", detail=reason) for q in wanted]
+            continue
+        before = out.requests[platform]
+        for q in wanted:
+            stat = QueryStat(f"watch:{platform}:{q}", "watch", platform, q)
+            out.queries.append(stat)
+            cost = runner.cost(q)
+            if not budget.allows(platform, cost):
+                stat.status = "capped"
+                stat.detail = f"not run: watch {platform} request cap reached ({caps[platform]})"
+                continue
+            try:
+                items, used, detail = runner.run(q)
+            except Exception as e:  # noqa: BLE001 - one failed source must not stop the platform
+                stat.status, stat.detail = "error", f"{type(e).__name__}: {str(e)[:160]}"
+                budget.spend(platform, cost)
+                out.requests[platform] += cost
+                continue
+            budget.spend(platform, used)
+            out.requests[platform] += used
+            stat.requests, stat.items, stat.detail = used, len(items), detail
+            for it in items:
+                out.add(it, domain=None, key=stat.key)
+        quota = getattr(runner, "quota", None)
+        if quota:
+            out.quota[platform] = quota
+        close = getattr(runner, "close", None)
+        if close:
+            close()
+        log(
+            f"  watch {platform}: {out.requests[platform] - before} request(s), "
+            f"{sum(s.items for s in out.queries if s.platform == platform and s.domain == 'watch')}"
+            " item(s)"
+        )
 
 
 class _Runner:
@@ -407,6 +473,7 @@ class _X(_Runner):
         from collect.adapters import x
 
         self.cfg = cfg
+        self.since = since
         self.client = client_factory(timeout=30.0)
         self.suffix = cfg.query_suffix.get("x", "")
         self._build = lambda pages: _gated(
@@ -422,6 +489,15 @@ class _X(_Runner):
         self._build(int(cfg.run["pages_per_query"]["x"]))  # the gate, before any query
 
     def _full(self, query: str) -> str:
+        from collect.industry_ai.config import is_watch_x
+
+        if is_watch_x(query):
+            # A watch query reads the accounts' posts back to the window's start,
+            # paged (`watch.x_pages`), with the watch suffix (replies excluded in
+            # the first test runs). The config refuses one that would pass 480.
+            parts = [query, f"since:{self.since:%Y-%m-%d}", self.suffix,
+                     self.cfg.watch.get("x_suffix", "")]
+            return " ".join(p for p in parts if p)
         return f"{query} {self.suffix}".strip()
 
     def cost(self, query):
@@ -504,8 +580,20 @@ class _HackerNews(_Runner):
         )
 
     def run(self, query):
-        hits = self.h.search_stories(query, since_ts=self.since, per_page=30)
-        return [_hn_item(h) for h in hits if h.get("objectID") and h.get("title")], 1, ""
+        if query.startswith("hn:list:"):
+            # A watch list: Algolia's own tag (show_hn, ask_hn, front_page), newest first.
+            hits = self.h.search_stories("", since_ts=self.since, per_page=30,
+                                         tags=query.split(":", 2)[2])
+        elif query.startswith("hn:author:"):
+            # A watched author: their stories AND comments - an author's comment is
+            # where much first-hand AI work is reported.
+            hits = self.h.search_stories("", since_ts=self.since, per_page=30,
+                                         tags=f"(story,comment),author_{query.split(':', 2)[2]}")
+        else:
+            hits = self.h.search_stories(query, since_ts=self.since, per_page=30)
+        items = [_hn_item(h) for h in hits
+                 if h.get("objectID") and (h.get("title") or h.get("comment_text"))]
+        return items, 1, ""
 
     def close(self):
         self.client.close()

@@ -23,6 +23,17 @@ CONTRACT = ROOT / "contract" / "industry_ai.yaml"
 
 #: The page's type order, the contract's precedence order.
 UNCONFIRMED = "unconfirmed"
+#: A kept post the OBSERVER found (a watched community, account or list) that names
+#: no industry at all: general AI news and opinion (anooj, 2026-11-20). A different
+#: absence from UNCONFIRMED - a keyword query's own domain not confirmed - so the
+#: two are counted apart (rule 4). Flagged `general_ai` by the labeller.
+GENERAL = "general"
+#: THE BUCKET EXPRESSION is written out IN EACH QUERY below, identically, rather
+#: than held in one constant: scripts/audit_columns.py finds a column's reader by
+#: reading SQL literals that name the table and the column together (rule 9), and
+#: a constant without `FROM iai_item` hid `domains` and `flags` from it (found by
+#: tests/test_column_states.py, 2026-11-20). tests/test_industry_ai_observer.py
+#: checks the two copies stay identical, so the buckets cannot disagree.
 
 
 def _contract() -> dict:
@@ -33,12 +44,14 @@ def _contract() -> dict:
 
 
 def _count_by(conn, column: str, where: str = "verdict = 'kept'") -> dict[str, dict[str, int]]:
-    """domain -> value -> kept items, with "unconfirmed" for an empty `domains`."""
+    """domain -> value -> kept items, with "general" or "unconfirmed" for an empty
+    `domains` (the bucket expression; see GENERAL)."""
     out: dict[str, dict[str, int]] = {}
     for domain, value, n in conn.execute(
         "SELECT d, v, count(*) FROM ("
-        f"  SELECT CASE WHEN cardinality(domains) = 0 THEN ARRAY['{UNCONFIRMED}'] "
-        f"         ELSE domains END AS ds, {column} AS v FROM iai_item WHERE {where}"
+        "  SELECT CASE WHEN cardinality(domains) = 0 AND 'general_ai' = ANY(flags) "
+        "THEN ARRAY['general'] WHEN cardinality(domains) = 0 THEN ARRAY['unconfirmed'] "
+        f"ELSE domains END AS ds, {column} AS v FROM iai_item WHERE {where}"
         ") x, unnest(ds) AS d GROUP BY 1, 2"
     ).fetchall():
         if value is not None:
@@ -68,8 +81,9 @@ def industry_ai_view(conn) -> dict[str, Any]:
         "SELECT d, count(*), count(DISTINCT (platform, author_id)) "
         "  FILTER (WHERE author_id IS NOT NULL), coalesce(sum(share_count), 0), "
         "  count(*) FILTER (WHERE created_at IS NULL) FROM ("
-        f"  SELECT CASE WHEN cardinality(domains) = 0 THEN ARRAY['{UNCONFIRMED}'] "
-        "         ELSE domains END AS ds, platform, author_id, share_count, created_at "
+        "  SELECT CASE WHEN cardinality(domains) = 0 AND 'general_ai' = ANY(flags) "
+        "THEN ARRAY['general'] WHEN cardinality(domains) = 0 THEN ARRAY['unconfirmed'] "
+        "ELSE domains END AS ds, platform, author_id, share_count, created_at "
         "  FROM iai_item WHERE verdict = 'kept'"
         ") x, unnest(ds) AS d GROUP BY 1"
     ).fetchall()
@@ -152,6 +166,9 @@ def industry_ai_view(conn) -> dict[str, Any]:
         # Kept, but no finding domain's terms confirmed it: counted here, never
         # in a domain's total (rule 6).
         "unconfirmed": block(UNCONFIRMED, "Domain unconfirmed", None),
+        # Kept from a watched source, naming no industry: general AI news and
+        # opinion, counted apart from "unconfirmed" (rule 4).
+        "general": block(GENERAL, "General AI", None),
         "collected": int(total),
         "kept": int(kept),
         "dropped": dropped,

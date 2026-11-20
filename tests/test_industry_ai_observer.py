@@ -1,0 +1,271 @@
+"""The Industry AI observer (watch lists; anooj, 2026-11-20): the keyword agent's twin.
+
+Pure tests - no database, no network. What each one pins:
+  * the `watch:` block is read strictly (an unread list is refused, never ignored);
+  * the watch queries' shape, and X pages for an account query;
+  * a WATCHED post needs an AI term only: naming no industry it is kept as General AI,
+    naming several it is filed under each (option A), flagged either way;
+  * a keyword post with no industry term is still dropped (the twin changes nothing
+    for the keyword agent);
+  * harvest runs watch sources under their own caps, keyed `watch:<platform>:<source>`,
+    with no domain hint;
+  * an X account query carries `since:` and both suffixes.
+"""
+
+from __future__ import annotations
+
+import copy
+import dataclasses
+from datetime import UTC, datetime, timedelta
+
+import pytest
+import yaml
+
+from collect.industry_ai import config as iai_config
+from collect.industry_ai.config import CONTRACT, IndustryAIConfigError
+from collect.industry_ai.pipeline import counts, evaluate
+from collect.industry_ai.rules import Item
+
+NOW = datetime(2026, 11, 20, tzinfo=UTC)
+SINCE = NOW - timedelta(days=365)
+
+
+@pytest.fixture(scope="module")
+def raw():
+    return yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def cfg(raw):
+    return iai_config.parse(copy.deepcopy(raw))
+
+
+def watched(text, *, key="watch:x:(from:karpathy)", platform="x", iid=None):
+    iid = iid or f"{platform}:{abs(hash((text, key))) % 10**8}"
+    return Item(
+        id=iid,
+        platform=platform,
+        external_id=iid.split(":", 1)[1],
+        url=f"https://e.x/{iid}",
+        title="",
+        body=text,
+        created_at=NOW - timedelta(days=2),
+        author_id="a1",
+        engagement={"likes": 10},
+        domain_hints=set(),
+        query_keys={key},
+    )
+
+
+def one(cfg, it):
+    results, c = evaluate([it], cfg, since=SINCE)
+    return results[it.id], c
+
+
+# ── the contract ─────────────────────────────────────────────────────────────
+
+
+def test_the_watch_lists_load_off_and_within_twenty(cfg):
+    w = cfg.watch
+    assert w["enabled"] is False, "the observer stays off until its own dry run"
+    for p in ("reddit", "x", "bluesky"):
+        assert 0 < len(w[p]) <= 20, p
+    assert len(w["hackernews"]["lists"]) + len(w["hackernews"]["authors"]) <= 20
+
+
+@pytest.mark.parametrize(
+    "mutate, says",
+    [
+        (lambda w: w.update(devto=["llm"]), "unknown key"),  # not built: refused, not ignored
+        (lambda w: w.pop("x_suffix"), "x_suffix"),
+        (lambda w: w["x"].append("not a handle!"), "not a valid name"),
+        (lambda w: w["reddit"].append(w["reddit"][0]), "listed twice"),
+        (lambda w: w["hackernews"].update(lists=["best_hn"]), "unknown"),
+        (lambda w: w["max_requests"].pop("bluesky"), "max_requests"),
+        (lambda w: w.update(enabled="yes"), "enabled"),
+    ],
+)
+def test_the_watch_block_is_strict(raw, mutate, says):
+    r = copy.deepcopy(raw)
+    mutate(r["watch"])
+    with pytest.raises(IndustryAIConfigError, match=says):
+        iai_config.parse(r)
+
+
+def test_a_clubbed_account_query_too_long_for_x_is_refused(raw):
+    r = copy.deepcopy(raw)
+    r["watch"]["x"] = [f"account_{i:02d}xyzw" for i in range(20)]  # 15 characters each
+    r["watch"]["x_club_max"] = 20
+    with pytest.raises(IndustryAIConfigError, match="lower watch.x_club_max"):
+        iai_config.parse(r)
+
+
+def test_watch_queries_and_x_pages(cfg):
+    q = cfg.watch_queries()
+    by = {}
+    for p, s in q:
+        by.setdefault(p, []).append(s)
+    assert all(s.startswith("r/") for s in by["reddit"])
+    n = cfg.watch["x_club_max"]
+    assert len(by["x"]) == -(-len(cfg.watch["x"]) // n)
+    assert all(s.startswith("(from:") and s.endswith(")") for s in by["x"])
+    assert all(s.startswith("from:") for s in by["bluesky"])
+    assert set(by["hackernews"]) >= {"hn:list:show_hn", "hn:author:simonw"}
+    # An account query is paged over the window; a keyword query is unchanged.
+    assert cfg.x_pages(by["x"][0]) == cfg.watch["x_pages"]
+    assert cfg.x_pages('("a" OR "b") (AI OR LLM)') == cfg.run["pages_per_query"]["x"]
+
+
+# ── the sieve and the label ──────────────────────────────────────────────────
+
+
+def test_a_watched_post_naming_no_industry_is_general_ai(cfg):
+    r, c = one(cfg, watched("A new open LLM was released today with a longer context window "
+                            "and faster inference for everyone who runs it locally."))
+    assert r.verdict == "kept", r.reason
+    assert r.domains == [] and "general_ai" in r.flags
+    assert "general" in c["domains"] and "unconfirmed" not in c["domains"]
+
+
+def test_a_watched_post_is_filed_under_every_domain_it_names(cfg):
+    r, _ = one(cfg, watched("I used Claude to write our ad copy this week, and it also helped "
+                            "with incident response notes for the security team."))
+    assert r.verdict == "kept", r.reason
+    assert {"marketing", "security_it"} <= set(r.domains)
+    assert "domain_from_terms:marketing" in r.flags
+    assert "general_ai" not in r.flags
+
+
+def test_a_keyword_post_with_no_industry_term_is_still_dropped(cfg):
+    it = watched("A new open LLM was released today with a longer context window and faster "
+                 "inference for everyone who runs it locally.", key="iai:marketing:x:q")
+    it.domain_hints = {"marketing"}
+    r, _ = one(cfg, it)
+    assert r.verdict == "dropped" and r.reason == "no_domain_term"
+
+
+def test_a_watched_post_with_no_ai_term_is_dropped(cfg):
+    r, _ = one(cfg, watched("Great dinner with friends tonight, the pasta was excellent and the "
+                            "wine even better."))
+    assert r.verdict == "dropped" and r.reason == "no_ai_term"
+
+
+def test_general_and_unconfirmed_are_counted_apart(cfg):
+    gen = watched("A new open LLM was released today with a longer context window and faster "
+                  "inference for everyone who runs it locally.", iid="x:g1")
+    kw = watched("I used ChatGPT to draft our ad copy for the spring sale and it saved hours.",
+                 key="iai:retail:x:q", iid="x:k1")
+    kw.domain_hints = {"retail"}  # found by a retail query; names marketing's term only
+    results, c = evaluate([gen, kw], cfg, since=SINCE)
+    assert results["x:g1"].verdict == "kept" and "general_ai" in results["x:g1"].flags
+    assert c["domains"]["general"]["kept"] == 1
+    if results["x:k1"].verdict == "kept" and not results["x:k1"].domains:
+        assert c["domains"]["unconfirmed"]["kept"] == 1
+    assert counts([gen, kw], results)["domains"]["general"]["kept"] == 1
+
+
+# ── harvest ──────────────────────────────────────────────────────────────────
+
+
+def test_watch_sources_run_under_their_own_caps_with_no_domain_hint(cfg, monkeypatch):
+    from collect.industry_ai import harvest as h
+
+    calls = []
+
+    class Fake(h._Runner):
+        def __init__(self, *a, **k):
+            pass
+
+        def run(self, query):
+            calls.append(query)
+            it = watched(f"post for {query}", key="placeholder",
+                         platform="hackernews", iid=f"hackernews:{len(calls)}")
+            it.query_keys = set()
+            return [it], 1, ""
+
+    monkeypatch.setitem(h._RUNNERS, "hackernews", Fake)
+    w = {**cfg.watch, "max_requests": {**cfg.watch["max_requests"], "hackernews": 3}}
+    small = dataclasses.replace(cfg, watch=w)
+
+    class Contract:
+        platforms = [{"id": "hackernews"}]
+        feeds = []
+        rulings = {}
+
+    out = h.harvest(small, domains=[], platforms=["hackernews"], contract=Contract(), store=None,
+                    client_factory=lambda **k: None, since=SINCE, log=lambda s: None,
+                    watch_since=NOW - timedelta(days=7))
+    watch_stats = [s for s in out.queries if s.domain == "watch"]
+    n = len(cfg.watch["hackernews"]["lists"]) + len(cfg.watch["hackernews"]["authors"])
+    assert [s.status for s in watch_stats] == ["ok"] * 3 + ["capped"] * (n - 3)
+    assert all(s.key.startswith("watch:hackernews:hn:") for s in watch_stats)
+    for it in out.items.values():
+        assert it.domain_hints == set()
+        assert all(k.startswith("watch:") for k in it.query_keys)
+
+
+def test_without_watch_since_no_watch_source_runs(cfg, monkeypatch):
+    from collect.industry_ai import harvest as h
+
+    class Fake(h._Runner):
+        def __init__(self, *a, **k):
+            pass
+
+        def run(self, query):
+            raise AssertionError("no watch source should run")
+
+    monkeypatch.setitem(h._RUNNERS, "hackernews", Fake)
+
+    class Contract:
+        platforms = [{"id": "hackernews"}]
+        feeds = []
+        rulings = {}
+
+    out = h.harvest(cfg, domains=[], platforms=["hackernews"], contract=Contract(), store=None,
+                    client_factory=lambda **k: None, since=SINCE, log=lambda s: None)
+    assert not [s for s in out.queries if s.domain == "watch"]
+
+
+def test_an_x_account_query_carries_since_and_both_suffixes(cfg):
+    from collect.industry_ai.harvest import _X
+
+    runner = _X.__new__(_X)  # no network: only the query builder is exercised
+    runner.cfg, runner.since = cfg, NOW - timedelta(days=7)
+    runner.suffix = cfg.query_suffix.get("x", "")
+    q = runner._full("(from:karpathy OR from:simonw)")
+    assert q.startswith("(from:karpathy OR from:simonw) since:2026-11-13")
+    assert cfg.watch["x_suffix"] in q and runner.suffix in q
+    # a keyword query gets no since: and no watch suffix
+    kq = runner._full('("ad copy" OR "SEO content") (AI OR LLM)')
+    assert "since:" not in kq and cfg.watch["x_suffix"] not in kq
+
+
+# ── the page ─────────────────────────────────────────────────────────────────
+
+
+def test_the_page_buckets_are_one_expression_written_twice():
+    """judge/industry_ai/view.py writes the bucket CASE out in each query (the column
+    audit reads SQL literals, so a shared constant hid `flags` and `domains` from it).
+    Both copies must be identical, or two figures on the page could disagree."""
+    import ast
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[1] / "judge" / "industry_ai" / "view.py").read_text(
+        encoding="utf-8"
+    )
+    # Every string literal, adjacent pieces already joined by the parser.
+    tree = ast.parse(src)
+    inside_fstring = {id(v) for n in ast.walk(tree) if isinstance(n, ast.JoinedStr)
+                      for v in n.values}
+    texts = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.JoinedStr):
+            texts.append("".join(v.value for v in node.values if isinstance(v, ast.Constant)))
+        elif (isinstance(node, ast.Constant) and isinstance(node.value, str)
+              and id(node) not in inside_fstring):
+            texts.append(node.value)
+    start, end = "CASE WHEN cardinality(domains)", "ELSE domains END"
+    cases = [t[t.index(start):t.index(end) + len(end)] for t in texts if start in t and end in t]
+    assert len(cases) == 2, cases
+    assert cases[0] == cases[1]
+    assert "'general_ai' = ANY(flags)" in cases[0] and "ARRAY['general']" in cases[0]

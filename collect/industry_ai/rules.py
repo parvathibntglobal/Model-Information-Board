@@ -284,17 +284,30 @@ def outside_window(item: Item, since: datetime) -> bool:
     return item.created_at is not None and item.created_at < since
 
 
+#: Query keys of the observer's watch lists start with this (`watch:<platform>:<source>`).
+WATCH_KEY_PREFIX = "watch:"
+
+
+def is_watched(item: Item) -> bool:
+    """Found by a watch list (a community, an account, a list) - not only by keyword."""
+    return any(k.startswith(WATCH_KEY_PREFIX) for k in item.query_keys)
+
+
 def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, dict], list[str]]:
     """(drop reason or None, domain -> what matched, AI terms found). Needs an AI
     term and a term of ANY domain or group; which domain it is gets decided in
     `label`. The matched terms are KEPT (#644 review, point 2): they are what a
-    keyword's count is counted from, and a post can count for several."""
+    keyword's count is counted from, and a post can count for several.
+
+    A WATCHED item needs the AI term only (anooj, 2026-11-20): a post from a watched
+    account or community that names no industry is general AI news or opinion, kept
+    as "General AI" by `label`, not dropped as `no_domain_term`."""
     text = item.text
     ai = ai_terms_found(text, cfg)
     if not ai:
         return "no_ai_term", {}, []
     matched = {k: m for k, d in cfg.domains.items() if (m := domain_match(text, d, cfg))}
-    if not matched:
+    if not matched and not is_watched(item):
         return "no_domain_term", {}, ai
     return None, matched, ai
 
@@ -366,9 +379,21 @@ def label(item: Item, matched: dict[str, dict], cfg: Config) -> Verdict:
     flag only. GROUPS: within a confirmed domain, every group whose own terms
     matched, as "<domain>/<group>".
     """
-    domains = sorted(d for d in item.domain_hints if d in matched)
+    confirmed = {d for d in item.domain_hints if d in matched}
+    if is_watched(item):
+        # A WATCHED post has no finding query to say its domain (option A, anooj,
+        # 2026-11-20): it is filed under EVERY domain whose own terms it names,
+        # flagged so those can be counted or filtered apart. Naming none, it is
+        # General AI - a different absence from "domain unconfirmed" (rule 4).
+        from_terms = sorted(set(matched) - confirmed)
+        domains = sorted(confirmed | set(matched))
+        flags = [f"domain_from_terms:{d}" for d in from_terms]
+        if not domains:
+            flags.append("general_ai")
+    else:
+        domains = sorted(confirmed)
+        flags = [f"also_matches:{d}" for d in sorted(matched) if d not in item.domain_hints]
     groups = sorted(f"{d}/{g}" for d in domains for g in matched[d]["groups"])
-    flags = [f"also_matches:{d}" for d in sorted(matched) if d not in item.domain_hints]
     text = item.text
 
     content_type, why = None, None

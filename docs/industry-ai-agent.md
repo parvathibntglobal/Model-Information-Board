@@ -78,6 +78,47 @@ Anything that is not data about AI in these industries:
 - off-topic matches from ambiguous words;
 - duplicates, which count as reach on the item they copy.
 
+### The observer: the keyword agent's twin (watch lists; anooj, 2026-11-20)
+
+The queries under `domains:` find posts **by keyword**. The observer finds them **by
+who or where**: the newest posts of chosen communities, accounts and lists, with no
+keyword. It catches what our keywords would never have guessed: new tools and
+workflows, launches, and opinions from the people who shape the field.
+
+**One lane, one pipeline, one page.** It runs the same stages (§3) into the same
+tables. A post found by both a keyword query and a watch source is **one row with
+both query keys**.
+
+**Where it differs:**
+- **The sieve:** a watched post needs an AI term; an industry term is optional.
+- **The label (option A):**
+  - a watched post that names industry terms is filed under **every domain whose terms
+    it names**, flagged `domain_from_terms:<domain>`;
+  - one that names none is kept as **General AI** (flag `general_ai`).
+  - General AI is counted apart from "domain unconfirmed", which means a keyword
+    query's own domain was not confirmed. They are two different absences (rule 4).
+- **Its own switch and caps:** `watch.enabled` and `watch.max_requests`, so watching
+  can never spend the keyword queries' budget.
+
+**The lists** (`contract/industry_ai.yaml` `watch:`, at most 20 per platform for now):
+
+| Platform | What is watched | How |
+|---|---|---|
+| Reddit | communities | `list_subreddit`, newest first |
+| X | AI personalities (accounts) | `(from:a OR from:b …) since:<date>`, paged over `watch.lookback_days` (`watch.x_pages`), with `watch.x_suffix` (replies excluded in the first test runs) |
+| Bluesky | accounts | `from:<handle>` search |
+| Hacker News | Show HN, Ask HN, front page, and authors | Algolia tags; an author's stories **and** comments |
+
+- **Each source has a query key,** `watch:<platform>:<source>`, and its own yield in
+  the run log, so a source that brings nothing gets flagged for pruning.
+- **Designed, not built yet:** dev.to tags, GitHub repos, and newsletters. Until each
+  one's runner exists, a list for it is refused, not ignored.
+
+**Runs:**
+- `--watch` adds the watch lists to a run.
+- `--watch-only` runs only them; it's the observer's own dry run.
+- A scheduled run includes them once `watch.enabled` is true.
+
 ---
 
 ## 2. Principles

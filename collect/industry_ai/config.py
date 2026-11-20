@@ -54,7 +54,25 @@ TOP_KEYS = {
     "type_patterns",
     "stage_patterns",
     "domains",
+    "watch",
 }
+
+# ── THE OBSERVER (watch lists; anooj, 2026-11-20) ────────────────────────────
+#: The platforms whose watch lists the code READS today. A list for any other
+#: platform (dev.to tags, GitHub repos, feeds) is refused as an unknown key
+#: until its runner exists - a refused list cannot be mistaken for a watched one.
+WATCH_PLATFORMS = ("reddit", "x", "bluesky", "hackernews")
+WATCH_KEYS = {"enabled", "lookback_days", "max_requests", "x_pages", "x_club_max", "x_suffix",
+              *WATCH_PLATFORMS}
+HN_WATCH_KEYS = {"lists", "authors"}
+#: Algolia's own tags for Hacker News lists.
+HN_LISTS = ("show_hn", "ask_hn", "front_page")
+_REDDIT_SUB = re.compile(r"^[A-Za-z0-9_]{2,21}$")
+_X_HANDLE = re.compile(r"^[A-Za-z0-9_]{1,15}$")
+_BSKY_HANDLE = re.compile(r"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$")
+_HN_USER = re.compile(r"^[A-Za-z0-9_-]{2,15}$")
+#: The longest `since:` an X watch query carries ("since:2026-11-20").
+_SINCE_CHARS = len(" since:2026-11-20")
 RUN_KEYS = {
     "enabled",
     "cadence",
@@ -149,6 +167,8 @@ class Config:
     type_patterns: dict[str, tuple[re.Pattern, ...]]
     stage_patterns: dict[str, tuple[re.Pattern, ...]]
     domains: dict[str, Domain]
+    #: The observer's watch lists, parsed (`_watch`).
+    watch: dict[str, Any] = field(default_factory=dict)
     #: Registry model names, added to `ai_terms` at run time (read-only).
     extra_ai_terms: tuple[str, ...] = field(default=())
 
@@ -163,10 +183,36 @@ class Config:
     def x_pages(self, query: str) -> int:
         """Pages for one X query: `x_clubbed` when it clubs at least
         `x_clubbed_min_keywords` quoted keywords, else `x` (#644 review, point 10:
-        one page of 20 cannot hold six keywords' worth of posts)."""
+        one page of 20 cannot hold six keywords' worth of posts). A WATCH query
+        (`from:` accounts) gets `watch.x_pages`: one prolific account fills a page,
+        so the window is paged rather than its first page read (probe 2026-11-20:
+        swyx 16 of 20 posts on one page over five accounts)."""
+        if is_watch_x(query):
+            return int(self.watch["x_pages"])
         pages = self.run["pages_per_query"]
         clubbed = len(_QUOTED.findall(query)) >= int(self.run["x_clubbed_min_keywords"])
         return int(pages["x_clubbed"] if clubbed else pages["x"])
+
+    def watch_queries(self) -> list[tuple[str, str]]:
+        """Every (platform, query) the observer asks, in file order. No network.
+
+        Reddit: `r/<sub>` (a listing, newest first). X: accounts clubbed with OR as
+        `(from:a OR from:b ...)`; harvest adds `since:` and the suffix. Bluesky:
+        `from:<handle>`. Hacker News: `hn:list:<tag>` or `hn:author:<name>`."""
+        w = self.watch
+        out = [("reddit", f"r/{s}") for s in w["reddit"]]
+        accts, n = list(w["x"]), int(w["x_club_max"])
+        out += [("x", "(" + " OR ".join(f"from:{a}" for a in accts[i:i + n]) + ")")
+                for i in range(0, len(accts), n)]
+        out += [("bluesky", f"from:{h}") for h in w["bluesky"]]
+        out += [("hackernews", f"hn:list:{t}") for t in w["hackernews"]["lists"]]
+        out += [("hackernews", f"hn:author:{a}") for a in w["hackernews"]["authors"]]
+        return out
+
+
+def is_watch_x(query: str) -> bool:
+    """An X watch query names accounts with `from:`; a keyword query never does."""
+    return query.startswith("(from:")
 
 
 def _need(block: dict, key: str, where: str) -> Any:
@@ -251,6 +297,76 @@ def _terms(block: dict, where: str, suffix: dict[str, str]) -> Terms:
         ),
         queries=_queries(_need(block, "queries", where), f"{where}.queries", suffix),
     )
+
+
+def _handles(value: Any, pattern: re.Pattern, where: str) -> tuple[str, ...]:
+    """A watch list: strings in the platform's own handle format, no repeats."""
+    out = _strings(value, where)
+    bad = [h for h in out if not pattern.match(h)]
+    if bad:
+        raise IndustryAIConfigError(f"{where}: not a valid name {bad}")
+    dupes = sorted({h for h in out if out.count(h) > 1})
+    if dupes:
+        raise IndustryAIConfigError(f"{where}: listed twice {dupes}")
+    return out
+
+
+def _watch(raw: Any, suffix: dict[str, str]) -> dict[str, Any]:
+    """The observer's `watch:` block, every key required (rule 12)."""
+    where = "watch"
+    _known(raw, WATCH_KEYS, where)
+    for key in sorted(WATCH_KEYS):
+        _need(raw, key, where)
+    if not isinstance(raw["enabled"], bool):
+        raise IndustryAIConfigError("watch.enabled must be true or false")
+    for key in ("lookback_days", "x_pages", "x_club_max"):
+        _whole(raw[key], f"watch.{key}")
+    caps = raw["max_requests"]
+    _known(caps, set(WATCH_PLATFORMS), "watch.max_requests")
+    if set(caps) != set(WATCH_PLATFORMS):
+        raise IndustryAIConfigError(
+            f"watch.max_requests must name exactly {sorted(WATCH_PLATFORMS)}"
+        )
+    for p, n in caps.items():
+        _whole(n, f"watch.max_requests.{p}", positive=False)
+    if not isinstance(raw["x_suffix"], str):
+        raise IndustryAIConfigError("watch.x_suffix must be a string (may be empty)")
+    hn = raw["hackernews"]
+    _known(hn, HN_WATCH_KEYS, "watch.hackernews")
+    lists = _strings(_need(hn, "lists", "watch.hackernews"), "watch.hackernews.lists")
+    unknown = [t for t in lists if t not in HN_LISTS]
+    if unknown:
+        raise IndustryAIConfigError(
+            f"watch.hackernews.lists: unknown {unknown}; known {list(HN_LISTS)}"
+        )
+    out = {
+        "enabled": raw["enabled"],
+        "lookback_days": int(raw["lookback_days"]),
+        "max_requests": {p: int(caps[p]) for p in WATCH_PLATFORMS},
+        "x_pages": int(raw["x_pages"]),
+        "x_club_max": int(raw["x_club_max"]),
+        "x_suffix": raw["x_suffix"].strip(),
+        "reddit": _handles(raw["reddit"], _REDDIT_SUB, "watch.reddit"),
+        "x": _handles(raw["x"], _X_HANDLE, "watch.x"),
+        "bluesky": _handles(raw["bluesky"], _BSKY_HANDLE, "watch.bluesky"),
+        "hackernews": {
+            "lists": lists,
+            "authors": _handles(_need(hn, "authors", "watch.hackernews"), _HN_USER,
+                                "watch.hackernews.authors"),
+        },
+    }
+    # X CUTS OFF A LONG QUERY RATHER THAN REFUSING IT, so a clubbed account list
+    # plus `since:` and both suffixes must fit (the keyword queries' guard, #644).
+    accts, n = list(out["x"]), out["x_club_max"]
+    for i in range(0, len(accts), n):
+        q = "(" + " OR ".join(f"from:{a}" for a in accts[i:i + n]) + ")"
+        full = " ".join(s for s in (q, suffix.get("x", ""), out["x_suffix"]) if s)
+        if len(full) + _SINCE_CHARS > MAX_QUERY_CHARS:
+            raise IndustryAIConfigError(
+                f"watch.x: {len(full) + _SINCE_CHARS} characters with since: and the suffixes, "
+                f"over X's {MAX_QUERY_CHARS}; lower watch.x_club_max"
+            )
+    return out
 
 
 def parse(raw: dict) -> Config:
@@ -351,6 +467,7 @@ def parse(raw: dict) -> Config:
         # The contract's own order: the first stage whose pattern matches wins.
         stage_patterns={s: _patterns(sp[s], f"stage_patterns.{s}") for s in sp},
         domains=domains,
+        watch=_watch(_need(raw, "watch", "top level"), suffix),
     )
 
 

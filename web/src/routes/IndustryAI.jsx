@@ -174,6 +174,19 @@ export default function IndustryAI() {
             </section>
           )}
 
+          {data.general?.kept > 0 && (
+            <section className="card iai-card">
+              <h2>General AI</h2>
+              <p className="dim iai-def">
+                Kept items from the watched communities, accounts and lists that name no industry or role:
+                general AI news and opinion. Counted here and in no domain above, and apart from
+                &quot;Domain unconfirmed&quot;.
+              </p>
+              <div className="iai-figures"><div><b className="tnum">{n(data.general.kept)}</b><span>kept</span></div></div>
+              <Bars counts={data.general.by_type || {}} labels={TYPE_LABEL} order={data.types} />
+            </section>
+          )}
+
           {data.dropped?.length > 0 && (
             <section className="card iai-card">
               <h2>Filtered out, by reason</h2>
