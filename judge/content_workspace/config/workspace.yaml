@@ -386,25 +386,31 @@ topic_kinds:
     angle: >-
       Re-use the text of a LinkedIn carousel written here as Instagram slides.
 
-# THE LOOKS (approved by anooj 2026-11-19). Media is made outside the page, in
-# Claude Code, by each look's generator (kept outside the repo for now), and
-# stored on a draft through `media-add`. A look is chosen PER TOPIC KIND, never
+# THE LOOKS (approved by anooj 2026-11-19). Media is made outside the page, on
+# a person's machine: `python -m judge.content_workspace media-spec <look>`
+# writes a spec from the board, the look's `generator` (tools/media/, Node and
+# Chromium) renders it, a person looks at every page, and `media-add` stores it
+# on a draft (tools/media/README.md). A look is chosen PER TOPIC KIND, never
 # one for everything: the first carousels all looked alike because they
 # inherited the website's own tokens, which are tuned for reading a product,
-# not for a feed.
+# not for a feed. `generator` is repo-relative; recipes.problems() checks it
+# exists, and the tests check its fonts are in tools/media/fonts/ with licences.
 looks:
   field_report:
     label: Field report
+    generator: tools/media/field-report/make_field_report.mjs
     suits: >-
       First-hand observation over time: a model's first weeks, what held up and
       what broke. Paper and ruled lines, one dot per person, tallies per post.
   data_card:
     label: Data card
+    generator: tools/media/data-card/make_data_card.mjs
     suits: >-
       A number that carries the story: a price move, a cost, a count across
       models. Big numerals on a colour block, bars side by side.
   evidence_board:
     label: Evidence board
+    generator: tools/media/evidence-board/make_evidence_board.mjs
     suits: >-
       Reports weighed against each other: where a model holds up and where it
       does not, a term explained through what people report. Pinned cards, one

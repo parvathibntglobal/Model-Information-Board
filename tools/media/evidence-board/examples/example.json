@@ -1,0 +1,105 @@
+{
+  "slug": "example-model-2",
+  "model": "Example Model 2",
+  "path": "/models/example/example-model-2",
+  "read_on": "2026-11-19",
+  "population": "SYNTHETIC EXAMPLE: invented model names and text; figures illustrative only. Never publish.",
+  "kicker": "Case file · a price that kept moving",
+  "card_caption": "Listed price per 1M tokens, as the board's registry recorded it",
+  "prices": [
+    {
+      "date": "2026-10-01",
+      "input_from": 0.3,
+      "input_to": 0.21,
+      "output_from": 1.2,
+      "output_to": 0.84
+    },
+    {
+      "date": "2026-10-15",
+      "input_from": 0.21,
+      "input_to": 0.3,
+      "output_from": 0.84,
+      "output_to": 1.2
+    },
+    {
+      "date": "2026-11-05",
+      "input_from": 0.3,
+      "input_to": 0.21,
+      "output_from": 1.2,
+      "output_to": 0.84
+    }
+  ],
+  "people": {
+    "all": 19,
+    "for": 8,
+    "against": 6,
+    "neither": 7,
+    "entries": 36,
+    "no_author_entries": 2
+  },
+  "first_post": "2026-03-21",
+  "last_post": "2026-10-21",
+  "note": "nobody has reported on it since the 5 Nov cut",
+  "cards_head": "For and against, side by side",
+  "cards": [
+    {
+      "side": "for",
+      "what": "prompt caching",
+      "source": "dev.to",
+      "date": "2026-06-26",
+      "text": "Reports that prompt caching cut a long agent run's cost noticeably."
+    },
+    {
+      "side": "against",
+      "what": "coding reliability",
+      "source": "GitHub",
+      "date": "2026-06-25",
+      "text": "Reports that a fix for one failing test broke two others in the same file and removed unrelated code."
+    },
+    {
+      "side": "for",
+      "what": "coding agent",
+      "source": "GitHub",
+      "date": "2026-08-20",
+      "text": "Describes it as a dependable coding agent for small, well-scoped tasks."
+    },
+    {
+      "side": "against",
+      "what": "quantization",
+      "source": "dev.to",
+      "date": "2026-06-11",
+      "text": "Reports that its 4-bit build does not quantize well, far from the full version's quality on code."
+    },
+    {
+      "side": "for",
+      "what": "coding agent",
+      "source": "dev.to",
+      "date": "2026-06-11",
+      "text": "Describes returning to it after two other models stalled on the same task."
+    },
+    {
+      "side": "against",
+      "what": "license clarity",
+      "source": "GitHub",
+      "date": "2026-06-11",
+      "text": "Describes the license as unclear about whether one-person commercial use needs a separate agreement."
+    }
+  ],
+  "page3_head": [
+    "Every report predates",
+    "the latest cut"
+  ],
+  "extra_stats": [
+    {
+      "value": 0,
+      "label": "people posting since the 5 Nov price cut",
+      "counts": "people_since",
+      "since": "2026-11-05"
+    },
+    {
+      "value": 3,
+      "label": "price changes the registry recorded in five weeks",
+      "counts": "price_changes"
+    }
+  ]
+}
