@@ -619,6 +619,7 @@ export const PRIVATE = {
   priceChanges: { title: fullTitle('Price changelog'), noindex: true },
   news: { title: fullTitle('AI news'), noindex: true },
   updates: { title: fullTitle('Updates'), noindex: true },
+  industryAi: { title: fullTitle('AI in industries'), noindex: true },
   notFound: { title: fullTitle('Page not found'), noindex: true },
 }
 

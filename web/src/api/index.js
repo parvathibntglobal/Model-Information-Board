@@ -731,6 +731,8 @@ export const adminSeoKeywordPlan = () => request('/admin/seo-keyword-plan')
 export const adminPriceChanges = (days) => request(`/admin/price-changes${days ? `?days=${days}` : ''}`)
 // The News page: fresh AI headlines (judge/news.py). Signed in.
 export const newsFeed = (days) => request(`/news${days ? `?days=${days}` : ''}`)
+// AI in industries: the Industry AI agent's counts per domain (judge/industry_ai/view.py). Signed in.
+export const industryAi = () => request('/industry-ai')
 // One story's page: what its source gave, the models it names, related stories.
 export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
 /** One model's pulse for its page (judge/watch.py, GET /watch): new since the last look, weekly trend. */

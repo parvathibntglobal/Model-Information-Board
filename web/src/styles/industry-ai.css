@@ -1,0 +1,35 @@
+/* AI in industries (routes/IndustryAI.jsx): counts per domain, never text. */
+
+.iai-h1{font-size:var(--fs-display);margin:0}
+.iai-lede{max-width:72ch;margin:0}
+.iai-note{font-size:var(--fs-xs);margin:0}
+.iai-error{color:var(--fail)}
+.iai-none{font-size:var(--fs-sm);margin:0}
+
+.iai-totals,.iai-figures{display:flex;flex-wrap:wrap;gap:var(--s5)}
+.iai-totals div,.iai-figures div{display:flex;flex-direction:column}
+.iai-totals b{font-size:var(--fs-h2)}
+.iai-figures b{font-size:var(--fs-h3)}
+.iai-totals span,.iai-figures span{font-size:var(--fs-xs);color:var(--text-2)}
+
+.iai-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:var(--gap)}
+.iai-card{padding:var(--card-pad);display:flex;flex-direction:column;gap:var(--s3)}
+.iai-card h2{font-size:var(--fs-h3);margin:0}
+.iai-card-head{display:flex;flex-direction:column;gap:var(--s1)}
+.iai-def{font-size:var(--fs-sm);margin:0}
+.iai-sub{font-size:var(--fs-label);font-family:var(--font-mono);color:var(--text-2);
+  text-transform:uppercase;margin:var(--s2) 0 0}
+.iai-stages{font-size:var(--fs-sm);margin:0}
+.iai-kind{font-size:var(--fs-sm);font-weight:400}
+
+.iai-bars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s1)}
+.iai-bars li{display:grid;grid-template-columns:9.5rem 1fr 3.5rem;align-items:center;gap:var(--s2);
+  font-size:var(--fs-sm)}
+.iai-bar-label{color:var(--text-2)}
+.iai-bar-track{height:8px;background:var(--surface-2);border-radius:var(--r-pill);overflow:hidden}
+.iai-bar{display:block;height:100%;background:var(--accent);border-radius:var(--r-pill)}
+.iai-bar-n{text-align:right;color:var(--text)}
+
+.iai-trend{display:flex;align-items:flex-end;gap:2px;height:48px}
+.iai-trend-col{flex:1;height:100%;display:flex;align-items:flex-end}
+.iai-trend-bar{display:block;width:100%;background:var(--accent);border-radius:var(--r-sm) var(--r-sm) 0 0}

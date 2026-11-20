@@ -57,6 +57,7 @@ function Result({ r }) {
 const TITLES = {
   benchmarks: 'AI benchmarks — the benchmarks run',
   'registry-poll': 'AI updates — the registry poll',
+  'industry-ai': 'AI in industries — the Industry AI harvest',
 }
 
 // bench_run_trigger_ck (contract/tables.sql).
@@ -147,6 +148,7 @@ function Feed({ f }) {
         {f.link && <a className="btn btn-ghost" href={f.link} target="_blank" rel="noopener noreferrer">Run now / see all runs ↗</a>}
         {f.key === 'benchmarks' && <Link className="btn btn-ghost" to="/benchmarks">Benchmarks page →</Link>}
         {f.key === 'registry-poll' && <Link className="btn btn-ghost" to="/updates">AI updates — Manage →</Link>}
+        {f.key === 'industry-ai' && <Link className="btn btn-ghost" to="/ai-in-industries">AI in industries →</Link>}
       </div>
     </div>
   )
@@ -158,6 +160,9 @@ const INTROS = {
   'registry-poll': 'AI updates has no job of its own: it is rebuilt from the data each time it is opened. '
     + 'The registry poll keeps its new models and price changes current; its benchmark headlines come '
     + 'from the benchmarks run (the Benchmarks tab). Everything here is read-only.',
+  'industry-ai': 'The Industry AI agent harvests data about AI in five industries with the queries in '
+    + 'contract/industry_ai.yaml, weekly, behind its own switch. It shares the Reddit and X quota with '
+    + 'the model fetches; every platform has a request cap per run. Everything here is read-only.',
 }
 
 /** One feed, `only` = its key (benchmarks | registry-poll). Each Scheduler
