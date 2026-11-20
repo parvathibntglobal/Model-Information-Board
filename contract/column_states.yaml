@@ -2123,12 +2123,12 @@ columns:
       reviewed: true
       state: defaulted
       why: >-
-        DEFAULT now() on insert; when the agent first stored the item. No reader yet: the page dates items by when they were posted, not stored.
+        DEFAULT now() on insert; when the agent first stored the item. READ by collect/industry_ai/store.py load_items (2026-11-20, #650 review point 1): pipeline.evaluate measures the observer's watch window from it, so a post found only by watch lists is kept if posted within watch.lookback_days of first sight, and a later --relabel never drops it for age. The page still dates items by when they were posted.
     flags:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        low_engagement, link_share, repeat_author and also_matches:<domain> flags, written by store.write_labels for the team's sample check (docs/industry-ai-agent.md §7). Intended reader: an Admin drill-down; none yet.
+        low_engagement, link_share, repeat_author, also_matches:<domain>, and (the observer, 2026-11-20) domain_from_terms:<domain> and general_ai flags, written by store.write_labels. READ by judge/industry_ai/view.py `_BUCKETS`: `general_ai` puts a kept watched post with no domain in the "General AI" bucket, apart from "domain unconfirmed". The other flags are for the team's sample check (docs/industry-ai-agent.md §7) and an Admin drill-down not built yet.
     groups:
       reviewed: true
       state: read

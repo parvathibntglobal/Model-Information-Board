@@ -110,13 +110,25 @@ def print_counts(counts: dict, cfg) -> None:
         say("  dropped, by stage and reason:")
         for k, n in counts["dropped"].items():
             say(f"    {k:<32} {n}")
+    # The two no-domain buckets are different absences (rule 4) and are named apart:
+    # "general" = a watched post naming no industry; "unconfirmed" = a keyword query's
+    # own domain not confirmed.
+    buckets = {"general": "General AI", "unconfirmed": "Domain unconfirmed"}
     for d, c in counts["domains"].items():
-        name = cfg.domains[d].name if d in cfg.domains else "Domain unconfirmed"
+        if d in cfg.domains:
+            name = cfg.domains[d].name
+        elif d in buckets:
+            name = buckets[d]
+        else:
+            raise ValueError(f"counts name an unknown bucket {d!r}")  # rule 12: never relabel
         types = ", ".join(f"{t} {n}" for t, n in sorted(c["by_type"].items(), key=lambda x: -x[1]))
         plats = ", ".join(
             f"{p} {n}" for p, n in sorted(c["by_platform"].items(), key=lambda x: -x[1])
         )
-        say(f"  {name:<20} kept {c['kept']:<5} authors {c['authors']:<5} reach {c['reach']}")
+        watch_note = (f"  (+ {c['from_watch']} from watch lists, counted apart)"
+                      if c.get("from_watch") else "")
+        say(f"  {name:<20} kept {c['kept']:<5} authors {c['authors']:<5} reach {c['reach']}"
+            + watch_note)
         say(f"    types: {types or '-'}")
         if c.get("by_group"):
             groups = ", ".join(
@@ -182,6 +194,17 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="comment the run's counts on INDUSTRY_AI_ISSUE (the workflow)",
     )
+    watch = ap.add_mutually_exclusive_group()
+    watch.add_argument(
+        "--watch",
+        action="store_true",
+        help="also run the observer's watch lists, even while `watch.enabled` is false",
+    )
+    watch.add_argument(
+        "--watch-only",
+        action="store_true",
+        help="run ONLY the observer's watch lists (its own dry run), no keyword queries",
+    )
     args = ap.parse_args(argv)
 
     cfg = iai_config.load()
@@ -210,25 +233,44 @@ def main(argv: list[str] | None = None) -> int:
     platforms = args.platforms or list(PLATFORMS)
     run_id = f"iai-{datetime.now(UTC):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}"
     since = datetime.now(UTC) - timedelta(days=int(cfg.run["window_days"]))
+    # THE OBSERVER'S WATCH LISTS run when the contract switches them on, or by hand
+    # (`--watch`, `--watch-only`) for their own dry runs; never otherwise.
+    watching = bool(args.watch or args.watch_only or cfg.watch["enabled"])
+    watch_since = (datetime.now(UTC) - timedelta(days=int(cfg.watch["lookback_days"]))
+                   if watching else None)
+    keyword_domains = [] if args.watch_only else domains
 
     say(f"Industry AI agent | run {run_id} | pipeline {cfg.pipeline_version}")
     say(
-        f"  domains: {', '.join(domains)} | platforms: {', '.join(platforms)} | "
-        f"window {cfg.run['window_days']} days"
+        f"  domains: {', '.join(keyword_domains) or '(none: watch lists only)'} | "
+        f"platforms: {', '.join(platforms)} | window {cfg.run['window_days']} days"
+        + (f" | watch lists back {cfg.watch['lookback_days']} days" if watching else "")
     )
 
     from collect.industry_ai.harvest import plan, round_robin
 
     if args.plan:
-        planned = plan(cfg, domains=domains, platforms=platforms)
+        planned = plan(cfg, domains=keyword_domains, platforms=platforms)
         say(f"\n1 Harvest (plan only; nothing is requested): {len(planned)} query(ies)")
         for p in platforms:
             qs = [(d, q) for d, pp, q in planned if pp == p]
             qs = round_robin(qs)
+            if not qs:
+                continue
             say(f"  {p}: {len(qs)} query(ies), cap {cfg.run['max_requests'][p]} request(s)")
             for d, q in qs:
                 extra = f"  [{cfg.x_pages(q)} page(s)]" if p == "x" else ""
                 say(f"    {d:<24} {q}{extra}")
+        if watching:
+            wq = [(p, q) for p, q in cfg.watch_queries() if p in platforms]
+            say(f"\n  WATCH LISTS (the observer): {len(wq)} source(s)")
+            for p in sorted({p for p, _ in wq}):
+                qs = [q for pp, q in wq if pp == p]
+                cap = cfg.watch["max_requests"][p]
+                say(f"  watch {p}: {len(qs)} source(s), cap {cap} request(s)")
+                for q in qs:
+                    extra = f"  [{cfg.x_pages(q)} page(s)]" if p == "x" else ""
+                    say(f"    {q}{extra}")
         return 0
 
     import psycopg
@@ -259,13 +301,14 @@ def main(argv: list[str] | None = None) -> int:
         say("\n1 Harvest")
         got = harvest(
             cfg,
-            domains=domains,
+            domains=keyword_domains,
             platforms=platforms,
             contract=load_sources(),
             store=RawStore(Path(settings().raw_store_path)),
             client_factory=build_client,
             since=since,
             log=say,
+            watch_since=watch_since,
         )
         for n in got.notes:
             say(f"  {n}")
@@ -275,6 +318,13 @@ def main(argv: list[str] | None = None) -> int:
         for s in got.queries:
             if s.status != "ok":
                 say(f"    [{s.status}] {s.domain}/{s.platform}: {s.query} - {s.detail}")
+        watched = [s for s in got.queries if s.domain == "watch" and s.status == "ok"]
+        if watched:
+            # EVERY WATCH SOURCE'S YIELD, so a community or account that brings nothing
+            # is seen on the first run, not after weeks (prune by yield, never by guess).
+            say("  watch sources, items returned (before any rule):")
+            for s in sorted(watched, key=lambda s: (s.platform, -s.items)):
+                say(f"    {s.platform:<11} {s.items:>4}  {s.query}")
         say(f"  {len(fresh)} distinct item(s) from {sum(requests.values())} request(s)")
         if quota:
             say(f"  quota: {quota}")

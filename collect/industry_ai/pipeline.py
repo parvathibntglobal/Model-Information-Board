@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from collect.industry_ai.config import Config
 from collect.industry_ai.rules import (
@@ -22,6 +22,7 @@ from collect.industry_ai.rules import (
     canonical_url,
     filter_reason,
     is_article_link,
+    is_watch_only,
     label,
     normalized_text,
     outside_window,
@@ -110,9 +111,25 @@ def _dedupe(items: list[Item], results: dict[str, Result]) -> None:
 
 
 def evaluate(
-    items: list[Item], cfg: Config, *, since: datetime, is_bot=lambda item: False
+    items: list[Item],
+    cfg: Config,
+    *,
+    since: datetime,
+    is_bot=lambda item: False,
+    now: datetime | None = None,
 ) -> tuple[dict[str, Result], dict]:
-    """Every item's Result, and the counts by stage. Nothing is deleted."""
+    """Every item's Result, and the counts by stage. Nothing is deleted.
+
+    THE WATCH WINDOW (#650 review, point 1): a post found ONLY by watch lists is kept
+    if it was posted within `watch.lookback_days` of when this lane first saw it
+    (`first_seen_at`; `now` for this run's fresh items). Reddit's newest page and
+    Bluesky's `from:` feed return posts of any age, so without this "the observer
+    reads the last week" would really mean "the newest page, up to a year back".
+    Measured from first sight, not from now, so a later `--relabel` never drops a
+    watched post just because time has passed. A post a keyword query also found
+    keeps the run window (`since`)."""
+    now = now or datetime.now(UTC)
+    lookback = timedelta(days=int(cfg.watch["lookback_days"]))
     results: dict[str, Result] = {it.id: Result(verdict="kept") for it in items}
     matched: dict[str, dict] = {}
     passed: list[Item] = []
@@ -121,6 +138,11 @@ def evaluate(
         r = results[it.id]
         if outside_window(it, since):
             r.verdict, r.stage, r.reason = "dropped", "window", "outside_window"
+            continue
+        if (is_watch_only(it) and it.created_at is not None
+                and it.created_at < (it.first_seen_at or now) - lookback):
+            # Its own reason, so the log says WHICH window dropped it.
+            r.verdict, r.stage, r.reason = "dropped", "window", "outside_watch_window"
             continue
         why, terms, ai = sieve(it, cfg)
         r.ai_terms, r.matched_terms = ai, terms
@@ -157,11 +179,16 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
     per_domain: dict[str, dict] = {}
     for i in kept:
         r, it = results[i], by_id[i]
-        for d in r.domains or ["unconfirmed"]:
+        # Two different absences, counted apart (rule 4): a keyword query's own
+        # domain not confirmed ("unconfirmed"), and a watched post naming no
+        # industry at all ("general").
+        empty = "general" if "general_ai" in r.flags else "unconfirmed"
+        for d in r.domains or [empty]:
             c = per_domain.setdefault(
                 d,
                 {
                     "kept": 0,
+                    "from_watch": 0,
                     "by_type": Counter(),
                     "by_platform": Counter(),
                     "by_stage": Counter(),
@@ -170,6 +197,12 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
                     "authors": set(),
                 },
             )
+            if f"domain_from_terms:{d}" in r.flags:
+                # A watch list filed it here by its terms (option A): counted APART,
+                # never in the domain's own figures, which count what its keyword
+                # queries found (anooj, 2026-11-20, option (a); the page does the same).
+                c["from_watch"] += 1
+                continue
             c["kept"] += 1
             c["by_type"][r.content_type] += 1
             c["by_platform"][it.platform] += 1

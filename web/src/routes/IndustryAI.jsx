@@ -28,7 +28,12 @@ const PLATFORM_LABEL = {
 }
 const REASON_LABEL = {
   no_ai_term: 'No AI term', no_domain_term: 'No industry term',
-  outside_window: 'Older than the window', shared_link: 'Same article shared elsewhere',
+  // Two windows, named apart (#650 review). No day counts here: they live in
+  // contract/industry_ai.yaml (run.window_days, watch.lookback_days), so a number
+  // written in this file would go stale the day the contract changes (rule 11).
+  outside_window: 'Older than the run window',
+  outside_watch_window: 'Watched post older than the watch window (from first sight)',
+  shared_link: 'Same article shared elsewhere',
   repeat_post: 'Same author, same post again', near_duplicate: 'Near-duplicate text',
   too_short: 'Too short', bot: 'Bot account', non_english: 'Not English', spam: 'Spam or scam',
   promo: 'Sponsored or affiliate', hiring: 'Hiring or job ad', signup_ad: 'Sign-up ad',
@@ -79,6 +84,9 @@ function DomainCard({ d, types }) {
       <div className="iai-figures">
         <div><b className="tnum">{n(d.kept)}</b><span>kept</span></div>
         <div><b className="tnum">{d.found == null ? '–' : n(d.found)}</b><span>found by its queries</span></div>
+        {d.from_watch > 0 && (
+          <div><b className="tnum">{n(d.from_watch)}</b><span>more from watch lists, counted apart</span></div>
+        )}
         <div><b className="tnum">{n(d.authors)}</b><span>distinct authors</span></div>
         <div><b className="tnum">{n(d.reach)}</b><span>shares & copies</span></div>
       </div>
@@ -158,7 +166,7 @@ export default function IndustryAI() {
           <div className="iai-grid">
             {/* Active domains, and any switched-off one that still holds data: a
                 file of 20 umbrellas with five active shows five cards, not twenty. */}
-            {data.domains.filter((d) => d.active !== false || d.kept > 0)
+            {data.domains.filter((d) => d.active !== false || d.kept > 0 || d.from_watch > 0)
               .map((d) => <DomainCard key={d.key} d={d} types={data.types} />)}
           </div>
 
@@ -171,6 +179,19 @@ export default function IndustryAI() {
               </p>
               <div className="iai-figures"><div><b className="tnum">{n(data.unconfirmed.kept)}</b><span>kept</span></div></div>
               <Bars counts={data.unconfirmed.by_type || {}} labels={TYPE_LABEL} order={data.types} />
+            </section>
+          )}
+
+          {data.general?.kept > 0 && (
+            <section className="card iai-card">
+              <h2>General AI</h2>
+              <p className="dim iai-def">
+                Kept items from the watched communities, accounts and lists that name no industry or role:
+                general AI news and opinion. Counted here and in no domain above, and apart from
+                &quot;Domain unconfirmed&quot;.
+              </p>
+              <div className="iai-figures"><div><b className="tnum">{n(data.general.kept)}</b><span>kept</span></div></div>
+              <Bars counts={data.general.by_type || {}} labels={TYPE_LABEL} order={data.types} />
             </section>
           )}
 

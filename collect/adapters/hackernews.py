@@ -502,7 +502,7 @@ class HackerNewsHarvester:
         return run
 
     def search_stories(self, query: str, *, since_ts: int, per_page: int = 20,
-                       run: HnRun | None = None) -> list[dict[str, Any]]:
+                       run: HnRun | None = None, tags: str = "story") -> list[dict[str, Any]]:
         """The newest STORIES matching `query` since `since_ts` (unix seconds).
 
         FOR THE BLOG'S TOPIC HARVEST (2026-10-18), not the model fetch. The
@@ -511,9 +511,14 @@ class HackerNewsHarvester:
         submission itself - what the field is linking to and discussing - so
         this asks for `tags=story`, newest first, one page. The page is stored
         before anything reads it, like every other call here.
+
+        `tags` is Algolia's own filter, `story` unless given: the Industry AI
+        observer reads a list (`show_hn`, `ask_hn`, `front_page`) or a watched
+        author (`(story,comment),author_<name>`) with an empty `query`
+        (2026-11-20; author tags checked that day: simonw 16,374 items).
         """
         run = run if run is not None else HnRun(query=query, started_at=self._clock())
-        params = {"query": query, "tags": "story", "hitsPerPage": per_page,
+        params = {"query": query, "tags": tags, "hitsPerPage": per_page,
                   "numericFilters": f"created_at_i>{int(since_ts)}"}
         response = self._get(SEARCH_BY_DATE_PATH, params, run)
         run.search_calls += 1

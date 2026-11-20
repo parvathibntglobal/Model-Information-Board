@@ -116,7 +116,7 @@ def load_items(conn) -> list[Item]:
     out = []
     for r in conn.execute(
         "SELECT id, platform, external_id, url, title, body, created_at, author_id, lang, "
-        "engagement, link, discovery_ref, domain_hints, query_keys FROM iai_item"
+        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at FROM iai_item"
     ).fetchall():
         out.append(
             Item(
@@ -134,6 +134,8 @@ def load_items(conn) -> list[Item]:
                 discovery_ref=r[11],
                 domain_hints=set(r[12] or []),
                 query_keys=set(r[13] or []),
+                # The watch window is measured from first sight (pipeline.evaluate).
+                first_seen_at=r[14],
             )
         )
     return out
