@@ -5,7 +5,7 @@ PURE, apart from the near-duplicate clustering it reuses: items in, one
 function runs on a fresh harvest and on `--relabel` over every stored item, so a
 contract change re-labels the whole collection without a request.
 
-RUN ORDER IS THE NUMBERED ORDER (plan §2): an item dropped at one stage is never
+RUN ORDER IS THE NUMBERED ORDER (docs/industry-ai-agent.md §2): an item dropped at one stage is never
 looked at by a later one, and every drop names its stage and reason.
 """
 

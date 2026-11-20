@@ -7,7 +7,7 @@
 #
 # SWITCHED OFF UNTIL THE TEAM TURNS IT ON. It runs only when the repository
 # variable INDUSTRY_AI_ENABLED is '1' - set after the first dry runs and the
-# sample check (plan §13). Unset, a scheduled run says so and does nothing.
+# sample check (docs/industry-ai-agent.md §13). Unset, a scheduled run says so and does nothing.
 #
 # SPEND: Reddit and X are metered (RapidAPI) and share their monthly quota with
 # the model fetches. Every platform has a request cap per run in the contract

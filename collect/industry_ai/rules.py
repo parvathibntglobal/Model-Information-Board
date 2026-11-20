@@ -5,7 +5,7 @@ contract/industry_ai.yaml (`config.Config`); this module only applies it. The
 same functions run on a fresh harvest and on `--relabel` over stored items, so a
 rule change re-labels the whole collection without a request.
 
-STAGE ORDER, as the pipeline calls them (plan §3): window, sieve, [dedupe, in
+STAGE ORDER, as the pipeline calls them (docs/industry-ai-agent.md §3): window, sieve, [dedupe, in
 pipeline.py, across items], filter, label. Every drop names its reason.
 """
 
@@ -93,7 +93,7 @@ SOCIAL_HOSTS = (
 
 #: A small set of English function words for the language check. Measured
 #: nothing yet: a weight-like heuristic, applied only where the platform did
-#: not declare a language (plan §3 stage 5, rule 8 - checked in the §7 sample).
+#: not declare a language (docs/industry-ai-agent.md §3 stage 4, rule 8 - checked in the §7 sample).
 _EN_STOPWORDS = frozenset(
     [
         "the",
@@ -300,7 +300,7 @@ def filter_reason(
 
     if len(bare) < min_chars:
         # A PURE LINK POST IS NOT DROPPED OUTRIGHT when it shares an article:
-        # it is kept and deduped onto the article by its link (plan §3 stage 5).
+        # it is kept and deduped onto the article by its link (docs/industry-ai-agent.md §3 stage 4).
         if is_article_link(item.link or first_link(text)):
             flags.append("link_share")
         else:

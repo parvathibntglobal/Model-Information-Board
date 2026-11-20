@@ -1,4 +1,5 @@
 # THE INDUSTRY AI AGENT (2026-11-20): data about AI in five industries.
+# Design, stages and the team's checklist: docs/industry-ai-agent.md.
 #
 # A SEPARATE LANE from the model board. scripts/run_industry_ai.py harvests
 # with the queries below, keeps what passes the code rules below, and labels
@@ -329,7 +330,7 @@ domains:
 
   governance:
     name: Governance
-    # SCOPE IS THE TEAM'S CALL (plan §11): public-sector use of AI only, for now.
+    # SCOPE IS THE TEAM'S CALL (docs/industry-ai-agent.md §11): public-sector use of AI only, for now.
     # To include AI-governance practice, remove the 'AI governance' exclusion
     # below and add its terms.
     definition: AI used by governments and the public sector - public services, agencies, courts, councils, policing and public administration. AI-governance practice is not in scope yet.

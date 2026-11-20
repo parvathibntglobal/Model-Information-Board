@@ -2123,7 +2123,7 @@ columns:
       reviewed: true
       state: write_only
       why: >-
-        low_engagement, link_share, repeat_author and also_matches:<domain> flags, written by store.write_labels for the team's sample check (plan §7). Intended reader: an Admin drill-down; none yet.
+        low_engagement, link_share, repeat_author and also_matches:<domain> flags, written by store.write_labels for the team's sample check (docs/industry-ai-agent.md §7). Intended reader: an Admin drill-down; none yet.
     id:
       reviewed: true
       state: read
@@ -2153,7 +2153,7 @@ columns:
       reviewed: true
       state: write_only
       why: >-
-        The contract pattern that decided the content type, written by store.write_labels for the team's sample check (plan §7). Intended reader: an Admin drill-down; none yet.
+        The contract pattern that decided the content type, written by store.write_labels for the team's sample check (docs/industry-ai-agent.md §7). Intended reader: an Admin drill-down; none yet.
     pipeline_version:
       reviewed: true
       state: read
