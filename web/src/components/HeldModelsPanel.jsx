@@ -32,7 +32,11 @@ export default function HeldModelsPanel() {
   const held = data?.held || []
   const shown = all ? held : held.slice(0, 12)
   const bar = data?.seating_bar || {}
-  const meeting = held.filter((h) => h.meets_bar).length
+  // Rule 10: a name with no version number (`Claude`, `Argon`, `codex`) is a family,
+  // codename, company or product. It can pass the counts, but whether it names one
+  // model is a person's ruling, so it is counted apart from the names to seat.
+  const meeting = held.filter((h) => h.meets_bar && h.has_version).length
+  const overUnversioned = held.filter((h) => h.meets_bar && !h.has_version).length
   const barKnown = data && !data.bar_reason
 
   return (
@@ -44,7 +48,8 @@ export default function HeldModelsPanel() {
         </div>
         {data && !data.reason && (
           <span className="dim tnum" style={{ fontSize: 11 }}>
-            {data.names_total ?? held.length} name(s) · {barKnown ? `${meeting} meet the bar` : 'bar unknown'} · {data.filed ?? 0} entries filed after seating
+            {data.names_total ?? held.length} name(s) · {barKnown ? `${meeting} meet the bar` : 'bar unknown'}
+            {barKnown && overUnversioned > 0 && ` · ${overUnversioned} more over it with no version number`} · {data.filed ?? 0} entries filed after seating
           </span>
         )}
       </div>
@@ -55,7 +60,9 @@ export default function HeldModelsPanel() {
           {bar.distinct_authors ?? '—'} distinct authors is put to a person to seat;
           nothing is seated automatically. The counts are a lower bound: an unseated
           model is not searched for. Held entries are on no board section and no
-          public page until the model is seated.
+          public page until the model is seated. A name with no version number
+          (a family, codename, company or product) is not put to the bar as a
+          seating: whether it names one model is a ruling.
         </p>
         {data?.bar_reason && (
           <Notice icon={<IconAlert />}>Seating bar unknown: {data.bar_reason}. No name is
@@ -91,7 +98,8 @@ export default function HeldModelsPanel() {
                     {h.first_held === h.last_held ? h.first_held : `${h.first_held} – ${h.last_held}`}
                   </td>
                   <td>
-                    {h.meets_bar === true && <Badge tone="warn">meets bar</Badge>}
+                    {h.meets_bar === true && h.has_version && <Badge tone="warn">meets bar</Badge>}
+                    {h.meets_bar === true && !h.has_version && <Badge tone="mute">no version · ruling</Badge>}
                     {h.meets_bar === null && <Badge tone="mute">bar unknown</Badge>}
                   </td>
                 </tr>

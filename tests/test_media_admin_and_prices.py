@@ -87,6 +87,23 @@ def test_meets_bar_needs_both_entries_and_authors(monkeypatch):
     assert d["names_total"] == 2 and d["truncated"] is False
 
 
+def test_a_name_with_no_version_number_is_marked_for_a_ruling(monkeypatch):
+    """Rule 10: `Sora` (no digit) is a family or product name, `Seedance 2.5` a version."""
+    by = {h["surface"]: h for h in _held(monkeypatch)["held"]}
+    assert by["Seedance 2.5"]["has_version"] is True
+    assert by["Sora"]["has_version"] is False
+
+
+@pytest.mark.parametrize("name, expected", [
+    ("Claude", False), ("Argon", False), ("codex", False), ("OpenCode Go", False),
+    ("GPT-6 Cyber", True), ("Mythos 5.2", True), ("6.1 sol", True), ("Hy4", True),
+])
+def test_has_version_asks_for_a_digit_in_the_folded_name(name, expected):
+    from judge.store.unresolved_entries import fold_surface, has_version
+
+    assert has_version(fold_surface(name)) is expected
+
+
 def test_an_unreadable_bar_is_unknown_not_unmet(monkeypatch):
     """#612 review, point 17: an unreadable bar read as "0 meet the bar"."""
     d = _held(monkeypatch, bar_text="models: [\n  - broken")

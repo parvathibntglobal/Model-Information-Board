@@ -82,8 +82,24 @@ def test_held_by_name_counts_entries_and_distinct_authors(conn):
     hold_entries(conn, [_row("gpt-image-2.6 sunburst"),
                         _row("gpt-image-2.6 sunburst", quote="2.6 also writes GIFs now")],
                  proposer_model="m")
-    assert held_by_name(conn) == {"gpt-image-2.6 sunburst": (2, 0)}, (
+    assert held_by_name(conn) == {"gptimage26sunburst": (2, 0)}, (
         "the test document has no author: entries count, authors do not")
+
+
+def test_held_by_name_folds_spellings_and_counts_a_reheld_quote_once(conn):
+    """#602, 2026-11-09: grouped by the raw surface, two spellings of one name each sat
+    under the bar. And a quote held again under a new pipeline_version is ONE report."""
+    from judge.store.unresolved_entries import fold_surface, held_by_name
+
+    hold_entries(conn, [_row("GPT Image 2.6 Flare", quote="Flare keeps the text legible"),
+                        _row("gpt-image-2.6-flare", quote="Flare is slow on big canvases")],
+                 proposer_model="m")
+    hold_entries(conn, [_row("GPT Image 2.6 Flare", quote="Flare keeps the text legible")],
+                 proposer_model="m", pipeline_version="e9.9")
+    assert held_by_name(conn) == {"gptimage26flare": (2, 0)}
+    # The Python fold and the SQL fold agree on the key, which the script relies on.
+    assert fold_surface("GPT Image 2.6 Flare") == fold_surface("gpt-image-2.6-flare") \
+        == "gptimage26flare"
 
 
 def test_a_refused_filing_stays_held_and_is_retried(conn, monkeypatch):

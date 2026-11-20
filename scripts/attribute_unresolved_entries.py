@@ -37,7 +37,12 @@ for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines():
 import psycopg  # noqa: E402
 
 from collect.surface_resolver import RegistrySurfaceResolver  # noqa: E402
-from judge.store.unresolved_entries import attribute_held, held_by_name  # noqa: E402
+from judge.store.unresolved_entries import (  # noqa: E402
+    attribute_held,
+    fold_surface,
+    has_version,
+    held_by_name,
+)
 
 
 def seating_bar() -> tuple[int, int]:
@@ -77,16 +82,28 @@ def main() -> int:
               + ", ".join(f"{s!r} x{n}" for s, n in top))
         # THE SEATING BAR (contract/tracked_models.yaml): which unseated names
         # have reached it, so seating is a stated threshold and not a feeling.
+        # Spellings fold together (`fold_surface`), so a name's spellings meet it as one.
         need_entries, need_authors = seating_bar()
         counts = held_by_name(conn)
-        met = sorted((s for s in out["still_held"]
-                      if counts.get(s, (0, 0))[0] >= need_entries
-                      and counts.get(s, (0, 0))[1] >= need_authors),
-                     key=lambda s: -counts[s][0])
+        spelt: dict[str, str] = {}
+        for s, _n in sorted(out["still_held"].items(), key=lambda kv: -kv[1]):
+            spelt.setdefault(fold_surface(s), s)  # the most-held spelling names it
+        met = sorted((k for k in spelt
+                      if counts.get(k, (0, 0))[0] >= need_entries
+                      and counts.get(k, (0, 0))[1] >= need_authors),
+                     key=lambda k: -counts[k][0])
+        versioned = [k for k in met if has_version(k)]
+        unversioned = [k for k in met if not has_version(k)]
         print(f"  seating bar ({need_entries} held entries, {need_authors} distinct authors): "
-              + (", ".join(f"{s!r} ({counts[s][0]} entries, {counts[s][1]} authors)"
-                           for s in met) if met else "no held name meets it yet")
+              + (", ".join(f"{spelt[k]!r} ({counts[k][0]} entries, {counts[k][1]} authors)"
+                           for k in versioned) if versioned else "no versioned name meets it yet")
               + " - a LOWER BOUND: unseated models are not searched for")
+        if unversioned:
+            # Rule 10: no version number, so a family, codename, company or product -
+            # seated only by a person's ruling, never because a count was reached.
+            print(f"  over the bar but NO VERSION NUMBER ({len(unversioned)}; a person's "
+                  "ruling, not a seating): "
+                  + ", ".join(f"{spelt[k]!r} ({counts[k][0]})" for k in unversioned))
     if args.dry_run:
         conn.rollback()
         conn.close()

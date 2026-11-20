@@ -6632,6 +6632,8 @@ def admin_held_models() -> dict:
         return {"held": [], "filed": None, "seating_bar": bar, "bar_reason": bar_reason,
                 "names_total": None, "truncated": False,
                 "reason": f"held entries could not be read ({_safe_detail(exc)})"}
+    from judge.store.unresolved_entries import fold_surface, has_version
+
     held = []
     for surface, n, authors, docs, first, last, spellings, _total in rows:
         # None, not False, when the bar is unknown: "does not meet" would be a
@@ -6641,6 +6643,12 @@ def admin_held_models() -> dict:
         held.append({"surface": surface, "spellings": sorted(spellings or []),
                      "entries": int(n), "authors": int(authors),
                      "documents": int(docs), "meets_bar": meets,
+                     # RULE 10: no version number means a family, codename, company
+                     # or product (`Claude`, `Argon`, `codex`). It may pass the bar's
+                     # counts, but whether it names ONE model is a person's ruling,
+                     # so the panel shows it apart from the names to seat. On
+                     # 2026-11-20 these were 51 of the 112 names over the bar.
+                     "has_version": has_version(fold_surface(surface or "")),
                      "first_held": first.date().isoformat() if first else None,
                      "last_held": last.date().isoformat() if last else None})
     names_total = int(rows[0][7]) if rows else 0
