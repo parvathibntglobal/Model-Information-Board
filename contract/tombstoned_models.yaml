@@ -14,6 +14,10 @@
 #                                parse_models and write_model_versions, and
 #                                REPORTS how many it dropped (never silent)
 #    scripts/load_unpolled_models.py   refuses to hand-load a tombstoned id
+#    collect/ops/catalogue_seat.py     sets a tombstoned id aside, with that
+#                                reason, instead of writing a `catalogued`
+#                                row for it (added 2026-11-20: its plan would
+#                                have re-created 99 of these on the shared DB)
 #
 #  MATCHING IS ON THE BASE ID, after service tiers are folded in, so
 #  `openai/gpt-4o:batch` is covered by `openai/gpt-4o`.

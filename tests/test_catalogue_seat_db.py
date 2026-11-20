@@ -61,7 +61,9 @@ def catalogue(conn):
 
 
 def test_the_plan_seats_what_it_may_and_names_why_the_rest_is_set_aside(catalogue):
-    p = catalogue_seat.plan(catalogue)
+    # An EMPTY tombstone list on purpose: `perplexity/sonar` is tombstoned in the real contract
+    # file, and this test is about the other reasons. Tombstones have their own tests below.
+    p = catalogue_seat.plan(catalogue, tombstoned=frozenset())
     assert {s.canonical_id for s in p.seats} == {"elevenlabs/eleven-v4",
                                                  "openai/gpt-image-2.6-flare"}
     why = p.set_aside
@@ -74,6 +76,37 @@ def test_the_plan_seats_what_it_may_and_names_why_the_rest_is_set_aside(catalogu
     assert why["mancer/weaver"].startswith("family specificity")
     assert "anthropic/claude-opus-5" not in why  # it has a row: not even a candidate
     assert p.candidates == 9
+
+
+def test_a_tombstoned_id_is_set_aside_and_never_written(catalogue):
+    """A model deleted on purpose stays deleted: the catalogue listing it is not a ruling."""
+    _catalogue(catalogue, "acme/acme-3", "Acme: Acme 3", ["text"])
+    catalogue.commit()
+    p = catalogue_seat.plan(catalogue, tombstoned=frozenset({"acme/acme-3"}))
+    assert p.set_aside["acme/acme-3"].startswith("tombstoned")
+    assert "acme/acme-3" not in {s.canonical_id for s in p.seats}
+    out = catalogue_seat.apply(catalogue, p)
+    catalogue.commit()
+    assert catalogue.execute("SELECT count(*) FROM model_version "
+                             "WHERE canonical_id = 'acme/acme-3'").fetchone()[0] == 0
+    assert out["inserted"] == 2  # the two seatable models of the fixture, and only them
+
+
+def test_the_default_plan_reads_the_contract_tombstones(catalogue):
+    """With no list passed, the committed contract file decides - gpt-4o was deleted 2026-09-24."""
+    _catalogue(catalogue, "openai/gpt-4o", "OpenAI: GPT-4o", ["text"])
+    catalogue.commit()
+    assert catalogue_seat.plan(catalogue).set_aside["openai/gpt-4o"].startswith("tombstoned")
+
+
+def test_an_unreadable_tombstone_file_raises_rather_than_planning_as_empty(catalogue,
+                                                                          monkeypatch, tmp_path):
+    """Rule 12: a missing list must not plan as 'nothing tombstoned'."""
+    from collect.registry import tombstones
+
+    monkeypatch.setattr(tombstones, "TOMBSTONES", tmp_path / "missing.yaml")
+    with pytest.raises(tombstones.TombstoneFileError):
+        catalogue_seat.plan(catalogue)
 
 
 def test_a_name_another_model_owns_is_set_aside_not_seated(catalogue):
