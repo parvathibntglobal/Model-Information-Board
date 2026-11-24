@@ -24,7 +24,9 @@
 version: 1
 
 # Bump when the rules change meaning, so stored labels say which rules made them.
-pipeline_version: iai-1
+# iai-1: the first real run (2026-11-24, 32 AI terms, capital "AI" only).
+# iai-2: 32 -> the longer AI-term list, lower-case "ai" counts (#660).
+pipeline_version: iai-2
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -118,14 +120,23 @@ ai_terms:
   # hand: a term is here only if, in a social post, it almost always means the post
   # is about AI. Matching is whole-word and case-insensitive.
   # MEASURED BEFORE ADDING (rule 8), read-only over the 7,693 posts the first real
-  # run stored (#657): the clear terms below rescue 173 of the 1,712 posts dropped
-  # as `no_ai_term`; the six double-meaning words at the end were each read on 6
-  # rescued posts first. Kept OUT after reading or for an everyday meaning:
+  # run stored (#657), each side with its own code and list, same clock: 242 of the
+  # 1,712 posts dropped as `no_ai_term` are now kept, and no kept post is lost
+  # (re-measured 2026-11-24 after the #660 review changes). The double-meaning words
+  # at the end were each read on rescued posts first. Kept OUT after reading or for
+  # an everyday meaning:
   # Cursor (~4 of 6, also a text cursor), #ai (~3 of 6), Nvidia (company news),
   # model / agent / prompt / automation (everyday words), Le Chat (French "the
-  # cat"), Imagen (Spanish "image"), Dream Machine.
+  # cat"), Imagen (Spanish "image"), Dream Machine; and, after Parvathi's read on
+  # #660, "hallucinating" ("am I hallucinating or did rent go up"; "AI
+  # hallucination(s)" covers the meaning) and bare PaLM ("palm trees").
+  # NO DOTTED NAMES: `global_exclude_phrases` removes ".ai" before any term is
+  # matched, so "Otter.ai" or "Z.ai" could never match. Spaced forms instead.
+  # THE ALL-CAPITALS "AI ..." PHRASES (AI art, AI-first, AI startup...) are no
+  # longer needed to PASS the sieve, since `ai` alone passes it. They stay because
+  # they name WHAT matched in `ai_terms`; do not prune them as dead weight, and do
+  # not add more of them for recall: they add none.
   # concepts
-  - AGI
   - artificial general intelligence
   - superintelligence
   - AI safety
@@ -181,7 +192,6 @@ ai_terms:
   - in-context learning
   - AI hallucination
   - AI hallucinations
-  - hallucinating
   - retrieval-augmented generation
   - retrieval augmented generation
   - vector database
@@ -270,7 +280,7 @@ ai_terms:
   - Cohere AI
   - EleutherAI
   - AI21 Labs
-  - Z.ai
+  - Zhipu
   - StepFun
   - Thinking Machines Lab
   - Safe Superintelligence
@@ -283,7 +293,8 @@ ai_terms:
   - Qwen
   - Mixtral
   - Nemotron
-  - PaLM
+  - PaLM 2
+  - Google PaLM
   - LaMDA
   - Gemini Pro
   - Gemini Flash
@@ -299,7 +310,6 @@ ai_terms:
   - Llama 4
   - Gemma 3
   # chat and assistant products
-  - Character.AI
   - Character AI
   - Meta AI
   - Microsoft Copilot
@@ -371,14 +381,13 @@ ai_terms:
   - OpenAI Sora
   # writing and productivity AI
   - Jasper AI
-  - Copy.ai
+  - Copy AI
   - Notion AI
-  - Otter.ai
-  - Fireflies.ai
+  - Otter AI
+  - Fireflies AI
   - Gamma AI
   - Grammarly AI
   - GPTZero
-  - Claude.ai
   - Gemini app
   # benchmarks and leaderboards
   - MMLU
@@ -394,12 +403,24 @@ ai_terms:
   - Codex     # 6 of 6: OpenAI Codex plans and runs
   - LoRA      # 6 of 6: model fine-tunes, none the LoRa radio
   - MiniMax   # 5 of 6: MiniMax H3 (one was the minimax game algorithm)
+  - AGI       # the AI idea in every post read (#660); it rescued none on its own in
+              # the first run. Also "adjusted gross income" on r/tax and
+              # r/personalfinance: RE-READ once the Finance queries return tax posts.
+  # Read on the #660 review's request (2026-11-24, first run's 7,693 posts): MCP
+  # (also the hand joint) rescued 10, NONE in Healthcare; Codex (also Warhammer
+  # codexes) rescued 7, all outside Engineering, none a Warhammer codex: they name
+  # OpenAI Codex, its `codex/` branches, or a list of AI products. Re-read
+  # both when Healthcare or a hobby query first returns them.
 
 # THE BARE WORD "AI": since 2026-11-24 "ai" is in the list above, so it counts in
 # ANY case as a whole word: "AI fraud detection" and "an ai shopping assistant"
 # both count. ".ai" (a file type or a web domain) still does not: it is removed
 # below before any term is matched. (Until then only capitals counted, and 197 of
 # the first run's `no_ai_term` drops said "ai" in lower case.)
+# THE LABEL CHANGES SLIGHTLY: a post whose only AI word was "AI" used to record
+# `ai_terms = ['AI']`, and only when nothing else matched; it now records 'ai',
+# and alongside any other term that matched. No reader keys on that value
+# (checked in judge/industry_ai and web/src, #660 review).
 
 # REMOVED FROM THE TEXT BEFORE ANY TERM IS MATCHED, in every domain.
 global_exclude_phrases:
