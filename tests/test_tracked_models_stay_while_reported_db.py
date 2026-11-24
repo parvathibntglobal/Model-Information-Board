@@ -131,3 +131,40 @@ def test_the_contract_clause_runs_against_the_schema(conn, monkeypatch):
     _reports(conn, "acme/reported-1", RECENT, ["a", "b", "c", "d", "e"])
     conn.commit()
     assert [m.registry for m in tracked.auto_tracked(conn, today=TODAY)] == ["acme/reported-1"]
+
+
+# ── departures: what the rule let go, said on #450 (#651 review, rule 4) ──────
+
+
+def test_a_departure_is_named_with_its_figures_against_the_bar(conn):
+    """Released 2026-10-24: admitted on 11-23 (cutoff 10-24), past its 30 days on
+    11-24. One author, so below the stay bar: it leaves, and is named."""
+    _model(conn, "acme/leaving-1", date(2026, 10, 24))
+    _reports(conn, "acme/leaving-1", RECENT, ["a", "a"])
+    _model(conn, "acme/staying-1", date(2026, 10, 24))  # same day, but still reported
+    _reports(conn, "acme/staying-1", RECENT, ["a", "b", "b"])
+    _model(conn, "acme/arrival-1", date(2026, 11, 10))  # admitted both days
+    conn.commit()
+    assert tracked.departures(conn, today=TODAY) == [
+        {"canonical_id": "acme/leaving-1", "name": "acme/leaving-1",
+         "released": date(2026, 10, 24), "entries": 2, "authors": 1}]
+
+
+def test_no_departure_reads_as_none(conn):
+    _model(conn, "acme/arrival-1", date(2026, 11, 10))
+    conn.commit()
+    assert tracked.departures(conn, today=TODAY) == []
+
+
+def test_the_450_report_names_departures_and_still_posts_without_arrivals():
+    """`registry-poll.yml` skips posting on the "nothing new" line, so a run with
+    a departure and no arrival must not print it."""
+    from scripts.auto_seat import report
+
+    gone = [{"canonical_id": "acme/leaving-1", "name": "Leaving 1",
+             "released": date(2026, 10, 24), "entries": 2, "authors": 1}]
+    text = report([], applied=True, departed=gone)
+    assert "Left the Models page since yesterday** (1)" in text
+    assert "`acme/leaving-1` (Leaving 1), released 2026-10-24: 2 entries from 1 authors" in text
+    assert "nothing new" not in text
+    assert "nothing new" in report([], applied=True)

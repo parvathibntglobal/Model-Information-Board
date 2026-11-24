@@ -210,6 +210,52 @@ def auto_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]
     return tuple(out)
 
 
+#: A departed model's figures against `stays_while_reported`, counted as
+#: `ELIGIBLE`'s `still_reported` counts them: posted in the window, not declined.
+STAY_COUNTS = """
+    SELECT mv.canonical_id, count(*), count(DISTINCT d.author_id)
+      FROM board_entry be
+      JOIN document d ON d.id = be.document_id
+      JOIN model_version mv ON mv.id = be.model_version_id
+     WHERE mv.canonical_id = ANY(%(ids)s)
+       AND d.created_at >= %(posted_since)s
+       AND be.ruling IS DISTINCT FROM 'declined'
+     GROUP BY 1
+"""
+
+
+def departures(conn, *, today: date | None = None) -> list[dict]:
+    """Models the rule admitted YESTERDAY and does not admit today (#651 review).
+
+    A model leaving the page also leaves the scheduler's due list, and until
+    2026-11-24 nothing said so: Kimi K3.1 Pro's departure was found by a person
+    looking for it (rule 4 - an absence we caused must be shown, not found).
+
+    Stateless: both days are computed from TODAY's data, so this names what the
+    date change and the stay rule let go, not a model that left the registry -
+    `scripts/registry_diff.py` reports those. Each comes with its figures
+    against the stay bar, so a reader can see why without trusting a verdict.
+    """
+    today = today or date.today()
+    before = auto_tracked(conn, today=today - timedelta(days=1))
+    now = {m.registry for m in auto_tracked(conn, today=today)}
+    gone = [m for m in before if m.registry not in now]
+    if not gone:
+        return []
+    rule = auto_track_rule()
+    ids = [m.registry for m in gone]
+    counts = {cid: (int(n), int(a)) for cid, n, a in conn.execute(STAY_COUNTS, {
+        "ids": ids,
+        "posted_since": today - timedelta(days=rule.stays.posted_within_days),
+    }).fetchall()}
+    released = dict(conn.execute(
+        "SELECT canonical_id, release_date FROM model_version WHERE canonical_id = ANY(%s)",
+        (ids,)).fetchall())
+    return [{"canonical_id": m.registry, "name": m.name, "released": released.get(m.registry),
+             "entries": counts.get(m.registry, (0, 0))[0],
+             "authors": counts.get(m.registry, (0, 0))[1]} for m in gone]
+
+
 def all_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]:
     """Hand-written entries in file order, then the rule's admissions."""
     return (*tracked_models(), *auto_tracked(conn, today=today))

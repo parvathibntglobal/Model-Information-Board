@@ -100,7 +100,10 @@ def plan(conn) -> list[dict]:
     return records
 
 
-def report(records: list[dict], *, applied: bool) -> str:
+def report(records: list[dict], *, applied: bool, departed: list[dict] = ()) -> str:
+    """The #450 comment: what the rule admits and seats, and - since 2026-11-24
+    (#651 review, rule 4) - what it LET GO since yesterday, with each model's
+    figures against the stay bar. `departed` is `judge.tracked.departures`."""
     seated = [r for r in records if r["outcome"] in ("to seat", "seated")]
     lines = [f"**Auto-seat after this poll** ({'applied' if applied else 'dry run'}). "
              f"{len(records)} model(s) admitted by `auto_track`; "
@@ -111,8 +114,23 @@ def report(records: list[dict], *, applied: bool) -> str:
                          + ", ".join(f"`{s}`" for s in r["surfaces"]))
         else:
             lines.append(f"- `{r['canonical_id']}`: {r['outcome']}")
-    if not records:
+    if not records and not departed:
+        # The workflow greps this line to skip posting: only when there is
+        # neither an arrival NOR a departure to tell anyone about.
         lines.append("- nothing new: no arrival matched the rule.")
+    if departed:
+        from judge.config import auto_track_rule
+
+        stays = auto_track_rule().stays
+        lines += ["", f"**Left the Models page since yesterday** ({len(departed)}), and so "
+                  "the scheduler's due list: past their "
+                  f"{auto_track_rule().released_within_days} days and below the stay bar "
+                  f"({stays.entries} entries from {stays.distinct_authors} authors, posted "
+                  f"in the last {stays.posted_within_days} days). Their evidence stays; "
+                  "to keep one listed, add it to `contract/tracked_models.yaml` by hand.", ""]
+        for d in departed:
+            lines.append(f"- `{d['canonical_id']}` ({d['name']}), released {d['released']}: "
+                         f"{d['entries']} entries from {d['authors']} authors in the window")
     # THE RE-TRIAGE STEP, WRITTEN WHERE SEATINGS ARE ANNOUNCED (#613 review,
     # point 6). Documents triage dropped as naming no model before these were
     # seated keep that verdict; nothing else prompts the step for polled models.
@@ -138,8 +156,11 @@ def main(argv: list[str] | None = None) -> int:
 
         writeguard_check(settings().database_url, command="auto_seat.py")
 
+    from judge.tracked import departures
+
     with connect() as conn:
         records = plan(conn)
+        departed = departures(conn)
         if args.apply:
             from collect.registry.load import _sync_alias
 
@@ -152,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
                 r["outcome"] = "seated"
             conn.commit()
 
-    text = report(records, applied=args.apply)
+    text = report(records, applied=args.apply, departed=departed)
     print(text)
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
