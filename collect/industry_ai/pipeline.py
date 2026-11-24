@@ -60,11 +60,12 @@ def _order(item: Item):
 
 
 def _dedupe(items: list[Item], results: dict[str, Result],
-            persons: dict[str, str] | None = None) -> None:
+            persons: dict[str, str] | None = None, *, cross_post_hours: int) -> None:
     """Stage 4 over the items the sieve kept. Four passes, each over what the
     previous left canonical: a shared article link, an author repeating
     themselves, one PERSON posting the same text on two platforms (`persons`:
-    item id -> person, from `watch.people`), and near-duplicate text."""
+    item id -> person, from `watch.people`; within `cross_post_hours`, the
+    contract's `watch.cross_post_hours`, required), and near-duplicate text."""
     persons = persons or {}
     live = sorted(items, key=_order)
 
@@ -105,13 +106,36 @@ def _dedupe(items: list[Item], results: dict[str, Result],
     #    cross-post is one item and the copy a share. Pass 2 cannot see it - the
     #    two handles are two `author_id`s - and on 2026-11-20 pass 4 caught 1 of 3.
     #    Mentions and tags are left out of the comparison, being spelt per platform.
+    #    NARROWER THAN "SAME PERSON, SAME TEXT" (#653 review): the copy must be on
+    #    ANOTHER platform, within `cross_post_hours` of the earlier post, and - when
+    #    both carry an article link - share it. Undated posts are never folded (rule
+    #    6). So a template intro reused days later for another paper stays two posts,
+    #    and a same-platform repeat is left to pass 2.
     by_person: dict[tuple, list[Item]] = {}
     for it in live:
         person = persons.get(it.id)
         key = cross_post_text(it.text) if person else None
-        if results[it.id].verdict == "kept" and key:
+        if results[it.id].verdict == "kept" and key and it.created_at is not None:
             by_person.setdefault((person, key), []).append(it)
-    fold(by_person, "cross_post", flag="cross_post")
+    window = timedelta(hours=cross_post_hours)
+    copies: dict[tuple, list[Item]] = {}
+    for key, members in by_person.items():
+        free = sorted(members, key=_order)
+        while free:
+            head, *rest = free
+            link = results[head.id].canonical_url
+            taken, platforms = [], {head.platform}
+            for m in rest:
+                other = results[m.id].canonical_url
+                if (m.platform not in platforms
+                        and m.created_at - head.created_at <= window
+                        and (link is None or other is None or link == other)):
+                    taken.append(m)
+                    platforms.add(m.platform)
+            if taken:
+                copies[(key, head.id)] = [head, *taken]
+            free = [m for m in rest if m not in taken]
+    fold(copies, "cross_post", flag="cross_post")
 
     # 4. NEAR-DUPLICATE TEXT, by the corpus's own MinHash clustering. Below its
     #    token floor a text gets no signature and is never merged by this pass
@@ -172,11 +196,13 @@ def evaluate(
 
     # ONE PERSON, ONE AUTHOR (watch.people): the person rides as a flag, which is
     # stored, so the page counts authors the way `counts` does.
-    persons = {it.id: p for it in passed if (p := person_of(it, cfg))}
+    people = cfg.person_by_handle()  # built once per run, not per item (#653 review)
+    persons = {it.id: p for it in passed if (p := person_of(it, cfg, people))}
     for item_id, p in persons.items():
         results[item_id].flags = sorted(set(results[item_id].flags) | {f"{PERSON_FLAG}{p}"})
 
-    _dedupe(passed, results, persons)  # stage 4
+    _dedupe(passed, results, persons,
+            cross_post_hours=int(cfg.watch["cross_post_hours"]))  # stage 4
 
     for it in passed:  # stages 5-6
         r = results[it.id]
@@ -237,7 +263,10 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
                     c["by_group"][g.split("/", 1)[1]] += 1
             c["reach"] += r.share_count
             # A mapped person is ONE author on every platform; anyone else is one
-            # per (platform, account). judge/industry_ai/view.py counts the same way.
+            # per (platform, account). judge/industry_ai/view.py counts the same way
+            # (`coalesce(person, platform || ':' || author_id)`): the set below holds
+            # two kinds of key - a "person:<key>" string and a (platform, account)
+            # tuple - which cannot collide, so the two counts are built to agree.
             person = next((f for f in r.flags if f.startswith(PERSON_FLAG)), None)
             if person:
                 c["authors"].add(person)

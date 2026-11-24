@@ -329,11 +329,15 @@ def handle_of(item: Item) -> str | None:
 PERSON_FLAG = "person:"
 
 
-def person_of(item: Item, cfg: Config) -> str | None:
+def person_of(item: Item, cfg: Config,
+              people: dict[tuple[str, str], str] | None = None) -> str | None:
     """The person in `watch.people` who posted `item`, or None. Only a person written
-    in the contract links two handles; nothing here infers one."""
+    in the contract links two handles; nothing here infers one. `people` is
+    `cfg.person_by_handle()`, passed in by a caller that asks for many items."""
     handle = handle_of(item)
-    return cfg.person_by_handle().get((item.platform, handle)) if handle else None
+    if not handle:
+        return None
+    return (people if people is not None else cfg.person_by_handle()).get((item.platform, handle))
 
 
 _MENTION_OR_TAG = re.compile(r"[@#]\w[\w.]*")

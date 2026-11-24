@@ -22,7 +22,13 @@ import yaml
 from collect.industry_ai import config as iai_config
 from collect.industry_ai.config import CONTRACT, IndustryAIConfigError
 from collect.industry_ai.pipeline import evaluate
-from collect.industry_ai.rules import Item, cross_post_text, handle_of, person_of
+from collect.industry_ai.rules import (
+    Item,
+    cross_post_text,
+    first_link,
+    handle_of,
+    person_of,
+)
 
 NOW = datetime(2026, 11, 24, tzinfo=UTC)
 SINCE = NOW - timedelta(days=365)
@@ -43,10 +49,11 @@ def cfg(raw):
 
 
 def post(platform, iid, text, *, url="", author="a1", keys=(), hours=48):
+    # `link` as the harvest sets it for X and Bluesky: the first URL in the text.
     return Item(id=f"{platform}:{iid}", platform=platform, external_id=iid, url=url,
                 title="", body=text, created_at=NOW - timedelta(hours=hours),
                 author_id=author, engagement={"likes": 10, "points": 10},
-                domain_hints=set(), query_keys=set(keys))
+                link=first_link(text), domain_hints=set(), query_keys=set(keys))
 
 
 def x_post(handle, iid, text, **kw):
@@ -128,6 +135,53 @@ def test_a_persons_same_text_on_two_platforms_is_one_item(cfg):
     assert (copy_.verdict, copy_.reason, copy_.canonical_of) == ("dropped", "cross_post", x.id)
     assert "cross_post" in kept.flags and kept.share_count == 1
     assert "person:ethan_mollick" in kept.flags and "person:ethan_mollick" in copy_.flags
+
+
+def test_the_same_intro_with_different_links_is_two_posts(cfg):
+    """#653 review: one person's template intro for two different papers. When both
+    posts carry an article link, the links must match for pass 3 to fold them."""
+    x = x_post("emollick", "12", NEWS + " https://example.org/paper-a", hours=50)
+    b = bsky_post("emollick.bsky.social", "13", NEWS + " https://example.org/paper-b", hours=49)
+    results, _ = evaluate([x, b], cfg, since=SINCE, now=NOW)
+    assert "cross_post" not in {results[x.id].reason, results[b.id].reason}
+
+
+def test_a_same_platform_repeat_is_left_to_pass_two(cfg):
+    """#653 review: pass 3 folds across platforms only; a repeat on one platform
+    is the same author repeating themselves (pass 2)."""
+    a = x_post("emollick", "14", NEWS, hours=50)
+    b = x_post("emollick", "15", NEWS, hours=49)
+    results, _ = evaluate([a, b], cfg, since=SINCE, now=NOW)
+    assert results[b.id].reason == "repeat_post"
+    assert "cross_post" not in results[a.id].flags
+
+
+def test_a_copy_outside_the_window_is_not_a_cross_post(cfg):
+    hours = int(cfg.watch["cross_post_hours"])
+    x = x_post("emollick", "16", NEWS, hours=100)
+    b = bsky_post("emollick.bsky.social", "17", NEWS, hours=100 - hours - 1)
+    results, _ = evaluate([x, b], cfg, since=SINCE, now=NOW)
+    assert "cross_post" not in {results[x.id].reason, results[b.id].reason}
+
+
+def test_an_undated_post_is_never_folded_as_a_cross_post(cfg):
+    """Rule 6: with no date there is no saying it was posted at the same time."""
+    x = x_post("emollick", "18", NEWS)
+    b = bsky_post("emollick.bsky.social", "19", NEWS)
+    b.created_at = None
+    results, _ = evaluate([x, b], cfg, since=SINCE, now=NOW)
+    assert "cross_post" not in {results[x.id].reason, results[b.id].reason}
+
+
+@pytest.mark.parametrize("value", [None, 0, -1, "6", True])
+def test_the_cross_post_window_is_required_and_whole(raw, value):
+    bad = copy.deepcopy(raw)
+    if value is None:
+        del bad["watch"]["cross_post_hours"]
+    else:
+        bad["watch"]["cross_post_hours"] = value
+    with pytest.raises(IndustryAIConfigError):
+        iai_config.parse(bad)
 
 
 def test_two_people_saying_the_same_thing_are_not_a_cross_post(cfg):

@@ -147,7 +147,8 @@ and their same post on X and Bluesky stayed two items.
 - **What it changes:**
   - the post carries a `person:<key>` flag, and a person is **one author** in the run
     log and on the page;
-  - a person's same text on two platforms is folded as `cross_post` (dedupe pass 3).
+  - a person's same text on two platforms, posted within `watch.cross_post_hours`, is
+    folded as `cross_post` (dedupe pass 3).
 - **Never guessed:** only a person written in the map links two handles. Every handle
   must already be in its platform's watch list, a person needs at least two platforms,
   and a handle can belong to only one person.
@@ -276,9 +277,15 @@ Four passes, each over what the previous pass left:
    as `repeat_post`, and the author is flagged `repeat_author`.
 3. **One person, the same text, two platforms** (`watch.people`): one is kept, the
    rest are dropped as `cross_post` and counted as its reach, and the kept one is
-   flagged `cross_post`. Mentions, tags and links are left out of the comparison,
-   since each platform spells them differently; texts under 20 characters are never
-   folded.
+   flagged `cross_post`. Mentions, tags and links are left out of the text
+   comparison, since each platform spells them differently. A copy is folded only
+   when all of these hold (#653 review):
+   - it is on a **different platform** from the earlier post (a same-platform repeat
+     is pass 2's);
+   - it was posted within **`watch.cross_post_hours`** of it (6; the 3 folds read by
+     eye on 2026-11-24 were 0 to 4 minutes apart);
+   - when **both** carry an article link, it is the **same link**;
+   - both are **dated** and the text is **20 characters or more**.
 4. **Near-duplicate text** is clustered by the corpus's own MinHash
    (`collect/assemble/dedupe.py`) and dropped as `near_duplicate`. Texts below its
    token floor are never merged, because over-merging is the worse failure.

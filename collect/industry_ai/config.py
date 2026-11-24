@@ -63,7 +63,7 @@ TOP_KEYS = {
 #: until its runner exists - a refused list cannot be mistaken for a watched one.
 WATCH_PLATFORMS = ("reddit", "x", "bluesky", "hackernews")
 WATCH_KEYS = {"enabled", "lookback_days", "max_requests", "x_pages", "x_club_max", "x_suffix",
-              "people", *WATCH_PLATFORMS}
+              "people", "cross_post_hours", *WATCH_PLATFORMS}
 #: The platforms whose watched ACCOUNTS a person can be mapped across (Reddit watches
 #: communities, not people).
 PEOPLE_PLATFORMS = ("x", "bluesky", "hackernews")
@@ -328,7 +328,7 @@ def _watch(raw: Any, suffix: dict[str, str]) -> dict[str, Any]:
         _need(raw, key, where)
     if not isinstance(raw["enabled"], bool):
         raise IndustryAIConfigError("watch.enabled must be true or false")
-    for key in ("lookback_days", "x_pages", "x_club_max"):
+    for key in ("lookback_days", "x_pages", "x_club_max", "cross_post_hours"):
         _whole(raw[key], f"watch.{key}")
     caps = raw["max_requests"]
     _known(caps, set(WATCH_PLATFORMS), "watch.max_requests")
@@ -355,6 +355,7 @@ def _watch(raw: Any, suffix: dict[str, str]) -> dict[str, Any]:
         "x_pages": int(raw["x_pages"]),
         "x_club_max": int(raw["x_club_max"]),
         "x_suffix": raw["x_suffix"].strip(),
+        "cross_post_hours": int(raw["cross_post_hours"]),
         "reddit": _handles(raw["reddit"], _REDDIT_SUB, "watch.reddit"),
         "x": _handles(raw["x"], _X_HANDLE, "watch.x"),
         "bluesky": _handles(raw["bluesky"], _BSKY_HANDLE, "watch.bluesky"),
