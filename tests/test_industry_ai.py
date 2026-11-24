@@ -462,6 +462,29 @@ def conn(test_dsn):
         connection.close()
 
 
+def test_batched_writes_count_new_rows_and_label_every_one(conn, cfg):
+    """2026-11-24: upsert and labels are one batched `executemany` each (the first real
+    run spent over 30 minutes on a round trip per item). At a realistic size, a batch
+    mixing known and new posts still counts only the new, and every row is labelled."""
+    from collect.industry_ai import store
+
+    store.start_run(conn, "iai-batch", mode="harvest", domains=["finance"],
+                    platforms=["reddit"], pipeline_version=cfg.pipeline_version)
+    body = "Our bank rolled out an AI fraud detection model in production for loan customers."
+    first = [item(body, iid=f"reddit:b{i}", author=f"t2_{i}") for i in range(300)]
+    assert store.upsert_items(conn, first, run_id="iai-batch") == 300
+    second = [item(body, iid=f"reddit:b{i}", author=f"t2_{i}") for i in range(200, 400)]
+    assert store.upsert_items(conn, second, run_id="iai-batch") == 100, "only 300..399 are new"
+    assert store.upsert_items(conn, [], run_id="iai-batch") == 0
+    items = store.load_items(conn)
+    results, _ = evaluate(items, cfg, since=SINCE)
+    assert store.write_labels(conn, results, pipeline_version=cfg.pipeline_version) == 400
+    assert store.write_labels(conn, {}, pipeline_version=cfg.pipeline_version) == 0
+    pending = conn.execute(
+        "SELECT count(*) FROM iai_item WHERE drop_stage = 'pending'").fetchone()[0]
+    assert pending == 0, "every row got its labels"
+
+
 def test_store_label_and_the_page_counts_only(conn, cfg):
     from collect.industry_ai import store
     from judge.industry_ai.view import industry_ai_view
