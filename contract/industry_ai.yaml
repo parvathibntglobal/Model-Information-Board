@@ -284,6 +284,30 @@ watch:
     # tptacek on probation: very prolific, mostly not about AI; kept only if his
     # first-run yield passes the sieve often.
     authors: [simonw, minimaxir, swyx, jph00, karpathy, tptacek]
+  # ONE PERSON, SEVERAL HANDLES (2026-11-20). Six watched people post on two or three
+  # platforms. Without this map a person counts as one author PER PLATFORM, and their
+  # same post on X and Bluesky stays two items. Measured 2026-11-20 over one 7-day
+  # window of the X, Bluesky and HN watch lists: Ethan Mollick 18 Bluesky + 17 X posts
+  # kept (2 "distinct authors"), Simon Willison 4 + 4 + 5 (3); 3 same-text cross-posts,
+  # of which the existing dedupe caught 1. With the map, a person is ONE author, and a
+  # person's same text on two platforms is folded as `cross_post` (a share). Every
+  # handle must already be in its platform's list above; a handle in two people, or a
+  # person on one platform, is refused. Never guessed: only people written here link.
+  people:
+    simon_willison: {x: simonw, bluesky: simonwillison.net, hackernews: simonw}
+    andrej_karpathy: {x: karpathy, bluesky: karpathy.bsky.social, hackernews: karpathy}
+    swyx: {x: swyx, bluesky: swyx.io, hackernews: swyx}
+    ethan_mollick: {x: emollick, bluesky: emollick.bsky.social}
+    jeremy_howard: {x: jeremyphoward, bluesky: howard.fm, hackernews: jph00}
+    max_woolf: {bluesky: minimaxir.bsky.social, hackernews: minimaxir}
+  # A CROSS-POST IS THE SAME POST, NOW, ON ANOTHER PLATFORM (#653 review). Dedupe pass 3
+  # folds a person's same text only when the posts are on DIFFERENT platforms, within
+  # this many hours of the earlier one, and - when both carry an article link - with
+  # the same link. Undated posts are never folded (rule 6). Measured 2026-11-24: all 3
+  # folds in a 7-day watch harvest were read by eye and all 3 were true cross-posts,
+  # 0 to 4 minutes apart. 6 hours is wide of that and far from a template intro reused
+  # days later for a different link; a wrong fold hides a post, a missed one adds one.
+  cross_post_hours: 6
 
 # ── THE DOMAINS: our 20 persona umbrellas (anooj, 2026-11-20) ─────────────────
 # Generated from the persona keyword work; edit freely here from now on.
