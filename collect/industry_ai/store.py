@@ -158,15 +158,23 @@ def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
     """
     now = now or datetime.now(UTC)
     cutoff = now - timedelta(days=int(retention["clear_text_after_days"]))
-    cur = conn.execute(
-        "UPDATE iai_item SET title = '', body = '', text_cleared_at = %(now)s "
+    # WHICH ROWS, THEN THE WRITE: a SELECT that READS first_seen_at, verdict and
+    # domains, and an UPDATE that writes only what it writes. One UPDATE with
+    # that WHERE read to scripts/audit_columns.py as a WRITE of first_seen_at,
+    # which the database sets and no code does (contract/column_states.yaml).
+    due = [r[0] for r in conn.execute(
+        "SELECT id FROM iai_item "
         "WHERE text_cleared_at IS NULL AND first_seen_at < %(cutoff)s "
         "AND ((%(dropped)s AND verdict = 'dropped') "
         "     OR (verdict = 'kept' AND domains && %(kept)s::text[]))",
-        {"now": now, "cutoff": cutoff, "dropped": bool(retention["dropped"]),
+        {"cutoff": cutoff, "dropped": bool(retention["dropped"]),
          "kept": list(retention["kept_domains"])},
-    )
-    return cur.rowcount
+    ).fetchall()]
+    if due:
+        conn.execute(
+            "UPDATE iai_item SET title = '', body = '', text_cleared_at = %s "
+            "WHERE id = ANY(%s)", (now, due))
+    return len(due)
 
 
 def write_labels(conn, results: dict[str, Result], *, pipeline_version: str) -> int:
