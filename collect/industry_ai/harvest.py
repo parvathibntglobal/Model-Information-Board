@@ -442,9 +442,13 @@ def failure_of(run) -> str | None:
     `http_errors` is read directly: every adapter's run record has it, and a
     record without it raises rather than reading as "nothing failed" (rule 12).
     The other fields are per platform and read when present.
+
+    `recovered` (X, since 2026-11-24) counts failed attempts a retry recovered
+    from. Those are not failures of the query, so they are subtracted - else a
+    query that answered on its second try would be marked `error`.
     """
     parts = []
-    n = int(run.http_errors or 0)
+    n = int(run.http_errors or 0) - int(getattr(run, "recovered", 0) or 0)
     if n:
         kinds = sorted({str(f) for f in (getattr(run, "failures", None) or [])})
         parts.append(f"{n} request(s) failed" + (f" ({', '.join(kinds)})" if kinds else ""))

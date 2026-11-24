@@ -202,14 +202,26 @@ class TestBothAdaptersRecordFromTheResponse:
 
     @pytest.mark.parametrize("module", ["collect.adapters.reddit", "collect.adapters.x"])
     def test_the_adapter_calls_the_recorder(self, module):
+        import ast
         import importlib
         import inspect
 
         src = inspect.getsource(importlib.import_module(module))
         assert "record_rapidapi_quota(" in src, f"{module} spends quota and records nothing"
-        # In `_get`, where the response is — the only place that cannot forget.
-        get = src[src.index("def _get("):]
-        assert "record_rapidapi_quota(" in get[:4000], f"{module} records outside _get"
+        # In the function that makes the request, where the response is - the only
+        # place that cannot forget. Found by what it DOES (`self._client.get(`),
+        # not by its name or a character window: X's `_get` became a retry loop
+        # over `_attempt` (#652), and a 4,000-character slice of `_get` then failed
+        # on docstring length while the write still sat beside the response.
+        requesters = [fn for fn in ast.walk(ast.parse(src))
+                      if isinstance(fn, ast.FunctionDef)
+                      and "self._client.get(" in ast.get_source_segment(src, fn)
+                      and not any(isinstance(inner, ast.FunctionDef) and inner is not fn
+                                  for inner in ast.walk(fn))]
+        assert requesters, f"{module}: no function makes the request"
+        for fn in requesters:
+            assert "record_rapidapi_quota(" in ast.get_source_segment(src, fn), (
+                f"{module}.{fn.name} makes the request and records no quota beside it")
 
 
 class TestTheExtractorRecordsItsSpend:

@@ -177,6 +177,18 @@ DEFAULT_PROVIDER = "twitter241"
 #: `Latest`, 2-3 pages each, returning 23-40 posts per query.
 SEARCH_PATH = "/search-v2"
 
+#: ONE more attempt for a failure that may pass, after this wait (`_get`).
+#: In code beside `collect/http.py` DEFAULT_CONNECT_RETRIES, its sibling for
+#: connection failures. Each retry is one more metered request: the failed
+#: attempts of 21-23 Nov were charged to the quota all the same.
+TRANSIENT_RETRIES = 1
+TRANSIENT_RETRY_WAIT_SECONDS = 5.0
+#: Statuses a wait may cure: the gateway's rate limit and an upstream fault.
+#: Never 401/403/404 - a wrong key or a wrong endpoint does not pass.
+_TRANSIENT_STATUSES = frozenset({429, 500, 502, 503, 504})
+#: Timeouts retried here. Not `ConnectTimeout`: the transport retries connecting.
+_RETRIED_TIMEOUTS = (httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout)
+
 #: `type=` values the recorded sweep used. `Latest` is reverse-chronological and
 #: `Top` is the provider's relevance order; the sweep ran both for its four
 #: primary keywords and `Top` alone for its 32 derived ones.
@@ -469,6 +481,24 @@ class XRun:
     exhausted: bool = False
     truncated_by: str | None = None
 
+    #: The cause of every failed attempt that STOOD, in order: `HTTP 503`,
+    #: `ReadTimeout`. READ BY scripts/fetch_model.py (the E2X stage line) and
+    #: collect/industry_ai/harvest.py `failure_of`, so the next failure says what
+    #: it was - until 2026-11-24 only a count was kept, and 40 failed runs over
+    #: three days could not be diagnosed from the record.
+    failures: list[str] = field(default_factory=list)
+    #: The cause of every failed attempt a later attempt recovered from - kept,
+    #: never dropped (rule 12), and apart from `failures` so a reader names only
+    #: what stood (#652 review). READ BY the E2X stage line.
+    recovered_failures: list[str] = field(default_factory=list)
+    #: Attempts made again after a failure that may pass, and how many FAILED
+    #: attempts a later attempt recovered from - so `http_errors - recovered` is
+    #: the failures that stood. `recovered` is read by the E2X stage line and by
+    #: collect/industry_ai/harvest.py `failure_of`; `retries` by neither yet -
+    #: declared, its reader is the same stage line once a fetch needs it.
+    retries: int = 0
+    recovered: int = 0
+
     @property
     def items_fetched(self) -> int:
         return len(self.posts)
@@ -620,6 +650,50 @@ class XHarvester:
         return params
 
     def _get(self, path: str, params: dict[str, Any], run: XRun):
+        """One request, tried once more after a wait if it failed in a way that
+        may pass (`_TRANSIENT_STATUSES`, or no answer in time).
+
+        WHY (2026-11-24): the scheduled fetches run ONE clubbed X query per
+        model, so one failed first page empties that model's whole X harvest
+        for the day and marks its run an error - which also keeps its "last
+        success" old, so it is due again sooner. 19 such runs on 21 Nov, 2 on
+        22 Nov, 19 on 23 Nov; a request made by hand on 24 Nov answered 200 in
+        3.1 s. Most of those failures carried quota headers, so the gateway
+        answered with a non-200 status; which status was never recorded.
+
+        EVERY FAILED ATTEMPT IS RECORDED, so a retry can never make a failure
+        invisible (rule 12): in `run.failures` when it stood, and in
+        `run.recovered_failures` when a later attempt answered - kept apart so a
+        reader names only the causes that stood (#652 review). A credential or
+        endpoint failure (401/403/404) is not retried: waiting does not fix a
+        wrong key. Nor is a 429 that says the quota is spent: waiting 5 s does
+        not refill it, and the retry would be one more metered request.
+        """
+        pending: list[str] = []
+        for attempt in range(TRANSIENT_RETRIES + 1):
+            response, cause, transient = self._attempt(path, params, run)
+            if response is not None:
+                # Every failed attempt before this one was recovered from.
+                run.recovered += len(pending)
+                run.recovered_failures += pending
+                return response
+            pending.append(cause)
+            if cause == "HTTP 429" and run.quota_exhausted:
+                transient = False
+            if not transient or attempt == TRANSIENT_RETRIES:
+                run.failures += pending
+                if cause == "HTTP 429":
+                    run.truncated_by = "rate-limit"
+                return None
+            run.retries += 1
+            log.warning("x: %s on %s; trying once more in %.0f s",
+                        cause, path, TRANSIENT_RETRY_WAIT_SECONDS)
+            self._sleep(TRANSIENT_RETRY_WAIT_SECONDS)
+        return None
+
+    def _attempt(self, path: str, params: dict[str, Any], run: XRun):
+        """One request: `(response, None, False)` on a 200, else
+        `(None, cause, may_pass)`, where `cause` names the status or exception."""
         url = f"{self._base}{path}"
         self._limiter.wait(url)
         try:
@@ -627,7 +701,11 @@ class XHarvester:
         except httpx.HTTPError as error:
             run.http_errors += 1
             log.error("x: request failed on %s: %s", path, error)
-            return None
+            # A read, write or pool timeout may pass. A CONNECT timeout or error
+            # is not retried here: the transport already retried it
+            # (collect/http.py DEFAULT_CONNECT_RETRIES), so each kind of failure
+            # is retried in one place only (#652 review).
+            return None, type(error).__name__, isinstance(error, _RETRIED_TIMEOUTS)
 
         # ALL THREE HEADERS, not the one we happen to act on.
         for header, attribute in _QUOTA_HEADERS.items():
@@ -670,12 +748,12 @@ class XHarvester:
         )
 
         if response.status_code == 429:
-            run.truncated_by = "rate-limit"
+            # `truncated_by` is set by `_get`, and only once it gives up.
             run.http_errors += 1
             log.warning(
                 "x: 429 on %s; quota remaining=%s", path, run.quota_remaining
             )
-            return None
+            return None, "HTTP 429", True
         if response.status_code == 404:
             # NAMED, because this is the failure mode the unverified path has.
             # A 404 is a wrong endpoint, not a query with no matches, and
@@ -688,7 +766,7 @@ class XHarvester:
                 "set. Check the provider's RapidAPI docs and correct "
                 "SEARCH_PATH.", path, self._host, settings().scraper_provider,
             )
-            return None
+            return None, "HTTP 404", False
         if response.status_code in (401, 403):
             # NAMED FOR THE SAME REASON AS THE 404 ABOVE, and it is the failure
             # this project actually had. A gateway 401/403 is a CREDENTIAL
@@ -712,12 +790,13 @@ class XHarvester:
                 self._key_source, settings().scraper_provider,
                 response.headers.get("x-rapidapi-proxy-response"),
             )
-            return None
+            return None, f"HTTP {response.status_code}", False
         if response.status_code != 200:
             run.http_errors += 1
             log.warning("x: HTTP %s on %s", response.status_code, path)
-            return None
-        return response
+            return (None, f"HTTP {response.status_code}",
+                    response.status_code in _TRANSIENT_STATUSES)
+        return response, None, False
 
     def search(
         self, query: str, *, search_type: str = "Top", run: XRun | None = None
