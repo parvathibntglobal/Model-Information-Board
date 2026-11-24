@@ -127,9 +127,16 @@ jobs:
       # this gives each one the search aliases a fetch needs - generated,
       # versioned surfaces only, collision-checked against every live alias.
       # The report on the diff issue is the staging-write announcement.
+      # DEPARTURES ONCE A DAY (#654 review): the poll runs twice, and both runs on
+      # the day a model leaves would name it. Like the promotion report below, only
+      # the morning slot (or a hand run) asks for them.
       - name: Seat aliases for new models the auto_track rule admits
+        env:
+          DEPARTURES: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '23 5 * * *' }}
         run: |
-          python scripts/auto_seat.py --apply --out auto_seat.md
+          args="--apply --out auto_seat.md"
+          if [ "$DEPARTURES" = "true" ]; then args="$args --departures"; fi
+          python scripts/auto_seat.py $args
           if grep -q "nothing new: no arrival matched the rule" auto_seat.md; then
             echo "auto_seat: nothing seated, nothing posted"
           else

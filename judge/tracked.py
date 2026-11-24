@@ -211,7 +211,8 @@ def auto_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]
 
 
 #: A departed model's figures against `stays_while_reported`, counted as
-#: `ELIGIBLE`'s `still_reported` counts them: posted in the window, not declined.
+#: `ELIGIBLE`'s `still_reported` counts them: per `model_version` ROW (not per
+#: canonical id - #654 review), posted in the window, not declined.
 STAY_COUNTS = """
     SELECT mv.canonical_id, count(*), count(DISTINCT d.author_id)
       FROM board_entry be
@@ -220,12 +221,13 @@ STAY_COUNTS = """
      WHERE mv.canonical_id = ANY(%(ids)s)
        AND d.created_at >= %(posted_since)s
        AND be.ruling IS DISTINCT FROM 'declined'
-     GROUP BY 1
+     GROUP BY mv.id, mv.canonical_id
 """
 
 
-def departures(conn, *, today: date | None = None) -> list[dict]:
-    """Models the rule admitted YESTERDAY and does not admit today (#651 review).
+def departures(conn, *, days_back: int, today: date | None = None) -> list[dict]:
+    """Models the rule admitted `days_back` days ago and does not admit today
+    (#651 review).
 
     A model leaving the page also leaves the scheduler's due list, and until
     2026-11-24 nothing said so: Kimi K3.1 Pro's departure was found by a person
@@ -235,19 +237,28 @@ def departures(conn, *, today: date | None = None) -> list[dict]:
     date change and the stay rule let go, not a model that left the registry -
     `scripts/registry_diff.py` reports those. Each comes with its figures
     against the stay bar, so a reader can see why without trusting a verdict.
+    `days_back` over 1 lets a missed run lose nothing: a departure is named again
+    the next day rather than never (#654 review).
     """
+    if days_back < 1:
+        raise ValueError(f"days_back must be at least 1, not {days_back}")
     today = today or date.today()
-    before = auto_tracked(conn, today=today - timedelta(days=1))
+    before = auto_tracked(conn, today=today - timedelta(days=days_back))
     now = {m.registry for m in auto_tracked(conn, today=today)}
     gone = [m for m in before if m.registry not in now]
     if not gone:
         return []
     rule = auto_track_rule()
     ids = [m.registry for m in gone]
-    counts = {cid: (int(n), int(a)) for cid, n, a in conn.execute(STAY_COUNTS, {
-        "ids": ids,
-        "posted_since": today - timedelta(days=rule.stays.posted_within_days),
-    }).fetchall()}
+    # One canonical id may hold more than one row; the rule judges each row, so
+    # the row closest to the bar (most authors, then entries) speaks for it.
+    counts: dict[str, tuple[int, int]] = {}
+    for cid, n, a in conn.execute(STAY_COUNTS, {
+            "ids": ids,
+            "posted_since": today - timedelta(days=rule.stays.posted_within_days),
+    }).fetchall():
+        if cid not in counts or (int(a), int(n)) > counts[cid][::-1]:
+            counts[cid] = (int(n), int(a))
     released = dict(conn.execute(
         "SELECT canonical_id, release_date FROM model_version WHERE canonical_id = ANY(%s)",
         (ids,)).fetchall())

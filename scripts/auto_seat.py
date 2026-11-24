@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,9 +101,26 @@ def plan(conn) -> list[dict]:
     return records
 
 
-def report(records: list[dict], *, applied: bool, departed: list[dict] = ()) -> str:
+#: How far back departures look (#654 review). The poll's morning run names them;
+#: two days means one missed morning run loses nothing - a departure is named
+#: again the next morning rather than never, under a heading that gives the date.
+DEPARTURES_DAYS_BACK = 2
+
+
+def _n(count: int, word: str) -> str:
+    """`1 author`, `2 authors` (#654 review)."""
+    return f"{count} {word}" if count == 1 else f"{count} {word}s"
+
+
+def _entries(count: int) -> str:
+    """`1 entry`, `2 entries`."""
+    return "1 entry" if count == 1 else f"{count} entries"
+
+
+def report(records: list[dict], *, applied: bool, departed: list[dict] = (),
+           since: date | None = None) -> str:
     """The #450 comment: what the rule admits and seats, and - since 2026-11-24
-    (#651 review, rule 4) - what it LET GO since yesterday, with each model's
+    (#651 review, rule 4) - what it LET GO since `since`, with each model's
     figures against the stay bar. `departed` is `judge.tracked.departures`."""
     seated = [r for r in records if r["outcome"] in ("to seat", "seated")]
     lines = [f"**Auto-seat after this poll** ({'applied' if applied else 'dry run'}). "
@@ -122,15 +140,17 @@ def report(records: list[dict], *, applied: bool, departed: list[dict] = ()) -> 
         from judge.config import auto_track_rule
 
         stays = auto_track_rule().stays
-        lines += ["", f"**Left the Models page since yesterday** ({len(departed)}), and so "
+        when = f"since {since}" if since else "since the last report"
+        lines += ["", f"**Left the Models page {when}** ({len(departed)}), and so "
                   "the scheduler's due list: past their "
                   f"{auto_track_rule().released_within_days} days and below the stay bar "
-                  f"({stays.entries} entries from {stays.distinct_authors} authors, posted "
+                  f"({_entries(stays.entries)} from {_n(stays.distinct_authors, 'author')}, posted "
                   f"in the last {stays.posted_within_days} days). Their evidence stays; "
                   "to keep one listed, add it to `contract/tracked_models.yaml` by hand.", ""]
         for d in departed:
             lines.append(f"- `{d['canonical_id']}` ({d['name']}), released {d['released']}: "
-                         f"{d['entries']} entries from {d['authors']} authors in the window")
+                         f"{_entries(d['entries'])} from {_n(d['authors'], 'author')} "
+                         "in the window")
     # THE RE-TRIAGE STEP, WRITTEN WHERE SEATINGS ARE ANNOUNCED (#613 review,
     # point 6). Documents triage dropped as naming no model before these were
     # seated keep that verdict; nothing else prompts the step for polled models.
@@ -146,6 +166,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--apply", action="store_true", help="write the alias rows")
     ap.add_argument("--out", default=None, help="also write the markdown report here")
+    ap.add_argument("--departures", action="store_true",
+                    help="also name the models the rule let go in the last "
+                         f"{DEPARTURES_DAYS_BACK} days (the poll's morning run only)")
     args = ap.parse_args(argv)
 
     from collect.config import settings
@@ -160,7 +183,8 @@ def main(argv: list[str] | None = None) -> int:
 
     with connect() as conn:
         records = plan(conn)
-        departed = departures(conn)
+        since = date.today() - timedelta(days=DEPARTURES_DAYS_BACK)
+        departed = departures(conn, days_back=DEPARTURES_DAYS_BACK) if args.departures else []
         if args.apply:
             from collect.registry.load import _sync_alias
 
@@ -173,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
                 r["outcome"] = "seated"
             conn.commit()
 
-    text = report(records, applied=args.apply, departed=departed)
+    text = report(records, applied=args.apply, departed=departed, since=since)
     print(text)
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
