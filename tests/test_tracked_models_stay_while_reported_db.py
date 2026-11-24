@@ -131,3 +131,66 @@ def test_the_contract_clause_runs_against_the_schema(conn, monkeypatch):
     _reports(conn, "acme/reported-1", RECENT, ["a", "b", "c", "d", "e"])
     conn.commit()
     assert [m.registry for m in tracked.auto_tracked(conn, today=TODAY)] == ["acme/reported-1"]
+
+
+# ── departures: what the rule let go, said on #450 (#651 review, rule 4) ──────
+
+
+def test_a_departure_is_named_with_its_figures_against_the_bar(conn):
+    """Released 2026-10-24: admitted on 11-23 (cutoff 10-24), past its 30 days on
+    11-24. One author, so below the stay bar: it leaves, and is named."""
+    _model(conn, "acme/leaving-1", date(2026, 10, 24))
+    _reports(conn, "acme/leaving-1", RECENT, ["a", "a"])
+    _model(conn, "acme/staying-1", date(2026, 10, 24))  # same day, but still reported
+    _reports(conn, "acme/staying-1", RECENT, ["a", "b", "b"])
+    _model(conn, "acme/arrival-1", date(2026, 11, 10))  # admitted both days
+    conn.commit()
+    assert tracked.departures(conn, days_back=1, today=TODAY) == [
+        {"canonical_id": "acme/leaving-1", "name": "acme/leaving-1",
+         "released": date(2026, 10, 24), "entries": 2, "authors": 1}]
+
+
+def test_two_days_back_still_names_yesterdays_departure(conn):
+    """#654 review: a model that left YESTERDAY is named again today, so one missed
+    morning run loses nothing. Released 10-23: admitted on 11-22, gone on 11-23."""
+    _model(conn, "acme/left-yesterday-1", date(2026, 10, 23))
+    conn.commit()
+    assert tracked.departures(conn, days_back=1, today=TODAY) == []
+    assert [d["canonical_id"] for d in tracked.departures(conn, days_back=2, today=TODAY)] == [
+        "acme/left-yesterday-1"]
+
+
+def test_no_departure_reads_as_none(conn):
+    _model(conn, "acme/arrival-1", date(2026, 11, 10))
+    conn.commit()
+    assert tracked.departures(conn, days_back=2, today=TODAY) == []
+    with pytest.raises(ValueError):
+        tracked.departures(conn, days_back=0, today=TODAY)
+
+
+def test_the_450_report_names_departures_and_still_posts_without_arrivals():
+    """`registry-poll.yml` skips posting on the "nothing new" line, so a run with
+    a departure and no arrival must not print it."""
+    from scripts.auto_seat import report
+
+    gone = [{"canonical_id": "acme/leaving-1", "name": "Leaving 1",
+             "released": date(2026, 10, 24), "entries": 2, "authors": 1},
+            {"canonical_id": "acme/leaving-2", "name": "Leaving 2",
+             "released": date(2026, 10, 24), "entries": 1, "authors": 1}]
+    text = report([], applied=True, departed=gone, since=date(2026, 11, 22))
+    assert "Left the Models page since 2026-11-22** (2)" in text
+    assert "`acme/leaving-1` (Leaving 1), released 2026-10-24: 2 entries from 1 author " in text
+    assert "`acme/leaving-2` (Leaving 2), released 2026-10-24: 1 entry from 1 author " in text
+    assert "3 entries from 2 authors, posted" in text, "the bar, pluralised"
+    assert "nothing new" not in text
+    assert "nothing new" in report([], applied=True)
+
+
+def test_departures_are_asked_for_on_the_morning_run_only():
+    """#654 review: the poll runs twice a day, so only one run may name departures."""
+    from pathlib import Path
+
+    wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows"
+          / "registry-poll.yml").read_text(encoding="utf-8")
+    step = wf[wf.index("- name: Seat aliases"):wf.index("- name: Post the promotion report")]
+    assert "github.event.schedule == '23 5 * * *'" in step and "--departures" in step
