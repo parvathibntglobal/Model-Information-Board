@@ -634,9 +634,6 @@ def tracked_models() -> tuple[TrackedModel, ...]:
     )
 
 
-#: Keys a parent map may never carry. A parent that could express a voice count
-#: would eventually publish one, and a count of voices under a heading nobody
-#: wrote is a consensus about a category no writer named (#410, ruling 1).
 @dataclass(frozen=True)
 class StaysWhileReported:
     """`auto_track.stays_while_reported`: when an admitted model STAYS after
@@ -838,7 +835,10 @@ def tracked_agents() -> tuple[TrackedAgent, ...]:
 #: own ceiling would not have one.
 MAX_PARENTS_PER_SECTION = 10
 
-_PARENT_FORBIDDEN_KEYS = ("voices", "n_eff", "weight", "score", "consensus")
+#: Keys a parent map may never carry. A parent that could express a voice count
+#: would eventually publish one, and a count of voices under a heading nobody
+#: wrote is a consensus about a category no writer named (#410, ruling 1).
+_PARENT_FORBIDDEN_KEYS =("voices", "n_eff", "weight", "score", "consensus")
 
 
 @lru_cache(maxsize=1)

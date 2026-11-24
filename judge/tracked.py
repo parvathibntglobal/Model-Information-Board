@@ -37,7 +37,9 @@ log = logging.getLogger(__name__)
 # entries from at least `distinct_authors` authors, counting only documents
 # POSTED (`document.created_at`, when the person wrote it, not when we fetched
 # it) within `posted_within_days`. A document with no author adds no author and
-# one with no post date is not recent (rule 6). Until 2026-11-24 there was only
+# one with no post date is not recent (rule 6). An entry a person DECLINED
+# (`ruling = 'declined'`) counts for nothing: a ruling only removes a row that
+# should not stand (#651 review). Until 2026-11-24 there was only
 # the first, and Kimi K3.1 Pro left the page - and the scheduler's due list -
 # on 2026-11-23 with 870 entries from documents posted in the previous 30 days.
 #
@@ -53,6 +55,7 @@ ELIGIBLE = """
           JOIN document d ON d.id = be.document_id
           JOIN model_version r ON r.id = be.model_version_id
          WHERE d.created_at >= %(posted_since)s
+           AND be.ruling IS DISTINCT FROM 'declined'
            AND r.release_date >= %(stays_released_since)s
            AND r.release_date < %(arrived_since)s
            AND r.provider = ANY(%(providers)s)

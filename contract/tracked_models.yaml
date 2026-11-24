@@ -221,6 +221,13 @@ version: 1
 #                          not entries alone, so one prolific poster cannot hold
 #                          a model on the page. A document with no author adds no
 #                          author; one with no post date is not recent (rule 6).
+#                          An entry a person DECLINED (`ruling = 'declined'`)
+#                          counts for nothing (#651 review).
+#
+# WHICH ENTRIES COUNT - A DECISION, NOT AN ACCIDENT (#651 review, rule 7). Every
+# board entry filed under the model, INCLUDING `model_scope = 'mentioned'`: a
+# model named inside a thread fetched for another model. People are still
+# talking about it there, so it counts towards staying.
 #
 # THE NUMBERS ARE THE SEATING BAR'S (below): 3 entries from 2 authors is what a
 # held model needs to be put forward for seating, so the same bar decides
@@ -244,10 +251,16 @@ version: 1
 #   openai/gpt-6-sol-pro                  0 /   0    goes
 #
 # The split is wide - 21 authors, then 3, then 1 - so the exact bar moves at
-# most one model on this population. A model that stays is fetched daily, and
-# that fetch finds more of its posts; the rule still measures real posting
-# rather than feeding itself, because only documents POSTED in the window
-# count, and a fetch cannot post one.
+# most one model on this population.
+#
+# ⚠ A RULE FOR STAYING, NOT FOR COMING BACK (#651 review). Only documents POSTED
+# in the window count, and a fetch cannot post one - but a fetch is what FINDS
+# them. A model on the page is fetched daily, so its new posts are found; a
+# model that has left is not fetched, so its count can only fall. Kimi K3.1 Pro
+# and the other seven return in 2026-11 only because their recent posts were
+# harvested before they left. Once a model leaves under this rule, it stays
+# gone unless someone lists it by hand or its posts arrive through other
+# models' threads.
 auto_track:
   enabled: true
   providers: from_tracked

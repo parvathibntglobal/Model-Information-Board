@@ -58,9 +58,10 @@ def _model(conn, cid, released):
         ("mv_" + cid, cid, cid, released))
 
 
-def _reports(conn, cid, posted, authors):
-    """One document and one board entry per item of `authors` (None = no author)."""
-    for author in authors:
+def _reports(conn, cid, posted, authors, *, declined=()):
+    """One document and one board entry per item of `authors` (None = no author).
+    Entries at the positions in `declined` carry a person's `declined` ruling."""
+    for i, author in enumerate(authors):
         n = conn.execute("SELECT count(*) FROM document").fetchone()[0]
         if author is not None:
             conn.execute("INSERT INTO author (id, source, external_id) VALUES (%s, 'reddit', %s) "
@@ -72,9 +73,12 @@ def _reports(conn, cid, posted, authors):
             (doc, doc, f"https://example.test/{doc}", f"r{doc}", f"h{doc}", posted, author))
         conn.execute(
             "INSERT INTO board_entry (id, section, slug, name, definition, model_version_id, "
-            "document_id, quote, quote_verified, polarity, proposer_model, pipeline_version) "
+            "document_id, quote, quote_verified, polarity, proposer_model, pipeline_version, "
+            "ruling, reviewed_at) "
             "VALUES (%s, 'capability', 'coding', 'Coding', 'Def.', %s, %s, %s, true, "
-            "'positive', 'm', 'v1')", (f"be{n}", "mv_" + cid, doc, f"words from {doc}"))
+            "'positive', 'm', 'v1', %s, %s)",
+            (f"be{n}", "mv_" + cid, doc, f"words from {doc}",
+             *(("declined", "2026-11-20T00:00:00Z") if i in declined else (None, None))))
 
 
 def test_an_admitted_model_stays_only_while_still_reported(conn):
@@ -102,6 +106,17 @@ def test_the_bar_is_inclusive_and_both_halves_are_needed(conn):
     _reports(conn, "acme/two-entries-1", RECENT, ["a", "b"])  # 2 authors, 2 entries: goes
     conn.commit()
     assert [m.registry for m in tracked.auto_tracked(conn, today=TODAY)] == ["acme/at-bar-1"]
+
+
+def test_a_declined_entry_holds_no_model_on_the_page(conn):
+    """#651 review: a ruling only removes a row that should not stand, so an entry a
+    person declined is not a report that keeps a model listed."""
+    _model(conn, "acme/declined-1", date(2026, 10, 1))
+    _reports(conn, "acme/declined-1", RECENT, ["a", "b", "b"], declined={0})  # 2 left, 1 author
+    _model(conn, "acme/kept-1", date(2026, 10, 1))
+    _reports(conn, "acme/kept-1", RECENT, ["a", "b", "b", "c"], declined={0})  # 3 left, 2 authors
+    conn.commit()
+    assert [m.registry for m in tracked.auto_tracked(conn, today=TODAY)] == ["acme/kept-1"]
 
 
 def test_the_contract_clause_runs_against_the_schema(conn, monkeypatch):
