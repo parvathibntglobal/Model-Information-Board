@@ -10,7 +10,7 @@ deleted - a dropped item stays, with its stage and reason.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from collect.industry_ai.pipeline import Result
 from collect.industry_ai.rules import Item
@@ -112,11 +112,17 @@ def upsert_items(conn, items: list[Item], *, run_id: str) -> int:
 
 
 def load_items(conn) -> list[Item]:
-    """Every stored item, for labelling over the whole collection."""
+    """Every stored item whose text is still held, for labelling over the whole
+    collection.
+
+    A row whose text RETENTION cleared (`text_cleared_at`) is left out: its empty
+    text would be re-judged ("no AI term") and the drop counts would shift, so it
+    keeps the labels it had. Its counts stay on the page, which reads `iai_item`."""
     out = []
     for r in conn.execute(
         "SELECT id, platform, external_id, url, title, body, created_at, author_id, lang, "
-        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at FROM iai_item"
+        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at FROM iai_item "
+        "WHERE text_cleared_at IS NULL"
     ).fetchall():
         out.append(
             Item(
@@ -139,6 +145,28 @@ def load_items(conn) -> list[Item]:
             )
         )
     return out
+
+
+def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
+    """Empty the title and body of every row `retention` says is due; return how many.
+
+    Due: first stored more than `clear_text_after_days` ago, text not cleared yet,
+    and either dropped (when `retention.dropped`) or kept under one of
+    `retention.kept_domains`. The ROW stays - id, platform, dates, verdict, reason,
+    labels, flags - because the page's counts are counted from it. Run after
+    labelling, so a row is cleared with the labels its text earned.
+    """
+    now = now or datetime.now(UTC)
+    cutoff = now - timedelta(days=int(retention["clear_text_after_days"]))
+    cur = conn.execute(
+        "UPDATE iai_item SET title = '', body = '', text_cleared_at = %(now)s "
+        "WHERE text_cleared_at IS NULL AND first_seen_at < %(cutoff)s "
+        "AND ((%(dropped)s AND verdict = 'dropped') "
+        "     OR (verdict = 'kept' AND domains && %(kept)s::text[]))",
+        {"now": now, "cutoff": cutoff, "dropped": bool(retention["dropped"]),
+         "kept": list(retention["kept_domains"])},
+    )
+    return cur.rowcount
 
 
 def write_labels(conn, results: dict[str, Result], *, pipeline_version: str) -> int:

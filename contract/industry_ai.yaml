@@ -244,6 +244,28 @@ stage_patterns:
 # Any other key is refused, not ignored: an unimplemented block would look like
 # it is working.
 
+# ── TEXT RETENTION (anooj, 2026-11-24) ───────────────────────────────────────
+# A ROW IS NEVER DELETED; ITS TEXT IS. Every harvested post is stored, dropped
+# ones too, because the page's "Filtered out" counts are counted from them (rule 4)
+# and the filters are not measured yet (rule 8): deleting on labelling would make a
+# wrong drop unrecoverable. But two kinds of text should not sit in the shared
+# database for good:
+#   dropped       spam, sign-up ads, hiring, sponsored - nobody needs the words
+#                 once the first-run review and the §7 hand-check have read them;
+#   kept_domains  domains whose posts are people's own lives - Personal: debts,
+#                 diet, parenting, relationships.
+# So after `clear_text_after_days`, counted from when this lane FIRST STORED the
+# post (`first_seen_at`), its title and body are emptied and `text_cleared_at` set.
+# The row, its labels and its counts stay. A cleared row is NOT re-labelled: empty
+# text would be re-judged ("no AI term") and the drop counts would shift, so it
+# keeps the labels it had (store.load_items leaves it out). 30 days covers the
+# first-run review and the hand-check. A post in a kept domain AND another is
+# cleared: it is still someone's own life.
+retention:
+  clear_text_after_days: 30
+  dropped: true
+  kept_domains: [personal]
+
 # ── THE OBSERVER: watch lists (anooj, 2026-11-20) ─────────────────────────────
 # The Industry AI agent's twin. The queries under `domains:` find posts BY KEYWORD;
 # these lists find them BY WHO OR WHERE - the newest posts of chosen communities,

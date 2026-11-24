@@ -366,8 +366,29 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
     [...]}}}`) and ai_terms.
   - Dedupe: canonical_of, share_count, canonical_url.
   - pipeline_version.
+  - text_cleared_at: when text retention emptied title and body (below).
 - **`iai_run`:** one row per run (harvest or relabel), holding status, requests per
   platform, RapidAPI quota, per-query yields and the counts.
+
+**Text retention** (`retention:` in the contract; anooj, 2026-11-24; migration
+`20261124T1200_iai_text_retention.sql`). **A row is never deleted; its text is.**
+- **Why rows stay:** the page's "Filtered out" counts are counted from dropped rows
+  (rule 4), and the filters are not measured yet (rule 8). Deleting on labelling
+  would make a wrong drop unrecoverable.
+- **Whose text is cleared,** `clear_text_after_days` (30) after the post was first
+  stored:
+  - every **dropped** row: spam, sign-up ads, hiring, sponsored, and dedupe copies;
+  - **kept** rows in a `kept_domains` domain (Personal: people's own debts, diet,
+    parenting, relationships), even when also filed under another domain.
+- **What clearing does:** each run, after labelling, `store.clear_text` empties title
+  and body and stamps `text_cleared_at`. The row, its verdict, labels, flags and
+  counts stay, and the page is unchanged.
+- **A cleared row is not re-labelled.** Every run re-labels the collection, and empty
+  text would be re-judged ("no AI term"), shifting the drop counts. So
+  `store.load_items` leaves cleared rows out, and they keep the labels their text
+  earned. The cost: a rule changed later does not reach them, and a new copy of a
+  cleared post is not folded into it.
+- **30 days** covers the first-run review and the §7 hand-check, which read samples.
 
 ---
 

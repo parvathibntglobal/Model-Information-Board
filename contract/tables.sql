@@ -2865,6 +2865,9 @@ CREATE TABLE IF NOT EXISTS iai_item (
   canonical_url    text,
   pipeline_version text NOT NULL,
   labelled_at      timestamptz NOT NULL DEFAULT now(),
+  -- When text retention emptied title and body (contract/industry_ai.yaml
+  -- `retention:`); NULL while the text is held. A cleared row is not re-labelled.
+  text_cleared_at  timestamptz,
   CONSTRAINT iai_item_platform_ck
     CHECK (platform IN ('reddit', 'x', 'github', 'hackernews', 'devto', 'bluesky', 'feeds')),
   CONSTRAINT iai_item_verdict_ck CHECK (verdict IN ('kept', 'dropped')),

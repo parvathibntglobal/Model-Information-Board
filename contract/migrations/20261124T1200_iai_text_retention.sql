@@ -1,0 +1,31 @@
+-- TEXT RETENTION FOR THE INDUSTRY AI AGENT (anooj, 2026-11-24).
+--
+-- A ROW IS NEVER DELETED; ITS TEXT IS. `iai_item` keeps every harvested post,
+-- dropped ones too: the page's "Filtered out" counts are counted from them
+-- (rule 4), and the filters are not measured yet (rule 8), so deleting on
+-- labelling would make a wrong drop unrecoverable. But the TEXT of two kinds of
+-- row should not sit in the shared database for good: dropped posts (spam,
+-- sign-up ads, hiring, sponsored), and kept posts in domains about people's own
+-- lives (Personal). contract/industry_ai.yaml `retention:` says which and when;
+-- collect/industry_ai/store.py `clear_text` empties title and body and stamps
+-- this column.
+--
+-- WHY A COLUMN AND NOT AN EMPTY BODY. Every run re-labels the whole collection
+-- (store.load_items -> pipeline.evaluate). A cleared row re-judged on empty text
+-- would turn from "spam" into "no AI term" and the drop counts would shift for
+-- no reason. `load_items` leaves stamped rows out, so they keep the labels their
+-- text earned. An empty body alone cannot say whether the text was cleared or
+-- the post never had one (a link-only post).
+--
+-- No DEFAULT and no backfill: every existing row gets NULL, "text still held",
+-- which is true of all of them.
+--
+-- WHO RUNS THIS MIGRATION: the person who merges the PR that adds it, on the
+-- shared database, straight after merge, with `db check` before and after, and
+-- announces it on that PR the same day. Until it has run, a pulled
+-- scripts/run_industry_ai.py fails on the missing column rather than clearing
+-- anything, and the Industry AI harvest is switched off (INDUSTRY_AI_ENABLED).
+--
+-- No transaction control here: the runner owns the transaction.
+
+ALTER TABLE iai_item ADD COLUMN text_cleared_at timestamptz;

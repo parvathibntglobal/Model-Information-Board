@@ -2194,6 +2194,11 @@ columns:
       state: read_not_by_query
       why: >-
         Written by store.write_labels; read by judge/industry_ai/view.py _count_by(conn, 'stage_guess'), whose column name is an argument the audit cannot see.
+    text_cleared_at:
+      reviewed: true
+      state: read
+      why: >-
+        When text retention (contract/industry_ai.yaml `retention:`, anooj 2026-11-24) emptied this row's title and body; NULL while the text is held. Written by collect/industry_ai/store.py clear_text; READ by store.load_items (`WHERE text_cleared_at IS NULL`), so a cleared row is never re-labelled on empty text and keeps the labels its text earned.
     title:
       reviewed: true
       state: read
