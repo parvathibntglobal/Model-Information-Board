@@ -4116,6 +4116,46 @@ def industry_ai_page() -> dict:
         return industry_ai_view(conn)
 
 
+@app.get("/industry-ai/{key}")
+def industry_ai_domain_page(
+    key: str,
+    scope: str = "kept",
+    sort: str = "newest",
+    offset: int = 0,
+    limit: int = 25,
+    type: str | None = None,  # noqa: A002 - the page's own filter name
+    kind: str | None = None,
+    platform: str | None = None,
+    stage: str | None = None,
+    reason: str | None = None,
+    flag: str | None = None,
+    group: str | None = None,
+    term: str | None = None,
+    ai_term: str | None = None,
+    query: str | None = None,
+    month: str | None = None,
+    q: str | None = None,
+) -> dict:
+    """One domain of the "AI in industries" page, opened from its card: the same
+    counts, every breakdown the stored labels allow, and a page of its posts - an
+    EXCERPT of each with its link, author id, date, engagement and labels. Unlike
+    the summary above, this route DOES carry post text, so it stays signed-in only
+    (not a public read: judge/gate.py). See judge/industry_ai/view.py."""
+    from judge.industry_ai.view import BadFilter, DomainNotFound, industry_ai_domain_view
+
+    filters = {"type": type, "kind": kind, "platform": platform, "stage": stage,
+               "reason": reason, "flag": flag, "group": group, "term": term,
+               "ai_term": ai_term, "query": query, "month": month, "q": q}
+    try:
+        with _conn() as conn:
+            return industry_ai_domain_view(conn, key, scope=scope, filters=filters,
+                                           sort=sort, offset=offset, limit=limit)
+    except DomainNotFound as exc:
+        raise HTTPException(status_code=404, detail=f"no domain '{exc}'") from exc
+    except BadFilter as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/news/{item_id}")
 def news_story(item_id: str) -> dict:
     """One story's page: what its source gave (title, summary, picture), the

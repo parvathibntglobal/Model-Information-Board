@@ -43,7 +43,7 @@ driven by **keywords per domain per platform** in `contract/industry_ai.yaml`.
 
 A signed-in **AI in industries** page (`/ai-in-industries`) shows how much data has
 been collected for each domain, by content type. It shows **counts only, never post
-text.**
+text.** Each card opens that domain's own page (§4), which lists the posts as excerpts.
 
 **Code only:** no language model, no LLM-named subcategories, no polarity. An LLM is
 an optional later step (§9), added only if the sample check (§7) shows the code
@@ -358,6 +358,29 @@ In order. The first that matches drops the item:
   checks this).
 - **Empty states:** "Nothing collected yet" when there is no data, and a clear message
   if the migration has not run.
+
+### One domain's page (2026-11-24, Parvathi)
+
+- **Route:** `/ai-in-industries/<key>`, signed-in (`web/src/routes/IndustryAIDomain.jsx`),
+  opened from the domain's card. `general` and `unconfirmed` open the two buckets.
+- **API:** `GET /industry-ai/{key}` (`industry_ai_domain_view`), live, signed in.
+  Unlike the summary, **it carries post text**: an excerpt of each post (the first
+  600 characters), its link, author id, dates and engagement. Never the full text.
+- **Three populations, never added together:** kept by the domain's own queries
+  (the card's "kept"), kept from the watch lists and filed here by their terms, and
+  filtered out (found by the domain's queries), each with its count.
+- **Breakdowns, each one a filter:** content type, what the row is, platform,
+  use-case stage, drop reason, group, the industry words and AI terms that matched,
+  flags, month posted, and the search or watch list that found it. Plus a text search
+  and four orders (newest, oldest, most engaged, newest found). The filters live in
+  the address, so a filtered view can be shared.
+- **What a row is** is not stored; it is read from each platform's own id and link:
+  Reddit `t3_` post / `t1_` comment; GitHub issue, pull request or discussion by its
+  link; a Hacker News item with a title is a story, without one a comment; dev.to and
+  feeds are articles. **X and Bluesky replies are not told apart from posts**, since
+  nothing stored says which is which. On 2026-11-24, of the 7,693 stored items, all
+  1,341 Reddit items were posts, all 792 GitHub items issues, and 71 of 540 Hacker News
+  items comments.
 
 ---
 

@@ -2046,9 +2046,9 @@ columns:
   iai_item:
     ai_terms:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        The AI terms an item named, written by store.write_labels for the team's sample check (docs/industry-ai-agent.md §7). Intended reader: an Admin drill-down; none yet.
+        The AI terms an item named, written by store.write_labels. READ by judge/industry_ai/view.py industry_ai_domain_view (2026-11-24): shown on each post of a domain's page (/ai-in-industries/<key>, signed in), and counted there as the "AI terms that matched" breakdown and filter.
     author_id:
       reviewed: true
       state: read
@@ -2061,14 +2061,14 @@ columns:
         Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
     canonical_of:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        The item this one duplicates (stage 3 dedupe), written by store.write_labels. Intended reader: an Admin drill-down of duplicates for the team's tuning; none yet.
+        The item this one duplicates (stage 3 dedupe), written by store.write_labels. READ by judge/industry_ai/view.py industry_ai_domain_view (2026-11-24): shown on each post of a domain's page (/ai-in-industries/<key>, signed in), as "a copy of".
     canonical_url:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        The normalised article link used for cross-platform dedupe, written by store.write_labels. Intended reader: the same Admin drill-down; none yet.
+        The normalised article link used for cross-platform dedupe, written by store.write_labels. READ by judge/industry_ai/view.py industry_ai_domain_view (2026-11-24): shown on each post of a domain's page (/ai-in-industries/<key>, signed in), when it differs from the post's own link.
     content_type:
       reviewed: true
       state: read_not_by_query
@@ -2161,14 +2161,14 @@ columns:
         Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
     matched_terms:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        Which terms matched per domain and group, written by store.write_labels (#644 review, point 2): what a workflow keyword's count is counted from. Intended reader: the per-keyword counts the team's umbrella PR adds; none yet.
+        Which terms matched per domain and group, written by store.write_labels (#644 review, point 2). READ by judge/industry_ai/view.py industry_ai_domain_view (2026-11-24): shown on each post of a domain's page (/ai-in-industries/<key>, signed in): the domain's matched words on each post, and the "industry words that matched" breakdown and filter.
     matched_pattern:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        The contract pattern that decided the content type, written by store.write_labels for the team's sample check (docs/industry-ai-agent.md §7). Intended reader: an Admin drill-down; none yet.
+        The contract pattern that decided the content type, written by store.write_labels. READ by judge/industry_ai/view.py industry_ai_domain_view (2026-11-24): shown on each post of a domain's page (/ai-in-industries/<key>, signed in), beside the content type.
     pipeline_version:
       reviewed: true
       state: read

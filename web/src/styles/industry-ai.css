@@ -1,4 +1,4 @@
-/* AI in industries (routes/IndustryAI.jsx): counts per domain, never text. */
+/* AI in industries: the summary (routes/IndustryAI.jsx, counts only) and one domain's page (routes/IndustryAIDomain.jsx, which lists posts). */
 
 .iai-h1{font-size:var(--fs-display);margin:0}
 .iai-lede{max-width:72ch;margin:0}
@@ -33,3 +33,39 @@
 .iai-trend{display:flex;align-items:flex-end;gap:2px;height:48px}
 .iai-trend-col{flex:1;height:100%;display:flex;align-items:flex-end}
 .iai-trend-bar{display:block;width:100%;background:var(--accent);border-radius:var(--r-sm) var(--r-sm) 0 0}
+
+/* One domain's page (routes/IndustryAIDomain.jsx): breakdowns as filters, then posts. */
+.iai-open{color:inherit;text-decoration:none}
+.iai-open:hover{color:var(--accent)}
+.iai-open-btn{align-self:flex-start;margin-top:var(--s2)}
+.iai-back{font-size:var(--fs-sm);text-decoration:none}
+.iai-tabs,.iai-active{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2)}
+.iai-tab-on{border-color:var(--accent);color:var(--text)}
+.iai-pick{background:none;border:0;padding:0;font:inherit;text-align:left;cursor:pointer;color:var(--text-2)}
+.iai-pick:hover{color:var(--accent)}
+.iai-picked .iai-bar-label,.iai-picked.iai-trend-col .iai-trend-bar{color:var(--accent);outline:1px solid var(--accent)}
+.iai-picked .iai-bar-label{outline:0;font-weight:600}
+.iai-wide{grid-column:1/-1}
+.iai-trend-tall{height:96px}
+.iai-listbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3)}
+.iai-listbar h2{margin:0}
+.iai-search input{min-width:16rem;padding:var(--s1) var(--s2);border:1px solid var(--border);
+  border-radius:var(--r-control);background:var(--surface);color:var(--text);font:inherit}
+.iai-listbar select{padding:var(--s1);border:1px solid var(--border);border-radius:var(--r-control);
+  background:var(--surface);color:var(--text);font:inherit}
+.iai-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s3)}
+.iai-item{padding:var(--card-pad);display:flex;flex-direction:column;gap:var(--s2)}
+.iai-item-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3);font-size:var(--fs-sm)}
+.iai-item-title{font-size:var(--fs-body);margin:0}
+.iai-item-text{margin:0;white-space:pre-line;overflow-wrap:anywhere;max-width:90ch}
+.iai-tags{display:flex;flex-wrap:wrap;gap:var(--s1)}
+.iai-tag{font-size:var(--fs-xs);padding:2px var(--s2);border:1px solid var(--border-soft);
+  border-radius:var(--r-pill);color:var(--text-2)}
+.iai-tag-term{border-color:var(--accent);color:var(--text)}
+.iai-tag-ai{border-color:var(--info);color:var(--info)}
+.iai-tag-flag{border-style:dashed}
+.iai-tag-drop{border-color:var(--fail);color:var(--fail)}
+.iai-item-links{display:flex;gap:var(--s4);font-size:var(--fs-sm)}
+.iai-pager{display:flex;gap:var(--s2)}
+.iai-note code{font-size:var(--fs-xs)}
+.iai-wide .iai-bars li{grid-template-columns:minmax(0,1fr) 14rem 3.5rem}

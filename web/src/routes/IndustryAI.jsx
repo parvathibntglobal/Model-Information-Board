@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { industryAi } from '../api'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import { fmtDayUtc } from '../dates'
+import { Bars, PLATFORM_LABEL, REASON_LABEL, STAGE_LABEL, TYPE_LABEL, n } from '../industry-ai/parts'
 import '../styles/industry-ai.css'
 
 /**
@@ -13,53 +15,13 @@ import '../styles/industry-ai.css'
  * mostly roles (2026-11-24).
  *
  * COUNTS ONLY. The API sends no post text, link or author (judge/industry_ai/
- * view.py), so nothing here can show one. Every number is a count of stored
+ * view.py), so nothing here can show one. Each card opens its domain's own page
+ * (routes/IndustryAIDomain.jsx, signed in), which does list the posts. Every number is a count of stored
  * items, beside its denominator: what the domain's queries found, and what the
  * rules filtered out and why - so a small "kept" never reads as "nothing out
  * there" (rules 4 and 7). Items no domain's terms confirmed are counted apart,
  * never added to a domain (rule 6).
  */
-
-const TYPE_LABEL = {
-  use_case: 'Use cases', how_to: 'How-to & tips', tool_or_product: 'Tools & products',
-  research: 'Research', news: 'News', discussion: 'Discussion',
-}
-const STAGE_LABEL = { deployed: 'deployed', pilot: 'pilot', first_hand: 'first-hand' }
-const PLATFORM_LABEL = {
-  reddit: 'Reddit', x: 'X', github: 'GitHub', hackernews: 'Hacker News', devto: 'dev.to',
-  bluesky: 'Bluesky', feeds: 'Blogs & feeds',
-}
-const REASON_LABEL = {
-  no_ai_term: 'No AI term', no_domain_term: 'No industry term',
-  // Two windows, named apart (#650 review). No day counts here: they live in
-  // contract/industry_ai.yaml (run.window_days, watch.lookback_days), so a number
-  // written in this file would go stale the day the contract changes (rule 11).
-  outside_window: 'Older than the run window',
-  outside_watch_window: 'Watched post older than the watch window (from first sight)',
-  shared_link: 'Same article shared elsewhere',
-  repeat_post: 'Same author, same post again', near_duplicate: 'Near-duplicate text',
-  too_short: 'Too short', bot: 'Bot account', non_english: 'Not English', spam: 'Spam or scam',
-  promo: 'Sponsored or affiliate', hiring: 'Hiring or job ad', signup_ad: 'Sign-up ad',
-}
-
-const n = (v) => (v ?? 0).toLocaleString('en-GB')
-
-function Bars({ counts, labels, order }) {
-  const keys = (order || Object.keys(counts)).filter((k) => counts[k])
-  if (!keys.length) return <p className="dim iai-none">None yet.</p>
-  const max = Math.max(...keys.map((k) => counts[k]))
-  return (
-    <ul className="iai-bars">
-      {keys.map((k) => (
-        <li key={k}>
-          <span className="iai-bar-label">{labels?.[k] || k}</span>
-          <span className="iai-bar-track"><span className="iai-bar" style={{ width: `${(100 * counts[k]) / max}%` }} /></span>
-          <span className="iai-bar-n tnum">{n(counts[k])}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
 
 function Months({ byMonth }) {
   const months = Object.keys(byMonth || {})
@@ -81,7 +43,8 @@ function DomainCard({ d, types }) {
   return (
     <section className="card iai-card">
       <header className="iai-card-head">
-        <h2>{d.name}{d.kind === 'function' && <span className="dim iai-kind"> · function</span>}</h2>
+        <h2><Link className="iai-open" to={`/ai-in-industries/${encodeURIComponent(d.key)}`}>{d.name}</Link>
+          {d.kind === 'function' && <span className="dim iai-kind"> · function</span>}</h2>
         {d.definition && <p className="dim iai-def">{d.definition}</p>}
       </header>
       <div className="iai-figures">
@@ -116,6 +79,9 @@ function DomainCard({ d, types }) {
         </>
       )}
       {d.undated > 0 && <p className="dim iai-note">{n(d.undated)} kept item(s) carry no posting date.</p>}
+      <Link className="btn btn-ghost iai-open-btn" to={`/ai-in-industries/${encodeURIComponent(d.key)}`}>
+        See the posts and every breakdown →
+      </Link>
     </section>
   )
 }
@@ -182,7 +148,7 @@ export default function IndustryAI() {
 
           {data.unconfirmed?.kept > 0 && (
             <section className="card iai-card">
-              <h2>Domain unconfirmed</h2>
+              <h2><Link className="iai-open" to="/ai-in-industries/unconfirmed">Domain unconfirmed</Link></h2>
               <p className="dim iai-def">
                 Kept items whose finding domain&apos;s own terms did not confirm it. Counted here and in no
                 domain above.
@@ -194,7 +160,7 @@ export default function IndustryAI() {
 
           {data.general?.kept > 0 && (
             <section className="card iai-card">
-              <h2>General AI</h2>
+              <h2><Link className="iai-open" to="/ai-in-industries/general">General AI</Link></h2>
               <p className="dim iai-def">
                 Kept items from the watched communities, accounts and lists that name no industry or role:
                 general AI news and opinion. Counted here and in no domain above, and apart from
