@@ -858,7 +858,7 @@ def _roundups(
                             rule["providers_shown"],
                         ),
                         # EVERY MODEL OF THE WEEK, NAMED (2026-11-24, Parvathi): the
-                        # round-up is the week's record, so its "Among them:" line
+                        # round-up is the week's record, so its "Launched:" line
                         # lists them all rather than `names_shown` and "N more".
                         # Grouped launch updates keep `names_shown`.
                         "names": names(

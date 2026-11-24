@@ -132,3 +132,5 @@
 .au-tabs{margin:var(--s3) 0 0}
 /* The section bar reads as part of the open tab: no second heavy rule (2026-11-24). */
 .au-tabs ~ .au-bar{margin-top:calc(var(--s2) * -1)}
+/* A tab's panel keeps the page's spacing between its parts (#661 review). */
+.au-panel{display:flex;flex-direction:column;gap:var(--s5)}

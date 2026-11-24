@@ -4093,9 +4093,12 @@ def news_page(days: int | None = None, request: Request = None) -> dict:
     first, each with a code-written summary and the feed's own picture when it
     has one, and every source's last read (ok, refused, failed). Never evidence.
     Nothing is filtered server-side; the LLM badge travels on each item.
-    A public read since 2026-11-24 (judge/gate.py). For an anonymous caller each
-    last read loses its `detail` - the fetcher's error text, which is for the
-    team - and keeps its outcome, HTTP status and time. See judge/news.py."""
+    A public read since 2026-11-24 (judge/gate.py). For an anonymous caller,
+    what is for the team is removed: each last read's `detail` (the fetcher's
+    error text), each source's `terms` (our notes on the publisher's terms) and
+    `population.sponsor_like_unlisted` (labels to consider for the contract).
+    The outcome, HTTP status and time of each read stay (#661 review). See
+    judge/news.py."""
     from judge import news
 
     try:
@@ -4105,8 +4108,10 @@ def news_page(days: int | None = None, request: Request = None) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if request is not None and getattr(request.state, "anonymous", False):
         for s in out["sources"]:
+            s["terms"] = None
             if s.get("last_read"):
                 s["last_read"]["detail"] = None
+        out["population"]["sponsor_like_unlisted"] = {}
     return out
 
 

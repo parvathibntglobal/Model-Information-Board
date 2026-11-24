@@ -239,6 +239,17 @@ export default function AiUpdates() {
   const tab = params.get('tab') === 'models' || (params.get('tab') !== 'news' && params.has('section'))
     ? 'models' : 'news'
   const pickTab = (key) => setParams(key === 'models' ? { tab: 'models' } : {}, { replace: true })
+  // TABS THAT BEHAVE AS TABS (#661 review): the open one is the only one in the
+  // tab order, left/right/Home/End move between them, each controls its panel.
+  const onTabKey = (e) => {
+    const i = TABS.findIndex((t) => t.key === tab)
+    const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1 }[e.key]
+    if (to === undefined) return
+    e.preventDefault()
+    const next = TABS[(to + TABS.length) % TABS.length]
+    pickTab(next.key)
+    document.getElementById(`au-tab-${next.key}`)?.focus()
+  }
   const section = SECTIONS.find((s) => s.key === params.get('section')) || SECTIONS[0]
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
@@ -299,7 +310,9 @@ export default function AiUpdates() {
         </div>
         <div className="tabstrip au-tabs" role="tablist" aria-label="AI updates">
           {TABS.map((t) => (
-            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => pickTab(t.key)}>
+            <button key={t.key} id={`au-tab-${t.key}`} type="button" role="tab" aria-selected={tab === t.key}
+                    aria-controls={`au-panel-${t.key}`} tabIndex={tab === t.key ? 0 : -1}
+                    onClick={() => pickTab(t.key)} onKeyDown={onTabKey}>
               {t.label}
             </button>
           ))}
@@ -334,8 +347,12 @@ export default function AiUpdates() {
         )}
       </header>
 
-      {tab === 'news' && <News embedded />}
-      {tab === 'models' && (<>
+      {tab === 'news' && (
+        <div className="au-panel" role="tabpanel" id="au-panel-news" aria-labelledby="au-tab-news">
+          <News embedded />
+        </div>
+      )}
+      {tab === 'models' && (<div className="au-panel" role="tabpanel" id="au-panel-models" aria-labelledby="au-tab-models">
 
       {error && <p className="au-quiet" role="alert">The updates could not be loaded just now. Please try again in a minute.</p>}
       {!data && !error && <div className="skel au-skel" />}
@@ -392,7 +409,7 @@ export default function AiUpdates() {
           </footer>
         </>
       )}
-      </>)}
+      </div>)}
     </div>
   )
 }

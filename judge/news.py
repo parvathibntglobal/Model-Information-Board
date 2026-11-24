@@ -396,8 +396,10 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
             # texts the brief was cut from (the page says so under "In brief").
             "summary_source": row[14],
         },
+        # No `terms`: our notes on the publisher's terms are for the team, this
+        # page is public and reads none (#661 review).
         "source": {"key": row[1], "label": source.get("label", row[1]),
-                   "group": source.get("group"), "terms": source.get("terms")},
+                   "group": source.get("group")},
         # Every name came from our registry or OpenRouter's catalogue by exact
         # whole-name match (`mentioned_models`); none is inferred.
         "models": models,

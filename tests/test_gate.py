@@ -253,18 +253,24 @@ def test_the_public_list_names_only_reads_that_were_checked():
 
 def test_an_anonymous_news_read_carries_no_fetch_error_text(monkeypatch):
     """/news is public (2026-11-24). A source's last read keeps its outcome,
-    status and time for everyone; the fetcher's error text is for the team."""
+    status and time for everyone; the fetcher's error text, our notes on each
+    publisher's terms and the labels to consider are for the team."""
     from contextlib import contextmanager
 
     import judge.app as app_mod
     from judge import news
 
     def view(conn, days=None):
-        return {"items": [], "sources": [
-            {"key": "a", "last_read": {"outcome": "failed", "http_status": 503,
-                                       "at": "2026-11-24T00:00:00+00:00",
-                                       "detail": "boom at host"}},
-            {"key": "b", "last_read": None}]}
+        failed = {"outcome": "failed", "http_status": 503,
+                  "at": "2026-11-24T00:00:00+00:00", "detail": "boom at host"}
+        return {
+            "items": [],
+            "population": {"sponsor_like_unlisted": {"Partner content": 2}},
+            "sources": [
+                {"key": "a", "terms": "they may ask us to stop", "last_read": failed},
+                {"key": "b", "terms": None, "last_read": None},
+            ],
+        }
 
     @contextmanager
     def no_conn():
@@ -277,8 +283,14 @@ def test_an_anonymous_news_read_carries_no_fetch_error_text(monkeypatch):
     assert anon["sources"][0]["last_read"] == {"outcome": "failed", "http_status": 503,
                                                "at": "2026-11-24T00:00:00+00:00", "detail": None}
     assert "boom" not in str(anon)
+    # Our notes on the publisher's terms and the labels to consider (#661 review).
+    assert anon["sources"][0]["terms"] is None
+    assert anon["population"]["sponsor_like_unlisted"] == {}
+    assert "ask us to stop" not in str(anon) and "Partner content" not in str(anon)
     signed = _client().get("/news", headers={"Authorization": "Bearer s3cret"}).json()
     assert signed["sources"][0]["last_read"]["detail"] == "boom at host"
+    assert signed["sources"][0]["terms"] == "they may ask us to stop"
+    assert signed["population"]["sponsor_like_unlisted"] == {"Partner content": 2}
 
 
 def test_an_anonymous_comparison_carries_counts_and_no_words():
