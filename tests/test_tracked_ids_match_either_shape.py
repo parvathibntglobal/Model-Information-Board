@@ -125,5 +125,6 @@ class TestTrackedKeys:
 def test_auto_track_excludes_a_hand_entry_by_either_id():
     """ELIGIBLE must not re-admit Fable 5.1 by its canonical id while the hand
     entry names its row id."""
-    # `mv.` since the query joins `model_catalog` for the kind (#602, item 6).
-    assert "mv.canonical_id = ANY(%s) OR mv.id = ANY(%s)" in tracked_mod.ELIGIBLE
+    # `mv.` since the query joins `model_catalog` for the kind (#602, item 6);
+    # named parameters since `stays_while_reported` (2026-11-24).
+    assert "mv.canonical_id = ANY(%(named)s) OR mv.id = ANY(%(named)s)" in tracked_mod.ELIGIBLE

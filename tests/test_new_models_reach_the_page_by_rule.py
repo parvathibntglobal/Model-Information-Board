@@ -35,8 +35,10 @@ HAND = (
     TrackedModel("Some Image Model", None, "image"),
 )
 
+STAYS = config.StaysWhileReported(released_on_or_after=date(2026, 9, 6), posted_within_days=30,
+                                  entries=3, distinct_authors=2)
 RULE = config.AutoTrackRule(enabled=True, released_within_days=30, include_pro_tier=True,
-                            exclude_name_terms=("image", "tts", "embed"))
+                            exclude_name_terms=("image", "tts", "embed"), stays=STAYS)
 
 
 @pytest.fixture
@@ -58,13 +60,17 @@ def test_admits_new_text_models_and_marks_them(setup):
         ("openai/gpt-6.1-sol", "GPT-6.1 Sol", True, "text"),
         ("openai/gpt-6.1-sol-pro", "GPT-6.1 Sol Pro", True, "text"),
     ]
-    # The hand ids go in twice, once against `canonical_id` and once against
-    # row `id`: an entry may name either (tests/test_tracked_ids_match_either_shape.py).
-    providers, cutoff, hand_ids, hand_row_ids = conn.params
-    assert providers == ["anthropic", "openai"]
-    assert cutoff == date(2026, 9, 6)
-    assert "openai/gpt-6-sol" in hand_ids, "a hand-listed model must not be listed twice"
-    assert hand_row_ids == hand_ids
+    # The hand ids are matched against `canonical_id` AND row `id` in the SQL:
+    # an entry may name either (tests/test_tracked_ids_match_either_shape.py).
+    p = conn.params
+    assert p["providers"] == ["anthropic", "openai"]
+    assert p["arrived_since"] == date(2026, 9, 6)
+    assert "openai/gpt-6-sol" in p["named"], "a hand-listed model must not be listed twice"
+    assert "mv.id = ANY(%(named)s)" in tracked.ELIGIBLE
+    # ...and the stay clause takes the contract's numbers, its posting window
+    # counted back from TODAY, its release floor fixed (never from the window).
+    assert (p["stays_released_since"], p["stays_entries"], p["stays_authors"],
+            p["posted_since"]) == (date(2026, 9, 6), 3, 2, date(2026, 9, 6))
 
 
 def test_non_text_names_stay_manual(setup):
@@ -80,14 +86,15 @@ def test_non_text_names_stay_manual(setup):
 def test_pro_tiers_follow_the_rule(setup, monkeypatch):
     monkeypatch.setattr(tracked, "auto_track_rule", lambda: config.AutoTrackRule(
         enabled=True, released_within_days=30, include_pro_tier=False,
-        exclude_name_terms=()))
+        exclude_name_terms=(), stays=STAYS))
     conn = _Conn([("openai/gpt-6-sol-pro", "OpenAI: GPT-6 Sol Pro", date(2026, 9, 22), ["text"])])
     assert tracked.auto_tracked(conn, today=date(2026, 10, 6)) == ()
 
 
 def test_disabled_admits_nothing(setup, monkeypatch):
     monkeypatch.setattr(tracked, "auto_track_rule", lambda: config.AutoTrackRule(
-        enabled=False, released_within_days=30, include_pro_tier=True, exclude_name_terms=()))
+        enabled=False, released_within_days=30, include_pro_tier=True, exclude_name_terms=(),
+        stays=STAYS))
     conn = _Conn([("openai/gpt-6.1-sol", "OpenAI: GPT-6.1 Sol", date(2026, 9, 29), ["text"])])
     assert tracked.auto_tracked(conn) == ()
 
@@ -161,15 +168,32 @@ class TestTheRuleIsReadStrictly:
         rule = config.auto_track_rule()
         assert rule.enabled and rule.include_pro_tier and rule.released_within_days == 30
         assert "image" in rule.exclude_name_terms
+        assert rule.stays == STAYS, "the contract's stay clause is what the tests pin"
+
+    _GOOD_STAYS = {"released_on_or_after": date(2026, 9, 6), "posted_within_days": 30,
+                   "entries": 3, "distinct_authors": 2}
+    _GOOD = {"enabled": True, "providers": "from_tracked", "released_within_days": 30,
+             "include_pro_tier": True, "exclude_name_terms": [],
+             "stays_while_reported": _GOOD_STAYS}
+
+    def test_a_well_formed_block_loads(self, monkeypatch):
+        monkeypatch.setattr(config, "_read", lambda name: {"auto_track": self._GOOD})
+        assert config.auto_track_rule().stays == STAYS
 
     @pytest.mark.parametrize("block", [
         None,
-        {"enabled": "yes", "providers": "from_tracked", "released_within_days": 30,
-         "include_pro_tier": True, "exclude_name_terms": []},
-        {"enabled": True, "providers": ["openai"], "released_within_days": 30,
-         "include_pro_tier": True, "exclude_name_terms": []},
-        {"enabled": True, "providers": "from_tracked", "released_within_days": 0,
-         "include_pro_tier": True, "exclude_name_terms": []},
+        {**_GOOD, "enabled": "yes"},
+        {**_GOOD, "providers": ["openai"]},
+        {**_GOOD, "released_within_days": 0},
+        # The stay clause has no default: absent is a refusal, not "never stays".
+        {k: v for k, v in _GOOD.items() if k != "stays_while_reported"},
+        {**_GOOD, "stays_while_reported": None},
+        # A quoted date is a string and would compare as text.
+        {**_GOOD, "stays_while_reported": {**_GOOD_STAYS, "released_on_or_after": "2026-09-06"}},
+        {**_GOOD, "stays_while_reported": {**_GOOD_STAYS, "entries": 0}},
+        {**_GOOD, "stays_while_reported": {**_GOOD_STAYS, "distinct_authors": True}},
+        {**_GOOD, "stays_while_reported": {k: v for k, v in _GOOD_STAYS.items()
+                                           if k != "posted_within_days"}},
     ])
     def test_a_missing_or_malformed_rule_raises(self, monkeypatch, block):
         monkeypatch.setattr(config, "_read", lambda name: {"auto_track": block})

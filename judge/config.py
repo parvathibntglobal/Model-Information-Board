@@ -10,6 +10,7 @@ eight weeks, so re-reading per request buys nothing.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -637,6 +638,18 @@ def tracked_models() -> tuple[TrackedModel, ...]:
 #: would eventually publish one, and a count of voices under a heading nobody
 #: wrote is a consensus about a category no writer named (#410, ruling 1).
 @dataclass(frozen=True)
+class StaysWhileReported:
+    """`auto_track.stays_while_reported`: when an admitted model STAYS after
+    `released_within_days` has passed (2026-11-24, after Kimi K3.1 Pro left the
+    page with 870 board entries from documents posted in the previous 30 days)."""
+
+    released_on_or_after: date
+    posted_within_days: int
+    entries: int
+    distinct_authors: int
+
+
+@dataclass(frozen=True)
 class AutoTrackRule:
     """`contract/tracked_models.yaml` `auto_track`. Read strictly (rule 12)."""
 
@@ -644,6 +657,7 @@ class AutoTrackRule:
     released_within_days: int
     include_pro_tier: bool
     exclude_name_terms: tuple[str, ...]
+    stays: StaysWhileReported
 
 
 class AutoTrackConfigError(RuntimeError):
@@ -679,7 +693,32 @@ def auto_track_rule() -> AutoTrackRule:
         released_within_days=days,
         include_pro_tier=need("include_pro_tier", bool),
         exclude_name_terms=tuple(str(t).strip().lower() for t in terms),
+        stays=_stays_while_reported(raw.get("stays_while_reported")),
     )
+
+
+def _stays_while_reported(raw) -> StaysWhileReported:
+    """`auto_track.stays_while_reported`, strictly: every key required, no default."""
+    if not isinstance(raw, dict):
+        raise AutoTrackConfigError(
+            "contract/tracked_models.yaml `auto_track.stays_while_reported` must be a "
+            f"block, not {raw!r}")
+    since = raw.get("released_on_or_after")
+    # A YAML date loads as `date`; a quoted one is a string and would compare
+    # as text, so it is refused rather than parsed (rule 12).
+    if not isinstance(since, date) or isinstance(since, datetime):
+        raise AutoTrackConfigError(
+            "`auto_track.stays_while_reported.released_on_or_after` must be an "
+            f"unquoted YYYY-MM-DD date, not {since!r}")
+    out = {}
+    for key in ("posted_within_days", "entries", "distinct_authors"):
+        v = raw.get(key)
+        if not isinstance(v, int) or isinstance(v, bool) or v < 1:
+            raise AutoTrackConfigError(
+                f"`auto_track.stays_while_reported.{key}` must be an integer of at "
+                f"least 1, not {v!r}")
+        out[key] = v
+    return StaysWhileReported(released_on_or_after=since, **out)
 
 
 # ── the AGENT fetch's list (contract/tracked_agents.yaml, #609-#611) ─────────

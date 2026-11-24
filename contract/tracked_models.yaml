@@ -189,9 +189,65 @@ version: 1
 #   exclude_name_terms        whole words in the id or display name that mark a
 #                             non-text model; those stay manual, because the page
 #                             renders `kind` and a guessed kind is a wrong row.
+#   stays_while_reported      when an admitted model STAYS past
+#                             `released_within_days` - see below.
 #
 # Every key is required; anything missing or malformed raises (rule 12). Turning
 # it off is `enabled: false`, not deleting the block.
+#
+# ── STAYS WHILE REPORTED (added 2026-11-24, PROPOSED for review) ─────────────
+# Until then the rule only ADMITTED, so every model it admitted left the page
+# - and the scheduler's due list, so its daily fetch stopped too - on the 30th
+# day after release, however much it was being discussed. Kimi K3.1 Pro left on
+# 2026-11-23 holding 1,172 board entries; 870 of them came from documents
+# posted in the previous 30 days, by 162 distinct authors (shared DB, read
+# 2026-11-24). Its evidence was never touched; the page and the fetch let go.
+#
+# Now an admitted model stays while BOTH hold:
+#
+#   released_on_or_after   released on or after this date, which is the
+#                          rule's start (2026-10-06) less its 30 days: every
+#                          model released since then was admitted by the rule.
+#                          A FIXED DATE, not derived from `released_within_days`,
+#                          so changing the window can never pull in a model the
+#                          rule never admitted. Older models (Claude Sonnet 5,
+#                          GLM 5.3 Flash) were never on the page by rule and are
+#                          not brought onto it here - that is an editorial
+#                          question for the hand list, not this rule.
+#   posted_within_days,    at least `entries` board entries from at least
+#   entries,               `distinct_authors` different authors, counting only
+#   distinct_authors       documents POSTED (`document.created_at`, when the
+#                          person wrote it) within `posted_within_days`. Authors,
+#                          not entries alone, so one prolific poster cannot hold
+#                          a model on the page. A document with no author adds no
+#                          author; one with no post date is not recent (rule 6).
+#
+# THE NUMBERS ARE THE SEATING BAR'S (below): 3 entries from 2 authors is what a
+# held model needs to be put forward for seating, so the same bar decides
+# whether a seated model stays. Over a 30-day posting window. PROPOSED.
+#
+# WHAT THEY ADMIT, measured on the shared DB 2026-11-24 over the 12 models
+# released 2026-09-06..2026-10-24 that the 30-day window had already let go
+# (authors / entries from documents posted in the 30 days before):
+#
+#   moonshotai/kimi-k3.1-pro            162 / 870    stays
+#   deepseek/deepseek-v4.1-flash-1017   138 / 527    stays
+#   google/gemini-4-argon               122 / 412    stays
+#   anthropic/claude-haiku-5.5          101 / 378    stays
+#   deepseek/deepseek-v4.1-flash         80 / 384    stays
+#   minimax/minimax-m3.1-flash           73 / 351    stays
+#   google/gemini-nano-banana-2.1        21 /  55    stays
+#   z-ai/glm-5.3-flashx                   3 /   8    stays
+#   z-ai/glm-5.3-prime                    1 /   1    goes
+#   openai/gpt-6-luna-pro                 1 /   6    goes
+#   typesafe/jev-router                   0 /   0    goes
+#   openai/gpt-6-sol-pro                  0 /   0    goes
+#
+# The split is wide - 21 authors, then 3, then 1 - so the exact bar moves at
+# most one model on this population. A model that stays is fetched daily, and
+# that fetch finds more of its posts; the rule still measures real posting
+# rather than feeding itself, because only documents POSTED in the window
+# count, and a fetch cannot post one.
 auto_track:
   enabled: true
   providers: from_tracked
@@ -199,6 +255,11 @@ auto_track:
   include_pro_tier: true
   exclude_name_terms: [image, audio, tts, speech, voice, music, video, embed, embedding,
                        transcribe, realtime, moderation]
+  stays_while_reported:
+    released_on_or_after: 2026-09-06
+    posted_within_days: 30
+    entries: 3
+    distinct_authors: 2
 
 # ── OPTIONAL PER ENTRY: `hf_repos:` (#602, 2026-11-05) ───────────────────────
 # A media model's official Hugging Face repo(s), as `owner/repo`, e.g.
@@ -216,7 +277,9 @@ auto_track:
 # 2026-11-05) has its claims HELD in `unresolved_entry`, not lost. This is the
 # count at which it is put to Parvathi to seat, so each model is decided the
 # same way. `scripts/attribute_unresolved_entries.py --dry-run` lists the held
-# names that meet it. READ BY that script and nothing else.
+# names that meet it. READ BY that script and nothing else. Its two numbers are
+# also COPIED into `auto_track.stays_while_reported` (2026-11-24), on purpose
+# rather than read from here: a change to one is a question about the other.
 #
 # WHERE THE NUMBERS COME FROM, stated honestly: GPT Image 2.5 Sunburst was
 # seated on 2026-11-05 on Parvathi's judgement ("enough discussion") BEFORE any
