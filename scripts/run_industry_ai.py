@@ -120,24 +120,33 @@ def raw_store():
     return RawStore(Path(settings().raw_store_path), remote=None)
 
 
+#: The two no-domain buckets are different absences (rule 4) and are named apart:
+#: "general" = a watched post naming no industry; "unconfirmed" = a keyword query's
+#: own domain not confirmed.
+BUCKETS = {"general": "General AI", "unconfirmed": "Domain unconfirmed"}
+
+
+def bucket_name(d: str, cfg) -> str:
+    """A domain's name, or one of the two named buckets. ONE lookup for the run log
+    AND the issue summary: the summary had its own, which called General AI
+    "Unconfirmed" (found 2026-11-24, before the first real run). An unknown bucket
+    raises rather than being relabelled (rule 12)."""
+    if d in cfg.domains:
+        return cfg.domains[d].name
+    if d in BUCKETS:
+        return BUCKETS[d]
+    raise ValueError(f"counts name an unknown bucket {d!r}")
+
+
 def print_counts(counts: dict, cfg) -> None:
     say(f"  items {counts['items']}, kept {counts['kept']}")
     if counts["dropped"]:
         say("  dropped, by stage and reason:")
         for k, n in counts["dropped"].items():
             say(f"    {k:<32} {n}")
-    # The two no-domain buckets are different absences (rule 4) and are named apart:
-    # "general" = a watched post naming no industry; "unconfirmed" = a keyword query's
-    # own domain not confirmed.
-    buckets = {"general": "General AI", "unconfirmed": "Domain unconfirmed"}
     for d, c in counts["domains"].items():
-        if d in cfg.domains:
-            name = cfg.domains[d].name
-        elif d in buckets:
-            name = buckets[d]
-        else:
-            raise ValueError(f"counts name an unknown bucket {d!r}")  # rule 12: never relabel
-        types = ", ".join(f"{t} {n}" for t, n in sorted(c["by_type"].items(), key=lambda x: -x[1]))
+        name = bucket_name(d, cfg)
+        types =", ".join(f"{t} {n}" for t, n in sorted(c["by_type"].items(), key=lambda x: -x[1]))
         plats = ", ".join(
             f"{p} {n}" for p, n in sorted(c["by_platform"].items(), key=lambda x: -x[1])
         )
@@ -162,16 +171,19 @@ def _summary(run_id: str, mode: str, requests: dict, counts: dict, queries: list
         f"Items {counts['items']}, kept {counts['kept']}. "
         f"Requests: {', '.join(f'{p} {n}' for p, n in requests.items() if n) or 'none'}.",
         "",
-        "| Domain | Kept | Use cases | How-to | Tools | Research | News | Discussion | Authors |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Domain | Kept | Use cases | How-to | Tools | Research | News | Discussion | Authors "
+        "| From watch lists |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for d, c in counts["domains"].items():
         t = c["by_type"]
-        name = cfg.domains[d].name if d in cfg.domains else "Unconfirmed"
+        # `From watch lists`: posts a watch list filed here by their terms, counted
+        # APART from the domain's own kept posts (anooj, 2026-11-20, option (a)).
         lines.append(
-            f"| {name} | {c['kept']} | {t.get('use_case', 0)} | {t.get('how_to', 0)} | "
-            f"{t.get('tool_or_product', 0)} | {t.get('research', 0)} | "
-            f"{t.get('news', 0)} | {t.get('discussion', 0)} | {c['authors']} |"
+            f"| {bucket_name(d, cfg)} | {c['kept']} | {t.get('use_case', 0)} | "
+            f"{t.get('how_to', 0)} | {t.get('tool_or_product', 0)} | {t.get('research', 0)} | "
+            f"{t.get('news', 0)} | {t.get('discussion', 0)} | {c['authors']} | "
+            f"{c.get('from_watch', 0)} |"
         )
     capped = [q for q in queries if q["status"] == "capped"]
     failed = [q for q in queries if q["status"] == "error"]

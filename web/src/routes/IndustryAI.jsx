@@ -8,9 +8,11 @@ import { fmtDayUtc } from '../dates'
 import '../styles/industry-ai.css'
 
 /**
- * AI IN INDUSTRIES (2026-11-20): how much data the Industry AI agent has
- * collected in each active domain (industries and roles, contract/industry_ai.yaml
- * `active`). Signed in.
+ * AI IN INDUSTRIES (2026-11-20): how much data the Industry AI agent and its
+ * observer have collected for each active domain (industries and roles, from
+ * contract/industry_ai.yaml). Signed in. The intro gives the number of domains,
+ * from the data, and names none of them (Parvathi, 2026-11-24): the Info view
+ * lists them and says which are active.
  *
  * COUNTS ONLY. The API sends no post text, link or author (judge/industry_ai/
  * view.py), so nothing here can show one. Every number is a count of stored
@@ -157,8 +159,9 @@ export default function IndustryAI() {
           </button>
         </div>
         <p className="dim iai-lede">
-          How much data we have collected about AI in {domainCount ? `${domainCount} industries` : 'industries'}, from Reddit, X, GitHub, Hacker News, dev.to, Bluesky and blogs.
-          Counts only: what the searches found, what the rules kept, and what they filtered out and why.
+          How much data we have collected about AI in {domainCount ? `${domainCount} industries` : 'industries'}, from Reddit, X, GitHub,
+          Hacker News, dev.to, Bluesky and blogs, by keyword searches and by watched communities and
+          accounts. Counts only: what was found, what the rules kept, and what they filtered out and why.
         </p>
         {last && (
           <p className="dim iai-note">

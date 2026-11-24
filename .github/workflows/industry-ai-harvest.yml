@@ -1,7 +1,8 @@
 # The Industry AI agent, weekly (2026-11-20).
 #
-# scripts/run_industry_ai.py harvests data about AI in five industries with the
-# queries in contract/industry_ai.yaml, labels it with the code rules there and
+# scripts/run_industry_ai.py harvests data about AI across industries and roles
+# (the contract's active domains) with the queries in contract/industry_ai.yaml,
+# and, with `--watch`, the observer's watch lists; labels it with the code rules there and
 # stores it in `iai_item` / `iai_run` only. No language model is called. A
 # SEPARATE LANE: it reads and writes none of the model board's tables.
 #
@@ -36,6 +37,14 @@ on:
         description: "Space-separated platforms (empty = all), e.g. hackernews devto"
         required: false
         default: ""
+      # THE OBSERVER, BY HAND (2026-11-24): its watch lists run on a schedule only
+      # once `watch.enabled` is true in the contract. This box adds them to ONE
+      # hand-started run (`--watch`), so both agents can run together before
+      # either is switched on for good. It changes nothing for a scheduled run.
+      watch:
+        description: "Also run the observer's watch lists (accounts and communities)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -71,6 +80,7 @@ jobs:
       DRY_RUN: ${{ inputs.dry_run }}
       DOMAINS: ${{ inputs.domains }}
       PLATFORMS: ${{ inputs.platforms }}
+      WATCH: ${{ inputs.watch }}
     steps:
       - name: Is the Industry AI agent switched on, and configured?
         id: gate
@@ -112,6 +122,7 @@ jobs:
           args=""
           [ -n "$DOMAINS" ]   && args="$args --domains $DOMAINS"
           [ -n "$PLATFORMS" ] && args="$args --platforms $PLATFORMS"
+          if [ "$WATCH" = "true" ]; then args="$args --watch"; fi
           if [ "$DRY_RUN" = "true" ]; then
             python scripts/run_industry_ai.py --dry-run $args
           else
