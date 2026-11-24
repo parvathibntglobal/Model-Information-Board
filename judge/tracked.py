@@ -4,7 +4,8 @@
 
     models       hand-written entries, in the order the page shows them;
     auto_track   a RULE admitting new registry models from providers that
-                 already have a hand-written entry (see the block's comments).
+                 already have a hand-written entry, and keeping them while
+                 people still post about them (see the block's comments).
 
 This module applies the rule at read time against `model_version`, so a model
 the registry poll inserts is on the page - and due for the scheduler - from the
@@ -29,18 +30,65 @@ log = logging.getLogger(__name__)
 # list, collect/registry/catalog.py) and decides `kind`. LEFT JOIN, so a model
 # the catalogue has not listed yet comes back with NULL rather than vanishing in
 # the join - `auto_tracked` then leaves it off and says so (rule 6).
+#
+# TWO WAYS IN, ONE QUERY. An ARRIVAL: released within `released_within_days`.
+# A model that STAYS: released on or after `stays_while_reported.released_on_or_after`
+# - so the rule admitted it once - and still reported: at least `entries` board
+# entries from at least `distinct_authors` authors, counting only documents
+# POSTED (`document.created_at`, when the person wrote it, not when we fetched
+# it) within `posted_within_days`. A document with no author adds no author and
+# one with no post date is not recent (rule 6). An entry a person DECLINED
+# (`ruling = 'declined'`) counts for nothing: a ruling only removes a row that
+# should not stand (#651 review). Until 2026-11-24 there was only
+# the first, and Kimi K3.1 Pro left the page - and the scheduler's due list -
+# on 2026-11-23 with 870 entries from documents posted in the previous 30 days.
+#
+# ONE GROUPED PASS, NOT A SUBQUERY PER MODEL. The per-model form returned the
+# same rows, but the planner costed it high enough to JIT-compile it on every
+# call: 253 ms on the shared DB against 44 ms for this one (EXPLAIN ANALYZE,
+# 2026-11-24). This runs on every Models page load. `still_reported` only
+# counts aged-out models from the page's providers, the only ones that need it.
 ELIGIBLE = """
+    WITH still_reported AS (
+        SELECT be.model_version_id
+          FROM board_entry be
+          JOIN document d ON d.id = be.document_id
+          JOIN model_version r ON r.id = be.model_version_id
+         WHERE d.created_at >= %(posted_since)s
+           AND be.ruling IS DISTINCT FROM 'declined'
+           AND r.release_date >= %(stays_released_since)s
+           AND r.release_date < %(arrived_since)s
+           AND r.provider = ANY(%(providers)s)
+         GROUP BY be.model_version_id
+        HAVING count(*) >= %(stays_entries)s
+           AND count(DISTINCT d.author_id) >= %(stays_authors)s
+    )
     SELECT mv.canonical_id, mv.display_name, mv.release_date, mc.output_modalities
       FROM model_version mv
       LEFT JOIN model_catalog mc ON mc.canonical_id = mv.canonical_id
      WHERE mv.provenance = 'polled'
        AND mv.in_window
-       AND mv.provider = ANY(%s)
+       AND mv.provider = ANY(%(providers)s)
        AND mv.release_date IS NOT NULL
-       AND mv.release_date >= %s
-       AND NOT (mv.canonical_id = ANY(%s) OR mv.id = ANY(%s))
+       AND NOT (mv.canonical_id = ANY(%(named)s) OR mv.id = ANY(%(named)s))
+       AND (mv.release_date >= %(arrived_since)s
+            OR (mv.release_date >= %(stays_released_since)s
+                AND mv.id IN (SELECT model_version_id FROM still_reported)))
      ORDER BY mv.release_date DESC, mv.canonical_id
 """
+
+
+def eligible_params(providers, named, rule, today: date) -> dict:
+    """The parameters `ELIGIBLE` takes, from the rule and today's date."""
+    return {
+        "providers": list(providers),
+        "named": list(named),
+        "arrived_since": today - timedelta(days=rule.released_within_days),
+        "stays_released_since": rule.stays.released_on_or_after,
+        "stays_entries": rule.stays.entries,
+        "stays_authors": rule.stays.distinct_authors,
+        "posted_since": today - timedelta(days=rule.stays.posted_within_days),
+    }
 
 #: Every output modality OpenRouter publishes: the page's types plus the two it
 #: does not offer as types (judge/catalog.py). A value outside this set is a
@@ -126,9 +174,9 @@ def auto_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]
     if not rule.enabled:
         return ()
     hand = tracked_models()
-    cutoff = (today or date.today()) - timedelta(days=rule.released_within_days)
     named = [m.registry for m in hand if m.registry]
-    rows = conn.execute(ELIGIBLE, (page_providers(hand), cutoff, named, named)).fetchall()
+    rows = conn.execute(ELIGIBLE, eligible_params(
+        page_providers(hand), named, rule, today or date.today())).fetchall()
     out = []
     for canonical_id, display, _released, modalities in rows:
         if not rule.include_pro_tier and canonical_id.endswith("-pro"):

@@ -152,16 +152,17 @@ def test_a_row_that_appears_before_the_write_is_never_touched(catalogue, provena
 def test_auto_track_never_admits_a_catalogued_row(catalogue):
     """`auto_track`'s query requires `polled`; a catalogued row never starts a daily fetch,
     even with a release date and a tracked provider."""
-    from datetime import date, timedelta
+    from datetime import date
 
-    from judge.tracked import ELIGIBLE
+    from judge.config import auto_track_rule
+    from judge.tracked import ELIGIBLE, eligible_params
 
     catalogue_seat.apply(catalogue, catalogue_seat.plan(catalogue))
     catalogue.execute("UPDATE model_version SET release_date = %s, in_window = true "
                       "WHERE provenance = 'catalogued'", (date.today(),))
     catalogue.commit()
-    rows = catalogue.execute(ELIGIBLE, (["elevenlabs", "openai"], date.today() - timedelta(days=30),
-                                        [], [])).fetchall()
+    rows = catalogue.execute(ELIGIBLE, eligible_params(
+        ["elevenlabs", "openai"], [], auto_track_rule(), date.today())).fetchall()
     assert rows == []
 
 
