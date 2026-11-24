@@ -111,10 +111,295 @@ ai_terms:
   - NLP
   - RAG
   - chatbot
+  # ── ADDED 2026-11-24 (anooj: "32 phrases is too low") ──────────────────────
+  # WHERE THEY CAME FROM: Wikipedia's Glossary of artificial intelligence and its
+  # Generative AI page, Google's Machine Learning Glossary (+ its generative page),
+  # and Wikipedia's lists of large language models and of chatbots - curated by
+  # hand: a term is here only if, in a social post, it almost always means the post
+  # is about AI. Matching is whole-word and case-insensitive.
+  # MEASURED BEFORE ADDING (rule 8), read-only over the 7,693 posts the first real
+  # run stored (#657): the clear terms below rescue 173 of the 1,712 posts dropped
+  # as `no_ai_term`; the six double-meaning words at the end were each read on 6
+  # rescued posts first. Kept OUT after reading or for an everyday meaning:
+  # Cursor (~4 of 6, also a text cursor), #ai (~3 of 6), Nvidia (company news),
+  # model / agent / prompt / automation (everyday words), Le Chat (French "the
+  # cat"), Imagen (Spanish "image"), Dream Machine.
+  # concepts
+  - AGI
+  - artificial general intelligence
+  - superintelligence
+  - AI safety
+  - AI alignment
+  - AI ethics
+  - AI slop
+  - AI art
+  - AIart     # the hashtag #AIart: not the same word as "AI art" to the matcher
+  - AI-generated
+  - AI generated
+  - AI-assisted
+  - AI-driven
+  - AI-based
+  - AI-native
+  - AI-first
+  - AI-enabled
+  - AI startup
+  - AI startups
+  - large language models
+  - language models
+  - small language model
+  - reasoning model
+  - reasoning models
+  - foundation model
+  - foundation models
+  - frontier model
+  - frontier models
+  - neural networks
+  - deep neural network
+  - neural net
+  - transformer model
+  - transformer models
+  - fine-tuning
+  - fine-tuned
+  - fine tuning
+  - finetuning
+  - finetuned
+  - instruction tuning
+  - RLHF
+  - reinforcement learning
+  - supervised learning
+  - unsupervised learning
+  - self-supervised learning
+  - transfer learning
+  - prompt engineering
+  - prompt engineer
+  - prompt injection
+  - system prompt
+  - few-shot
+  - zero-shot
+  - chain-of-thought
+  - chain of thought
+  - in-context learning
+  - AI hallucination
+  - AI hallucinations
+  - hallucinating
+  - retrieval-augmented generation
+  - retrieval augmented generation
+  - vector database
+  - vector databases
+  - vector search
+  - semantic search
+  - text-to-image
+  - text-to-video
+  - text-to-speech
+  - image-to-video
+  - image generation
+  - image generator
+  - video generation
+  - AI video
+  - AI image
+  - AI images
+  - AI voice
+  - voice cloning
+  - diffusion model
+  - diffusion models
+  - deepfake
+  - deepfakes
+  - vibe coding
+  - vibecoding
+  - vibe coded
+  - vibe-coded
+  - Model Context Protocol
+  - MCP server
+  - MCP servers
+  - agentic AI
+  - agentic workflow
+  - agentic workflows
+  - autonomous agent
+  - autonomous agents
+  - multi-agent
+  - AI copilot
+  - AI coding
+  - AI coding assistant
+  - coding agent
+  - coding agents
+  - LLM-based
+  - LLM-powered
+  - GPT-based
+  - chatbots
+  - conversational AI
+  - natural language processing
+  - speech recognition
+  - machine vision
+  - MLOps
+  - LLMOps
+  - AI engineer
+  - AI engineering
+  - ML engineer
+  - machine learning engineer
+  - AutoML
+  - PyTorch
+  - TensorFlow
+  - LSTM
+  - mixture of experts
+  - context window
+  - token limit
+  - open-weight
+  - open weights
+  - open-source model
+  - local LLM
+  - local LLMs
+  - inference engine
+  - AI detector
+  - AI detection
+  - AI writing
+  - AI-written
+  # labs and AI companies
+  - OpenAI
+  - Anthropic
+  - DeepMind
+  - Google DeepMind
+  - xAI
+  - Mistral AI
+  - Hugging Face
+  - HuggingFace
+  - Stability AI
+  - Scale AI
+  - Inflection AI
+  - Moonshot AI
+  - Sakana AI
+  - Cohere AI
+  - EleutherAI
+  - AI21 Labs
+  - Z.ai
+  - StepFun
+  - Thinking Machines Lab
+  - Safe Superintelligence
+  # models and model families (registry names with a version are added at run time)
+  - GPT-4
+  - GPT-4o
+  - GPT-5
+  - GPT-6
+  - GPTs
+  - Qwen
+  - Mixtral
+  - Nemotron
+  - PaLM
+  - LaMDA
+  - Gemini Pro
+  - Gemini Flash
+  - Claude Opus
+  - Claude Sonnet
+  - Claude Haiku
+  - Claude Code
+  - Kimi K2
+  - GLM-4
+  - Doubao
+  - Ernie Bot
+  - Llama 3
+  - Llama 4
+  - Gemma 3
+  # chat and assistant products
+  - Character.AI
+  - Character AI
+  - Meta AI
+  - Microsoft Copilot
+  - GitHub Copilot
+  - Copilot Studio
+  - NotebookLM
+  - Perplexity AI
+  - OpenAI Codex
+  - Codex CLI
+  - Gemini CLI
+  - Google AI Studio
+  - AI Studio
+  - ChatGPT Plus
+  - ChatGPT Pro
+  - SearchGPT
+  - AI Overviews
+  - AI Mode
+  - Bing Chat
+  # coding and agent tools
+  - Cursor AI
+  - Windsurf IDE
+  - Devin AI
+  - Bolt.new
+  - Replit Agent
+  - AutoGPT
+  - LangChain
+  - LangGraph
+  - LlamaIndex
+  - CrewAI
+  - AutoGen
+  - OpenRouter
+  - Ollama
+  - llama.cpp
+  - vLLM
+  - LM Studio
+  - OpenClaw
+  # media generation tools
+  - Midjourney
+  - DALL-E
+  - DALL·E
+  - DALLE
+  - Stable Diffusion
+  - SDXL
+  - ComfyUI
+  - Adobe Firefly
+  - Firefly AI
+  - Ideogram
+  - Leonardo AI
+  - Recraft
+  - Nano Banana
+  - Google Imagen
+  - Veo
+  - Veo 3
+  - Kling AI
+  - Seedance
+  - Seedream
+  - Runway ML
+  - Runway Gen
+  - Pika Labs
+  - Luma AI
+  - Hailuo
+  - HeyGen
+  - Synthesia
+  - ElevenLabs
+  - Eleven Labs
+  - Suno
+  - Udio
+  - Sora 2
+  - OpenAI Sora
+  # writing and productivity AI
+  - Jasper AI
+  - Copy.ai
+  - Notion AI
+  - Otter.ai
+  - Fireflies.ai
+  - Gamma AI
+  - Grammarly AI
+  - GPTZero
+  - Claude.ai
+  - Gemini app
+  # benchmarks and leaderboards
+  - MMLU
+  - LMArena
+  - SWE-bench
+  - Humanity's Last Exam
+  # DOUBLE-MEANING WORDS, each READ on 6 rescued posts first (2026-11-24):
+  - ai        # lower case, whole word: ~12 of 15 read were about AI ("an ai shopping
+              # assistant", "product photos generated with ai"). Other languages' "ai"
+              # passes this sieve and is dropped later by the non-English filter.
+  - MCP       # 6 of 6: MCP servers and agents
+  - Grok      # 6 of 6: Grok bots, "grok models"
+  - Codex     # 6 of 6: OpenAI Codex plans and runs
+  - LoRA      # 6 of 6: model fine-tunes, none the LoRa radio
+  - MiniMax   # 5 of 6: MiniMax H3 (one was the minimax game algorithm)
 
-# THE BARE WORD "AI" counts as an AI term when written in capitals, as a whole
-# word: "AI fraud detection" counts; "ai" in lower case, and ".ai" (a file type
-# or a web domain, removed below), do not.
+# THE BARE WORD "AI": since 2026-11-24 "ai" is in the list above, so it counts in
+# ANY case as a whole word: "AI fraud detection" and "an ai shopping assistant"
+# both count. ".ai" (a file type or a web domain) still does not: it is removed
+# below before any term is matched. (Until then only capitals counted, and 197 of
+# the first run's `no_ai_term` drops said "ai" in lower case.)
 
 # REMOVED FROM THE TEXT BEFORE ANY TERM IS MATCHED, in every domain.
 global_exclude_phrases:
