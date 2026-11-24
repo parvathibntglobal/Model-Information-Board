@@ -132,6 +132,26 @@ both query keys**.
 - **Designed, not built yet:** dev.to tags, GitHub repos, and newsletters. Until each
   one's runner exists, a list for it is refused, not ignored.
 
+**One person, several handles** (`watch.people`, 2026-11-24). Six watched people post
+on two or three platforms. Without a map, a person counted as one author per platform,
+and their same post on X and Bluesky stayed two items.
+- **Measured 2026-11-20,** over one 7-day window of the X, Bluesky and Hacker News
+  watch lists: Ethan Mollick's kept posts (18 Bluesky, 17 X) counted as 2 authors and
+  Simon Willison's as 3; of 3 same-text cross-posts, the dedupe caught 1.
+- **How a post finds its person:**
+  - X: the handle in the post's URL;
+  - Bluesky: the `from:<handle>` watch query that found it (its author field is a DID,
+    which the map does not hold), so a Bluesky post found only by a keyword query
+    links to no one;
+  - Hacker News: the author's username.
+- **What it changes:**
+  - the post carries a `person:<key>` flag, and a person is **one author** in the run
+    log and on the page;
+  - a person's same text on two platforms is folded as `cross_post` (dedupe pass 3).
+- **Never guessed:** only a person written in the map links two handles. Every handle
+  must already be in its platform's watch list, a person needs at least two platforms,
+  and a handle can belong to only one person.
+
 **Runs:**
 - `--watch` adds the watch lists to a run.
 - `--watch-only` runs only them; it's the observer's own dry run.
@@ -246,7 +266,7 @@ items too.
 
 ### 3. Dedupe (`pipeline._dedupe`)
 
-Three passes, each over what the previous pass left:
+Four passes, each over what the previous pass left:
 
 1. **The same article on several platforms** is one item. Links are compared after
    `canonical_url`: tracking parameters, `www.` and trailing slashes are removed.
@@ -254,7 +274,12 @@ Three passes, each over what the previous pass left:
    (`share_count`).
 2. **The same author posting the same text again:** one is kept, the rest are dropped
    as `repeat_post`, and the author is flagged `repeat_author`.
-3. **Near-duplicate text** is clustered by the corpus's own MinHash
+3. **One person, the same text, two platforms** (`watch.people`): one is kept, the
+   rest are dropped as `cross_post` and counted as its reach, and the kept one is
+   flagged `cross_post`. Mentions, tags and links are left out of the comparison,
+   since each platform spells them differently; texts under 20 characters are never
+   folded.
+4. **Near-duplicate text** is clustered by the corpus's own MinHash
    (`collect/assemble/dedupe.py`) and dropped as `near_duplicate`. Texts below its
    token floor are never merged, because over-merging is the worse failure.
 

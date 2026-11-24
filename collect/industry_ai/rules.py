@@ -296,6 +296,61 @@ def is_watched(item: Item) -> bool:
     return any(k.startswith(WATCH_KEY_PREFIX) for k in item.query_keys)
 
 
+#: An X post's page names its author: `https://x.com/<handle>/status/<id>`. A post whose
+#: URL is the anonymous `/i/status/` form names nobody and links to no person.
+_X_STATUS_URL = re.compile(r"^https://(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/")
+_BLUESKY_WATCH = "watch:bluesky:from:"
+
+
+def handle_of(item: Item) -> str | None:
+    """The watched-account handle that posted `item`, lower-cased, or None.
+
+    Each platform says it differently, and none is guessed (rule 6):
+      x           the handle in the post's URL (`author_id` is a numeric account id);
+      bluesky     the `from:<handle>` watch query that found it (`author_id` is a DID,
+                  which the map does not hold) - so a Bluesky post found ONLY by a
+                  keyword query names no person: a missed link, never a wrong one;
+      hackernews  `author_id`, which is the username."""
+    if item.platform == "x":
+        m = _X_STATUS_URL.match(item.url or "")
+        # `/i/status/` is X's anonymous form, not an account called "i".
+        return m.group(1).lower() if m and m.group(1).lower() != "i" else None
+    if item.platform == "bluesky":
+        found = sorted(k[len(_BLUESKY_WATCH):].lower() for k in item.query_keys
+                       if k.startswith(_BLUESKY_WATCH))
+        return found[0] if len(found) == 1 else None
+    if item.platform == "hackernews":
+        return (item.author_id or "").lower() or None
+    return None
+
+
+#: The flag naming a mapped person (`person:simon_willison`). READ BY pipeline.counts
+#: and judge/industry_ai/view.py, which count a person as one author.
+PERSON_FLAG = "person:"
+
+
+def person_of(item: Item, cfg: Config) -> str | None:
+    """The person in `watch.people` who posted `item`, or None. Only a person written
+    in the contract links two handles; nothing here infers one."""
+    handle = handle_of(item)
+    return cfg.person_by_handle().get((item.platform, handle)) if handle else None
+
+
+_MENTION_OR_TAG = re.compile(r"[@#]\w[\w.]*")
+#: Below this many characters a person's two posts are not folded as one: the floor the
+#: 2026-11-20 measurement used. Over-merging is the worse failure (collect/CLAUDE.md
+#: rule 3), and two short posts ("thanks!") match by chance.
+CROSS_POST_MIN_CHARS = 20
+
+
+def cross_post_text(text: str) -> str | None:
+    """`normalized_text` without @mentions and #tags, which a person spells per
+    platform (`@simonw` on X, `@simonwillison.net` on Bluesky); None when too short to
+    say two posts are one."""
+    key = normalized_text(_MENTION_OR_TAG.sub(" ", strip_links(text)))
+    return key if len(key) >= CROSS_POST_MIN_CHARS else None
+
+
 def is_watch_only(item: Item) -> bool:
     """Found by watch lists and by NO keyword query. Only these get the observer's own
     rules (the watch window, option A); a post a keyword query also found keeps the

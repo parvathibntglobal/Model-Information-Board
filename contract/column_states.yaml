@@ -2128,7 +2128,7 @@ columns:
       reviewed: true
       state: read
       why: >-
-        low_engagement, link_share, repeat_author, also_matches:<domain>, and (the observer, 2026-11-20) domain_from_terms:<domain> and general_ai flags, written by store.write_labels. READ by judge/industry_ai/view.py `_BUCKETS`: `general_ai` puts a kept watched post with no domain in the "General AI" bucket, apart from "domain unconfirmed". The other flags are for the team's sample check (docs/industry-ai-agent.md §7) and an Admin drill-down not built yet.
+        low_engagement, link_share, repeat_author, also_matches:<domain>, and (the observer, 2026-11-20) domain_from_terms:<domain> and general_ai flags, and (the people map, 2026-11-24) person:<key> and cross_post, written by store.write_labels. READ by judge/industry_ai/view.py `_BUCKETS`: `general_ai` puts a kept watched post with no domain in the "General AI" bucket, apart from "domain unconfirmed"; `person:<key>` makes a person mapped in contract/industry_ai.yaml watch.people ONE author in the page's author count. The other flags are for the team's sample check (docs/industry-ai-agent.md §7) and an Admin drill-down not built yet.
     groups:
       reviewed: true
       state: read

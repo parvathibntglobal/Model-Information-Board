@@ -80,13 +80,18 @@ def industry_ai_view(conn) -> dict[str, Any]:
     by_platform = _count_by(conn, "platform")
     by_stage = _count_by(conn, "stage_guess")
     by_month = _count_by(conn, "to_char(date_trunc('month', created_at), 'YYYY-MM')")
+    # AUTHORS: a person mapped in `watch.people` is ONE author on every platform -
+    # their `person:<key>` flag, set by collect/industry_ai/pipeline.py, which counts
+    # the same way. Anyone else is one author per (platform, account).
     rows = conn.execute(
-        "SELECT d, count(*), count(DISTINCT (platform, author_id)) "
-        "  FILTER (WHERE author_id IS NOT NULL), coalesce(sum(share_count), 0), "
+        "SELECT d, count(*), count(DISTINCT coalesce(person, platform || ':' || author_id)) "
+        "  FILTER (WHERE person IS NOT NULL OR author_id IS NOT NULL), "
+        "  coalesce(sum(share_count), 0), "
         "  count(*) FILTER (WHERE created_at IS NULL) FROM ("
         "  SELECT CASE WHEN cardinality(domains) = 0 AND 'general_ai' = ANY(flags) "
         "THEN ARRAY['general'] WHEN cardinality(domains) = 0 THEN ARRAY['unconfirmed'] "
-        "ELSE domains END AS ds, flags AS fl, platform, author_id, share_count, created_at "
+        "ELSE domains END AS ds, flags AS fl, platform, author_id, share_count, created_at, "
+        "(SELECT min(f) FROM unnest(flags) AS f WHERE left(f, 7) = 'person:') AS person "
         "  FROM iai_item WHERE verdict = 'kept'"
         ") x, unnest(ds) AS d WHERE NOT ('domain_from_terms:' || d = ANY(fl)) GROUP BY 1"
     ).fetchall()

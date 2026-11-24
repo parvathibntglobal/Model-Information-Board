@@ -284,6 +284,22 @@ watch:
     # tptacek on probation: very prolific, mostly not about AI; kept only if his
     # first-run yield passes the sieve often.
     authors: [simonw, minimaxir, swyx, jph00, karpathy, tptacek]
+  # ONE PERSON, SEVERAL HANDLES (2026-11-20). Six watched people post on two or three
+  # platforms. Without this map a person counts as one author PER PLATFORM, and their
+  # same post on X and Bluesky stays two items. Measured 2026-11-20 over one 7-day
+  # window of the X, Bluesky and HN watch lists: Ethan Mollick 18 Bluesky + 17 X posts
+  # kept (2 "distinct authors"), Simon Willison 4 + 4 + 5 (3); 3 same-text cross-posts,
+  # of which the existing dedupe caught 1. With the map, a person is ONE author, and a
+  # person's same text on two platforms is folded as `cross_post` (a share). Every
+  # handle must already be in its platform's list above; a handle in two people, or a
+  # person on one platform, is refused. Never guessed: only people written here link.
+  people:
+    simon_willison: {x: simonw, bluesky: simonwillison.net, hackernews: simonw}
+    andrej_karpathy: {x: karpathy, bluesky: karpathy.bsky.social, hackernews: karpathy}
+    swyx: {x: swyx, bluesky: swyx.io, hackernews: swyx}
+    ethan_mollick: {x: emollick, bluesky: emollick.bsky.social}
+    jeremy_howard: {x: jeremyphoward, bluesky: howard.fm, hackernews: jph00}
+    max_woolf: {bluesky: minimaxir.bsky.social, hackernews: minimaxir}
 
 # ── THE DOMAINS: our 20 persona umbrellas (anooj, 2026-11-20) ─────────────────
 # Generated from the persona keyword work; edit freely here from now on.

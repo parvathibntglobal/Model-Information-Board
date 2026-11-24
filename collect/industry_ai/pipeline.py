@@ -18,14 +18,17 @@ from datetime import UTC, datetime, timedelta
 
 from collect.industry_ai.config import Config
 from collect.industry_ai.rules import (
+    PERSON_FLAG,
     Item,
     canonical_url,
+    cross_post_text,
     filter_reason,
     is_article_link,
     is_watch_only,
     label,
     normalized_text,
     outside_window,
+    person_of,
     sieve,
 )
 
@@ -56,10 +59,13 @@ def _order(item: Item):
     return (item.created_at is None, item.created_at or datetime.max, item.id)
 
 
-def _dedupe(items: list[Item], results: dict[str, Result]) -> None:
-    """Stage 4 over the items the sieve kept. Three passes, each over what the
+def _dedupe(items: list[Item], results: dict[str, Result],
+            persons: dict[str, str] | None = None) -> None:
+    """Stage 4 over the items the sieve kept. Four passes, each over what the
     previous left canonical: a shared article link, an author repeating
-    themselves, and near-duplicate text."""
+    themselves, one PERSON posting the same text on two platforms (`persons`:
+    item id -> person, from `watch.people`), and near-duplicate text."""
+    persons = persons or {}
     live = sorted(items, key=_order)
 
     def fold(groups: dict, reason: str, flag: str | None = None) -> None:
@@ -95,7 +101,19 @@ def _dedupe(items: list[Item], results: dict[str, Result]) -> None:
             )
     fold(by_author, "repeat_post", flag="repeat_author")
 
-    # 3. NEAR-DUPLICATE TEXT, by the corpus's own MinHash clustering. Below its
+    # 3. ONE PERSON, THE SAME TEXT, TWO PLATFORMS (watch.people, 2026-11-20): a
+    #    cross-post is one item and the copy a share. Pass 2 cannot see it - the
+    #    two handles are two `author_id`s - and on 2026-11-20 pass 4 caught 1 of 3.
+    #    Mentions and tags are left out of the comparison, being spelt per platform.
+    by_person: dict[tuple, list[Item]] = {}
+    for it in live:
+        person = persons.get(it.id)
+        key = cross_post_text(it.text) if person else None
+        if results[it.id].verdict == "kept" and key:
+            by_person.setdefault((person, key), []).append(it)
+    fold(by_person, "cross_post", flag="cross_post")
+
+    # 4. NEAR-DUPLICATE TEXT, by the corpus's own MinHash clustering. Below its
     #    token floor a text gets no signature and is never merged by this pass
     #    (over-merging is the worse failure: collect/CLAUDE.md rule 3).
     rest = [it for it in live if results[it.id].verdict == "kept"]
@@ -152,7 +170,13 @@ def evaluate(
         matched[it.id] = terms
         passed.append(it)
 
-    _dedupe(passed, results)  # stage 4
+    # ONE PERSON, ONE AUTHOR (watch.people): the person rides as a flag, which is
+    # stored, so the page counts authors the way `counts` does.
+    persons = {it.id: p for it in passed if (p := person_of(it, cfg))}
+    for item_id, p in persons.items():
+        results[item_id].flags = sorted(set(results[item_id].flags) | {f"{PERSON_FLAG}{p}"})
+
+    _dedupe(passed, results, persons)  # stage 4
 
     for it in passed:  # stages 5-6
         r = results[it.id]
@@ -212,7 +236,12 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
                 if g.startswith(f"{d}/"):
                     c["by_group"][g.split("/", 1)[1]] += 1
             c["reach"] += r.share_count
-            if it.author_id:
+            # A mapped person is ONE author on every platform; anyone else is one
+            # per (platform, account). judge/industry_ai/view.py counts the same way.
+            person = next((f for f in r.flags if f.startswith(PERSON_FLAG)), None)
+            if person:
+                c["authors"].add(person)
+            elif it.author_id:
                 c["authors"].add((it.platform, it.author_id))
     return {
         "items": len(items),

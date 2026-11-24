@@ -63,7 +63,11 @@ TOP_KEYS = {
 #: until its runner exists - a refused list cannot be mistaken for a watched one.
 WATCH_PLATFORMS = ("reddit", "x", "bluesky", "hackernews")
 WATCH_KEYS = {"enabled", "lookback_days", "max_requests", "x_pages", "x_club_max", "x_suffix",
-              *WATCH_PLATFORMS}
+              "people", *WATCH_PLATFORMS}
+#: The platforms whose watched ACCOUNTS a person can be mapped across (Reddit watches
+#: communities, not people).
+PEOPLE_PLATFORMS = ("x", "bluesky", "hackernews")
+_PERSON_KEY = re.compile(r"^[a-z0-9_]{2,40}$")
 HN_WATCH_KEYS = {"lists", "authors"}
 #: Algolia's own tags for Hacker News lists.
 HN_LISTS = ("show_hn", "ask_hn", "front_page")
@@ -192,6 +196,11 @@ class Config:
         pages = self.run["pages_per_query"]
         clubbed = len(_QUOTED.findall(query)) >= int(self.run["x_clubbed_min_keywords"])
         return int(pages["x_clubbed"] if clubbed else pages["x"])
+
+    def person_by_handle(self) -> dict[tuple[str, str], str]:
+        """(platform, handle lower-cased) -> person, from `watch.people`."""
+        return {(p, h.lower()): person
+                for person, hs in self.watch.get("people", {}).items() for p, h in hs.items()}
 
     def watch_queries(self) -> list[tuple[str, str]]:
         """Every (platform, query) the observer asks, in file order. No network.
@@ -366,6 +375,40 @@ def _watch(raw: Any, suffix: dict[str, str]) -> dict[str, Any]:
                 f"watch.x: {len(full) + _SINCE_CHARS} characters with since: and the suffixes, "
                 f"over X's {MAX_QUERY_CHARS}; lower watch.x_club_max"
             )
+    out["people"] = _people(raw["people"], out)
+    return out
+
+
+def _people(raw: Any, watch: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """`watch.people`: one person, their handles on several platforms (2026-11-20).
+
+    Lets the pipeline count a person ONCE as an author, and fold their same post on two
+    platforms into one item. Strict, so the map cannot drift from the lists: every
+    handle must be one the watch list for that platform already holds, and no handle
+    may belong to two people. We never GUESS that two handles are one person - only
+    a person written here is linked."""
+    if not isinstance(raw, dict):
+        raise IndustryAIConfigError("watch.people must be a mapping of person -> handles")
+    listed = {"x": set(watch["x"]), "bluesky": set(watch["bluesky"]),
+              "hackernews": set(watch["hackernews"]["authors"])}
+    out, owner = {}, {}
+    for person, handles in raw.items():
+        where = f"watch.people.{person}"
+        if not isinstance(person, str) or not _PERSON_KEY.match(person):
+            raise IndustryAIConfigError(f"{where}: a person key is lower-case letters, digits, _")
+        _known(handles, set(PEOPLE_PLATFORMS), where)
+        if len(handles) < 2:
+            raise IndustryAIConfigError(f"{where}: map a person on at least two platforms")
+        for platform, h in handles.items():
+            if not isinstance(h, str) or h not in listed[platform]:
+                raise IndustryAIConfigError(
+                    f"{where}.{platform}: {h!r} is not in the {platform} watch list")
+            key = (platform, h.lower())
+            if key in owner:
+                raise IndustryAIConfigError(
+                    f"{where}.{platform}: {h!r} already belongs to {owner[key]}")
+            owner[key] = person
+        out[person] = {p: str(h) for p, h in handles.items()}
     return out
 
 
