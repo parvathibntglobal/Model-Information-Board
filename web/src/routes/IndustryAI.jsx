@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { industryAi } from '../api'
+import IndustryAIInfo from '../components/IndustryAIInfo'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import { fmtDayUtc } from '../dates'
@@ -7,7 +9,8 @@ import '../styles/industry-ai.css'
 
 /**
  * AI IN INDUSTRIES (2026-11-20): how much data the Industry AI agent has
- * collected in each of five industries. Signed in.
+ * collected in each active domain (industries and roles, contract/industry_ai.yaml
+ * `active`). Signed in.
  *
  * COUNTS ONLY. The API sends no post text, link or author (judge/industry_ai/
  * view.py), so nothing here can show one. Every number is a count of stored
@@ -121,6 +124,11 @@ export default function IndustryAI() {
   useHead(PRIVATE.industryAi)
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
+  // THE INFO VIEW (2026-11-24): `?view=info`, so it can be linked and the back
+  // button returns to the counts. The counts are still loaded once, either way.
+  const [params, setParams] = useSearchParams()
+  const showInfo = params.get('view') === 'info'
+  const toggleInfo = () => setParams(showInfo ? {} : { view: 'info' })
 
   useEffect(() => {
     let alive = true
@@ -129,17 +137,28 @@ export default function IndustryAI() {
   }, [])
 
   const last = data?.last_run
+  // THE INTRO COUNTS THE DOMAINS FROM THE PAYLOAD (2026-11-24, Parvathi): every
+  // domain in contract/industry_ai.yaml, active or not, so the number follows
+  // the contract (rule 11). The Info view lists them and says which are active.
+  const domainCount = data?.domains?.length || null
   const filtered = (data?.dropped || []).reduce((s, r) => s + r.items, 0)
 
   return (
     <div className="shell section-tight stack stack-4">
       <header className="stack stack-1">
-        <span className="eyebrow">Industry AI</span>
-        <h1 className="iai-h1">AI in industries</h1>
+        <div className="iai-head-row">
+          <div className="stack stack-1">
+            <span className="eyebrow">Industry AI</span>
+            <h1 className="iai-h1">AI in industries{showInfo && <span className="dim"> · Info</span>}</h1>
+          </div>
+          <button type="button" className="btn btn-ghost iai-info-btn" onClick={toggleInfo}
+                  aria-pressed={showInfo}>
+            {showInfo ? '← Counts' : 'ⓘ Info'}
+          </button>
+        </div>
         <p className="dim iai-lede">
-          How much data we have collected about AI in finance, healthcare, hospitality, engineering and
-          governance, from Reddit, X, GitHub, Hacker News, dev.to, Bluesky and blogs. Counts only: what the
-          searches found, what the rules kept, and what they filtered out and why.
+          How much data we have collected about AI in {domainCount ? `${domainCount} industries` : 'industries'}, from Reddit, X, GitHub, Hacker News, dev.to, Bluesky and blogs.
+          Counts only: what the searches found, what the rules kept, and what they filtered out and why.
         </p>
         {last && (
           <p className="dim iai-note">
@@ -148,11 +167,13 @@ export default function IndustryAI() {
         )}
       </header>
 
-      {err && <p className="iai-error">Could not load: {err}</p>}
-      {!data && !err && <p className="dim">Loading…</p>}
-      {data?.reason && <p className="iai-error">{data.reason}</p>}
+      {showInfo && <IndustryAIInfo />}
 
-      {data && !data.reason && (
+      {!showInfo && err && <p className="iai-error">Could not load: {err}</p>}
+      {!showInfo && !data && !err && <p className="dim">Loading…</p>}
+      {!showInfo && data?.reason && <p className="iai-error">{data.reason}</p>}
+
+      {!showInfo && data && !data.reason && (
         <>
           <div className="iai-totals">
             <div><b className="tnum">{n(data.collected)}</b><span>items collected</span></div>

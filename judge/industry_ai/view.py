@@ -207,3 +207,88 @@ def industry_ai_view(conn) -> dict[str, Any]:
             "requests": last[5] or {},
         },
     }
+
+
+# ── THE INFO PAGE (2026-11-24, Parvathi) ─────────────────────────────────────
+# What the agent searches for and how it decides, read from the contract as it
+# stands: every domain's keywords, ambiguous terms and their context words,
+# exclusions and queries; the AI terms; the run and watch settings; the filter
+# and type patterns. Nothing here is read from the database and nothing is a
+# count of stored items, so it renders before any run has happened. Values are
+# passed through as the contract writes them: a number in this payload is a
+# setting, never a measurement (rule 3).
+
+#: The contract's pattern lists, in the order the page shows them.
+_PATTERN_LISTS = ("spam_patterns", "ad_patterns", "hiring_patterns", "promo_patterns",
+                  "teach_patterns")
+
+
+def _terms_block(b: dict) -> dict[str, Any]:
+    """One domain's or group's own terms, ambiguous terms, exclusions and queries."""
+    queries = b.get("queries") or {}
+    return {
+        "terms": list(b.get("domain_terms") or []),
+        "ambiguous": [{"term": t, "context": list(ctx or [])}
+                      for t, ctx in (b.get("ambiguous_terms") or {}).items()],
+        "exclude_phrases": list(b.get("exclude_phrases") or []),
+        # platform -> {"search": [...], "subreddits": [...]}; feeds is a plain list.
+        "queries": {
+            p: ({"search": list(q)} if isinstance(q, list)
+                else {k: list(v or []) for k, v in (q or {}).items()})
+            for p, q in queries.items()
+        },
+    }
+
+
+def industry_ai_info() -> dict[str, Any]:
+    c = _contract()
+    run = c.get("run") or {}
+    watch = c.get("watch") or {}
+    domains = []
+    for k, d in c["domains"].items():
+        domains.append({
+            "key": k,
+            "name": d.get("name", k),
+            "kind": d.get("kind"),
+            "active": d.get("active"),
+            "definition": d.get("definition"),
+            **_terms_block(d),
+            "groups": [{"key": gk, "name": (g or {}).get("name", gk),
+                        "definition": (g or {}).get("definition"), **_terms_block(g or {})}
+                       for gk, g in (d.get("groups") or {}).items()],
+        })
+    return {
+        "pipeline_version": c.get("pipeline_version"),
+        "run": {
+            "enabled": run.get("enabled"),
+            "cadence": run.get("cadence"),
+            "window_days": run.get("window_days"),
+            "max_requests": run.get("max_requests") or {},
+            "pages_per_query": run.get("pages_per_query") or {},
+            "min_text_chars": run.get("min_text_chars"),
+            "context_window_words": run.get("context_window_words"),
+        },
+        "query_suffix": c.get("query_suffix") or {},
+        "ai_terms": list(c.get("ai_terms") or []),
+        "global_exclude_phrases": list(c.get("global_exclude_phrases") or []),
+        "patterns": {k: list(c.get(k) or []) for k in _PATTERN_LISTS},
+        "type_patterns": {t: list(v or []) for t, v in (c.get("type_patterns") or {}).items()},
+        "stage_patterns": {s: list(v or []) for s, v in (c.get("stage_patterns") or {}).items()},
+        "types": list(c["type_order"]),
+        "watch": {
+            "enabled": watch.get("enabled"),
+            "lookback_days": watch.get("lookback_days"),
+            "max_requests": watch.get("max_requests") or {},
+            "sources": {p: watch[p] for p in ("reddit", "x", "bluesky", "hackernews")
+                        if p in watch},
+            # ONE PERSON, SEVERAL HANDLES (`watch.people`, #653): who is counted as
+            # one author across platforms. Handles only; the Bluesky DID is an id the
+            # code matches on, not something a reader needs.
+            "people": [
+                {"key": k, "handles": {p: h for p, h in (hs or {}).items() if p != "bluesky_did"}}
+                for k, hs in (watch.get("people") or {}).items()
+            ],
+            "cross_post_hours": watch.get("cross_post_hours"),
+        },
+        "domains": domains,
+    }

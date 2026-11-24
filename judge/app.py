@@ -4116,6 +4116,18 @@ def industry_ai_page() -> dict:
         return industry_ai_view(conn)
 
 
+@app.get("/industry-ai/info")
+def industry_ai_info_page() -> dict:
+    """The "AI in industries" Info view: what the agent searches for and how it
+    decides - every domain's keywords, ambiguous terms, exclusions and queries,
+    the AI terms, the run and watch settings and the filter patterns - read from
+    contract/industry_ai.yaml as it stands. No database read and no post data.
+    Signed-in only (not a public read: judge/gate.py)."""
+    from judge.industry_ai.view import industry_ai_info
+
+    return industry_ai_info()
+
+
 @app.get("/news/{item_id}")
 def news_story(item_id: str) -> dict:
     """One story's page: what its source gave (title, summary, picture), the

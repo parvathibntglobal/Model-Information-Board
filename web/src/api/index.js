@@ -733,6 +733,8 @@ export const adminPriceChanges = (days) => request(`/admin/price-changes${days ?
 export const newsFeed = (days) => request(`/news${days ? `?days=${days}` : ''}`)
 // AI in industries: the Industry AI agent's counts per domain (judge/industry_ai/view.py). Signed in.
 export const industryAi = () => request('/industry-ai')
+// Its Info view: keywords, queries and settings from contract/industry_ai.yaml. Signed in.
+export const industryAiInfo = () => request('/industry-ai/info')
 // One story's page: what its source gave, the models it names, related stories.
 export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
 /** One model's pulse for its page (judge/watch.py, GET /watch): new since the last look, weekly trend. */
