@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useFollowed } from '../follow/follow'
 import { approvedUpdates, modelPath } from '../api'
 import { useHead } from '../seo/head'
+import News from './News'
 import { aiUpdates } from '../seo/pages'
 import '../styles/ai-updates.css'
 
@@ -25,7 +26,18 @@ import '../styles/ai-updates.css'
  * headline about one model links to that model's page (a benchmark result to
  * its AI benchmarks page). The section lives in the address
  * (`?section=pricing`) so a view can be sent to somebody.
+ *
+ * TWO TABS (2026-11-24, Parvathi): "General AI news" first - the News page
+ * (routes/News.jsx, public since the same day), outside headlines from
+ * publishers' feeds - and "AI model updates" second, everything above. The tab
+ * is in the address: `?tab=models` for the second; a `?section=` alone opens it
+ * too, so an older link to a section still lands on it.
  */
+
+const TABS = [
+  { key: 'news', label: 'General AI news' },
+  { key: 'models', label: 'AI model updates' },
+]
 
 /** The page's sections, each `of` the kinds it shows; the three price kinds read
  *  as one, "Pricing". (`of`, not `kinds`: that is an API field's name, and the
@@ -181,8 +193,10 @@ function Glance({ items, onPick, unread }) {
   if (!counts.some((c) => c.n || c.unknown)) return null
   return (
     <section className="au-glance" aria-label="The last 7 days at a glance">
-      <h2 className="au-label">Last 7 days</h2>
+      {/* ONE SLIM ROW (2026-11-24, Parvathi): was four big tiles, mostly zeros.
+          A zero is greyed and not clickable; a count opens its section. */}
       <div className="au-glance-row">
+        <h2 className="au-label">Last 7 days</h2>
         {counts.map((c) => (
           <button key={c.section} type="button" className={`au-stat au-tone-${c.tone}`} disabled={!c.n && !c.unknown}
                   onClick={() => onPick(c.section)}>
@@ -222,6 +236,9 @@ function ComingUp({ items }) {
 export default function AiUpdates() {
   useHead(aiUpdates())
   const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'models' || (params.get('tab') !== 'news' && params.has('section'))
+    ? 'models' : 'news'
+  const pickTab = (key) => setParams(key === 'models' ? { tab: 'models' } : {}, { replace: true })
   const section = SECTIONS.find((s) => s.key === params.get('section')) || SECTIONS[0]
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
@@ -277,11 +294,25 @@ export default function AiUpdates() {
           <div>
             <p className="au-label">Insights</p>
             <h1 className="au-title">AI updates</h1>
+            <p className="au-dateline">{today()}</p>
           </div>
-          <p className="au-standfirst">
-            What changed in AI models: new launches, price moves, retirements and benchmark results.
-          </p>
         </div>
+        <div className="tabstrip au-tabs" role="tablist" aria-label="AI updates">
+          {TABS.map((t) => (
+            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => pickTab(t.key)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {/* ONE SENTENCE PER TAB, under the tabs (2026-11-24, Parvathi): the news
+            tab has no intro of its own any more, so nothing is said twice. */}
+        <p className="au-standfirst">
+          {tab === 'news'
+            ? 'Fresh AI headlines from labs, news sites, writers and release notes, each linking to its source. '
+              + 'Summaries are the sources’ own words, cut to a few sentences by code.'
+            : 'What changed in AI models: new launches, price moves, retirements and benchmark results.'}
+        </p>
+        {tab === 'models' && (
         <div className="au-bar">
           {data && all.length > 0 ? (
             <nav className="au-sections" aria-label="Sections">
@@ -299,9 +330,12 @@ export default function AiUpdates() {
               Only my models<span className="au-section-n">{mineIds.length}</span>
             </button>
           )}
-          <p className="au-dateline">{today()}</p>
         </div>
+        )}
       </header>
+
+      {tab === 'news' && <News embedded />}
+      {tab === 'models' && (<>
 
       {error && <p className="au-quiet" role="alert">The updates could not be loaded just now. Please try again in a minute.</p>}
       {!data && !error && <div className="skel au-skel" />}
@@ -358,6 +392,7 @@ export default function AiUpdates() {
           </footer>
         </>
       )}
+      </>)}
     </div>
   )
 }

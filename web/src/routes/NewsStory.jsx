@@ -88,7 +88,7 @@ export default function NewsStory() {
   if (err) {
     return (
       <div className="shell section-tight stack stack-3">
-        <Link className="ns-crumb" to="/news">← All news</Link>
+        <Link className="ns-crumb" to="/ai-news-headlines">← All news</Link>
         <p className="dim">This story could not be read: {err}</p>
       </div>
     )
@@ -100,7 +100,7 @@ export default function NewsStory() {
   return (
     <div className="shell section-tight stack stack-4">
       <nav className="ns-crumb" aria-label="Breadcrumb">
-        <Link to="/news">News</Link> <span className="dim">/</span> <span>{source.label}</span>
+        <Link to="/ai-news-headlines">News</Link> <span className="dim">/</span> <span>{source.label}</span>
       </nav>
 
       <header className="stack stack-2">

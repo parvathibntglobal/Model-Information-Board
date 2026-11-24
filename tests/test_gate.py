@@ -242,8 +242,43 @@ def test_the_public_list_names_only_reads_that_were_checked():
         # 2026-11-12 (PROPOSED): the AI assistants page - counts only
         # (tests/test_assistants_db.py checks what it sends).
         "/assistants",
+        # 2026-11-24: the News page - headlines, the feeds' own briefs and picture
+        # links, sources and links out; an anonymous caller gets no fetch error
+        # text (test_an_anonymous_news_read_carries_no_fetch_error_text).
+        "/news",
     } == gate.PUBLIC_READ_PATHS
-    assert gate.PUBLIC_READ_PREFIXES == ("/model-catalog/", "/glossary-terms/", "/assistants/")
+    assert gate.PUBLIC_READ_PREFIXES == ("/model-catalog/", "/glossary-terms/", "/assistants/",
+                                         "/news/")
+
+
+def test_an_anonymous_news_read_carries_no_fetch_error_text(monkeypatch):
+    """/news is public (2026-11-24). A source's last read keeps its outcome,
+    status and time for everyone; the fetcher's error text is for the team."""
+    from contextlib import contextmanager
+
+    import judge.app as app_mod
+    from judge import news
+
+    def view(conn, days=None):
+        return {"items": [], "sources": [
+            {"key": "a", "last_read": {"outcome": "failed", "http_status": 503,
+                                       "at": "2026-11-24T00:00:00+00:00",
+                                       "detail": "boom at host"}},
+            {"key": "b", "last_read": None}]}
+
+    @contextmanager
+    def no_conn():
+        yield None
+
+    monkeypatch.setattr(news, "news_view", view)
+    monkeypatch.setattr(app_mod, "_conn", no_conn)
+    monkeypatch.setenv("API_TOKEN", "s3cret")
+    anon = _client().get("/news").json()
+    assert anon["sources"][0]["last_read"] == {"outcome": "failed", "http_status": 503,
+                                               "at": "2026-11-24T00:00:00+00:00", "detail": None}
+    assert "boom" not in str(anon)
+    signed = _client().get("/news", headers={"Authorization": "Bearer s3cret"}).json()
+    assert signed["sources"][0]["last_read"]["detail"] == "boom at host"
 
 
 def test_an_anonymous_comparison_carries_counts_and_no_words():

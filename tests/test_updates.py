@@ -489,6 +489,10 @@ def test_a_completed_week_with_enough_launches_gets_a_round_up_held_for_approval
         roundup["detail"] == "The busiest makers were Acme (3) and Beta (1); "
         "2 of the new models read 1M+ tokens at once."
     )
+    # The round-up names EVERY model of the week, not `names_shown` and "N more"
+    # (2026-11-24): four launches, past the contract's three.
+    (names_first,) = [s for s in roundup["styles"] if s["id"] == "names"]
+    assert names_first["detail"] == "Among them: W0, W1, W2 and W."
     assert roundup["published"] is False, "a summary waits for a person"
     updates.review(conn, built_key(conn, roundup["key"]), action="approve", by="p@example.com")
     assert listed(conn, roundup["key"])["published"] is True

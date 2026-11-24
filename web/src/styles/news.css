@@ -89,3 +89,6 @@ a:hover .nw-pic img{transform:scale(1.03)}
 @media (max-width:960px){.ns-body{grid-template-columns:1fr}.ns-side{position:static}}
 .nw-tags{display:flex;flex-wrap:wrap;gap:6px}
 .nw-tags span{padding:1px 8px;border-radius:var(--r-pill);border:1px solid var(--border);font-size:var(--fs-label);color:var(--text-3)}
+
+/* Inside AI updates' "General AI news" tab (2026-11-24): no page wrapper of its own. */
+.nw-embedded{margin-top:0}
