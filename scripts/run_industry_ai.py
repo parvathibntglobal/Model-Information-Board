@@ -32,6 +32,7 @@ import dataclasses
 import os
 import subprocess
 import sys
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -372,23 +373,37 @@ def main(argv: list[str] | None = None) -> int:
             pipeline_version=cfg.pipeline_version,
         )
         conn.commit()
+        saved = None  # new items COMMITTED before labelling; None until then
         try:
+            t_store = time.perf_counter()
             new = iai_store.upsert_items(conn, fresh, run_id=run_id) if fresh else 0
+            # THE HARVEST IS SAVED BEFORE ANYTHING IS LABELLED (#659 review): the
+            # requests are spent by now, so a labelling failure must not roll the posts
+            # back with it. A new row waits as verdict 'dropped' / drop_stage 'pending'
+            # (store._UPSERT) until the next run or a --relabel labels it.
+            conn.commit()
+            saved = new
+            store_s = time.perf_counter() - t_store
             items = iai_store.load_items(conn)
             # `items` leaves out rows whose text retention cleared: they keep their
             # labels and are not re-judged, so they are not "stored in all".
-            say(f"\n6 Store: {new} new item(s); {len(items)} stored with their text "
-                "(rows whose text was cleared keep their labels)")
+            say(f"\n6 Store: {new} new item(s), saved in {store_s:.1f}s; {len(items)} stored "
+                "with their text (rows whose text was cleared keep their labels)")
             # LABELLED OVER THE WHOLE COLLECTION, so dedupe sees every copy and a
             # rule change applies to old items as well as new ones.
+            t_label = time.perf_counter()
             results, counts = evaluate(items, cfg, since=since, is_bot=is_bot)
             iai_store.write_labels(conn, results, pipeline_version=cfg.pipeline_version)
+            label_s = time.perf_counter() - t_label
             # OVER ROWS WITH THEIR TEXT (#656 review): cleared rows are not loaded,
             # so these counts shrink as rows age while the page counts every row.
             say("\n2-5 Sieve | Dedupe | Filter | Label (over rows with their text; rows "
                 "whose text was cleared keep their labels and are counted on the page, "
                 "not here)")
             print_counts(counts, cfg)
+            # THE TIMES, so a slowdown shows in the log before it reaches the job's
+            # limit (#659 review, rule 11: measured on every run, never written down).
+            say(f"  labelled {len(results)} item(s) in {label_s:.1f}s")
             # TEXT RETENTION (contract `retention:`, anooj 2026-11-24): after the
             # labels, so a row is cleared with the labels its text earned.
             cleared = iai_store.clear_text(conn, cfg.retention)
@@ -405,11 +420,19 @@ def main(argv: list[str] | None = None) -> int:
                 quota=quota,
                 queries=queries,
                 counts=counts,
-                detail=f"{new} new item(s); text cleared on {cleared} row(s)",
+                detail=(f"{new} new item(s); text cleared on {cleared} row(s); "
+                        f"store {store_s:.1f}s, label {label_s:.1f}s"),
             )
             conn.commit()
         except Exception as e:
             conn.rollback()
+            # Rolled back: the labels and the text clearing. NOT the harvest, if it was
+            # saved - so the run says which, and how to finish the job.
+            kept = (
+                f"{saved} new item(s) SAVED before the error; labels not written (new rows "
+                "wait as 'pending' for the next run or --relabel). "
+                if saved is not None else "nothing saved. "
+            )
             iai_store.finish_run(
                 conn,
                 run_id,
@@ -418,7 +441,7 @@ def main(argv: list[str] | None = None) -> int:
                 quota=quota,
                 queries=queries,
                 counts={},
-                detail=f"{type(e).__name__}: {e}"[:500],
+                detail=(kept + f"{type(e).__name__}: {e}")[:500],
             )
             conn.commit()
             raise
