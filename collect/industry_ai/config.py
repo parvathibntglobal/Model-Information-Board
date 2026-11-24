@@ -68,6 +68,9 @@ WATCH_KEYS = {"enabled", "lookback_days", "max_requests", "x_pages", "x_club_max
 #: communities, not people).
 PEOPLE_PLATFORMS = ("x", "bluesky", "hackernews")
 _PERSON_KEY = re.compile(r"^[a-z0-9_]{2,40}$")
+#: A Bluesky account's permanent id. `did:plc:` is 24 base32 characters; `did:web:`
+#: names a domain. A handle can change hands; a DID does not.
+_BLUESKY_DID = re.compile(r"^did:(plc:[a-z2-7]{24}|web:[a-z0-9.-]+)$")
 HN_WATCH_KEYS = {"lists", "authors"}
 #: Algolia's own tags for Hacker News lists.
 HN_LISTS = ("show_hn", "ask_hn", "front_page")
@@ -200,7 +203,13 @@ class Config:
     def person_by_handle(self) -> dict[tuple[str, str], str]:
         """(platform, handle lower-cased) -> person, from `watch.people`."""
         return {(p, h.lower()): person
-                for person, hs in self.watch.get("people", {}).items() for p, h in hs.items()}
+                for person, hs in self.watch.get("people", {}).items()
+                for p, h in hs.items() if p in PEOPLE_PLATFORMS}
+
+    def person_by_did(self) -> dict[str, str]:
+        """Bluesky DID -> person, for the people whose `bluesky_did` is written."""
+        return {hs["bluesky_did"]: person
+                for person, hs in self.watch.get("people", {}).items() if "bluesky_did" in hs}
 
     def watch_queries(self) -> list[tuple[str, str]]:
         """Every (platform, query) the observer asks, in file order. No network.
@@ -387,19 +396,34 @@ def _people(raw: Any, watch: dict[str, Any]) -> dict[str, dict[str, str]]:
     platforms into one item. Strict, so the map cannot drift from the lists: every
     handle must be one the watch list for that platform already holds, and no handle
     may belong to two people. We never GUESS that two handles are one person - only
-    a person written here is linked."""
+    a person written here is linked.
+
+    `bluesky_did` (optional, 2026-11-24, #653 review): the Bluesky account's DID,
+    resolved once by hand from its handle. A Bluesky post's author field IS the DID,
+    so a post found by a keyword query - not by the `from:` watch query - links too,
+    and a handle that has passed to another account links no one (rules.person_of)."""
     if not isinstance(raw, dict):
         raise IndustryAIConfigError("watch.people must be a mapping of person -> handles")
     listed = {"x": set(watch["x"]), "bluesky": set(watch["bluesky"]),
               "hackernews": set(watch["hackernews"]["authors"])}
-    out, owner = {}, {}
-    for person, handles in raw.items():
+    out, owner, dids = {}, {}, {}
+    for person, entry in raw.items():
         where = f"watch.people.{person}"
         if not isinstance(person, str) or not _PERSON_KEY.match(person):
             raise IndustryAIConfigError(f"{where}: a person key is lower-case letters, digits, _")
-        _known(handles, set(PEOPLE_PLATFORMS), where)
+        _known(entry, {*PEOPLE_PLATFORMS, "bluesky_did"}, where)
+        handles = {p: h for p, h in entry.items() if p in PEOPLE_PLATFORMS}
         if len(handles) < 2:
             raise IndustryAIConfigError(f"{where}: map a person on at least two platforms")
+        did = entry.get("bluesky_did")
+        if did is not None:
+            if "bluesky" not in handles:
+                raise IndustryAIConfigError(f"{where}.bluesky_did: needs a bluesky handle")
+            if not isinstance(did, str) or not _BLUESKY_DID.match(did):
+                raise IndustryAIConfigError(f"{where}.bluesky_did: {did!r} is not a Bluesky DID")
+            if did in dids:
+                raise IndustryAIConfigError(f"{where}.bluesky_did: already belongs to {dids[did]}")
+            dids[did] = person
         for platform, h in handles.items():
             if not isinstance(h, str) or h not in listed[platform]:
                 raise IndustryAIConfigError(
@@ -410,6 +434,8 @@ def _people(raw: Any, watch: dict[str, Any]) -> dict[str, dict[str, str]]:
                     f"{where}.{platform}: {h!r} already belongs to {owner[key]}")
             owner[key] = person
         out[person] = {p: str(h) for p, h in handles.items()}
+        if did is not None:
+            out[person]["bluesky_did"] = did
     return out
 
 

@@ -414,6 +414,44 @@ def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, s
             f"{sum(s.items for s in out.queries if s.platform == platform and s.domain == 'watch')}"
             " item(s)"
         )
+    out.notes += quiet_people(cfg, out)
+
+
+def quiet_people(cfg: Config, out: Harvest) -> list[str]:
+    """A note for each mapped person's handle whose watch query ANSWERED and found
+    nothing (#653 review). Quiet for a week is ordinary; a handle that changed is not,
+    and nothing else would show it - the map and the watch list go stale together and
+    the strict loader cannot see it. A note, never a gate: nothing is dropped.
+
+    Only an `ok` query counts: a skipped, capped or failed one says nothing about the
+    handle. X clubs accounts into one query, so its handles are checked against the
+    posts that query returned (`handle_of`)."""
+    from collect.industry_ai.rules import handle_of
+
+    stats = {s.key: s for s in out.queries if s.domain == "watch"}
+    # The X query that names each account: `(from:a OR from:b ...)`.
+    x_query = {a.lower(): s for s in stats.values() if s.platform == "x"
+               for a in re.findall(r"from:([A-Za-z0-9_]+)", s.query)}
+    x_seen = {handle_of(it) for it in out.items.values()
+              if it.platform == "x" and any(k.startswith("watch:x:") for k in it.query_keys)}
+    days = cfg.watch["lookback_days"]
+    notes = []
+    for person, entry in cfg.watch.get("people", {}).items():
+        for platform, handle in entry.items():
+            if platform == "x":
+                s = x_query.get(handle.lower())
+                quiet = s is not None and s.status == "ok" and handle.lower() not in x_seen
+            elif platform in ("bluesky", "hackernews"):
+                q = f"from:{handle}" if platform == "bluesky" else f"hn:author:{handle}"
+                s = stats.get(f"watch:{platform}:{q}")
+                quiet = s is not None and s.status == "ok" and s.items == 0
+            else:
+                continue  # `bluesky_did` is an id, not a handle that is queried
+            if quiet:
+                notes.append(f"watch {platform}: {handle} ({person}) returned no posts in "
+                             f"{days} days - quiet, or the handle changed; check it still "
+                             "names this person")
+    return notes
 
 
 class _Runner:

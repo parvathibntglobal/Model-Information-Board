@@ -293,13 +293,26 @@ watch:
   # person's same text on two platforms is folded as `cross_post` (a share). Every
   # handle must already be in its platform's list above; a handle in two people, or a
   # person on one platform, is refused. Never guessed: only people written here link.
+  #
+  # `bluesky_did` (2026-11-24, #653 review): the Bluesky account's permanent id. A
+  # Bluesky post names its author only by DID, so with it a post found by a KEYWORD
+  # query links to its person too, and a `from:<handle>` post whose author is another
+  # DID - a handle that changed hands - links to no one. Resolved by hand on
+  # 2026-11-24 through com.atproto.identity.resolveHandle on api.bsky.app (the adapter's
+  # own host), all six HTTP 200. Re-resolve when a Bluesky handle here changes.
   people:
-    simon_willison: {x: simonw, bluesky: simonwillison.net, hackernews: simonw}
-    andrej_karpathy: {x: karpathy, bluesky: karpathy.bsky.social, hackernews: karpathy}
-    swyx: {x: swyx, bluesky: swyx.io, hackernews: swyx}
-    ethan_mollick: {x: emollick, bluesky: emollick.bsky.social}
-    jeremy_howard: {x: jeremyphoward, bluesky: howard.fm, hackernews: jph00}
-    max_woolf: {bluesky: minimaxir.bsky.social, hackernews: minimaxir}
+    simon_willison: {x: simonw, bluesky: simonwillison.net, hackernews: simonw,
+                     bluesky_did: "did:plc:kft6lu4trxowqmter2b6vg6z"}
+    andrej_karpathy: {x: karpathy, bluesky: karpathy.bsky.social, hackernews: karpathy,
+                      bluesky_did: "did:plc:j7gi6r4kh6uof7rfrqpm3fej"}
+    swyx: {x: swyx, bluesky: swyx.io, hackernews: swyx,
+           bluesky_did: "did:plc:xxuso5disl5vq5xfzlr7mf52"}
+    ethan_mollick: {x: emollick, bluesky: emollick.bsky.social,
+                    bluesky_did: "did:plc:flxq4uyjfotciovpw3x3fxnu"}
+    jeremy_howard: {x: jeremyphoward, bluesky: howard.fm, hackernews: jph00,
+                    bluesky_did: "did:plc:ihze7dasblwewgunyesfbm23"}
+    max_woolf: {bluesky: minimaxir.bsky.social, hackernews: minimaxir,
+                bluesky_did: "did:plc:oxaernim5mj2mmy3ytrvb42n"}
   # A CROSS-POST IS THE SAME POST, NOW, ON ANOTHER PLATFORM (#653 review). Dedupe pass 3
   # folds a person's same text only when the posts are on DIFFERENT platforms, within
   # this many hours of the earlier one, and - when both carry an article link - with

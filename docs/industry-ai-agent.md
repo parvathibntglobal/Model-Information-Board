@@ -140,10 +140,15 @@ and their same post on X and Bluesky stayed two items.
   Simon Willison's as 3; of 3 same-text cross-posts, the dedupe caught 1.
 - **How a post finds its person:**
   - X: the handle in the post's URL;
-  - Bluesky: the `from:<handle>` watch query that found it (its author field is a DID,
-    which the map does not hold), so a Bluesky post found only by a keyword query
-    links to no one;
+  - Bluesky: the author's DID, which the map holds as `bluesky_did` (resolved by hand
+    on 2026-11-24), so a post found by a keyword query links too. A post found by the
+    `from:<handle>` query whose author is a different DID links to no one: the handle
+    has passed to another account. A person written without a DID links by handle;
   - Hacker News: the author's username.
+- **A quiet handle is noted.** When a mapped handle's watch query answers and finds
+  nothing in `watch.lookback_days`, the run log says so: the person was quiet, or the
+  handle changed. A note, never a gate. A skipped, capped or failed query says nothing
+  about the handle, so it gives no note.
 - **What it changes:**
   - the post carries a `person:<key>` flag, and a person is **one author** in the run
     log and on the page;

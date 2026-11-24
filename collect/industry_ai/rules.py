@@ -307,9 +307,8 @@ def handle_of(item: Item) -> str | None:
 
     Each platform says it differently, and none is guessed (rule 6):
       x           the handle in the post's URL (`author_id` is a numeric account id);
-      bluesky     the `from:<handle>` watch query that found it (`author_id` is a DID,
-                  which the map does not hold) - so a Bluesky post found ONLY by a
-                  keyword query names no person: a missed link, never a wrong one;
+      bluesky     the `from:<handle>` watch query that found it (`author_id` is a DID;
+                  `person_of` reads the DID itself where the map holds one);
       hackernews  `author_id`, which is the username."""
     if item.platform == "x":
         m = _X_STATUS_URL.match(item.url or "")
@@ -330,14 +329,31 @@ PERSON_FLAG = "person:"
 
 
 def person_of(item: Item, cfg: Config,
-              people: dict[tuple[str, str], str] | None = None) -> str | None:
+              people: dict[tuple[str, str], str] | None = None,
+              dids: dict[str, str] | None = None) -> str | None:
     """The person in `watch.people` who posted `item`, or None. Only a person written
-    in the contract links two handles; nothing here infers one. `people` is
-    `cfg.person_by_handle()`, passed in by a caller that asks for many items."""
+    in the contract links two handles; nothing here infers one. `people` and `dids`
+    are `cfg.person_by_handle()` and `cfg.person_by_did()`, passed in by a caller that
+    asks for many items.
+
+    BLUESKY, THE DID DECIDES (2026-11-24, #653 review). A post's `author_id` is its
+    author's DID, so:
+      * a DID in the map links its person, however the post was found - a keyword
+        query included, which the handle alone could not do;
+      * a post found by `from:<handle>` whose author DID is NOT the DID written for
+        that handle's person links no one: the handle has passed to another account,
+        and linking it would count a stranger as the person (rule 6)."""
+    people = people if people is not None else cfg.person_by_handle()
+    dids = dids if dids is not None else cfg.person_by_did()
+    if item.platform == "bluesky" and item.author_id in dids:
+        return dids[item.author_id]
     handle = handle_of(item)
     if not handle:
         return None
-    return (people if people is not None else cfg.person_by_handle()).get((item.platform, handle))
+    person = people.get((item.platform, handle))
+    if item.platform == "bluesky" and person in dids.values():
+        return None  # the person has a DID, and this post's author is not it
+    return person
 
 
 _MENTION_OR_TAG = re.compile(r"[@#]\w[\w.]*")
