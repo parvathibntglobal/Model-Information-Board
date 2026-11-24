@@ -71,12 +71,35 @@ def finish_run(
     )
 
 
+#: The upsert, one row's worth. Sent for every item in ONE batched `executemany`.
+_UPSERT = (
+    f"INSERT INTO iai_item ({', '.join(_COLUMNS)}, verdict, drop_stage, drop_reason, "
+    "pipeline_version) "
+    f"VALUES ({', '.join(f'%({c})s' for c in _COLUMNS)}, 'dropped', 'pending', "
+    "'not_labelled', '') "
+    "ON CONFLICT (id) DO UPDATE SET "
+    "  last_seen_at = now(), engagement = EXCLUDED.engagement, "
+    "  domain_hints = ARRAY(SELECT DISTINCT unnest(iai_item.domain_hints || "
+    "EXCLUDED.domain_hints) ORDER BY 1), "
+    "  query_keys = ARRAY(SELECT DISTINCT unnest(iai_item.query_keys || "
+    "EXCLUDED.query_keys) ORDER BY 1) "
+    "RETURNING (xmax = 0)"
+)
+
+
 def upsert_items(conn, items: list[Item], *, run_id: str) -> int:
     """Insert new items; for known ones, widen hints and keys and refresh the
-    seen time and engagement. Returns how many were new."""
-    new = 0
+    seen time and engagement. Returns how many were new.
+
+    ONE BATCHED `executemany`, NOT A STATEMENT PER ITEM (2026-11-24). The first real
+    run, from a GitHub runner to the shared database, stored and labelled one round
+    trip per item for over 30 minutes and ran up against the job's 45-minute limit.
+    psycopg sends an `executemany` in pipeline mode: the statements go out together
+    and the answers come back together, so the time no longer grows with the round
+    trip."""
+    rows = []
     for it in items:
-        row = {
+        rows.append({
             "id": it.id,
             "platform": it.platform,
             "external_id": it.external_id,
@@ -92,22 +115,17 @@ def upsert_items(conn, items: list[Item], *, run_id: str) -> int:
             "domain_hints": sorted(it.domain_hints),
             "query_keys": sorted(it.query_keys),
             "first_run_id": run_id,
-        }
-        cur = conn.execute(
-            f"INSERT INTO iai_item ({', '.join(_COLUMNS)}, verdict, drop_stage, drop_reason, "
-            "pipeline_version) "
-            f"VALUES ({', '.join(f'%({c})s' for c in _COLUMNS)}, 'dropped', 'pending', "
-            "'not_labelled', '') "
-            "ON CONFLICT (id) DO UPDATE SET "
-            "  last_seen_at = now(), engagement = EXCLUDED.engagement, "
-            "  domain_hints = ARRAY(SELECT DISTINCT unnest(iai_item.domain_hints || "
-            "EXCLUDED.domain_hints) ORDER BY 1), "
-            "  query_keys = ARRAY(SELECT DISTINCT unnest(iai_item.query_keys || "
-            "EXCLUDED.query_keys) ORDER BY 1) "
-            "RETURNING (xmax = 0)",
-            row,
-        )
-        new += bool(cur.fetchone()[0])
+        })
+    if not rows:
+        return 0
+    new = 0
+    with conn.cursor() as cur:
+        cur.executemany(_UPSERT, rows, returning=True)
+        while True:  # one result per row: true where the row was inserted, not updated
+            got = cur.fetchone()
+            new += bool(got and got[0])
+            if not cur.nextset():
+                break
     return new
 
 
@@ -178,35 +196,41 @@ def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
 
 
 def write_labels(conn, results: dict[str, Result], *, pipeline_version: str) -> int:
-    """The rules' current answer for every item. Returns rows written."""
+    """The rules' current answer for every item. Returns rows written.
+
+    One batched `executemany`, like `upsert_items` (2026-11-24): every run re-labels
+    the whole collection, so a round trip per item grows with everything ever stored."""
     now = datetime.now(UTC)
-    n = 0
-    for item_id, r in results.items():
-        conn.execute(
-            "UPDATE iai_item SET verdict = %s, drop_stage = %s, drop_reason = %s, flags = %s, "
-            "domains = %s, groups = %s, matched_terms = %s, ai_terms = %s, "
-            "content_type = %s, matched_pattern = %s, stage_guess = %s, "
-            "canonical_of = %s, share_count = %s, canonical_url = %s, pipeline_version = %s, "
-            "labelled_at = %s WHERE id = %s",
-            (
-                r.verdict,
-                r.stage,
-                r.reason,
-                r.flags,
-                r.domains,
-                r.groups,
-                json.dumps(r.matched_terms),
-                r.ai_terms,
-                r.content_type,
-                r.matched_pattern,
-                r.stage_guess,
-                r.canonical_of,
-                r.share_count,
-                r.canonical_url,
-                pipeline_version,
-                now,
-                item_id,
-            ),
+    params = [
+        (
+            r.verdict,
+            r.stage,
+            r.reason,
+            r.flags,
+            r.domains,
+            r.groups,
+            json.dumps(r.matched_terms),
+            r.ai_terms,
+            r.content_type,
+            r.matched_pattern,
+            r.stage_guess,
+            r.canonical_of,
+            r.share_count,
+            r.canonical_url,
+            pipeline_version,
+            now,
+            item_id,
         )
-        n += 1
-    return n
+        for item_id, r in results.items()
+    ]
+    if params:
+        with conn.cursor() as cur:
+            cur.executemany(
+                "UPDATE iai_item SET verdict = %s, drop_stage = %s, drop_reason = %s, "
+                "flags = %s, domains = %s, groups = %s, matched_terms = %s, ai_terms = %s, "
+                "content_type = %s, matched_pattern = %s, stage_guess = %s, "
+                "canonical_of = %s, share_count = %s, canonical_url = %s, "
+                "pipeline_version = %s, labelled_at = %s WHERE id = %s",
+                params,
+            )
+    return len(params)
