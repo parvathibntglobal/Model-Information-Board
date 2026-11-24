@@ -196,8 +196,9 @@ def evaluate(
 
     # ONE PERSON, ONE AUTHOR (watch.people): the person rides as a flag, which is
     # stored, so the page counts authors the way `counts` does.
-    people = cfg.person_by_handle()  # built once per run, not per item (#653 review)
-    persons = {it.id: p for it in passed if (p := person_of(it, cfg, people))}
+    # Both maps built once per run, not per item (#653 review).
+    people, dids = cfg.person_by_handle(), cfg.person_by_did()
+    persons = {it.id: p for it in passed if (p := person_of(it, cfg, people, dids))}
     for item_id, p in persons.items():
         results[item_id].flags = sorted(set(results[item_id].flags) | {f"{PERSON_FLAG}{p}"})
 

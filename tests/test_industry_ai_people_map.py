@@ -62,9 +62,16 @@ def x_post(handle, iid, text, **kw):
                 keys=[f"watch:x:(from:{handle} OR from:someone)"], **kw)
 
 
+#: Each mapped Bluesky handle's DID, as the contract writes it: a real post by that
+#: account carries it as `author_id` (and a `from:` post by ANOTHER DID links no one).
+_DIDS = {e["bluesky"]: e["bluesky_did"]
+         for e in yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))["watch"]["people"].values()
+         if "bluesky_did" in e}
+
+
 def bsky_post(handle, iid, text, **kw):
     return post("bluesky", iid, text, url=f"https://bsky.app/profile/did:plc:{iid}/post/{iid}",
-                author=kw.pop("author", f"did:plc:{handle}"),
+                author=kw.pop("author", _DIDS.get(handle, f"did:plc:{handle}")),
                 keys=[f"watch:bluesky:from:{handle}"], **kw)
 
 
