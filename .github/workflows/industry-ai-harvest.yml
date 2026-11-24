@@ -1,7 +1,8 @@
 # The Industry AI agent, weekly (2026-11-20).
 #
-# scripts/run_industry_ai.py harvests data about AI in five industries with the
-# queries in contract/industry_ai.yaml, labels it with the code rules there and
+# scripts/run_industry_ai.py harvests data about AI across industries and roles
+# (the contract's active domains) with the queries in contract/industry_ai.yaml,
+# and, with `--watch`, the observer's watch lists; labels it with the code rules there and
 # stores it in `iai_item` / `iai_run` only. No language model is called. A
 # SEPARATE LANE: it reads and writes none of the model board's tables.
 #
