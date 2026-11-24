@@ -762,3 +762,32 @@ def test_the_issue_summary_counts_failed_searches(cfg):
     )
     assert "2 query(ies) failed - see the run log." in body
     assert "1 query(ies) returned nothing - prune?" in body
+
+
+def test_the_issue_summary_names_general_ai_apart_from_unconfirmed(cfg):
+    """2026-11-24: the summary had its own bucket lookup, which called the observer's
+    General AI bucket "Unconfirmed" - two different absences (rule 4). It now shares
+    the run log's, shows posts the watch lists filed under a domain, and refuses a
+    bucket it does not know."""
+    import scripts.run_industry_ai as script
+
+    row = {"kept": 2, "by_type": {"news": 2}, "authors": 2, "from_watch": 0}
+    counts = {"items": 9, "kept": 6, "domains": {
+        "general": row, "unconfirmed": row, "marketing": {**row, "from_watch": 3}}}
+    body = script._summary("r1", "harvest", {}, counts, [], cfg)
+    assert "| General AI | 2 |" in body and "| Domain unconfirmed | 2 |" in body
+    assert "| Unconfirmed |" not in body
+    assert body.rstrip().splitlines()[-1].endswith("| 3 |"), "from watch lists, counted apart"
+    with pytest.raises(ValueError, match="unknown bucket"):
+        script._summary("r1", "harvest", {}, {**counts, "domains": {"mystery": row}}, [], cfg)
+
+
+def test_a_hand_run_can_include_the_watch_lists():
+    """The workflow's `watch` box adds `--watch` to a hand-started run, so both agents
+    can run together while `watch.enabled` stays false (2026-11-24)."""
+    from pathlib import Path
+
+    wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows"
+          / "industry-ai-harvest.yml").read_text(encoding="utf-8")
+    assert "WATCH: ${{ inputs.watch }}" in wf
+    assert 'if [ "$WATCH" = "true" ]; then args="$args --watch"; fi' in wf

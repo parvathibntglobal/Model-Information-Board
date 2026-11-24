@@ -630,10 +630,14 @@ configuration and running.
   - So either both run together with that seed, announced on both PRs, or this one
     waits.
 - **Create the lane's summary issue and set the repository variables:**
-  - `INDUSTRY_AI_ISSUE`: that issue's number;
+  - `INDUSTRY_AI_ISSUE`: that issue's number. **Done 2026-11-24: #657**;
   - `INDUSTRY_AI_ENABLED`: **leave unset (off)** until the tuning below is done.
-- **Confirm `RAW_STORE_REMOTE=postgres`** wherever the pipeline runs, including the
-  hosted app if runs are started there.
+- **Do NOT set `RAW_STORE_REMOTE=postgres` for this lane** (#656). Its raw search
+  pages carry every post's full text and would stay in `raw_blob` for good;
+  `scripts/run_industry_ai.py` builds its store with `remote=None` whatever the
+  environment says. (This line used to say the opposite.)
+- **Both agents in one hand-started run:** the workflow's `watch` box adds the
+  observer's watch lists (`--watch`) without switching them on for the schedule.
 - **Confirm the RapidAPI keys** (Reddit, X) are in the repository secrets.
 
 ### 2. Fill the config (`contract/industry_ai.yaml`)

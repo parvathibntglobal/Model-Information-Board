@@ -6,8 +6,11 @@ import { fmtDayUtc } from '../dates'
 import '../styles/industry-ai.css'
 
 /**
- * AI IN INDUSTRIES (2026-11-20): how much data the Industry AI agent has
- * collected in each of five industries. Signed in.
+ * AI IN INDUSTRIES (2026-11-20): how much data the Industry AI agent and its
+ * observer have collected for each active domain (industries and roles, from
+ * contract/industry_ai.yaml). Signed in. Which domains are named is read from the
+ * data, never written here: it said "five industries" while the active five were
+ * mostly roles (2026-11-24).
  *
  * COUNTS ONLY. The API sends no post text, link or author (judge/industry_ai/
  * view.py), so nothing here can show one. Every number is a count of stored
@@ -130,6 +133,12 @@ export default function IndustryAI() {
 
   const last = data?.last_run
   const filtered = (data?.dropped || []).reduce((s, r) => s + r.items, 0)
+  // The active domains' names, from the contract the API reads: the lede names them
+  // so it cannot go stale when the active set changes.
+  const active = (data?.domains || []).filter((d) => d.active).map((d) => d.name)
+  const activeText = active.length > 1
+    ? `${active.slice(0, -1).join(', ')} and ${active[active.length - 1]}`
+    : active[0]
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -137,9 +146,10 @@ export default function IndustryAI() {
         <span className="eyebrow">Industry AI</span>
         <h1 className="iai-h1">AI in industries</h1>
         <p className="dim iai-lede">
-          How much data we have collected about AI in finance, healthcare, hospitality, engineering and
-          governance, from Reddit, X, GitHub, Hacker News, dev.to, Bluesky and blogs. Counts only: what the
-          searches found, what the rules kept, and what they filtered out and why.
+          How much data we have collected about how AI is used across industries and roles
+          {activeText ? <> (now: {activeText})</> : null}, from Reddit, X, GitHub, Hacker News, dev.to,
+          Bluesky and blogs, by keyword searches and by watched communities and accounts. Counts only:
+          what was found, what the rules kept, and what they filtered out and why.
         </p>
         {last && (
           <p className="dim iai-note">
