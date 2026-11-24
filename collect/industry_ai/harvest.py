@@ -415,6 +415,7 @@ def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, s
             " item(s)"
         )
     out.notes += quiet_people(cfg, out)
+    out.notes += passed_handles(cfg, out)
 
 
 def quiet_people(cfg: Config, out: Harvest) -> list[str]:
@@ -425,7 +426,11 @@ def quiet_people(cfg: Config, out: Harvest) -> list[str]:
 
     Only an `ok` query counts: a skipped, capped or failed one says nothing about the
     handle. X clubs accounts into one query, so its handles are checked against the
-    posts that query returned (`handle_of`)."""
+    posts that query returned (`handle_of`).
+
+    "QUIET" MEANS THE ACCOUNT POSTED NOTHING, counted BEFORE the sieve (#655 review):
+    every harvested post is counted, kept or not. Do not tighten it to "nothing
+    passed the sieve" - a person posting about cooking all week is not a stale handle."""
     from collect.industry_ai.rules import handle_of
 
     stats = {s.key: s for s in out.queries if s.domain == "watch"}
@@ -451,6 +456,30 @@ def quiet_people(cfg: Config, out: Harvest) -> list[str]:
                 notes.append(f"watch {platform}: {handle} ({person}) returned no posts in "
                              f"{days} days - quiet, or the handle changed; check it still "
                              "names this person")
+    return notes
+
+
+def passed_handles(cfg: Config, out: Harvest) -> list[str]:
+    """A note for each mapped Bluesky handle whose `from:` query returned posts by
+    ANOTHER account than the DID written for its person (#655 review).
+
+    `rules.person_of` already links such posts to no one - right for the count - but
+    it is the strongest sign the map can get that the handle changed hands, stronger
+    than "quiet", and while it lasts the watch list harvests a stranger's posts. A
+    post with no author DID says nothing either way and is not counted. A note, never
+    a gate."""
+    notes = []
+    for person, entry in cfg.watch.get("people", {}).items():
+        did = entry.get("bluesky_did")
+        if not did or "bluesky" not in entry:
+            continue
+        key = f"watch:bluesky:from:{entry['bluesky']}"
+        others = sum(1 for it in out.items.values()
+                     if key in it.query_keys and it.author_id and it.author_id != did)
+        if others:
+            notes.append(f"watch bluesky: {entry['bluesky']} ({person}) returned {others} "
+                         "post(s) by another account - the handle may have passed to "
+                         "someone else; re-resolve the DID")
     return notes
 
 

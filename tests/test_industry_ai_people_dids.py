@@ -19,7 +19,7 @@ import yaml
 
 from collect.industry_ai import config as iai_config
 from collect.industry_ai.config import CONTRACT, IndustryAIConfigError
-from collect.industry_ai.harvest import Harvest, QueryStat, quiet_people
+from collect.industry_ai.harvest import Harvest, QueryStat, passed_handles, quiet_people
 from collect.industry_ai.rules import Item, person_of
 
 NOW = datetime(2026, 11, 24, tzinfo=UTC)
@@ -80,6 +80,29 @@ def test_a_from_post_by_another_did_links_no_one(cfg):
     assert person_of(stranger, cfg) is None
     same = bsky(MOLLICK_DID, ["watch:bluesky:from:emollick.bsky.social"])
     assert person_of(same, cfg) == "ethan_mollick"
+
+
+def test_a_from_post_with_no_author_did_links_no_one(cfg):
+    """#655 review: for a person with a DID, a post that carries none cannot be
+    checked against it - a missed link, never a wrong one (rule 6)."""
+    assert person_of(bsky(None, ["watch:bluesky:from:emollick.bsky.social"]), cfg) is None
+
+
+def test_a_handle_returning_another_accounts_posts_gets_a_note(cfg):
+    """#655 review: the strongest sign a handle changed hands, said in the run log."""
+    out = Harvest()
+    key = "watch:bluesky:from:emollick.bsky.social"
+    out.items = {
+        "b1": bsky("did:plc:zzzzzzzzzzzzzzzzzzzzzzzz", [key]),
+        "b2": bsky(MOLLICK_DID, [key, "x"]),         # his own post: not counted
+        "b3": bsky(None, [key, "y"]),                # no DID: says nothing
+    }
+    notes = passed_handles(cfg, out)
+    assert notes == ["watch bluesky: emollick.bsky.social (ethan_mollick) returned 1 "
+                     "post(s) by another account - the handle may have passed to someone "
+                     "else; re-resolve the DID"]
+    out.items = {"b2": bsky(MOLLICK_DID, [key])}
+    assert passed_handles(cfg, out) == []
 
 
 def test_without_a_did_the_handle_still_links(raw):

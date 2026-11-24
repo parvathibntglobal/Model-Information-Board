@@ -147,8 +147,13 @@ and their same post on X and Bluesky stayed two items.
   - Hacker News: the author's username.
 - **A quiet handle is noted.** When a mapped handle's watch query answers and finds
   nothing in `watch.lookback_days`, the run log says so: the person was quiet, or the
-  handle changed. A note, never a gate. A skipped, capped or failed query says nothing
-  about the handle, so it gives no note.
+  handle changed. "Nothing" is counted before the sieve: the account posted nothing at
+  all. A note, never a gate. A skipped, capped or failed query says nothing about the
+  handle, so it gives no note.
+- **A handle that changed hands is noted too.** When a mapped Bluesky handle's `from:`
+  query returns posts by an account other than the person's DID, the run log says so,
+  with the count, and asks for the DID to be re-resolved. Those posts already link to
+  no one; the note makes visible that the watch list is harvesting a stranger.
 - **What it changes:**
   - the post carries a `person:<key>` flag, and a person is **one author** in the run
     log and on the page;
