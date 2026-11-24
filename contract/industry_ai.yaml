@@ -261,6 +261,16 @@ stage_patterns:
 # keeps the labels it had (store.load_items leaves it out). 30 days covers the
 # first-run review and the hand-check. A post in a kept domain AND another is
 # cleared: it is still someone's own life.
+#
+# WHAT THIS DOES NOT COVER, AND WHY IT DOES NOT NEED TO (#656 review). The harvest's
+# raw search pages carry every post's full text too. They are NOT mirrored to the
+# shared store (`raw_blob`): scripts/run_industry_ai.py builds this lane's raw store
+# with remote=None (anooj, 2026-11-24), so on a GitHub runner they go when the run
+# ends, and on a person's machine they stay in that machine's local raw folder.
+# This block clears `iai_item` and nothing else - there is no other shared copy.
+#
+# PERSONAL POSTS LOSE THEIR WORDS AFTER 30 DAYS: anything drafted from them (a post,
+# a guide) has to quote within that window.
 retention:
   clear_text_after_days: 30
   dropped: true

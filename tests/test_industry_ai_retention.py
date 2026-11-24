@@ -61,6 +61,28 @@ def test_the_retention_block_is_read_strictly(raw, mutate, says):
         iai_config.parse(bad)
 
 
+# ── raw pages: not in the shared store (#656 review) ─────────────────────────
+
+
+def test_the_raw_store_is_local_even_when_the_environment_says_shared(monkeypatch, tmp_path):
+    """A search page carries every post's full text; the shared `raw_blob` keeps it
+    for good. Clearing `iai_item` would mean nothing with the words left there."""
+    import scripts.run_industry_ai as script
+
+    monkeypatch.setenv("RAW_STORE_REMOTE", "postgres")
+    monkeypatch.setattr(script, "settings",
+                        lambda: type("S", (), {"raw_store_path": str(tmp_path)})())
+    assert script.raw_store()._remote is None
+
+
+def test_the_workflow_does_not_ask_for_the_shared_raw_store():
+    from pathlib import Path
+
+    wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows"
+          / "industry-ai-harvest.yml").read_text(encoding="utf-8")
+    assert "RAW_STORE_REMOTE:" not in wf
+
+
 # ── through the store ────────────────────────────────────────────────────────
 
 

@@ -61,10 +61,13 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       INDUSTRY_AI_ENABLED: ${{ vars.INDUSTRY_AI_ENABLED }}
       INDUSTRY_AI_ISSUE: ${{ vars.INDUSTRY_AI_ISSUE }}
+      # NO SHARED RAW STORE FOR THIS LANE (#656, anooj 2026-11-24): its search
+      # pages carry every post's full text, Personal posts included, and
+      # `raw_blob` would keep them for good while text retention clears
+      # `iai_item`. scripts/run_industry_ai.py builds its store with remote=None
+      # whatever this says; RAW_STORE_REMOTE is left unset so the file agrees.
+      # The pages stay on this runner and go when the run ends.
       RAW_STORE_PATH: raw_store
-      # THE SHARED RAW STORE: every payload this run stores is readable by every
-      # other machine. Without it the posts' text stays on this runner.
-      RAW_STORE_REMOTE: postgres
       DRY_RUN: ${{ inputs.dry_run }}
       DOMAINS: ${{ inputs.domains }}
       PLATFORMS: ${{ inputs.platforms }}

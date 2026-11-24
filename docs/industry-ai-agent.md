@@ -389,6 +389,18 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
   earned. The cost: a rule changed later does not reach them, and a new copy of a
   cleared post is not folded into it.
 - **30 days** covers the first-run review and the §7 hand-check, which read samples.
+- **Raw pages are not kept in the shared database** (#656 review; anooj, 2026-11-24).
+  A harvested search page carries the full text of every post it returned, and the
+  shared raw store (`raw_blob`) keeps pages for good, so clearing `iai_item` alone
+  would leave the same words behind. This lane's raw store is **local only**
+  (`scripts/run_industry_ai.py` `raw_store`, `remote=None`, whatever
+  `RAW_STORE_REMOTE` says): on a GitHub runner the pages go when the run ends.
+  Nothing reads them, since every run re-labels from `iai_item`. The cost: no
+  re-sieve from the original pages, and `discovery_ref` names a page nobody can fetch.
+- **Personal posts lose their words after 30 days,** so a post or guide drafted from
+  Personal uses must quote them within that window.
+- **The run log's stage counts cover rows with their text only.** Cleared rows are not
+  loaded, so those counts shrink as rows age, while the page counts every row.
 
 ---
 
