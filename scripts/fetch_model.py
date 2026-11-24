@@ -1959,15 +1959,20 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int,
         detail += f" — {len(clubbed.dropped)} surface(s) did not fit: {list(clubbed.dropped)[:3]}"
     detail += f" — up to {X_PAGES_PER_MODEL} page(s) of 20"
     prog.stage("E2X", "Harvest · X", "running", queries=1, detail=detail)
-    inserted = posts = errors = 0
+    inserted = posts = errors = recovered = 0
     survived = pages = undated = 0
+    failures: list[str] = []  # the cause of every failed attempt (`XRun.failures`)
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
+    from collections import Counter
+
     from collect.adapters.queries.sieve import sieve as sieve_post
 
     entries = [e for e in load_queries().all_entries if not e.direction_from_extraction]
     for variant in [clubbed.query]:
         run = harvester.search(variant)
         errors += int(getattr(run, "http_errors", 0) or 0)
+        failures += list(getattr(run, "failures", None) or [])
+        recovered += int(getattr(run, "recovered", 0) or 0)
         # THE X ARM SPENDS THE SHARED QUOTA, SO IT MUST ALSO RECORD IT. The
         # adapter has parsed these headers since it was written and nothing read
         # them, so an X-only fetch left the panel showing Reddit's older number
@@ -2024,8 +2029,19 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int,
         # DNS failures included, and returns None - so two searches that never
         # reached the gateway rendered as `ok · 0 post(s) seen`, directly under
         # the Reddit arm reporting the identical failure as an error.
-        detail += f" — {errors} request(s) failed before returning anything"
-    prog.stage("E2X", "Harvest · X", _harvest_verdict(errors, posts),
+        #
+        # AND IT NAMES THE CAUSE (2026-11-24). A bare count left 40 failed runs
+        # over 21-23 Nov undiagnosable; `failures` carries each attempt's status
+        # or exception, and a retry that recovered is said rather than hidden.
+        causes = ", ".join(f"{c} x{n}" if n > 1 else c
+                           for c, n in Counter(failures).most_common())
+        detail += (f" — {errors} request(s) failed before returning anything"
+                   + (f" ({causes})" if causes else ""))
+        if recovered:
+            detail += f"; {recovered} of them recovered when tried once more"
+    # A failure a retry recovered from is not a failed harvest: only the
+    # attempts that stayed failed decide the verdict.
+    prog.stage("E2X", "Harvest · X", _harvest_verdict(errors - recovered, posts),
                posts=posts, pages=pages, sieve_kept=survived, sieve_dropped=dropped,
                documents_inserted=inserted, documents_undated=undated or None,
                http_errors=errors,
