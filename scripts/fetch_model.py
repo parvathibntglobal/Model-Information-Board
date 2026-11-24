@@ -1961,7 +1961,8 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int,
     prog.stage("E2X", "Harvest · X", "running", queries=1, detail=detail)
     inserted = posts = errors = recovered = 0
     survived = pages = undated = 0
-    failures: list[str] = []  # the cause of every failed attempt (`XRun.failures`)
+    failures: list[str] = []  # causes that stood (`XRun.failures`)
+    recovered_causes: list[str] = []  # causes a retry got past (`XRun.recovered_failures`)
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     from collections import Counter
 
@@ -1972,6 +1973,7 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int,
         run = harvester.search(variant)
         errors += int(getattr(run, "http_errors", 0) or 0)
         failures += list(getattr(run, "failures", None) or [])
+        recovered_causes += list(getattr(run, "recovered_failures", None) or [])
         recovered += int(getattr(run, "recovered", 0) or 0)
         # THE X ARM SPENDS THE SHARED QUOTA, SO IT MUST ALSO RECORD IT. The
         # adapter has parsed these headers since it was written and nothing read
@@ -2031,14 +2033,22 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int,
         # the Reddit arm reporting the identical failure as an error.
         #
         # AND IT NAMES THE CAUSE (2026-11-24). A bare count left 40 failed runs
-        # over 21-23 Nov undiagnosable; `failures` carries each attempt's status
-        # or exception, and a retry that recovered is said rather than hidden.
-        causes = ", ".join(f"{c} x{n}" if n > 1 else c
-                           for c, n in Counter(failures).most_common())
-        detail += (f" — {errors} request(s) failed before returning anything"
-                   + (f" ({causes})" if causes else ""))
+        # over 21-23 Nov undiagnosable. Causes that STOOD and causes a retry got
+        # past are named apart (#652 review), so a recovered 503 is said but
+        # never listed as a failure.
+        def named(causes: list[str]) -> str:
+            text = ", ".join(f"{c} x{n}" if n > 1 else c
+                             for c, n in Counter(causes).most_common())
+            return f" ({text})" if text else ""
+
+        parts = []
+        if errors - recovered:
+            parts.append(f"{errors - recovered} request(s) failed before returning "
+                         f"anything{named(failures)}")
         if recovered:
-            detail += f"; {recovered} of them recovered when tried once more"
+            parts.append(f"{recovered} recovered when tried once more"
+                         f"{named(recovered_causes)}")
+        detail += " — " + "; ".join(parts)
     # A failure a retry recovered from is not a failed harvest: only the
     # attempts that stayed failed decide the verdict.
     prog.stage("E2X", "Harvest · X", _harvest_verdict(errors - recovered, posts),

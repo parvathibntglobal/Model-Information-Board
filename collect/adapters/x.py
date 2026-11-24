@@ -186,6 +186,8 @@ TRANSIENT_RETRY_WAIT_SECONDS = 5.0
 #: Statuses a wait may cure: the gateway's rate limit and an upstream fault.
 #: Never 401/403/404 - a wrong key or a wrong endpoint does not pass.
 _TRANSIENT_STATUSES = frozenset({429, 500, 502, 503, 504})
+#: Timeouts retried here. Not `ConnectTimeout`: the transport retries connecting.
+_RETRIED_TIMEOUTS = (httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout)
 
 #: `type=` values the recorded sweep used. `Latest` is reverse-chronological and
 #: `Top` is the provider's relevance order; the sweep ran both for its four
@@ -479,11 +481,16 @@ class XRun:
     exhausted: bool = False
     truncated_by: str | None = None
 
-    #: The cause of every failed attempt, in order: `HTTP 503`, `ReadTimeout`.
-    #: READ BY scripts/fetch_model.py (the E2X stage line), so the next failure
-    #: says what it was - until 2026-11-24 only a count was kept, and 40 failed
-    #: runs over three days could not be diagnosed from the record.
+    #: The cause of every failed attempt that STOOD, in order: `HTTP 503`,
+    #: `ReadTimeout`. READ BY scripts/fetch_model.py (the E2X stage line) and
+    #: collect/industry_ai/harvest.py `failure_of`, so the next failure says what
+    #: it was - until 2026-11-24 only a count was kept, and 40 failed runs over
+    #: three days could not be diagnosed from the record.
     failures: list[str] = field(default_factory=list)
+    #: The cause of every failed attempt a later attempt recovered from - kept,
+    #: never dropped (rule 12), and apart from `failures` so a reader names only
+    #: what stood (#652 review). READ BY the E2X stage line.
+    recovered_failures: list[str] = field(default_factory=list)
     #: Attempts made again after a failure that may pass, and how many FAILED
     #: attempts a later attempt recovered from - so `http_errors - recovered` is
     #: the failures that stood. `recovered` is read by the E2X stage line and by
@@ -654,19 +661,27 @@ class XHarvester:
         3.1 s. Most of those failures carried quota headers, so the gateway
         answered with a non-200 status; which status was never recorded.
 
-        EVERY FAILED ATTEMPT IS RECORDED in `run.failures` - including one a
-        retry recovered from - so a retry can never make a failure invisible
-        (rule 12). A credential or endpoint failure (401/403/404) is not
-        retried: waiting does not fix a wrong key.
+        EVERY FAILED ATTEMPT IS RECORDED, so a retry can never make a failure
+        invisible (rule 12): in `run.failures` when it stood, and in
+        `run.recovered_failures` when a later attempt answered - kept apart so a
+        reader names only the causes that stood (#652 review). A credential or
+        endpoint failure (401/403/404) is not retried: waiting does not fix a
+        wrong key. Nor is a 429 that says the quota is spent: waiting 5 s does
+        not refill it, and the retry would be one more metered request.
         """
+        pending: list[str] = []
         for attempt in range(TRANSIENT_RETRIES + 1):
             response, cause, transient = self._attempt(path, params, run)
             if response is not None:
                 # Every failed attempt before this one was recovered from.
-                run.recovered += attempt
+                run.recovered += len(pending)
+                run.recovered_failures += pending
                 return response
-            run.failures.append(cause)
+            pending.append(cause)
+            if cause == "HTTP 429" and run.quota_exhausted:
+                transient = False
             if not transient or attempt == TRANSIENT_RETRIES:
+                run.failures += pending
                 if cause == "HTTP 429":
                     run.truncated_by = "rate-limit"
                 return None
@@ -686,9 +701,11 @@ class XHarvester:
         except httpx.HTTPError as error:
             run.http_errors += 1
             log.error("x: request failed on %s: %s", path, error)
-            # A timeout may pass; a transport error has already had its
-            # connection retries (collect/http.py DEFAULT_CONNECT_RETRIES).
-            return None, type(error).__name__, isinstance(error, httpx.TimeoutException)
+            # A read, write or pool timeout may pass. A CONNECT timeout or error
+            # is not retried here: the transport already retried it
+            # (collect/http.py DEFAULT_CONNECT_RETRIES), so each kind of failure
+            # is retried in one place only (#652 review).
+            return None, type(error).__name__, isinstance(error, _RETRIED_TIMEOUTS)
 
         # ALL THREE HEADERS, not the one we happen to act on.
         for header, attribute in _QUOTA_HEADERS.items():
