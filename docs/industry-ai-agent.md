@@ -376,8 +376,41 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
     [...]}}}`) and ai_terms.
   - Dedupe: canonical_of, share_count, canonical_url.
   - pipeline_version.
+  - text_cleared_at: when text retention emptied title and body (below).
 - **`iai_run`:** one row per run (harvest or relabel), holding status, requests per
   platform, RapidAPI quota, per-query yields and the counts.
+
+**Text retention** (`retention:` in the contract; anooj, 2026-11-24; migration
+`20261124T1200_iai_text_retention.sql`). **A row is never deleted; its text is.**
+- **Why rows stay:** the page's "Filtered out" counts are counted from dropped rows
+  (rule 4), and the filters are not measured yet (rule 8). Deleting on labelling
+  would make a wrong drop unrecoverable.
+- **Whose text is cleared,** `clear_text_after_days` (30) after the post was first
+  stored:
+  - every **dropped** row: spam, sign-up ads, hiring, sponsored, and dedupe copies;
+  - **kept** rows in a `kept_domains` domain (Personal: people's own debts, diet,
+    parenting, relationships), even when also filed under another domain.
+- **What clearing does:** each run, after labelling, `store.clear_text` empties title
+  and body and stamps `text_cleared_at`. The row, its verdict, labels, flags and
+  counts stay, and the page is unchanged.
+- **A cleared row is not re-labelled.** Every run re-labels the collection, and empty
+  text would be re-judged ("no AI term"), shifting the drop counts. So
+  `store.load_items` leaves cleared rows out, and they keep the labels their text
+  earned. The cost: a rule changed later does not reach them, and a new copy of a
+  cleared post is not folded into it.
+- **30 days** covers the first-run review and the §7 hand-check, which read samples.
+- **Raw pages are not kept in the shared database** (#656 review; anooj, 2026-11-24).
+  A harvested search page carries the full text of every post it returned, and the
+  shared raw store (`raw_blob`) keeps pages for good, so clearing `iai_item` alone
+  would leave the same words behind. This lane's raw store is **local only**
+  (`scripts/run_industry_ai.py` `raw_store`, `remote=None`, whatever
+  `RAW_STORE_REMOTE` says): on a GitHub runner the pages go when the run ends.
+  Nothing reads them, since every run re-labels from `iai_item`. The cost: no
+  re-sieve from the original pages, and `discovery_ref` names a page nobody can fetch.
+- **Personal posts lose their words after 30 days,** so a post or guide drafted from
+  Personal uses must quote them within that window.
+- **The run log's stage counts cover rows with their text only.** Cleared rows are not
+  loaded, so those counts shrink as rows age, while the page counts every row.
 
 ---
 

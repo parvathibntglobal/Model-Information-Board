@@ -104,6 +104,22 @@ def _bot_check():
     return is_bot
 
 
+def raw_store():
+    """This lane's raw store: LOCAL ONLY, never mirrored to the shared database.
+
+    A harvested search page carries the full text of every post it returned -
+    Personal posts and spam included - and the shared store (`raw_blob`, with
+    RAW_STORE_REMOTE=postgres) keeps it for good. Text retention clears that text
+    from `iai_item` after 30 days, which would mean nothing if the same words sat
+    in `raw_blob` (#656 review; anooj chose this, 2026-11-24). So `remote=None`,
+    whatever the environment says: on a GitHub runner the pages go when the run
+    ends. Nothing reads them - every run re-labels from `iai_item`.
+    """
+    from collect.rawstore import RawStore
+
+    return RawStore(Path(settings().raw_store_path), remote=None)
+
+
 def print_counts(counts: dict, cfg) -> None:
     say(f"  items {counts['items']}, kept {counts['kept']}")
     if counts["dropped"]:
@@ -295,7 +311,6 @@ def main(argv: list[str] | None = None) -> int:
     if not args.relabel:
         from collect.http import build_client
         from collect.industry_ai.harvest import harvest
-        from collect.rawstore import RawStore
         from collect.registry.sources import load_sources
 
         say("\n1 Harvest")
@@ -304,7 +319,7 @@ def main(argv: list[str] | None = None) -> int:
             domains=keyword_domains,
             platforms=platforms,
             contract=load_sources(),
-            store=RawStore(Path(settings().raw_store_path)),
+            store=raw_store(),
             client_factory=build_client,
             since=since,
             log=say,
@@ -348,13 +363,28 @@ def main(argv: list[str] | None = None) -> int:
         try:
             new = iai_store.upsert_items(conn, fresh, run_id=run_id) if fresh else 0
             items = iai_store.load_items(conn)
-            say(f"\n6 Store: {new} new item(s); {len(items)} stored in all")
+            # `items` leaves out rows whose text retention cleared: they keep their
+            # labels and are not re-judged, so they are not "stored in all".
+            say(f"\n6 Store: {new} new item(s); {len(items)} stored with their text "
+                "(rows whose text was cleared keep their labels)")
             # LABELLED OVER THE WHOLE COLLECTION, so dedupe sees every copy and a
             # rule change applies to old items as well as new ones.
             results, counts = evaluate(items, cfg, since=since, is_bot=is_bot)
             iai_store.write_labels(conn, results, pipeline_version=cfg.pipeline_version)
-            say("\n2-5 Sieve | Dedupe | Filter | Label (whole collection)")
+            # OVER ROWS WITH THEIR TEXT (#656 review): cleared rows are not loaded,
+            # so these counts shrink as rows age while the page counts every row.
+            say("\n2-5 Sieve | Dedupe | Filter | Label (over rows with their text; rows "
+                "whose text was cleared keep their labels and are counted on the page, "
+                "not here)")
             print_counts(counts, cfg)
+            # TEXT RETENTION (contract `retention:`, anooj 2026-11-24): after the
+            # labels, so a row is cleared with the labels its text earned.
+            cleared = iai_store.clear_text(conn, cfg.retention)
+            r = cfg.retention
+            say(f"\n7 Retention: text cleared on {cleared} row(s) first stored over "
+                f"{r['clear_text_after_days']} days ago ("
+                + ("dropped, and " if r["dropped"] else "")
+                + f"kept under {', '.join(r['kept_domains']) or 'no domain'}); rows kept")
             iai_store.finish_run(
                 conn,
                 run_id,
@@ -363,7 +393,7 @@ def main(argv: list[str] | None = None) -> int:
                 quota=quota,
                 queries=queries,
                 counts=counts,
-                detail=f"{new} new item(s)",
+                detail=f"{new} new item(s); text cleared on {cleared} row(s)",
             )
             conn.commit()
         except Exception as e:

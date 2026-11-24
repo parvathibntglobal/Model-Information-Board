@@ -2083,7 +2083,7 @@ columns:
       reviewed: true
       state: read
       why: >-
-        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+        Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request. ⚠ SINCE 2026-11-24 (#656) THE REF NAMES A PAGE THAT IS NOT KEPT IN THE SHARED STORE: this lane's raw store is local only (scripts/run_industry_ai.py raw_store, remote=None), so a run on a GitHub runner leaves no page behind it. The ref still says which search page a post came from; it is not a key anyone can fetch.
     domain_hints:
       reviewed: true
       state: read
@@ -2194,6 +2194,11 @@ columns:
       state: read_not_by_query
       why: >-
         Written by store.write_labels; read by judge/industry_ai/view.py _count_by(conn, 'stage_guess'), whose column name is an argument the audit cannot see.
+    text_cleared_at:
+      reviewed: true
+      state: read
+      why: >-
+        When text retention (contract/industry_ai.yaml `retention:`, anooj 2026-11-24) emptied this row's title and body; NULL while the text is held. Written by collect/industry_ai/store.py clear_text; READ by store.load_items (`WHERE text_cleared_at IS NULL`), so a cleared row is never re-labelled on empty text and keeps the labels its text earned.
     title:
       reviewed: true
       state: read
