@@ -29,12 +29,23 @@
 name: Industry AI harvest
 
 on:
+  # AFTER THE MODEL FETCH, NEVER BESIDE IT (#669 review, 2026-11-25). Both ask the same
+  # RapidAPI Reddit plan, which refuses past about 32 calls a minute (429 at the
+  # 32nd rapid call, measured 2026-08-14; contract/sources.yaml), and each process
+  # paces itself at 25 a minute: two at once ask about 50. So this starts when the
+  # model fetch finishes, as the model fetch starts when the agents finish
+  # (contract/nightly_guard.yaml), and the guard job below stands it down while a
+  # model fetch is still going or once it already harvested today.
+  workflow_run:
+    workflows: ["Scheduled fetches"]
+    types: [completed]
   schedule:
-    # Daily 09:00 UTC (was Wednesdays only, until 2026-11-25). GitHub starts scheduled
-    # runs 3-10 hours late here (contract/nightly_guard.yaml, measured 2026-11-13);
-    # nothing here depends on the hour, and the model fetch's extraction budget is not
-    # spent by this lane (no language model).
-    - cron: "0 9 * * *"
+    # BACKUP, 17:00 UTC: for a day the model fetch did no real work, so nothing
+    # chained. GitHub starts it 3-10 hours late (measured 2026-11-13), so it lands
+    # 20:00-03:00, before the next 04:00 window opens; it stands down while a model
+    # fetch runs (its finish starts this) or once this harvested today. Was 09:00
+    # daily in this PR's first draft, and Wednesdays 09:00 until 2026-11-25.
+    - cron: "0 17 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -63,6 +74,7 @@ on:
 
 permissions:
   contents: read
+  actions: read      # the guard reads the model fetch's runs and this workflow's
   issues: write      # the run's counts go to INDUSTRY_AI_ISSUE
 
 concurrency:
@@ -70,7 +82,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # A `schedule` or chained `workflow_run` start stands down here while a model fetch
+  # is going or once this harvested today; a hand start always runs. See the contract.
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml
+      - id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/nightly_guard.py --workflow industry-ai-harvest.yml
+
   harvest:
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     # 180 (2026-11-25; was 90, and 45 before 2026-11-24). Two runs now, a group of ten
     # domains and then the observer. The 2026-11-25 run (5 domains and the 20-account
@@ -103,15 +135,15 @@ jobs:
       RAW_STORE_PATH: raw_store
       DRY_RUN: ${{ inputs.dry_run }}
       DOMAINS: ${{ inputs.domains }}
-      # A scheduled run has no inputs: it takes today's group.
-      GROUP: ${{ github.event_name == 'schedule' && 'auto' || inputs.group }}
+      # A scheduled or chained run has no inputs: it takes today's group.
+      GROUP: ${{ github.event_name != 'workflow_dispatch' && 'auto' || inputs.group }}
       PLATFORMS: ${{ inputs.platforms }}
       WATCH: ${{ inputs.watch }}
     steps:
       - name: Is the Industry AI agent switched on, and configured?
         id: gate
         run: |
-          if [ "$INDUSTRY_AI_ENABLED" != "1" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+          if [ "$INDUSTRY_AI_ENABLED" != "1" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
             echo "::notice::INDUSTRY_AI_ENABLED is not 1 - nothing harvested. This is the switch, not a failure."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             exit 0

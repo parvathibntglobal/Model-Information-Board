@@ -24,6 +24,9 @@
 #                  from the agent run's creation (see "Hand-started runs" in
 #                  docs/ops-nightly-guard.md).
 #   evidence feed  starts when the model fetch finishes, as before.
+#   industry AI    starts when the model fetch finishes too (2026-11-25), never
+#                  beside it: both ask RapidAPI's Reddit plan, which has a
+#                  per-minute limit. Cron 17:00 UTC is its backup.
 #   topic harvest  cron 19:00, independent; no extraction.
 # A hand-started nightly agent run spends from the same daily extraction cap as
 # the model fetch; the guard keeps the two from running at once, and a test start
@@ -95,6 +98,20 @@ workflows:
     waits_for: null
     guard_events: [schedule]
     counts_events: [schedule, nightly_dispatch]
+
+  # THE INDUSTRY AI HARVEST (2026-11-25, rotation PR; #669 review). Daily, after the
+  # model fetch: the two share RapidAPI's Reddit plan and its per-minute limit, so
+  # it never starts while a model fetch runs (`waits_for`); the model fetch's
+  # finish starts it (`workflow_run`), and its 17:00 cron is a backup for a day
+  # with no model fetch. No `nightly_dispatch`: a hand start always runs and never
+  # counts. A second model pass in one day (a nightly agent run started by hand)
+  # starts a second harvest of the same group, each run inside its own caps.
+  industry-ai-harvest.yml:
+    job: harvest
+    window_opens_utc: "04:00"
+    waits_for: scheduled-fetches.yml
+    guard_events: [schedule, workflow_run]
+    counts_events: [schedule, workflow_run]
 
   evidence-feed.yml:
     job: feed

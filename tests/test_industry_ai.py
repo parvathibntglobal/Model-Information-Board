@@ -836,7 +836,9 @@ def test_the_workflow_runs_the_group_then_the_observer_apart():
     wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows"
           / "industry-ai-harvest.yml").read_text(encoding="utf-8")
     parsed = yaml.safe_load(wf)
-    assert parsed[True]["schedule"] == [{"cron": "0 9 * * *"}], "daily"
+    # Daily, started by the model fetch's finish; 17:00 is the backup (#669 review).
+    assert parsed[True]["schedule"] == [{"cron": "0 17 * * *"}], "daily backup"
+    assert parsed[True]["workflow_run"]["workflows"] == ["Scheduled fetches"]
     steps = parsed["jobs"]["harvest"]["steps"]
     keyword = next(s for s in steps if (s.get("name") or "").startswith("Keyword run"))
     observer = next(s for s in steps if (s.get("name") or "").startswith("Observer run"))
@@ -844,6 +846,6 @@ def test_the_workflow_runs_the_group_then_the_observer_apart():
     assert 'args="--watch-only"' in observer["run"]
     assert steps.index(keyword) < steps.index(observer)
     # A scheduled run takes today's group; the observer runs even if the keyword run failed.
-    assert "github.event_name == 'schedule' && 'auto'" in wf
+    assert "github.event_name != 'workflow_dispatch' && 'auto'" in wf
     assert observer["if"].startswith("${{ !cancelled()")
     assert "WATCH: ${{ inputs.watch }}" in wf
