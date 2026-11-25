@@ -928,3 +928,18 @@ def _legacy_cells_on_for_existing_tests(monkeypatch):
     `tests/test_legacy_cells_off.py` holds them.
     """
     monkeypatch.setenv("LEGACY_CELLS", "on")
+
+
+@pytest.fixture(autouse=True)
+def _admin_cache_off(monkeypatch):
+    """The Admin cache (judge/admin_cache.py, 2026-11-25) is OFF in the suite.
+
+    A test may write to the database directly and then read an endpoint twice;
+    with the cache on, the second read would be the kept first answer and the
+    test would fail for a reason that has nothing to do with what it tests.
+    `tests/test_admin_cache.py` turns it on for itself.
+    """
+    from judge import admin_cache
+
+    monkeypatch.setattr(admin_cache, "ENABLED", False)
+    admin_cache.clear()

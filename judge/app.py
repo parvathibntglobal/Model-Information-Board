@@ -162,6 +162,8 @@ async def _lifespan(_app: FastAPI):
     _warm_public_updates()
     # The "AI in industries" pages, likewise (judge/industry_ai/cache.py).
     _warm_industry_ai()
+    # The slowest Admin sections, likewise (judge/admin_cache.py).
+    _warm_admin()
     yield
 
 
@@ -233,8 +235,28 @@ if _ALLOWED_ORIGINS:
         # would be a login that succeeds and a board that 401s.
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type"],
+        allow_headers=["Authorization", "Content-Type", "X-Recount"],
     )
+
+
+# ADMIN SECTIONS, KEPT (2026-11-25, judge/admin_cache.py). Any write that succeeds
+# empties the cache, so a ruling, an added model or a saved setting shows on the
+# next read; `X-Recount: 1` (Admin's Refresh) works a section out afresh.
+from judge import admin_cache  # noqa: E402
+
+_WRITES = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+@app.middleware("http")
+async def _admin_cache_middleware(request: Request, call_next):
+    token = admin_cache.RECOUNT.set(request.headers.get("x-recount") == "1")
+    try:
+        response = await call_next(request)
+    finally:
+        admin_cache.RECOUNT.reset(token)
+    if request.method in _WRITES and response.status_code < 400:
+        admin_cache.clear()
+    return response
 
 
 class AskRequest(BaseModel):
@@ -2812,6 +2834,7 @@ def board_page() -> dict:
 
 
 @app.get("/coverage")
+@admin_cache.kept("coverage", fresh=120, max_age=900)
 def coverage_page() -> dict:
     """What the board does not know, and what it has not checked."""
     from judge.pages.coverage import CoveragePage
@@ -2840,6 +2863,7 @@ def coverage_page() -> dict:
 
 
 @app.get("/blog-posts")
+@admin_cache.kept("blog-posts", fresh=60, max_age=600)
 def blog_posts_page(include: str = "public") -> dict:
     """Blog posts, from the `blog_post` table (judge/blog_store.py).
 
@@ -4033,6 +4057,7 @@ def blog_posts_generate_log(lines: int = 400) -> dict:
 
 
 @app.get("/admin/scheduler")
+@admin_cache.kept("scheduler", fresh=120, max_age=900)
 def admin_scheduler() -> dict:
     """Admin -> Scheduler: how the scheduled fetches are set up (the workflow
     file and contract/scheduler.yaml), who is due next (the runner's own
@@ -4046,6 +4071,7 @@ def admin_scheduler() -> dict:
 
 
 @app.get("/admin/schedules")
+@admin_cache.kept("schedules", fresh=120, max_age=900)
 def admin_schedules() -> dict:
     """Admin -> Scheduler, under the nightly fetches: the GitHub Actions that
     feed AI benchmarks and AI updates - set-up, switch, next firing and recent
@@ -4057,6 +4083,7 @@ def admin_schedules() -> dict:
 
 
 @app.get("/admin/sections")
+@admin_cache.kept("sections", fresh=60, max_age=600)
 def admin_sections() -> dict:
     """Admin -> Board & content: what the public AI benchmarks and AI updates
     pages hold now, and the contract timing values behind them. Read-only; no
@@ -4134,6 +4161,30 @@ def industry_ai_page() -> dict:
 
     # Kept for a few minutes, never a wait on a refresh (judge/industry_ai/cache.py).
     return cache.cached(("summary",), build)
+
+
+def _warm_admin() -> None:
+    """Work out the slowest Admin sections in the background at startup, so the
+    first person to open them does not wait (measured 2026-11-25 against the shared
+    database: keywords ~21 s, every blog draft ~16 s (the Admin page's own load),
+    usage ~13 s, schedules ~9 s, runs and board entries ~4 s). One after another,
+    not at once, to keep the database's load small.
+    A failure only logs; the section works itself out on demand."""
+
+    def run() -> None:
+        for name, route in (("keywords", admin_keywords), ("usage", admin_usage),
+                            ("usage billed", admin_usage_billed),
+                            ("schedules", admin_schedules), ("runs", admin_runs),
+                            ("board-entries", admin_board_entries),
+                            ("coverage", coverage_page),
+                            # Admin's own load asks for every draft (the Blogs count).
+                            ("blog drafts", lambda: blog_posts_page(include="all"))):
+            try:
+                route()
+            except Exception:  # noqa: BLE001 - warming is a courtesy
+                log.exception("admin cache: warming %s failed", name)
+
+    threading.Thread(target=run, name="admin-warm", daemon=True).start()
 
 
 def _warm_industry_ai() -> None:
@@ -4216,6 +4267,7 @@ def industry_ai_domain_page(
 
 
 @app.get("/admin/industry-ai")
+@admin_cache.kept("industry-ai", fresh=120, max_age=900)
 def admin_industry_ai() -> dict:
     """Admin -> Board & content -> AI in industries: the state of the Industry AI
     data - the rules versions the stored labels carry against the contract's, the
@@ -4599,6 +4651,7 @@ def changelog_page(days: int = 30) -> dict:
 
 
 @app.get("/admin/usage")
+@admin_cache.kept("usage", fresh=60, max_age=600)
 def admin_usage(hours: int = 24, days: int = 14) -> dict:
     """What we have spent today against the one shared daily cap.
 
@@ -5537,6 +5590,7 @@ def admin_models_propose(
 
 
 @app.get("/admin/usage/billed")
+@admin_cache.kept("usage-billed", fresh=120, max_age=900)
 def admin_usage_billed() -> dict:
     """Billed against estimated cost, per recent run (Admin -> API usage).
 
@@ -5550,6 +5604,7 @@ def admin_usage_billed() -> dict:
 
 
 @app.get("/admin/runs/lost-claims")
+@admin_cache.kept("lost-claims", fresh=60, max_age=600)
 def admin_runs_lost_claims() -> dict:
     """Claims each recent run lost to validation, by error (Admin -> Runs)."""
     from judge import admin_extras
@@ -5559,6 +5614,7 @@ def admin_runs_lost_claims() -> dict:
 
 
 @app.get("/admin/runs")
+@admin_cache.kept("runs", fresh=15, max_age=120)
 def admin_runs(limit: int = 60) -> dict:
     """Every fetch run this database has seen, newest first.
 
@@ -5800,6 +5856,7 @@ def _database_target(url: str | None) -> dict[str, object]:
 
 
 @app.get("/admin/database")
+@admin_cache.kept("database", fresh=30, max_age=300)
 def admin_database() -> dict:
     """Which database this is, what is in it, and whether its schema matches.
 
@@ -6468,6 +6525,7 @@ def _media_sources(doc: dict) -> dict:
 
 
 @app.get("/admin/sources")
+@admin_cache.kept("sources", fresh=300, max_age=1800)
 def admin_sources() -> dict:
     """Every platform the harvest reaches, and how it reaches it.
 
@@ -6701,6 +6759,7 @@ HELD_MODELS_SHOWN = 200
 
 
 @app.get("/admin/held-models")
+@admin_cache.kept("held-models", fresh=60, max_age=600)
 def admin_held_models() -> dict:
     """Models the board holds evidence about but has not seated (#602).
 
@@ -6784,6 +6843,7 @@ def admin_held_models() -> dict:
 
 
 @app.get("/admin/keywords")
+@admin_cache.kept("keywords", fresh=600, max_age=6 * 3600)
 def admin_keywords() -> dict:
     """The search terms each platform is actually sent, per tracked model.
 
@@ -7113,6 +7173,7 @@ def _where_a_model_is_used() -> dict:
 
 
 @app.get("/admin/prompts")
+@admin_cache.kept("prompts", fresh=600, max_age=3600)
 def admin_prompts() -> dict:
     """Every prompt the LIVE PIPELINE sends a model, COMPOSED not copied.
 
@@ -7510,6 +7571,7 @@ def admin_discussed_models() -> dict:
 
 
 @app.get("/admin/board-entries")
+@admin_cache.kept("board-entries", fresh=60, max_age=600)
 def admin_board_entries() -> dict:
     """Discovered board sections awaiting consolidation, grouped by slug.
 

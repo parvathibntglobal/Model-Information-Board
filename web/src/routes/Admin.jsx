@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { health, coveragePage, listModels, blogPosts, BoardUnreadable } from '../api'
+import { health, coveragePage, listModels, blogPosts, BoardUnreadable, recountNext } from '../api'
 import { agoDays } from '../dates'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
@@ -517,6 +517,7 @@ export default function Admin() {
   // back to the first tab. An unknown or absent `s` falls back to the first
   // section rather than rendering nothing.
   const [params, setParams] = useSearchParams()
+  const [recounts, setRecounts] = useState(0)
   const wanted = params.get('s')
   // No project named and no section that belongs to one: the project list.
   const project = OPENABLE.find((pr) => pr.id === params.get('p')) || (wanted && projectOf(wanted)) || null
@@ -662,7 +663,18 @@ export default function Admin() {
 
             `key` on the wrapper so React remounts rather than reconciling two
             different panels into one another's state. */}
-        <div className="adm-body" key={active.id}>
+        <div className="adm-body" key={`${active.id}:${recounts}`}>
+          {/* KEPT FOR A SHORT WHILE (2026-11-25, judge/admin_cache.py): the
+              backend keeps each section's answer briefly, so switching back is
+              instant. Any change made here clears it; Refresh works the open
+              section out afresh. */}
+          <div className="adm-kept">
+            <span className="dim">Sections open from a copy kept for a short while; anything changed here shows at once.</span>
+            <button type="button" className="btn btn-ghost adm-kept-btn"
+                    onClick={() => { recountNext(); setRecounts((n) => n + 1) }}>
+              ↻ Refresh this section
+            </button>
+          </div>
           <Reveal>{active.render({ hp, cov })}</Reveal>
         </div>
       </div>

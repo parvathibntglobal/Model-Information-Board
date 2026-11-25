@@ -46,6 +46,17 @@ const TOKEN = import.meta.env.VITE_API_TOKEN || ''
  */
 const bearer = () => sessionToken() || TOKEN
 
+// ADMIN'S REFRESH (2026-11-25, judge/admin_cache.py): for a few seconds after
+// `recountNext()`, every read asks the backend to work its answer out afresh
+// (`X-Recount: 1`) instead of sending the copy it kept. A few seconds, not one
+// request, because a section mounts and asks for several things at once.
+const RECOUNT_WINDOW_MS = 4000
+let recountUntil = 0
+export function recountNext() {
+  recountUntil = Date.now() + RECOUNT_WINDOW_MS
+  bust()
+}
+
 export class ApiError extends Error {
   constructor(message, status, body) {
     super(message)
@@ -72,6 +83,7 @@ async function request(path, { method = 'GET', body, signal } = {}) {
       headers: {
         ...(body ? { 'Content-Type': 'application/json' } : {}),
         ...(bearer() ? { Authorization: `Bearer ${bearer()}` } : {}),
+        ...(method === 'GET' && Date.now() < recountUntil ? { 'X-Recount': '1' } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
     })
