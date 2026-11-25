@@ -134,3 +134,5 @@
 .au-tabs ~ .au-bar{margin-top:calc(var(--s2) * -1)}
 /* A tab's panel keeps the page's spacing between its parts (#661 review). */
 .au-panel{display:flex;flex-direction:column;gap:var(--s5)}
+/* `display:flex` above would otherwise show a panel marked `hidden`. */
+.au-panel[hidden]{display:none}

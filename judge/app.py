@@ -4111,7 +4111,8 @@ def news_page(days: int | None = None, request: Request = None) -> dict:
             s["terms"] = None
             if s.get("last_read"):
                 s["last_read"]["detail"] = None
-        out["population"]["sponsor_like_unlisted"] = {}
+        # None, not {}: withheld is not "none found" (rule 6; #661 review).
+        out["population"]["sponsor_like_unlisted"] = None
     return out
 
 

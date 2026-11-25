@@ -347,12 +347,15 @@ export default function AiUpdates() {
         )}
       </header>
 
-      {tab === 'news' && (
-        <div className="au-panel" role="tabpanel" id="au-panel-news" aria-labelledby="au-tab-news">
-          <News embedded />
-        </div>
-      )}
-      {tab === 'models' && (<div className="au-panel" role="tabpanel" id="au-panel-models" aria-labelledby="au-tab-models">
+      {/* BOTH PANELS ARE ON THE PAGE, the closed one `hidden` (#661 review): each
+          tab's aria-controls then points at a panel that exists, and a tab keeps
+          its filters when the reader comes back to it. */}
+      <div className="au-panel" role="tabpanel" id="au-panel-news" aria-labelledby="au-tab-news"
+           hidden={tab !== 'news'}>
+        <News embedded />
+      </div>
+      <div className="au-panel" role="tabpanel" id="au-panel-models" aria-labelledby="au-tab-models"
+           hidden={tab !== 'models'}>
 
       {error && <p className="au-quiet" role="alert">The updates could not be loaded just now. Please try again in a minute.</p>}
       {!data && !error && <div className="skel au-skel" />}
@@ -409,7 +412,7 @@ export default function AiUpdates() {
           </footer>
         </>
       )}
-      </div>)}
+      </div>
     </div>
   )
 }
