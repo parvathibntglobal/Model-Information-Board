@@ -686,13 +686,24 @@ class _GitHub(_Runner):
         self.h = GitHubHarvester(
             client=self.client, store=store, max_pages=1, max_fetch_per_query=0
         )
+        self.since = since
 
     def run(self, query):
         from collect.adapters.github import QueryRun
         from collect.adapters.queries.github import SearchRequest
 
+        # ONLY ISSUES OPENED INSIDE THE RUN WINDOW (2026-11-25, the rotation PR).
+        # GitHub's search orders by best match, so without a date a year-old issue
+        # sits among this week's: 36 of the 132 GitHub posts the 2026-11-25 run
+        # first stored were older than the 90-day window and were dropped after
+        # being paid for in requests. `created:>=` IS APPLIED, not silently dropped
+        # (the rule 6 shape GitHub search has shown before): measured 2026-11-25 on
+        # "AI code review team is:issue", total_count 189,109 without it and 2,272
+        # with `created:>=2026-11-22`, and 0 of 30 returned items older than that
+        # date (20 of 30 without it).
         req = SearchRequest(
-            query=f"{query} is:issue", entry_label="industry_ai", variants=(), narrowing_token=None
+            query=f"{query} is:issue created:>={self.since:%Y-%m-%d}", entry_label="industry_ai",
+            variants=(), narrowing_token=None,
         )
         run = QueryRun(request=req)
         hits = self.h.search(req, run)

@@ -492,10 +492,16 @@ Migration `contract/migrations/20261120T1000_industry_ai.sql`, mirrored in
 - **Which domains run** is set in the contract (`active`). `--domains` narrows within
   the active ones and refuses an inactive one.
 - **Workflow:** `.github/workflows/industry-ai-harvest.yml`.
-  - Weekly, Wednesdays 09:00 UTC, with its own concurrency group.
+  - **Daily since 2026-11-25** (weekly on Wednesdays before). It starts when the model
+    fetch finishes, never beside it: the two share RapidAPI's Reddit plan and its
+    per-minute limit. A 17:00 UTC cron is the backup, and the nightly guard
+    (`contract/nightly_guard.yaml`) stands it down while a model fetch runs or once it
+    harvested that day.
+  - Two runs: one rotation group (`--group auto`, `--no-watch`), then the observer
+    (`--watch-only`), each its own `iai_run` row. Its own concurrency group.
   - **Off until `INDUSTRY_AI_ENABLED=1`.** A manual start defaults to a dry run.
-  - Shared staging database; `RAW_STORE_REMOTE=postgres` so payloads reach the
-    shared raw store.
+  - Shared staging database. No shared raw store (#656): the search pages stay on
+    the runner and go when the run ends.
 - **Admin:** the "Industry AI" scheduler tab (`judge/sections_status.py` `FEEDS`).
 
 ---
