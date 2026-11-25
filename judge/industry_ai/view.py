@@ -118,13 +118,21 @@ def industry_ai_view(conn) -> dict[str, Any]:
             "SELECT d, count(*) FROM iai_item, unnest(domain_hints) AS d GROUP BY 1"
         ).fetchall()
     }
+    # SAVED BUT NOT YET LABELLED IS NOT "FILTERED OUT" (#663 review, Parvathi). The store
+    # inserts every new row as verdict 'dropped', drop_stage 'pending', and labelling
+    # overwrites both. A run whose labelling failed leaves its harvest in that state:
+    # nothing judged those posts, so they are counted apart, never as a reason our rules
+    # dropped something (rules 4 and 6). collected = kept + dropped + pending.
     dropped = [
         {"stage": s, "reason": r, "items": int(n)}
         for s, r, n in conn.execute(
             "SELECT drop_stage, drop_reason, count(*) FROM iai_item WHERE verdict = 'dropped' "
-            "GROUP BY 1, 2 ORDER BY 3 DESC"
+            "AND drop_stage IS DISTINCT FROM 'pending' GROUP BY 1, 2 ORDER BY 3 DESC"
         ).fetchall()
     ]
+    (pending,) = conn.execute(
+        "SELECT count(*) FROM iai_item WHERE verdict = 'dropped' AND drop_stage = 'pending'"
+    ).fetchone()
     # KEPT ITEMS PER GROUP, "<domain>/<group>" (#644 review, point 3).
     by_group: dict[str, dict[str, int]] = {}
     for g, n in conn.execute(
@@ -196,6 +204,9 @@ def industry_ai_view(conn) -> dict[str, Any]:
         "collected": int(total),
         "kept": int(kept),
         "dropped": dropped,
+        # Saved, waiting to be labelled (a run's labelling failed): read by
+        # web/src/routes/IndustryAI.jsx, the totals row and its note.
+        "pending": int(pending),
         "types": list(contract["type_order"]),
         "pipeline_version": contract.get("pipeline_version"),
         "last_run": None
