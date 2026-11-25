@@ -358,6 +358,11 @@ def test_the_page_counts_watched_posts_apart_and_general_ai_on_its_own(conn, cfg
     g = watched("A new open LLM was released today with a longer context window and faster "
                 "inference for everyone who runs it locally.", iid="x:g3")
     store.upsert_items(conn, [w, k, g], run_id="iai-obs")
+    # THE STORE STAMPS first_seen_at WITH THE DATABASE CLOCK, while these posts are dated
+    # from the fixed NOW. The watch window (`watch.lookback_days`) is measured from
+    # first_seen_at, so from 2026-11-25 the real clock put these posts outside it and
+    # this test failed on every branch. Pin first_seen_at to the test's own clock.
+    conn.execute("UPDATE iai_item SET first_seen_at = %s", (NOW,))
     results, counts_ = evaluate(store.load_items(conn), cfg, since=SINCE)
     store.write_labels(conn, results, pipeline_version=cfg.pipeline_version)
     conn.commit()
