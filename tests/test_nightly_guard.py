@@ -51,16 +51,23 @@ def _ok(created):
 # ── the contract ────────────────────────────────────────────────────────────
 
 
-def test_the_contract_loads_and_names_the_four_workflows():
+def test_the_contract_loads_and_names_its_workflows():
     e = _entries()
     assert set(e) == {
         "agent-fetches.yml",
         "scheduled-fetches.yml",
         "topic-harvest.yml",
+        "industry-ai-harvest.yml",
         "evidence-feed.yml",
     }
     assert e["scheduled-fetches.yml"].waits_for == "agent-fetches.yml"
     assert "workflow_run" in e["scheduled-fetches.yml"].guard_events
+    # 2026-11-25 (#669 review): the Industry AI harvest never runs beside the model
+    # fetch, which shares its RapidAPI Reddit plan and that plan's per-minute limit.
+    iai = e["industry-ai-harvest.yml"]
+    assert iai.waits_for == "scheduled-fetches.yml"
+    assert {"schedule", "workflow_run"} <= set(iai.guard_events)
+    assert iai.window_opens == (4, 0)
     # The night begins at the agent cron (anooj, 2026-11-13), for the agents,
     # the model fetch that follows them, and the feed that follows that.
     for f in ("agent-fetches.yml", "scheduled-fetches.yml", "evidence-feed.yml"):
@@ -407,6 +414,26 @@ def _wf(file):
     return yaml.safe_load((ROOT / ".github" / "workflows" / file).read_text(encoding="utf-8"))
 
 
+def test_the_industry_ai_harvest_waits_for_a_going_model_fetch():
+    """#669 review: the backup cron stands down while the model fetch runs; the
+    model fetch's finish starts it, and a model run that stood down starts nothing."""
+    e = _entries()
+    iai = e["industry-ai-harvest.yml"]
+    busy = lambda file: (True, f"a nightly run of {file} is going")  # noqa: E731
+    run, why = ng.guard_decision(iai, "schedule", _at(14, 21), NEVER, still_running=busy)
+    assert run is False and "scheduled-fetches.yml" in why
+    path = ".github/workflows/scheduled-fetches.yml"
+    model_run = _finished("workflow_run", "Scheduled fetches", path=path)
+    t = ng.trigger_verdict(e, model_run, _job("success"))
+    run, _ = ng.guard_decision(iai, "workflow_run", _at(14, 16), NEVER, trigger=t,
+                               still_running=NOTHING_RUNS)
+    assert run is True
+    stood_down = ng.trigger_verdict(e, model_run, _job("skipped"))
+    run, _ = ng.guard_decision(iai, "workflow_run", _at(14, 16), NEVER, trigger=stood_down,
+                               still_running=NOTHING_RUNS)
+    assert run is False
+
+
 def test_the_four_workflows_are_wired_to_the_guard():
     for file, entry in _entries().items():
         wf = _wf(file)
@@ -421,14 +448,20 @@ def test_the_four_workflows_are_wired_to_the_guard():
     assert model[True]["workflow_run"]["workflows"] == ["Agent fetches"]  # `on:` reads as True
     assert _wf("agent-fetches.yml")["name"] == "Agent fetches"
     assert _wf("scheduled-fetches.yml")["name"] == "Scheduled fetches"
+    iai = _wf("industry-ai-harvest.yml")
+    assert iai[True]["workflow_run"]["workflows"] == ["Scheduled fetches"]
 
 
 def test_the_crons_are_where_anooj_put_them():
-    """2026-11-13, #631: no timer outside GitHub; the agent cron moves to 04:00
-    so the delayed run lands near 10:00-11:00 and the night ends inside one UTC
-    day. The model cron is a backup after the agents' latest start seen."""
-    assert _wf("agent-fetches.yml")[True]["schedule"] == [{"cron": "0 4 * * *"}]
-    assert _wf("scheduled-fetches.yml")[True]["schedule"] == [{"cron": "0 16 * * *"}]
+    """2026-11-25 (anooj): the agent fetch is started by hand only - no cron - and
+    the model fetch's own cron, 04:00 UTC, is its trigger, so even a start 10 hours
+    late ends inside the UTC day the extraction cap counts. (2026-11-13, #631: the
+    agents had 04:00 and the model fetch a 16:00 backup behind them.)"""
+    assert "schedule" not in _wf("agent-fetches.yml")[True]
+    assert _wf("scheduled-fetches.yml")[True]["schedule"] == [{"cron": "0 4 * * *"}]
+    # The model cron is not later than the day's window opening it counts from, so
+    # its run is never counted against the previous day's.
+    assert _entries()["scheduled-fetches.yml"].window_opens == (4, 0)
 
 
 def test_every_workflow_counting_a_nightly_hand_start_can_be_given_one():

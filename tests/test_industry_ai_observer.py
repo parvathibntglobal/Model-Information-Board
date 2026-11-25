@@ -66,9 +66,11 @@ def one(cfg, it):
 # ── the contract ─────────────────────────────────────────────────────────────
 
 
-def test_the_watch_lists_load_off_and_within_their_caps(cfg):
+def test_the_watch_lists_load_on_daily_and_within_their_caps(cfg):
     w = cfg.watch
-    assert w["enabled"] is False, "the observer stays off until its own dry run"
+    # ON since 2026-11-25 (anooj): it runs daily in its own run, reading back two days.
+    assert w["enabled"] is True
+    assert w["lookback_days"] == 2
     assert 0 < len(w["bluesky"]) <= 20
     # Raised on 2026-11-25 (anooj): X to 200 (its accounts are clubbed, so 150 accounts
     # cost 15 queries, not 150) and Reddit to 60 (one listing page per subreddit).

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -102,7 +103,11 @@ RUN_KEYS = {
     "min_text_chars",
     "context_window_words",
     "low_engagement_max",
+    "rotation",
 }
+#: The two rotation groups (`run.rotation.groups`), and how a scheduled run picks one.
+ROTATION_GROUPS = ("a", "b")
+ROTATION_BY = {"utc_day_parity"}
 PAGE_KEYS = {"reddit", "x", "x_clubbed"}
 DOMAIN_KEYS = {
     "name",
@@ -200,6 +205,20 @@ class Config:
     @property
     def active_domains(self) -> list[str]:
         return [k for k, d in self.domains.items() if d.active]
+
+    def group_for(self, day: date) -> str:
+        """The rotation group a scheduled run on `day` (UTC) harvests: `a` on an
+        even proleptic ordinal, `b` on an odd one. The ordinal, not the day of the
+        year, so the groups alternate across a year end (365 is odd)."""
+        return ROTATION_GROUPS[day.toordinal() % 2]
+
+    def group_domains(self, group: str) -> list[str]:
+        """The group's domains, in the contract's order."""
+        if group not in ROTATION_GROUPS:
+            raise IndustryAIConfigError(
+                f"no rotation group {group!r}; the groups are {ROTATION_GROUPS}")
+        members = set(self.run["rotation"]["groups"][group])
+        return [k for k in self.domains if k in members]
 
     def x_pages(self, query: str) -> int:
         """Pages for one X query: `x_clubbed` when it clubs at least
@@ -566,6 +585,7 @@ def parse(raw: dict) -> Config:
         )
     if not any(d.active for d in domains.values()):
         raise IndustryAIConfigError("no domain is `active: true`; nothing would be harvested")
+    _rotation(run["rotation"], domains)
 
     return Config(
         pipeline_version=str(_need(raw, "pipeline_version", "top level")),
@@ -588,6 +608,37 @@ def parse(raw: dict) -> Config:
         watch=_watch(_need(raw, "watch", "top level"), suffix),
         retention=_retention(_need(raw, "retention", "top level"), domains),
     )
+
+
+def _rotation(raw: Any, domains: dict[str, Domain]) -> None:
+    """`run.rotation` (2026-11-25): the domains in two groups a scheduled run
+    alternates between. EVERY DOMAIN IN EXACTLY ONE GROUP: a domain in neither
+    would never be harvested on a schedule, and one in both would be harvested
+    twice as often - both silently, so both are refused (rule 12)."""
+    where = "run.rotation"
+    if not isinstance(raw, dict):
+        raise IndustryAIConfigError(f"{where} must be a mapping")
+    _known(raw, {"by", "groups"}, where)
+    by = _need(raw, "by", where)
+    if by not in ROTATION_BY:
+        raise IndustryAIConfigError(f"{where}.by must be one of {sorted(ROTATION_BY)}, not {by!r}")
+    groups = _need(raw, "groups", where)
+    if not isinstance(groups, dict) or set(groups) != set(ROTATION_GROUPS):
+        raise IndustryAIConfigError(f"{where}.groups must name exactly {list(ROTATION_GROUPS)}")
+    seen: dict[str, str] = {}
+    for g in ROTATION_GROUPS:
+        members = _strings(groups[g], f"{where}.groups.{g}", allow_empty=False)
+        for k in members:
+            if k not in domains:
+                raise IndustryAIConfigError(f"{where}.groups.{g}: no domain {k!r}")
+            if k in seen:
+                raise IndustryAIConfigError(
+                    f"{where}: {k!r} is in group {seen[k]!r} and group {g!r}; one only")
+            seen[k] = g
+    missing = [k for k in domains if k not in seen]
+    if missing:
+        raise IndustryAIConfigError(
+            f"{where}: {missing} in no group, so never harvested on a schedule")
 
 
 def _retention(raw: Any, domains: dict[str, Domain]) -> dict[str, Any]:

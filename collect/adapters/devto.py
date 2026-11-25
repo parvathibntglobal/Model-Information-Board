@@ -103,6 +103,15 @@ DEFAULT_MAX_PAGES = 1
 #: No published read limit exists, so this is politeness rather than a budget.
 MIN_INTERVAL_SECONDS = 1.0
 
+#: ONE more attempt after an HTTP 429, after this wait (2026-11-25, the rotation
+#: PR). The Industry AI agent's first real run lost 3 dev.to queries to 429s
+#: (2026-11-24) and its second 1 of 18 (2026-11-25); ten domains a run means
+#: about 40 queries. ONLY 429: this platform answers a zero-match query with a
+#: 500 or a hang (module docstring), and retrying those would cost a wait and
+#: learn nothing. dev.to is not metered, so a retry costs time only.
+RATE_LIMIT_RETRIES = 1
+RATE_LIMIT_RETRY_WAIT_SECONDS = 5.0
+
 
 class DevtoConfigError(RuntimeError):
     """The adapter cannot be built from the current settings."""
@@ -209,6 +218,15 @@ class DevtoRun:
     #: `http_errors` because a timeout on this platform is the observed answer
     #: to a zero-match query, and folding it in would hide that.
     timeouts: int = 0
+    #: Failed attempts (HTTP 429) a retry recovered from, and their causes - kept
+    #: apart from `failures`, which lists only the causes that stood, and still
+    #: counted in `http_errors`, so a retry never hides a failure (rule 12).
+    #: READ BY collect/industry_ai/harvest.py `failure_of`, which subtracts
+    #: `recovered`, as it does for X. `recovered_failures` is declared unread (rule
+    #: 9): its intended reader is a run log line naming recovered causes, as X's
+    #: fetch line does; nothing prints dev.to's yet.
+    recovered: int = 0
+    recovered_failures: list = field(default_factory=list)
 
     discovery_refs: list[str] = field(default_factory=list)
     hits: list[DevtoHit] = field(default_factory=list)
@@ -281,6 +299,28 @@ class DevtoHarvester:
         self._sleep = sleeper
 
     def _get(self, path: str, params: dict[str, Any] | None, run: DevtoRun):
+        """`_attempt`, once more after a 429 (RATE_LIMIT_RETRIES). Every failed
+        attempt is counted in `http_errors`; one a later attempt recovered from
+        moves to `recovered_failures` rather than `failures`."""
+        pending: list[str] = []
+        for attempt in range(RATE_LIMIT_RETRIES + 1):
+            errors_before = run.http_errors
+            response = self._attempt(path, params, run)
+            if response is not None:
+                run.recovered += len(pending)
+                run.recovered_failures += pending
+                return response
+            last = run.failures[-1] if run.http_errors > errors_before and run.failures else None
+            if last != "HTTP 429" or attempt == RATE_LIMIT_RETRIES:
+                run.failures += pending  # the earlier attempts' failures stood too
+                return None
+            pending.append(run.failures.pop())
+            log.warning("devto: HTTP 429 on %s; trying once more in %.0f s",
+                        path, RATE_LIMIT_RETRY_WAIT_SECONDS)
+            self._sleep(RATE_LIMIT_RETRY_WAIT_SECONDS)
+        return None
+
+    def _attempt(self, path: str, params: dict[str, Any] | None, run: DevtoRun):
         """One request. None on a timeout or a non-200, both counted.
 
         The timeout branch is separate on purpose - see the module docstring: a

@@ -1,17 +1,19 @@
-# The AGENT fetch, nightly (#609-#611; anooj 2026-11-09: "do this separately, not
-# with model fetch").
+# The AGENT fetch, STARTED BY HAND (#609-#611; anooj 2026-11-09: "do this separately,
+# not with model fetch"; manual only since 2026-11-25).
 #
 # Fetches the agents in contract/tracked_agents.yaml (Muse, Dots, Duet, ...) with
 # scripts/run_scheduled_fetches.py --list agents. The model fetch
 # (scheduled-fetches.yml, which follows this one) never reads that list, and this
 # never reads tracked_models.yaml, so the two cannot mix.
 #
-# WHEN: cron 04:00 UTC (anooj 2026-11-13, #631; was 15:00). GitHub starts
-# scheduled runs hours late: this one 374 to 408 minutes on its 3 measured runs,
-# our workflows 3.5 to 10 hours (2026-11-13, contract/nightly_guard.yaml). So it
-# usually lands near 10:00-11:00 UTC. The model fetch starts when this one
-# finishes (its `workflow_run`), so agents, then models, usually end inside one
-# UTC day - the day the extraction cap counts. Its own concurrency group.
+# WHEN: ONLY WHEN A PERSON STARTS IT (anooj, 2026-11-25). No cron: Admin ->
+# Scheduler -> Model fetches links to this workflow's Run workflow button. It was
+# cron 04:00 UTC (2026-11-13, #631; was 15:00). A start with `slot: nightly` is a
+# real run: the scheduled model fetch stands down while it runs, and its finish
+# starts the model fetch - a second pass if the models already ran that day
+# (contract/nightly_guard.yaml). A start with `slot` empty is a test: it starts
+# nothing and holds nothing off.
+# Its own concurrency group.
 #
 # HOW LONG (2026-11-13). Test B (local database, 2026-11-09) took 6 to 21 minutes
 # per agent on a first fetch; on the hosted runner the first nights took 26 to 67
@@ -42,8 +44,7 @@ name: Agent fetches
 run-name: ${{ inputs.slot == 'nightly' && format('{0} (nightly)', github.workflow) || github.workflow }}
 
 on:
-  schedule:
-    - cron: "0 4 * * *"
+  # No `schedule` (anooj, 2026-11-25): started by hand only, from Admin's link.
   workflow_dispatch:
     inputs:
       slot:
@@ -97,6 +98,10 @@ jobs:
       ENVIRONMENT: staging
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      # The extractor's hosts: DeepInfra and OpenInference never. Why, with the
+      # measurements: the same two lines in scheduled-fetches.yml (2026-11-25).
+      EXTRACTOR_PROVIDER_SORT: throughput
+      EXTRACTOR_PROVIDER_IGNORE: DeepInfra,OpenInference
       RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
       X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
       REDDIT_PROVIDER: ${{ vars.REDDIT_PROVIDER }}

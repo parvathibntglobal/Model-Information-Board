@@ -86,6 +86,15 @@ def call_tool(
     if not key or not base:
         raise FeedModelUnavailable("OPENROUTER_API_KEY and OPENROUTER_BASE_URL must both be set")
     name = tool["function"]["name"]
+    # WHICH OPENROUTER HOST SERVES IT (2026-11-25): the extractor's preference, the
+    # same EXTRACTOR_PROVIDER_SORT / _IGNORE variables, because it is the same model
+    # and the same bad host. Replayed 2026-11-25, 4 batches of 20 reports each sent
+    # to both: DeepInfra returned no paraphrase at all for 2 of the 4 batches and 22
+    # of 80 passed the checks on the first attempt; Wafer, 41 of 80. Unset, OpenRouter
+    # chooses, as before. An unknown sort is refused there (rule 12).
+    from judge.extract.client import extractor_provider
+
+    provider = extractor_provider()
     try:
         r = httpx.post(
             f"{base}/chat/completions",
@@ -104,6 +113,7 @@ def call_tool(
                 # contract/evidence_feed.yaml `reasoning_effort`; `none` turns thinking
                 # off rather than hiding it (judge/extract/client.py says why).
                 "reasoning": {"effort": reasoning_effort},
+                **({"provider": provider} if provider else {}),
             },
             timeout=httpx.Timeout(180.0, connect=10.0),
         )

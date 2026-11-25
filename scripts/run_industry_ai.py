@@ -220,7 +220,14 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--relabel", action="store_true", help="re-apply the rules to every stored item; no network"
     )
-    ap.add_argument("--domains", nargs="+", help="default: every domain in the contract")
+    which = ap.add_mutually_exclusive_group()
+    which.add_argument("--domains", nargs="+", help="default: every active domain in the contract")
+    # THE ROTATION (2026-11-25): a scheduled run harvests one of `run.rotation`'s two
+    # groups, chosen by the UTC day (`auto`), so twenty domains run ten a day.
+    which.add_argument(
+        "--group", choices=("auto", *iai_config.ROTATION_GROUPS),
+        help="one rotation group's active domains; `auto` = today's group (UTC)",
+    )
     ap.add_argument("--platforms", nargs="+", choices=ALL_PLATFORMS, help="default: all")
     ap.add_argument(
         "--post-summary",
@@ -238,13 +245,32 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="run ONLY the observer's watch lists (its own dry run), no keyword queries",
     )
+    # THE OBSERVER IN ITS OWN RUN (2026-11-25): with `watch.enabled` true, a keyword
+    # run would also read the watch lists; the daily schedule runs the keyword group
+    # with --no-watch and the observer after it with --watch-only, each its own
+    # `iai_run` row and summary.
+    watch.add_argument(
+        "--no-watch", action="store_true",
+        help="keyword queries only, even while `watch.enabled` is true",
+    )
     args = ap.parse_args(argv)
 
     cfg = iai_config.load()
     # THE CONTRACT CHOOSES WHICH DOMAINS RUN (`active`, #644 review, point 6);
-    # --domains narrows within them and never widens past them.
+    # --domains and --group narrow within them and never widen past them.
     active = cfg.active_domains
-    domains = args.domains or active
+    group = None
+    if args.group:
+        group = cfg.group_for(datetime.now(UTC).date()) if args.group == "auto" else args.group
+        # A group's `active: false` domain is skipped and SAID, not harvested: the
+        # switch stays a domain's own, inside or outside the rotation.
+        off = [d for d in cfg.group_domains(group) if d not in active]
+        if off:
+            say(f"  group {group}: {', '.join(off)} `active: false`, skipped")
+    domains = (args.domains or ([d for d in cfg.group_domains(group) if d in active]
+                                if group else active))
+    if group and not domains:
+        say(f"group {group}: no active domain - no keyword query runs.")
     unknown = [d for d in domains if d not in cfg.domains]
     if unknown:
         raise SystemExit(f"unknown domain(s) {unknown}; the contract has {list(cfg.domains)}")
@@ -268,12 +294,13 @@ def main(argv: list[str] | None = None) -> int:
     since = datetime.now(UTC) - timedelta(days=int(cfg.run["window_days"]))
     # THE OBSERVER'S WATCH LISTS run when the contract switches them on, or by hand
     # (`--watch`, `--watch-only`) for their own dry runs; never otherwise.
-    watching = bool(args.watch or args.watch_only or cfg.watch["enabled"])
+    watching = bool(args.watch or args.watch_only or (cfg.watch["enabled"] and not args.no_watch))
     watch_since = (datetime.now(UTC) - timedelta(days=int(cfg.watch["lookback_days"]))
                    if watching else None)
     keyword_domains = [] if args.watch_only else domains
 
-    say(f"Industry AI agent | run {run_id} | pipeline {cfg.pipeline_version}")
+    say(f"Industry AI agent | run {run_id} | pipeline {cfg.pipeline_version}"
+        + (f" | group {group}" if group else ""))
     say(
         f"  domains: {', '.join(keyword_domains) or '(none: watch lists only)'} | "
         f"platforms: {', '.join(platforms)} | window {cfg.run['window_days']} days"
