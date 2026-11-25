@@ -5,7 +5,10 @@
 # with the queries below, keeps what passes the code rules below, and labels
 # each kept item with its domain(s) and a content type. No language model is
 # called anywhere in this lane. The signed-in "AI in industries" page
-# (/ai-in-industries) shows the counts; it never shows post text.
+# (/ai-in-industries) shows the counts and no post text; each domain's own
+# page (/ai-in-industries/<key>, signed in, 2026-11-24) also lists its posts:
+# each post's text up to its first 600 characters (most posts are shorter, so
+# are shown whole), with a link to the original.
 #
 # EVERYTHING THE TEAM TUNES IS IN THIS FILE: queries, feeds, terms, excluded
 # phrases and patterns. Change them here, never in code. After a change,
@@ -29,7 +32,8 @@ version: 1
 # iai-3: the accuracy fixes from the first run's review (2026-11-24): 90-day window,
 #        audit and reverse engineering narrowed, filter patterns tightened, a
 #        use-case pattern's `ai` group must name an AI term.
-pipeline_version: iai-3
+# iai-4: keywords toward 50 per umbrella, 381 added (2026-11-25).
+pipeline_version: iai-4
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -48,10 +52,12 @@ run:
   # share their monthly quota with the model fetch - keep these small. A query
   # that would pass its platform's cap is not run, and the run log says so.
   max_requests:
-    # Sized for the five active domains (2026-11-20): ~20 grouped X queries x 5 pages,
-    # and per domain ~3 subreddit listings + 4 searches on Reddit.
-    reddit: 40
-    x: 110
+    # Sized for the five active domains with ~50 keywords each (2026-11-25, computed by
+    # harvest.plan on this contract): 42 X queries = 210 pages, 54 Reddit requests (15
+    # subreddit listings + 39 searches). Was 110 / 40 for ~23 keywords each (2026-11-20).
+    # Resized again when the umbrellas rotate in two groups of ten.
+    reddit: 60
+    x: 220
     github: 10
     hackernews: 25
     devto: 25
@@ -729,6 +735,27 @@ watch:
 #   * reddit.search / hackernews / devto / bluesky / github: each list's best-evidenced
 #     keywords. Reddit ignores quotes and minus signs on our route; the sieve decides.
 #   * feeds: empty until each feed has a terms ruling in contract/sources.yaml.
+#
+# KEYWORDS TOWARD 50 PER UMBRELLA (2026-11-25, anooj: "50 keywords, relevant ones, a
+# wide variety of queries"). 363 added to 16 umbrellas, each at the END of its lists.
+# Finance, Healthcare, Governance and Engineering already held 50+ and got none.
+#   WHERE THEY CAME FROM: 604 candidates in four research batches (2026-11-24) -
+#     the tasks, documents and practices of each field, no AI words, no brands.
+#   HOW EACH WAS CHECKED: Reddit, one search "<keyword> AI" (relevance, one 25-post
+#     page), counting posts naming the keyword AND an AI term; Hacker News, items
+#     naming both. Kept if either is >= 1, strong ones first; a keyword found only in
+#     generic AI, software or gaming communities was held, then read by a person
+#     (anooj's review, 2026-11-24/25: 23 picks from another field or too generic
+#     dropped, 34 held ones restored). One umbrella per keyword: one another umbrella already holds is left
+#     there. The counts behind each keyword are in the PR, not here (rule 11).
+#   18 MORE REMOVED IN REVIEW (Parvathi, #664, 2026-11-25), NOT REPLACED: keywords
+#     whose own evidence (the communities they were found in) points at another
+#     field - e.g. ADR (security tooling), burn rate (token burn), last mile (an
+#     idiom), CAPA / OEE (short tokens). The list and reasons are in the PR. Held, not
+#     refused: one may come back as an ambiguous term with context words, or once a
+#     run's per-query yield shows it finds its field.
+#   QUERIES: the new keywords clubbed 5-6 per X query, Reddit +4 searches, HN, dev.to
+#     and Bluesky +1 each, per umbrella (film: per group).
 
 domains:
   finance:
@@ -1084,6 +1111,9 @@ domains:
     - loyalty programs
     - itinerary generation
     - food safety
+    - food costing
+    - staff rota
+    - menu engineering
     ambiguous_terms:
       guests:
       - hotel
@@ -1115,6 +1145,9 @@ domains:
         - dynamic pricing AI
         - virtual receptionist AI
         - revenue management AI
+        - food costing AI
+        - staff rota AI
+        - menu engineering AI
       x:
         search:
         - '"AI" hotel guests'
@@ -1123,6 +1156,9 @@ domains:
         - ("dynamic pricing" OR "menu descriptions" OR "voice ordering" OR "recipe generation" OR "table reservations" OR "restaurant marketing") (AI OR ChatGPT OR Claude OR LLM)
         - ("drive-thru ordering" OR "travel itineraries" OR "group bookings" OR "event planning" OR "concierge chatbot" OR "travel recommendations") (AI OR ChatGPT OR Claude OR LLM)
         - ("virtual receptionist" OR "hotel marketing" OR "loyalty programs" OR "front desk" OR "itinerary generation" OR "food safety") (AI OR ChatGPT OR Claude OR LLM)
+        - '"food costing" (AI OR ChatGPT OR Claude OR LLM)'
+        - '"staff rota" (AI OR ChatGPT OR Claude OR LLM)'
+        - '"menu engineering" (AI OR ChatGPT OR Claude OR LLM)'
       github:
         search:
         - hotel booking llm
@@ -1137,6 +1173,7 @@ domains:
         - AI dynamic pricing
         - AI food safety
         - AI front desk
+        - AI food costing
       devto:
         search:
         - AI hospitality
@@ -1144,6 +1181,7 @@ domains:
         - AI dynamic pricing
         - AI food safety
         - AI front desk
+        - AI food costing
       bluesky:
         search:
         - AI hotel
@@ -1151,6 +1189,7 @@ domains:
         - AI front desk
         - AI dynamic pricing
         - AI virtual receptionist
+        - AI food costing
       feeds: []
   legal:
     name: Legal & Compliance
@@ -1182,6 +1221,32 @@ domains:
     - legal translation
     - GDPR compliance
     - privacy policies
+    - cease and desist
+    - legal citations
+    - client intake
+    - lease abstraction
+    - employment contracts
+    - sanctions screening
+    - power of attorney
+    - licensing agreements
+    - time entries
+    - deposition summaries
+    - summary judgment
+    - settlement agreements
+    - patent claims
+    - discovery requests
+    - demand letters
+    - trademark clearance
+    - redlining contracts
+    - immigration forms
+    - expert reports
+    - billing narratives
+    - engagement letters
+    - interrogatories
+    - data processing agreements
+    - legal holds
+    - prior art
+    - NDA review
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -1195,12 +1260,20 @@ domains:
         - legal research AI
         - contract review AI
         - patent drafting AI
+        - cease and desist AI
+        - legal citations AI
+        - client intake AI
+        - lease abstraction AI
       x:
         search:
         - ("contract review" OR "contract drafting" OR "contract analysis" OR "clause extraction" OR "legal drafting" OR "legal research") (AI OR ChatGPT OR Claude OR LLM)
         - ("case law" OR "due diligence" OR "document review" OR "e-discovery" OR "legal memos" OR "legal briefs") (AI OR ChatGPT OR Claude OR LLM)
         - ("litigation support" OR "case summaries" OR "court filings" OR "patent drafting" OR "trademark search" OR "legal intake") (AI OR ChatGPT OR Claude OR LLM)
         - ("case management" OR "compliance monitoring" OR "regulatory filings" OR "legal translation" OR "GDPR compliance" OR "privacy policies") (AI OR ChatGPT OR Claude OR LLM)
+        - ("cease and desist" OR "legal citations" OR "client intake" OR "lease abstraction" OR "employment contracts" OR "sanctions screening") (AI OR ChatGPT OR Claude OR LLM)
+        - ("power of attorney" OR "licensing agreements" OR "time entries" OR "deposition summaries" OR "summary judgment" OR "settlement agreements") (AI OR ChatGPT OR Claude OR LLM)
+        - ("patent claims" OR "discovery requests" OR "demand letters" OR "trademark clearance" OR "redlining contracts" OR "immigration forms") (AI OR ChatGPT OR Claude OR LLM)
+        - ("expert reports" OR "billing narratives" OR "engagement letters" OR "interrogatories" OR "data processing agreements" OR "legal holds" OR "prior art" OR "NDA review") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - due diligence llm
@@ -1210,16 +1283,19 @@ domains:
         - AI due diligence
         - AI case law
         - AI legal research
+        - AI cease and desist
       devto:
         search:
         - AI due diligence
         - AI case law
         - AI legal research
+        - AI cease and desist
       bluesky:
         search:
         - AI due diligence
         - AI legal research
         - AI contract review
+        - AI cease and desist
       feeds: []
   education:
     name: Education & Research
@@ -1250,6 +1326,35 @@ domains:
     - language learning
     - classroom management
     - plagiarism detection
+    - reading comprehension
+    - lesson plans
+    - systematic review
+    - speaking practice
+    - exam questions
+    - lab reports
+    - answer keys
+    - practice problems
+    - grant proposals
+    - report cards
+    - recommendation letters
+    - formative assessment
+    - vocabulary lists
+    - admissions essays
+    - course outlines
+    - unit plans
+    - parent emails
+    - reading passages
+    - grading feedback
+    - research proposals
+    - rubric design
+    - discussion prompts
+    - exit tickets
+    - student portfolios
+    - differentiated instruction
+    - sub plans
+    - learning objectives
+    - worksheet creation
+    - scope and sequence
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -1263,12 +1368,21 @@ domains:
         - flashcards AI
         - literature review AI
         - language learning AI
+        - reading comprehension AI
+        - lesson plans AI
+        - systematic review AI
+        - speaking practice AI
       x:
         search:
         - ("lesson planning" OR "curriculum design" OR "grading essays" OR "essay feedback" OR "quiz generation" OR "rubric creation") (AI OR ChatGPT OR Claude OR LLM)
         - ("homework help" OR "tutoring sessions" OR "study guides" OR "flashcards" OR "exam prep" OR "course design") (AI OR ChatGPT OR Claude OR LLM)
         - ("lecture notes" OR "academic writing" OR "literature review" OR "research papers" OR "citation management" OR "thesis writing") (AI OR ChatGPT OR Claude OR LLM)
         - ("peer review" OR "student feedback" OR "language learning" OR "classroom management" OR "plagiarism detection") (AI OR ChatGPT OR Claude OR LLM)
+        - ("reading comprehension" OR "lesson plans" OR "systematic review" OR "speaking practice" OR "exam questions" OR "lab reports") (AI OR ChatGPT OR Claude OR LLM)
+        - ("answer keys" OR "practice problems" OR "grant proposals" OR "report cards" OR "recommendation letters" OR "formative assessment") (AI OR ChatGPT OR Claude OR LLM)
+        - ("vocabulary lists" OR "admissions essays" OR "course outlines" OR "unit plans" OR "parent emails" OR "reading passages") (AI OR ChatGPT OR Claude OR LLM)
+        - ("grading feedback" OR "research proposals" OR "rubric design" OR "discussion prompts" OR "exit tickets" OR "student portfolios") (AI OR ChatGPT OR Claude OR LLM)
+        - ("differentiated instruction" OR "sub plans" OR "learning objectives" OR "worksheet creation" OR "scope and sequence") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - research papers llm
@@ -1278,16 +1392,19 @@ domains:
         - AI research papers
         - AI peer review
         - AI language learning
+        - AI reading comprehension
       devto:
         search:
         - AI research papers
         - AI peer review
         - AI language learning
+        - AI reading comprehension
       bluesky:
         search:
         - AI peer review
         - AI flashcards
         - AI literature review
+        - AI reading comprehension
       feeds: []
   retail:
     name: Retail & E-commerce
@@ -1318,6 +1435,31 @@ domains:
     - shopping assistant
     - dropshipping store
     - product research
+    - shrinkage
+    - loss prevention
+    - gift cards
+    - marketplace listings
+    - planogram
+    - return policy
+    - order status
+    - stockouts
+    - cross-selling
+    - lookbooks
+    - size charts
+    - customer segments
+    - image tagging
+    - shipping delays
+    - category management
+    - A+ content
+    - fraud screening
+    - supplier emails
+    - assortment planning
+    - store signage
+    - product taxonomy
+    - store audits
+    - merchandise planning
+    - product bundling
+    - price matching
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -1331,12 +1473,21 @@ domains:
         - virtual try-on AI
         - Shopify store AI
         - product photography AI
+        - shrinkage AI
+        - loss prevention AI
+        - gift cards AI
+        - marketplace listings AI
       x:
         search:
         - ("product descriptions" OR "product listings" OR "listing generation" OR "product photography" OR "catalog management" OR "inventory management") (AI OR ChatGPT OR Claude OR LLM)
         - ("price monitoring" OR "competitor pricing" OR "pricing strategy" OR "product reviews" OR "Shopify store" OR "Amazon listings") (AI OR ChatGPT OR Claude OR LLM)
         - ("Etsy shop" OR "abandoned carts" OR "order tracking" OR "review analysis" OR "product recommendations" OR "virtual try-on") (AI OR ChatGPT OR Claude OR LLM)
         - ("store layout" OR "product mockups" OR "shopping assistant" OR "dropshipping store" OR "product research") (AI OR ChatGPT OR Claude OR LLM)
+        - ("shrinkage" OR "loss prevention" OR "gift cards" OR "marketplace listings" OR "planogram") (AI OR ChatGPT OR Claude OR LLM)
+        - ("return policy" OR "order status" OR "stockouts" OR "cross-selling" OR "lookbooks") (AI OR ChatGPT OR Claude OR LLM)
+        - ("size charts" OR "customer segments" OR "image tagging" OR "shipping delays" OR "category management") (AI OR ChatGPT OR Claude OR LLM)
+        - ("A+ content" OR "fraud screening" OR "supplier emails" OR "assortment planning" OR "store signage") (AI OR ChatGPT OR Claude OR LLM)
+        - ("product taxonomy" OR "store audits" OR "merchandise planning" OR "product bundling" OR "price matching") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - product recommendations llm
@@ -1346,16 +1497,19 @@ domains:
         - AI product recommendations
         - AI product descriptions
         - AI product reviews
+        - AI shrinkage
       devto:
         search:
         - AI product recommendations
         - AI product descriptions
         - AI product reviews
+        - AI shrinkage
       bluesky:
         search:
         - AI product descriptions
         - AI virtual try-on
         - AI Shopify store
+        - AI shrinkage
       feeds: []
   supply_chain:
     name: Manufacturing, Supply Chain & Logistics
@@ -1386,6 +1540,28 @@ domains:
     - trade compliance
     - demand planning
     - lean manufacturing
+    - lead times
+    - Incoterms
+    - HS codes
+    - cold chain
+    - capacity planning
+    - demurrage
+    - FMEA
+    - supplier risk
+    - put-away
+    - reorder points
+    - carrier selection
+    - freight quotes
+    - customs brokerage
+    - supplier onboarding
+    - freight audit
+    - supplier audits
+    - freight claims
+    - S&OP
+    - bullwhip effect
+    - bill of lading
+    - tariff impact
+    - customs classification
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -1399,12 +1575,19 @@ domains:
         - root-cause analysis AI
         - predictive maintenance AI
         - visual inspection AI
+        - lead times AI
+        - Incoterms AI
+        - HS codes AI
+        - cold chain AI
       x:
         search:
         - ("demand forecasting" OR "supply chain" OR "inventory optimization" OR "route optimization" OR "freight matching" OR "shipment tracking") (AI OR ChatGPT OR Claude OR LLM)
         - ("warehouse robotics" OR "logistics optimization" OR "visual inspection" OR "purchase orders" OR "procurement automation" OR "vendor management") (AI OR ChatGPT OR Claude OR LLM)
         - ("spend analysis" OR "quality inspection" OR "defect detection" OR "predictive maintenance" OR "production scheduling" OR "work instructions") (AI OR ChatGPT OR Claude OR LLM)
         - ("root-cause analysis" OR "BOM management" OR "trade compliance" OR "demand planning" OR "lean manufacturing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("lead times" OR "Incoterms" OR "HS codes" OR "cold chain" OR "capacity planning" OR "demurrage") (AI OR ChatGPT OR Claude OR LLM)
+        - ("FMEA" OR "supplier risk" OR "put-away" OR "reorder points" OR "carrier selection" OR "freight quotes") (AI OR ChatGPT OR Claude OR LLM)
+        - ("customs brokerage" OR "supplier onboarding" OR "freight audit" OR "supplier audits" OR "freight claims" OR "S&OP" OR "bullwhip effect" OR "bill of lading" OR "tariff impact" OR "customs classification") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - supply chain llm
@@ -1414,16 +1597,19 @@ domains:
         - AI supply chain
         - AI root-cause analysis
         - AI predictive maintenance
+        - AI lead times
       devto:
         search:
         - AI supply chain
         - AI root-cause analysis
         - AI predictive maintenance
+        - AI lead times
       bluesky:
         search:
         - AI supply chain
         - AI root-cause analysis
         - AI predictive maintenance
+        - AI lead times
       feeds: []
   media:
     name: Media, Entertainment & Creators
@@ -1454,6 +1640,29 @@ domains:
     - comment moderation
     - YouTube automation
     - game development
+    - b-roll
+    - sound effects
+    - copy editing
+    - worldbuilding
+    - source verification
+    - chat moderation
+    - video descriptions
+    - video titles
+    - audio cleanup
+    - chapter markers
+    - podcast editing
+    - book editing
+    - stream highlights
+    - sponsorship emails
+    - transcript cleanup
+    - subtitle editing
+    - lore bible
+    - pull quotes
+    - press kits
+    - sponsor reads
+    - playtest feedback
+    - quest design
+    - story pitches
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -1467,12 +1676,20 @@ domains:
         - level design AI
         - fact checking AI
         - game assets AI
+        - b-roll AI
+        - sound effects AI
+        - copy editing AI
+        - worldbuilding AI
       x:
         search:
         - ("YouTube scripts" OR "video scripts" OR "YouTube thumbnails" OR "video clipping" OR "clip generation" OR "podcast production") (AI OR ChatGPT OR Claude OR LLM)
         - ("show notes" OR "podcast transcripts" OR "interview transcription" OR "news summaries" OR "fact checking" OR "headline writing") (AI OR ChatGPT OR Claude OR LLM)
         - ("newsletter writing" OR "game dialogue" OR "NPC dialogue" OR "level design" OR "game assets" OR "ghostwriting") (AI OR ChatGPT OR Claude OR LLM)
         - ("news writing" OR "video summaries" OR "comment moderation" OR "YouTube automation" OR "game development") (AI OR ChatGPT OR Claude OR LLM)
+        - ("b-roll" OR "sound effects" OR "copy editing" OR "worldbuilding" OR "source verification" OR "chat moderation") (AI OR ChatGPT OR Claude OR LLM)
+        - ("video descriptions" OR "video titles" OR "audio cleanup" OR "chapter markers" OR "podcast editing" OR "book editing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("stream highlights" OR "sponsorship emails" OR "transcript cleanup" OR "subtitle editing" OR "lore bible" OR "pull quotes") (AI OR ChatGPT OR Claude OR LLM)
+        - ("press kits" OR "sponsor reads" OR "playtest feedback" OR "quest design" OR "story pitches") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - game development llm
@@ -1482,16 +1699,19 @@ domains:
         - AI game development
         - AI fact checking
         - AI level design
+        - AI b-roll
       devto:
         search:
         - AI game development
         - AI fact checking
         - AI level design
+        - AI b-roll
       bluesky:
         search:
         - AI NPC dialogue
         - AI level design
         - AI fact checking
+        - AI b-roll
       feeds: []
   governance:
     name: Governance & Public Sector
@@ -1778,6 +1998,12 @@ domains:
         - previs
         - location scouting
         - script analysis
+        - sizzle reel
+        - character bios
+        - scene blocking
+        - budget breakdown
+        - shooting schedule
+        - call sheets
         ambiguous_terms: {}
         exclude_phrases: []
         queries:
@@ -1790,9 +2016,12 @@ domains:
             - shot lists AI
             - storyboarding AI
             - script coverage AI
+            - sizzle reel AI
+            - character bios AI
           x:
             search:
             - ("storyboarding" OR "screenplay writing" OR "script coverage" OR "script breakdown" OR "shot lists" OR "previs" OR "location scouting" OR "script analysis") (AI OR ChatGPT OR Claude OR LLM)
+            - ("sizzle reel" OR "character bios" OR "scene blocking" OR "budget breakdown" OR "shooting schedule" OR "call sheets") (AI OR ChatGPT OR Claude OR LLM)
           github:
             search:
             - storyboarding llm
@@ -1802,16 +2031,19 @@ domains:
             - AI storyboarding
             - AI previs
             - AI shot lists
+            - AI sizzle reel
           devto:
             search:
             - AI storyboarding
             - AI previs
             - AI shot lists
+            - AI sizzle reel
           bluesky:
             search:
             - AI previs
             - AI shot lists
             - AI storyboarding
+            - AI sizzle reel
           feeds: []
       vfx_virtual_sets:
         name: Visual Effects & Virtual Sets
@@ -1827,6 +2059,10 @@ domains:
         - motion capture
         - text-to-video
         - Gaussian splatting
+        - green screen
+        - background replacement
+        - matchmoving
+        - face replacement
         ambiguous_terms: {}
         exclude_phrases: []
         queries:
@@ -1839,10 +2075,16 @@ domains:
             - compositing AI
             - rotoscoping AI
             - Gaussian splatting AI
+            - green screen AI
+            - background replacement AI
           x:
             search:
             - ("rotoscoping" OR "compositing" OR "VFX shots" OR "virtual production" OR "de-aging") (AI OR ChatGPT OR Claude OR LLM)
             - ("digital doubles" OR "set extensions" OR "motion capture" OR "text-to-video" OR "Gaussian splatting") (AI OR ChatGPT OR Claude OR LLM)
+            - '"green screen" (AI OR ChatGPT OR Claude OR LLM)'
+            - '"background replacement" (AI OR ChatGPT OR Claude OR LLM)'
+            - '"matchmoving" (AI OR ChatGPT OR Claude OR LLM)'
+            - '"face replacement" (AI OR ChatGPT OR Claude OR LLM)'
           github:
             search:
             - text-to-video llm
@@ -1852,16 +2094,19 @@ domains:
             - AI text-to-video
             - AI compositing
             - AI Gaussian splatting
+            - AI green screen
           devto:
             search:
             - AI text-to-video
             - AI compositing
             - AI Gaussian splatting
+            - AI green screen
           bluesky:
             search:
             - AI motion capture
             - AI compositing
             - AI rotoscoping
+            - AI green screen
           feeds: []
       voice_dubbing:
         name: Voice, Dubbing & Localization
@@ -1875,6 +2120,8 @@ domains:
         - dialogue replacement
         - voice acting
         - audio description
+        - closed captions
+        - voice isolation
         ambiguous_terms: {}
         exclude_phrases: []
         queries:
@@ -1887,9 +2134,13 @@ domains:
             - voice acting AI
             - voice cloning AI
             - audio description AI
+            - closed captions AI
+            - voice isolation AI
           x:
             search:
             - ("video dubbing" OR "voice cloning" OR "lip sync" OR "subtitle generation" OR "dubbed movies" OR "dialogue replacement" OR "voice acting" OR "audio description") (AI OR ChatGPT OR Claude OR LLM)
+            - '"closed captions" (AI OR ChatGPT OR Claude OR LLM)'
+            - '"voice isolation" (AI OR ChatGPT OR Claude OR LLM)'
           github:
             search:
             - voice cloning llm
@@ -1899,16 +2150,19 @@ domains:
             - AI voice cloning
             - AI lip sync
             - AI voice acting
+            - AI closed captions
           devto:
             search:
             - AI voice cloning
             - AI lip sync
             - AI voice acting
+            - AI closed captions
           bluesky:
             search:
             - AI lip sync
             - AI voice acting
             - AI voice cloning
+            - AI closed captions
           feeds: []
       distribution:
         name: Distribution & Audience Reach
@@ -1922,6 +2176,7 @@ domains:
         - festival submissions
         - streaming recommendations
         - movie posters
+        - key art
         ambiguous_terms: {}
         exclude_phrases: []
         queries:
@@ -1934,9 +2189,11 @@ domains:
             - movie posters AI
             - poster design AI
             - audience insights AI
+            - key art AI
           x:
             search:
             - ("audience insights" OR "box office" OR "audience testing" OR "movie trailers" OR "poster design" OR "festival submissions" OR "streaming recommendations" OR "movie posters") (AI OR ChatGPT OR Claude OR LLM)
+            - '"key art" (AI OR ChatGPT OR Claude OR LLM)'
           github:
             search:
             - box office llm
@@ -1946,16 +2203,19 @@ domains:
             - AI box office
             - AI movie trailers
             - AI poster design
+            - AI key art
           devto:
             search:
             - AI box office
             - AI movie trailers
             - AI poster design
+            - AI key art
           bluesky:
             search:
             - AI box office
             - AI movie posters
             - AI poster design
+            - AI key art
           feeds: []
   automotive:
     name: Automotive
@@ -1987,6 +2247,26 @@ domains:
     - autonomous driving
     - driver monitoring
     - dashcam footage
+    - vehicle history
+    - fuel consumption
+    - wiring diagrams
+    - repair estimates
+    - charging stations
+    - OBD data
+    - battery degradation
+    - vehicle diagnostics
+    - technician notes
+    - recall notices
+    - mileage fraud
+    - service bulletins
+    - oil changes
+    - ADAS calibration
+    - parts catalog
+    - parts ordering
+    - service scheduling
+    - labor times
+    - collision repair
+    - window stickers
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -2000,12 +2280,20 @@ domains:
         - EV charging AI
         - fleet management AI
         - car buying AI
+        - vehicle history AI
+        - fuel consumption AI
+        - wiring diagrams AI
+        - repair estimates AI
       x:
         search:
         - ("car diagnostics" OR "fault codes" OR "car repair" OR "damage assessment" OR "repair manuals" OR "parts lookup") (AI OR ChatGPT OR Claude OR LLM)
         - ("dealership chatbot" OR "self-driving" OR "warranty claims" OR "car buying" OR "car infotainment" OR "car valuation") (AI OR ChatGPT OR Claude OR LLM)
         - ("auto financing" OR "test drives" OR "fleet management" OR "fleet maintenance" OR "fleet analytics" OR "driver behavior") (AI OR ChatGPT OR Claude OR LLM)
         - ("EV charging" OR "battery health" OR "vehicle inspection" OR "autonomous driving" OR "driver monitoring" OR "dashcam footage") (AI OR ChatGPT OR Claude OR LLM)
+        - ("vehicle history" OR "fuel consumption" OR "wiring diagrams" OR "repair estimates" OR "charging stations") (AI OR ChatGPT OR Claude OR LLM)
+        - ("OBD data" OR "battery degradation" OR "vehicle diagnostics" OR "technician notes" OR "recall notices") (AI OR ChatGPT OR Claude OR LLM)
+        - ("mileage fraud" OR "service bulletins" OR "oil changes" OR "ADAS calibration" OR "parts catalog") (AI OR ChatGPT OR Claude OR LLM)
+        - ("parts ordering" OR "service scheduling" OR "labor times" OR "collision repair" OR "window stickers") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - self-driving llm
@@ -2015,16 +2303,19 @@ domains:
         - AI self-driving
         - AI autonomous driving
         - AI fleet management
+        - AI vehicle history
       devto:
         search:
         - AI self-driving
         - AI autonomous driving
         - AI fleet management
+        - AI vehicle history
       bluesky:
         search:
         - AI self-driving
         - AI EV charging
         - AI fleet management
+        - AI vehicle history
       feeds: []
   engineering:
     name: Engineering
@@ -2331,6 +2622,33 @@ domains:
     - BI dashboards
     - Jupyter notebooks
     - data labeling
+    - entity resolution
+    - duplicate detection
+    - confidence intervals
+    - query optimization
+    - schema drift
+    - DAX measures
+    - data lineage
+    - data storytelling
+    - missing values
+    - stored procedures
+    - p-values
+    - data validation
+    - regression analysis
+    - sales forecasting
+    - funnel analysis
+    - LookML
+    - VBA macros
+    - window functions
+    - Power Query
+    - data contracts
+    - churn analysis
+    - calculated fields
+    - Airflow DAGs
+    - outlier detection
+    - schema documentation
+    - KPI reporting
+    - hypothesis testing
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -2344,12 +2662,20 @@ domains:
         - data labeling AI
         - A/B testing AI
         - data visualization AI
+        - entity resolution AI
+        - duplicate detection AI
+        - confidence intervals AI
+        - query optimization AI
       x:
         search:
         - ("SQL queries" OR "text-to-SQL" OR "data cleaning" OR "data visualization" OR "dashboard building" OR "report automation") (AI OR ChatGPT OR Claude OR LLM)
         - ("Excel automation" OR "spreadsheet formulas" OR "pivot tables" OR "exploratory analysis" OR "statistical analysis" OR "A/B testing") (AI OR ChatGPT OR Claude OR LLM)
         - ("time series" OR "cohort analysis" OR "customer segmentation" OR "survey analysis" OR "ETL pipelines" OR "dbt models") (AI OR ChatGPT OR Claude OR LLM)
         - ("data modeling" OR "metric definitions" OR "BI dashboards" OR "Jupyter notebooks" OR "data labeling") (AI OR ChatGPT OR Claude OR LLM)
+        - ("entity resolution" OR "duplicate detection" OR "confidence intervals" OR "query optimization" OR "schema drift" OR "DAX measures") (AI OR ChatGPT OR Claude OR LLM)
+        - ("data lineage" OR "data storytelling" OR "missing values" OR "stored procedures" OR "p-values" OR "data validation") (AI OR ChatGPT OR Claude OR LLM)
+        - ("regression analysis" OR "sales forecasting" OR "funnel analysis" OR "LookML" OR "VBA macros" OR "window functions") (AI OR ChatGPT OR Claude OR LLM)
+        - ("Power Query" OR "data contracts" OR "churn analysis" OR "calculated fields" OR "Airflow DAGs" OR "outlier detection" OR "schema documentation" OR "KPI reporting" OR "hypothesis testing") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - time series llm
@@ -2359,16 +2685,19 @@ domains:
         - AI time series
         - AI A/B testing
         - AI SQL queries
+        - AI entity resolution
       devto:
         search:
         - AI time series
         - AI A/B testing
         - AI SQL queries
+        - AI entity resolution
       bluesky:
         search:
         - AI text-to-SQL
         - AI data labeling
         - AI A/B testing
+        - AI entity resolution
       feeds: []
   marketing:
     name: Marketing, Content & SEO
@@ -2399,6 +2728,34 @@ domains:
     - press releases
     - product launches
     - influencer outreach
+    - alt text
+    - internal linking
+    - brand guidelines
+    - schema markup
+    - whitepapers
+    - subject lines
+    - lead magnets
+    - content briefs
+    - topic clusters
+    - ad variations
+    - keyword clustering
+    - customer testimonials
+    - audience segmentation
+    - UTM tracking
+    - YouTube titles
+    - backlink outreach
+    - ad headlines
+    - caption writing
+    - budget allocation
+    - social scheduling
+    - media planning
+    - product naming
+    - newsletter drafts
+    - media pitches
+    - event invitations
+    - conversion copy
+    - buyer journeys
+    - content audits
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -2412,12 +2769,20 @@ domains:
         - keyword research AI
         - market research AI
         - copywriting AI
+        - alt text AI
+        - internal linking AI
+        - brand guidelines AI
+        - schema markup AI
       x:
         search:
         - ("SEO content" OR "keyword research" OR "meta descriptions" OR "blog posts" OR "copywriting" OR "ad copy") (AI OR ChatGPT OR Claude OR LLM)
         - ("ad creatives" OR "PPC campaigns" OR "social captions" OR "LinkedIn posts" OR "content calendar" OR "content repurposing") (AI OR ChatGPT OR Claude OR LLM)
         - ("email campaigns" OR "landing pages" OR "brand voice" OR "campaign planning" OR "ad targeting" OR "competitor research") (AI OR ChatGPT OR Claude OR LLM)
         - ("market research" OR "customer personas" OR "press releases" OR "product launches" OR "influencer outreach") (AI OR ChatGPT OR Claude OR LLM)
+        - ("alt text" OR "internal linking" OR "brand guidelines" OR "schema markup" OR "whitepapers" OR "subject lines") (AI OR ChatGPT OR Claude OR LLM)
+        - ("lead magnets" OR "content briefs" OR "topic clusters" OR "ad variations" OR "keyword clustering" OR "customer testimonials") (AI OR ChatGPT OR Claude OR LLM)
+        - ("audience segmentation" OR "UTM tracking" OR "YouTube titles" OR "backlink outreach" OR "ad headlines" OR "caption writing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("budget allocation" OR "social scheduling" OR "media planning" OR "product naming" OR "newsletter drafts" OR "media pitches" OR "event invitations" OR "conversion copy" OR "buyer journeys" OR "content audits") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - blog posts llm
@@ -2427,16 +2792,19 @@ domains:
         - AI blog posts
         - AI press releases
         - AI landing pages
+        - AI alt text
       devto:
         search:
         - AI blog posts
         - AI press releases
         - AI landing pages
+        - AI alt text
       bluesky:
         search:
         - AI brand voice
         - AI keyword research
         - AI market research
+        - AI alt text
       feeds: []
   sales_support:
     name: Sales & Customer Support
@@ -2468,6 +2836,33 @@ domains:
     - customer retention
     - sentiment analysis
     - call QA
+    - LinkedIn outreach
+    - help center
+    - live chat
+    - cold calling
+    - email sequences
+    - battlecards
+    - meeting prep
+    - inbound leads
+    - discovery calls
+    - churn risk
+    - NPS comments
+    - customer complaints
+    - lead routing
+    - refund requests
+    - sales decks
+    - account research
+    - feedback analysis
+    - win-loss analysis
+    - pipeline review
+    - duplicate tickets
+    - stakeholder mapping
+    - FAQ answers
+    - voice of customer
+    - call coaching
+    - ticket backlog
+    - onboarding calls
+    - contract renewals
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -2481,12 +2876,20 @@ domains:
         - lead qualification AI
         - sentiment analysis AI
         - support tickets AI
+        - LinkedIn outreach AI
+        - help center AI
+        - live chat AI
+        - cold calling AI
       x:
         search:
         - ("cold emails" OR "prospect research" OR "lead scoring" OR "lead qualification" OR "sales calls" OR "call summaries") (AI OR ChatGPT OR Claude OR LLM)
         - ("CRM updates" OR "follow-up emails" OR "objection handling" OR "sales playbooks" OR "sales emails" OR "deal forecasting") (AI OR ChatGPT OR Claude OR LLM)
         - ("proposal writing" OR "RFP responses" OR "support tickets" OR "ticket triage" OR "ticket routing" OR "support chatbot") (AI OR ChatGPT OR Claude OR LLM)
         - ("knowledge base" OR "canned responses" OR "customer onboarding" OR "customer retention" OR "sentiment analysis" OR "call QA") (AI OR ChatGPT OR Claude OR LLM)
+        - ("LinkedIn outreach" OR "help center" OR "live chat" OR "cold calling" OR "email sequences" OR "battlecards") (AI OR ChatGPT OR Claude OR LLM)
+        - ("meeting prep" OR "inbound leads" OR "discovery calls" OR "churn risk" OR "NPS comments" OR "customer complaints") (AI OR ChatGPT OR Claude OR LLM)
+        - ("lead routing" OR "refund requests" OR "sales decks" OR "account research" OR "feedback analysis" OR "win-loss analysis") (AI OR ChatGPT OR Claude OR LLM)
+        - ("pipeline review" OR "duplicate tickets" OR "stakeholder mapping" OR "FAQ answers" OR "voice of customer" OR "call coaching" OR "ticket backlog" OR "onboarding calls" OR "contract renewals") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - knowledge base llm
@@ -2496,16 +2899,19 @@ domains:
         - AI knowledge base
         - AI sentiment analysis
         - AI support tickets
+        - AI LinkedIn outreach
       devto:
         search:
         - AI knowledge base
         - AI sentiment analysis
         - AI support tickets
+        - AI LinkedIn outreach
       bluesky:
         search:
         - AI knowledge base
         - AI lead qualification
         - AI sentiment analysis
+        - AI LinkedIn outreach
       feeds: []
   design_creative:
     name: Design & Creative
@@ -2536,6 +2942,29 @@ domains:
     - song writing
     # Name the AI capability, not design work (#645 review, point 2): they count
     # only with a design context nearby, and are no longer searched on their own.
+    - background removal
+    - color palettes
+    - sound design
+    - user flows
+    - style guides
+    - product shots
+    - book covers
+    - character design
+    - thumbnail design
+    - font pairing
+    - photo retouching
+    - rough cuts
+    - creative briefs
+    - client feedback
+    - accessibility audit
+    - user personas
+    - design critique
+    - comic panels
+    - brand naming
+    - app mockups
+    - mastering tracks
+    - sprite sheets
+    - texture generation
     ambiguous_terms:
       image generation:
       - designer
@@ -2567,12 +2996,20 @@ domains:
         - color grading AI
         - motion graphics AI
         - logo design AI
+        - background removal AI
+        - color palettes AI
+        - sound design AI
+        - user flows AI
       x:
         search:
         - ("UI design" OR "UX research" OR "wireframing" OR "Figma prototypes" OR "design systems" OR "usability testing") (AI OR ChatGPT OR Claude OR LLM)
         - ("logo design" OR "brand identity" OR "graphic design" OR "icon design" OR "packaging design" OR "mood boards") (AI OR ChatGPT OR Claude OR LLM)
         - ("image generation" OR "photo editing" OR "image upscaling" OR "video editing" OR "motion graphics" OR "color grading") (AI OR ChatGPT OR Claude OR LLM)
         - ("illustration" OR "concept art" OR "3D rendering" OR "music production" OR "song writing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("background removal" OR "color palettes" OR "sound design" OR "user flows" OR "style guides" OR "product shots") (AI OR ChatGPT OR Claude OR LLM)
+        - ("book covers" OR "character design" OR "thumbnail design" OR "font pairing" OR "photo retouching" OR "rough cuts") (AI OR ChatGPT OR Claude OR LLM)
+        - ("creative briefs" OR "client feedback" OR "accessibility audit" OR "user personas" OR "design critique" OR "comic panels") (AI OR ChatGPT OR Claude OR LLM)
+        - ("brand naming" OR "app mockups" OR "mastering tracks" OR "sprite sheets" OR "texture generation") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - illustration llm
@@ -2580,15 +3017,18 @@ domains:
         search:
         - AI illustration
         - AI design systems
+        - AI background removal
       devto:
         search:
         - AI illustration
         - AI design systems
+        - AI background removal
       bluesky:
         search:
         - AI concept art
         - AI color grading
         - AI motion graphics
+        - AI background removal
       feeds: []
   operations:
     name: Operations, HR & Admin
@@ -2621,6 +3061,29 @@ domains:
     - employee onboarding
     - performance reviews
     - HR policies
+    - meeting minutes
+    - training materials
+    - process mapping
+    - org charts
+    - weekly updates
+    - reference checks
+    - vendor onboarding
+    - candidate screening
+    - travel booking
+    - policy updates
+    - exit interviews
+    - offer letters
+    - vendor invoices
+    - OKR tracking
+    - headcount planning
+    - room booking
+    - compensation bands
+    - onboarding checklists
+    - contract tracking
+    - meeting agendas
+    - handoff notes
+    - employee handbook
+    - performance improvement plans
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -2634,6 +3097,10 @@ domains:
         - action items AI
         - performance reviews AI
         - job descriptions AI
+        - meeting minutes AI
+        - training materials AI
+        - process mapping AI
+        - org charts AI
       x:
         search:
         - ("workflow automation" OR "Zapier workflows" OR "n8n workflows" OR "data entry" OR "document processing") (AI OR ChatGPT OR Claude OR LLM)
@@ -2641,6 +3108,10 @@ domains:
         - ("inbox management" OR "calendar scheduling" OR "task management" OR "project planning" OR "status reports") (AI OR ChatGPT OR Claude OR LLM)
         - ("meeting transcription" OR "expense reports" OR "shift scheduling" OR "resume screening" OR "candidate sourcing") (AI OR ChatGPT OR Claude OR LLM)
         - ("job descriptions" OR "interview scheduling" OR "employee onboarding" OR "performance reviews" OR "HR policies") (AI OR ChatGPT OR Claude OR LLM)
+        - ("meeting minutes" OR "training materials" OR "process mapping" OR "org charts" OR "weekly updates" OR "reference checks") (AI OR ChatGPT OR Claude OR LLM)
+        - ("vendor onboarding" OR "candidate screening" OR "travel booking" OR "policy updates" OR "exit interviews" OR "offer letters") (AI OR ChatGPT OR Claude OR LLM)
+        - ("vendor invoices" OR "OKR tracking" OR "headcount planning" OR "room booking" OR "compensation bands" OR "onboarding checklists") (AI OR ChatGPT OR Claude OR LLM)
+        - ("contract tracking" OR "meeting agendas" OR "handoff notes" OR "employee handbook" OR "performance improvement plans") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - workflow automation llm
@@ -2650,16 +3121,19 @@ domains:
         - AI workflow automation
         - AI meeting notes
         - AI data entry
+        - AI meeting minutes
       devto:
         search:
         - AI workflow automation
         - AI meeting notes
         - AI data entry
+        - AI meeting minutes
       bluesky:
         search:
         - AI data entry
         - AI action items
         - AI performance reviews
+        - AI meeting minutes
       feeds: []
   security_it:
     name: Security & IT
@@ -2698,6 +3172,31 @@ domains:
     - device management
     - password resets
     - CTF challenges
+    - threat modeling
+    - runbooks
+    - security training
+    - detection rules
+    - firewall rules
+    - postmortems
+    - CVE triage
+    - incident reports
+    - backup restore
+    - vendor questionnaires
+    - asset inventory
+    - YARA rules
+    - Sigma rules
+    - access reviews
+    - vulnerability prioritization
+    - tabletop exercises
+    - policy writing
+    - network troubleshooting
+    - SIEM queries
+    - conditional access
+    - bug bounty
+    - red teaming
+    - fuzzing
+    - dependency scanning
+    - compliance evidence
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -2711,12 +3210,21 @@ domains:
         - penetration testing AI
         - malware analysis AI
         - SOC 2 AI
+        - threat modeling AI
+        - runbooks AI
+        - security training AI
+        - detection rules AI
       x:
         search:
         - ("threat detection" OR "threat intelligence" OR "log triage" OR "alert triage" OR "incident response" OR "vulnerability scanning") (AI OR ChatGPT OR Claude OR LLM)
         - ("penetration testing" OR "exploit development" OR "malware analysis" OR "binary analysis" OR "phishing detection" OR "security questionnaires") (AI OR ChatGPT OR Claude OR LLM)
         - ("security audits" OR "SOC 2" OR "security automation" OR "identity management" OR "patch management" OR "endpoint security") (AI OR ChatGPT OR Claude OR LLM)
         - ("cloud security" OR "SAST scanning" OR "IT helpdesk" OR "device management" OR "password resets" OR "CTF challenges") (AI OR ChatGPT OR Claude OR LLM)
+        - ("threat modeling" OR "runbooks" OR "security training" OR "detection rules" OR "firewall rules") (AI OR ChatGPT OR Claude OR LLM)
+        - ("postmortems" OR "CVE triage" OR "incident reports" OR "backup restore" OR "vendor questionnaires") (AI OR ChatGPT OR Claude OR LLM)
+        - ("asset inventory" OR "YARA rules" OR "Sigma rules" OR "access reviews" OR "vulnerability prioritization") (AI OR ChatGPT OR Claude OR LLM)
+        - ("tabletop exercises" OR "policy writing" OR "network troubleshooting" OR "SIEM queries" OR "conditional access") (AI OR ChatGPT OR Claude OR LLM)
+        - ("bug bounty" OR "red teaming" OR "fuzzing" OR "dependency scanning" OR "compliance evidence") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - malware analysis llm
@@ -2726,16 +3234,19 @@ domains:
         - AI malware analysis
         - AI SOC 2
         - AI incident response
+        - AI threat modeling
       devto:
         search:
         - AI malware analysis
         - AI SOC 2
         - AI incident response
+        - AI threat modeling
       bluesky:
         search:
         - AI incident response
         - AI penetration testing
         - AI malware analysis
+        - AI threat modeling
       feeds: []
   leaders_founders:
     name: Leaders & Founders
@@ -2765,6 +3276,32 @@ domains:
     # These four carry "AI" themselves, so alone they would pass the AI test and the
     # domain test at once (#645 review, point 1): they count only with a leaders
     # context nearby, and are no longer searched on their own.
+    - all-hands
+    - competitor analysis
+    - SWOT analysis
+    - user interviews
+    - data room
+    - board meetings
+    - interview loops
+    - cash flow forecast
+    - pricing tiers
+    - investor intros
+    - pricing experiments
+    - founder equity
+    - one-on-ones
+    - investor emails
+    - company memos
+    - salary benchmarks
+    - performance feedback
+    - launch plans
+    - vision statements
+    - board updates
+    - founder letters
+    - runway planning
+    - product-market fit
+    - unit economics
+    - pitch practice
+    - quarterly planning
     ambiguous_terms:
       AI transformation:
       - founder
@@ -2818,26 +3355,37 @@ domains:
         - small business AI
         - fundraising AI
         - business plan AI
+        - all-hands AI
+        - competitor analysis AI
+        - SWOT analysis AI
+        - user interviews AI
       x:
         search:
         - ("business plan" OR "pitch deck" OR "investor updates" OR "fundraising" OR "cap table" OR "financial projections") (AI OR ChatGPT OR Claude OR LLM)
         - ("market sizing" OR "go-to-market" OR "idea validation" OR "customer discovery" OR "roadmap planning" OR "strategy planning") (AI OR ChatGPT OR Claude OR LLM)
         - ("AI transformation" OR "hiring plans" OR "workforce planning" OR "AI adoption" OR "AI strategy" OR "tool evaluation") (AI OR ChatGPT OR Claude OR LLM)
         - ("vendor evaluation" OR "cost cutting" OR "team productivity" OR "small business" OR "AI implementation") (AI OR ChatGPT OR Claude OR LLM)
+        - ("all-hands" OR "competitor analysis" OR "SWOT analysis" OR "user interviews" OR "data room" OR "board meetings") (AI OR ChatGPT OR Claude OR LLM)
+        - ("interview loops" OR "cash flow forecast" OR "pricing tiers" OR "investor intros" OR "pricing experiments" OR "founder equity") (AI OR ChatGPT OR Claude OR LLM)
+        - ("one-on-ones" OR "investor emails" OR "company memos" OR "salary benchmarks" OR "performance feedback" OR "launch plans") (AI OR ChatGPT OR Claude OR LLM)
+        - ("vision statements" OR "board updates" OR "founder letters" OR "runway planning" OR "product-market fit" OR "unit economics" OR "pitch practice" OR "quarterly planning") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - small business llm
       hackernews:
         search:
         - AI small business
+        - AI all-hands
       devto:
         search:
         - AI small business
+        - AI all-hands
       bluesky:
         search:
         - AI pitch deck
         - AI small business
         - AI fundraising
+        - AI all-hands
       feeds: []
   personal:
     name: Personal & Everyday Life
@@ -2868,6 +3416,29 @@ domains:
     - wedding planning
     - journaling
     - relationship advice
+    - LinkedIn profile
+    - bedtime stories
+    - packing list
+    - career change
+    - study plan
+    - book recommendations
+    - price comparison
+    - salary negotiation
+    - meal prep
+    - wedding speech
+    - running plan
+    - home renovation
+    - car maintenance
+    - strength training
+    - cleaning schedule
+    - monthly budget
+    - travel itinerary
+    - speech writing
+    - recipe ideas
+    - saving goals
+    - moving checklist
+    - kids homework
+    - complaint letters
     ambiguous_terms: {}
     exclude_phrases: []
     queries:
@@ -2880,12 +3451,20 @@ domains:
         - journaling AI
         - job search AI
         - cover letters AI
+        - LinkedIn profile AI
+        - bedtime stories AI
+        - packing list AI
+        - career change AI
       x:
         search:
         - ("trip planning" OR "meal planning" OR "grocery lists" OR "workout plans" OR "diet tracking" OR "personal budgeting") (AI OR ChatGPT OR Claude OR LLM)
         - ("personal finance" OR "debt payoff" OR "resume writing" OR "cover letters" OR "job search" OR "interview prep") (AI OR ChatGPT OR Claude OR LLM)
         - ("self-learning" OR "parenting advice" OR "gift ideas" OR "home organization" OR "home repairs" OR "DIY projects") (AI OR ChatGPT OR Claude OR LLM)
         - ("gardening tips" OR "pet care" OR "wedding planning" OR "journaling" OR "relationship advice") (AI OR ChatGPT OR Claude OR LLM)
+        - ("LinkedIn profile" OR "bedtime stories" OR "packing list" OR "career change" OR "study plan" OR "book recommendations") (AI OR ChatGPT OR Claude OR LLM)
+        - ("price comparison" OR "salary negotiation" OR "meal prep" OR "wedding speech" OR "running plan" OR "home renovation") (AI OR ChatGPT OR Claude OR LLM)
+        - ("car maintenance" OR "strength training" OR "cleaning schedule" OR "monthly budget" OR "travel itinerary" OR "speech writing") (AI OR ChatGPT OR Claude OR LLM)
+        - ("recipe ideas" OR "saving goals" OR "moving checklist" OR "kids homework" OR "complaint letters") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
         - job search llm
@@ -2893,12 +3472,15 @@ domains:
         search:
         - AI job search
         - AI journaling
+        - AI LinkedIn profile
       devto:
         search:
         - AI job search
         - AI journaling
+        - AI LinkedIn profile
       bluesky:
         search:
         - AI journaling
         - AI job search
+        - AI LinkedIn profile
       feeds: []
