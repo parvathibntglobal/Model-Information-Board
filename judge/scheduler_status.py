@@ -394,7 +394,11 @@ def overview(conn) -> dict:
     if slug:
         out["github"] = runs(slug)
         out["switch"] = switch(slug)
-        issue = os.getenv("SCHEDULER_ISSUE", "").strip()
+        # THE AGENT FETCH'S LAST RUNS (#669 review): with no cron it runs only when
+        # someone starts it, so the panel says when that last happened. Otherwise
+        # "nobody started it" would look the same as "nothing new was found" (rule 4).
+        out["agent_runs"] = runs(slug, 5, workflow_file=AGENT_WORKFLOW_FILE)
+        issue =os.getenv("SCHEDULER_ISSUE", "").strip()
         if issue and out["github"].get("runs"):
             attach_summaries(out["github"]["runs"], summaries(slug, issue))
         elif not issue:
@@ -412,6 +416,7 @@ def overview(conn) -> dict:
         out["github"] = {"runs": [], "unreadable": "no repository known: set GITHUB_REPOSITORY "
                                                    "on this backend (owner/name)"}
         out["switch"] = {"unreadable": "no repository known"}
+        out["agent_runs"] = {"runs": [], "unreadable": "no repository known"}
     crons = (s.get("crons") or []) if isinstance(s, dict) else []
     out["next_run"] = next_cron(crons[0]["expr"], datetime.now(UTC)) if crons else None
     return out

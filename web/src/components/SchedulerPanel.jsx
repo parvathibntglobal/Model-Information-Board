@@ -42,6 +42,25 @@ function mins(m) {
   return h ? `${h} h ${r % 60} m` : `${r} m`
 }
 
+// THE AGENT FETCH'S LAST START (#669 review). With no cron, a stale agents page
+// would look quiet; this says when someone last started it. "Could not be read"
+// and "no run on record" are each said, never shown as a date or as "never".
+function AgentLastRun({ a }) {
+  if (!a) return null
+  if (a.unreadable) return <span className="dim" style={{ fontSize: 11 }}>Last run: could not be read ({a.unreadable}).</span>
+  const r = (a.runs || [])[0]
+  if (!r) return <span className="dim" style={{ fontSize: 11 }}>Last run: none on record.</span>
+  const t = new Date(r.started_at).getTime()
+  const days = Number.isNaN(t) ? null : Math.floor((Date.now() - t) / 86400000)
+  const ago = days == null ? '' : days === 0 ? ' (today)' : ` (${days} day${days === 1 ? '' : 's'} ago)`
+  const how = r.status !== 'completed' ? 'still running' : (r.conclusion || 'finished')
+  return (
+    <span style={{ fontSize: 12 }}>
+      Last run: <a href={r.url} target="_blank" rel="noopener noreferrer">{at(r.started_at)}</a>{ago}, {how}.
+    </span>
+  )
+}
+
 function Cell({ k, v, sub }) {
   return (
     <div className="adm-plan-cell">
@@ -212,12 +231,12 @@ export default function SchedulerPanel() {
                 <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                   <a className="btn btn-ghost" href={links.agent_workflow} target="_blank" rel="noopener noreferrer">Run agents now / see their runs ↗</a>
                 </div>
-                <span className="dim" style={{ fontSize: 11 }}>
-                  The agents have no schedule: they run only when started here, with GitHub&apos;s <strong>Run workflow</strong>{' '}
-                  button, and spend from the same daily extraction budget as the model fetch. Type <code>nightly</code> in
-                  its <em>slot</em> box for a real run: the scheduled model fetch does not start while it runs, and the
-                  agents&apos; finish starts the model fetch (a second pass if the models already ran that day). Left empty,
-                  it is a test: it starts nothing and holds nothing off, so it can overlap a model fetch.
+                <AgentLastRun a={data?.agent_runs} />
+                <span
+                  className="dim" style={{ fontSize: 11 }}
+                  title="A nightly run holds the scheduled model fetch off while it runs, and its finish starts the model fetch (a second pass if the models already ran that day). An empty slot starts nothing and holds nothing off, so it can overlap a model fetch. It spends from the same daily extraction budget as the model fetch."
+                >
+                  No schedule. For a real run, type <code>nightly</code> in the <em>slot</em> box; leave it empty for a test.
                 </span>
               </div>
             )}
