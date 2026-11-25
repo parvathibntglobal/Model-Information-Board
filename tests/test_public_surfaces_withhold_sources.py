@@ -38,7 +38,9 @@ class TestTheList:
     def test_the_contract_withholds_reddit_arxiv_and_x(self):
         # Bluesky is HELD (2026-10-26, #567) until its contact address and
         # request log are named in its ruling; it leaves this set then.
-        assert set(publication.withheld_sources()) == {"reddit", "arxiv", "x", "bluesky"}
+        # Instagram (2026-11-25) is read for the signed-in Industry AI page only.
+        assert set(publication.withheld_sources()) == {
+            "reddit", "arxiv", "x", "bluesky", "instagram"}
 
     def test_an_empty_list_refuses_rather_than_publishing_everything(self, monkeypatch):
         import judge.config as config
