@@ -939,7 +939,9 @@ def _admin_cache_off(monkeypatch):
     test would fail for a reason that has nothing to do with what it tests.
     `tests/test_admin_cache.py` turns it on for itself.
     """
-    from judge import admin_cache
-
+    try:
+        from judge import admin_cache
+    except ImportError:  # CI's bare first step: nothing of the app is installed
+        return
     monkeypatch.setattr(admin_cache, "ENABLED", False)
     admin_cache.clear()

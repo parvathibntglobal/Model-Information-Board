@@ -61,8 +61,6 @@ from collections import OrderedDict
 from collections.abc import Callable, Hashable
 from typing import Any
 
-from fastapi import Request
-
 log = logging.getLogger(__name__)
 
 MAX_ENTRIES = 128
@@ -148,7 +146,10 @@ def kept(name: str, *, fresh: float, max_age: float):
         # THE KEY DOES NOT SAY WHO IS ASKING: a route that reads the request (an
         # anonymous caller answered differently) must never share a kept answer.
         for param in sig.parameters.values():
-            if param.name == "request" or param.annotation in ("Request", Request):
+            # By name, so this module imports nothing outside the standard library:
+            # tests/conftest.py loads it in CI's bare first step (pyyaml + pytest).
+            annotation = getattr(param.annotation, "__name__", param.annotation)
+            if param.name == "request" or annotation == "Request":
                 raise TypeError(f"admin_cache.kept({name!r}): {fn.__name__} takes the request, "
                                 "so its answer may depend on who asks - it cannot be kept")
 
