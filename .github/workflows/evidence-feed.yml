@@ -77,6 +77,11 @@ jobs:
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+      # The extractor's hosts, for the same model: DeepInfra and OpenInference never.
+      # Why, with the measurements: scheduled-fetches.yml and judge/feed/llm.py
+      # (2026-11-25).
+      EXTRACTOR_PROVIDER_SORT: throughput
+      EXTRACTOR_PROVIDER_IGNORE: DeepInfra,OpenInference
       USER_AGENT: ${{ vars.USER_AGENT }}
       SCHEDULER_ENABLED: ${{ vars.SCHEDULER_ENABLED }}
       RAW_STORE_PATH: raw_store
