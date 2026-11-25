@@ -648,7 +648,7 @@ retention:
 #     the run log, so a source that brings nothing is flagged for pruning.
 #   * its own switch (`enabled`) and its own request caps, so watching can never
 #     starve the keyword queries. Off until its first dry run.
-# Lists are capped at 20 per platform for now, except X: 121 accounts since 2026-11-25
+# Lists are capped at 20 per platform for now, except X: 150 accounts since 2026-11-25
 # (anooj's additions; see the X list below). Checked 2026-11-20: the 13 Bluesky
 # handles resolve (public getProfile); the HN authors have posts (Algolia
 # author_<name>); X `from:` clubbing returns only the listed accounts' posts on our
@@ -663,46 +663,58 @@ watch:
   # queries; X adds it as `since:`).
   lookback_days: 7
   # Watch requests per platform per run, separate from run.max_requests. X is
-  # clubs x x_pages, so every club can be read over the whole window: 13 clubs of the
-  # 121 accounts x 10 pages = 130 (was 30 for 2 clubs, 2026-11-25). A ceiling, not a
+  # clubs x x_pages, so every club can be read over the whole window: 15 clubs of the
+  # 150 accounts x 10 pages = 150 (was 30 for 2 clubs, 2026-11-25). A ceiling, not a
   # spend: paging stops at `since:`.
-  max_requests: {reddit: 25, x: 130, bluesky: 20, hackernews: 15}
+  max_requests: {reddit: 25, x: 150, bluesky: 20, hackernews: 15}
   # X pages per clubbed account query, and how many accounts one query clubs.
   x_pages: 10
   x_club_max: 10
   # Replies excluded in the first test runs (anooj, 2026-11-20); kept later.
   x_suffix: "-filter:replies"
   reddit: [ChatGPTPro, AI_Agents, ArtificialInteligence, PromptEngineering, vibecoding, ClaudeAI, ClaudeCode, OpenAI, LocalLLaMA, GeminiAI, cursor, LLMDevs, aipromptprogramming, AIAssisted, ChatGPTPromptGenius, perplexity_ai, midjourney, StableDiffusion, MachineLearning, Anthropic]
-  # X: 20 accounts from 2026-11-20, and 101 added by anooj on 2026-11-25 from three
+  # X: 20 accounts from 2026-11-20, and 130 added by anooj on 2026-11-25 from
   # gathered lists (builders and solo founders; AI researchers, lab leaders,
-  # investors and developers; AI labs' own accounts).
+  # investors and developers; AI labs' and institutes' own accounts; published
+  # "AI accounts to follow" lists from Amperly, Salesforce, BBVA, JADBio and Signum,
+  # some of them years old).
   # EVERY HANDLE WAS CHECKED on 2026-11-25 through our route's user lookup (twitter241
   # /user): each exists, is public and answers to the handle as written. The lookup
-  # was first tried on one real and one made-up handle, and told them apart. Three
-  # handles in the lists were wrong: MetaAI is another account with no posts (Meta's
-  # is AIatMeta), DeepMind no longer exists (GoogleDeepMind), and GroqInc has no
-  # posts and is not Groq's (left out: its real handle was not found).
+  # was first tried on one real and one made-up handle, and told them apart.
+  # WRONG IN THE LISTS, and what was done:
+  #   MetaAI        another account, no posts       -> AIatMeta (Meta's)
+  #   DeepMind      no longer exists                -> GoogleDeepMind
+  #   FLIxrisk      unavailable                     -> FLI_org (Future of Life Institute)
+  #   facebookai    protected, no posts             -> left out (AIatMeta is listed)
+  #   GroqInc       no posts, not Groq's            -> left out (real handle not found)
+  #   etzioni       unavailable                     -> left out
+  #   FHIoxford     the institute closed, April 2024 -> left out
   # LEFT OUT, not being about AI: three gadget reviewers (MKBHD, iJustine,
   # Mrwhosetheboss) and a small vendor's marketing account.
-  # CLUBBED x_club_max AT A TIME IN THIS ORDER, one club per line, quietest first by
-  # LIFETIME post count on 2026-11-25 (527 to about 2.2 million). A busy account fills
-  # its club's pages (the swyx problem above), so busy accounts share clubs only with
-  # each other; the busiest, AIFrontliner, has a club of its own. A lifetime count is
-  # not a weekly rate - the first dry run's per-account counts decide whether this
-  # order holds. A new account goes on the line whose counts are closest to its own.
-  x: [faustospain, chipro, HsrYueli, godofprompt, midjourney, AnthropicAI, tim_cook, AndrewYNg, lmthang, OpenAI,
-      0xROAS, alexalbert__, eladgil, satyanadella, tessalau, AIatMeta, sundarpichai, drfeifei, demishassabis, GoogleAI,
-      lexfridman, soumithchintala, Reza_Zadeh, DrJimFan, GoogleDeepMind, goodside, Thom_Wolf, AriaWestcott, FutureStacked, gdb,
-      MIT_CSAIL, EXM7777, vasuman, sama, Whats_AI, marek_rosa, Hesamation, petitegeek, vinod1975, mreflow,
-      AravSrinivas, tobi, karpathy, corbin_braun, alliekmiller, jeggers, egeberkina, mattshumer_, OfficialLoganK, rowancheung,
-      rileybrown, NVIDIAAI, eptwts, nvidia, heyBarsee, pmarca, _ganeshp, nickfloats, hwchase17, mckaywrigley,
-      rasbt, omarsar0, fchollet, hardmaru, rryssf, naval, pmddomingos, YuHelenYu, danshipper, ylecun,
-      erikbryn, addyosmani, MengTo, amasad, TheAIColony, balajis, ClementDelangue, CatherineAdenle, javilopen, CharaspowerAI,
-      ESYudkowsky, DataChaz, emollick, marclou, marcusborba, lennysan, IBMData, kimmonismus, _akhaliq, ThePrimeagen,
-      jackfriks, svpino, bing, rauchg, antgrasso, paulg, minchoi, simonw, LinusEkenstam, gregisenberg,
-      jeremyphoward, GaryMarcus, DeepLearn007, Shawnife, theo, AmirMushich, dhh, garrytan, nigewillson, swyx,
-      sallyeaves, kloss_xyz, TamaraMcCleary, steipete, tunguz, AIHighlight, levelsio, Ronald_vanLoon, KirkDBorne, Scobleizer,
-      AIFrontliner]
+  # CLUBBED x_club_max AT A TIME BY POSITION IN THIS LIST, quietest first by LIFETIME
+  # post count on 2026-11-25 (87 to about 2.2 million). Line breaks mean nothing to
+  # the loader: the list is written 10 to a line so that, while its length is a
+  # multiple of 10, a line is a club. A busy account fills its club's pages (the swyx
+  # problem above), so busy accounts share clubs only with each other; the busiest,
+  # AIFrontliner (over 8 times the next), is in the last club with the nine next
+  # busiest. A lifetime count is not a weekly rate - the first dry run's per-account
+  # counts decide whether this order holds. Adding an account shifts every club after
+  # it by one place.
+  x: [MichaelAuli, geoffreyhinton, cynthiabreazeal, faustospain, chipro, CovariantAI, HsrYueli, robotsmarts, godofprompt, amandaj0hnstone,
+      midjourney, adelynzhou, AnthropicAI, nickmalhotra, tegmark, tim_cook, AndrewYNg, lmthang, OpenAI, 0xROAS,
+      alexalbert__, eladgil, satyanadella, tessalau, AIatMeta, sundarpichai, drfeifei, ayeshakhanna1, jovialjoy, demishassabis,
+      GoogleAI, _KarenHao, kaifulee, lexfridman, soumithchintala, Reza_Zadeh, DrJimFan, GoogleDeepMind, goodside, tristanharris,
+      Thom_Wolf, AriaWestcott, FutureStacked, KayFButterfield, gdb, StanfordHAI, romanyam, reidhoffman, MIT_CSAIL, EXM7777,
+      FLI_org, vasuman, clarashih, sama, Whats_AI, marek_rosa, Hesamation, MFordFuture, petitegeek, vinod1975,
+      mreflow, AravSrinivas, heykahn, tobi, karpathy, corbin_braun, alliekmiller, jeggers, egeberkina, mattshumer_,
+      OfficialLoganK, VanRijmenam, rowancheung, rileybrown, NVIDIAAI, eptwts, nvidia, heyBarsee, pmarca, _ganeshp,
+      nickfloats, hwchase17, ID_AA_Carmack, mckaywrigley, rasbt, omarsar0, fchollet, hardmaru, rryssf, naval,
+      pmddomingos, YuHelenYu, danshipper, ylecun, erikbryn, addyosmani, MengTo, amasad, TheAIColony, balajis,
+      ClementDelangue, CatherineAdenle, javilopen, CharaspowerAI, ESYudkowsky, DataChaz, emollick, marclou, BernardMarr, marcusborba,
+      lennysan, IBMData, kimmonismus, _akhaliq, ThePrimeagen, Datasciencectrl, jackfriks, SASsoftware, svpino, bing,
+      rauchg, antgrasso, paulg, minchoi, simonw, Strategy_Gal, LinusEkenstam, gregisenberg, jeremyphoward, GaryMarcus,
+      DeepLearn007, Shawnife, theo, AmirMushich, dhh, garrytan, nigewillson, swyx, kdnuggets, sallyeaves,
+      kloss_xyz, TamaraMcCleary, steipete, tunguz, AIHighlight, levelsio, Ronald_vanLoon, KirkDBorne, Scobleizer, AIFrontliner]
   bluesky: [simonwillison.net, emollick.bsky.social, natolambert.bsky.social, minimaxir.bsky.social, vickiboykis.com, garymarcus.bsky.social, melaniemitchell.bsky.social, eugeneyan.com, howard.fm, swyx.io, randomwalker.bsky.social, hamel.bsky.social, karpathy.bsky.social]
   hackernews:
     lists: [show_hn, ask_hn, front_page]
