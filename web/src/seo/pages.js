@@ -622,6 +622,7 @@ export const PRIVATE = {
   updates: { title: fullTitle('Updates'), noindex: true },
   industryAi: { title: fullTitle('AI in industries'), noindex: true },
   industryAiDomain: { title: fullTitle('AI in industries'), noindex: true },
+  aiWatch: { title: fullTitle('AI Watch'), noindex: true },
   notFound: { title: fullTitle('Page not found'), noindex: true },
 }
 

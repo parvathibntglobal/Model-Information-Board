@@ -330,8 +330,15 @@ const SECTIONS = [
   {
     id: 'ai-in-industries',
     title: 'AI in industries',
-    blurb: 'The Industry AI data: rules version, runs and requests, posts waiting, text retention',
-    render: () => <IndustryAiAdminPanel />,
+    blurb: 'The keyword agent’s data: rules version, runs and requests, posts waiting, text retention',
+    render: () => <IndustryAiAdminPanel agent="industry" />,
+  },
+  // AI WATCH (2026-11-25): the observer agent’s own section, as its page is its own.
+  {
+    id: 'ai-watch',
+    title: 'AI Watch',
+    blurb: 'The observer agent’s data: its switch, runs and requests against its caps, posts waiting',
+    render: () => <IndustryAiAdminPanel agent="watch" />,
   },
   {
     id: 'blogs',

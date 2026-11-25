@@ -42,6 +42,8 @@ def test_the_real_workflow_files_are_read_for_each_feed():
         assert "unreadable" not in s, s
         assert s["crons"], f"{feed['file']} has no schedule"
         assert s["manual_run"] is True
+    # The harvest job's limit, not the 5-minute `guard` job's (#673 review, point 2).
+    assert sections_status.workflow_setup("industry-ai-harvest.yml")["timeout_minutes"] == 180
     bench = sections_status.workflow_setup("benchmarks.yml")
     assert [c["words"] for c in bench["crons"]] == ["Tue, Fri at 01:30 UTC (07:00 IST)"]
 
@@ -54,6 +56,31 @@ def test_the_benchmarks_switch_is_the_one_its_workflow_obeys():
     )
     feed = next(f for f in sections_status.FEEDS if f["key"] == "benchmarks")
     assert f"vars.{feed['variable']}" in text
+
+
+def test_what_starts_a_workflow_besides_its_cron_is_read_not_restated(tmp_path, monkeypatch):
+    """`starts_after` from the workflow's `on.workflow_run`, `waits_for` from
+    contract/nightly_guard.yaml, by the waited-for workflow's own name (2026-11-25,
+    promised on #670). A workflow with neither gets two empty answers."""
+    wf = tmp_path / ".github" / "workflows"
+    wf.mkdir(parents=True)
+    (tmp_path / "contract").mkdir()
+    (wf / "fetch.yml").write_text("name: Scheduled fetches\non:\n  workflow_dispatch:\n",
+                                  encoding="utf-8")
+    (wf / "harvest.yml").write_text(
+        "name: Harvest\non:\n  workflow_run:\n    workflows: [\"Scheduled fetches\"]\n"
+        "    types: [completed]\n  schedule:\n    - cron: \"0 17 * * *\"\n"
+        "  workflow_dispatch:\njobs:\n  harvest:\n    runs-on: x\n", encoding="utf-8")
+    (tmp_path / "contract" / "nightly_guard.yaml").write_text(
+        "workflows:\n  harvest.yml:\n    waits_for: fetch.yml\n", encoding="utf-8")
+    monkeypatch.setattr(scheduler_status, "ROOT", tmp_path)
+
+    s = sections_status.workflow_setup("harvest.yml")
+    assert s["starts_after"] == ["Scheduled fetches"]
+    assert s["waits_for"] == "Scheduled fetches"
+    assert [c["words"] for c in s["crons"]] == ["daily at 17:00 UTC (22:30 IST)"]
+    plain = sections_status.workflow_setup("fetch.yml")
+    assert plain["starts_after"] == [] and plain["waits_for"] is None
 
 
 def test_a_missing_workflow_file_is_said_not_raised():

@@ -364,10 +364,10 @@ def conn(test_dsn):
 
 
 def test_the_page_counts_watched_posts_apart_and_general_ai_on_its_own(conn, cfg):
-    """Through the real store and the page builder: option (a) on the card, General AI as
-    its own bucket, and no watched post inside a domain's own figures."""
+    """Through the real store and the page builders: no watched post inside a domain's own
+    figures, and since 2026-11-25 the watch lists' posts on AI Watch, not AI in industries."""
     from collect.industry_ai import store
-    from judge.industry_ai.view import industry_ai_view
+    from judge.industry_ai.view import ai_watch_view, industry_ai_view
 
     store.start_run(conn, "iai-obs", mode="harvest", domains=["marketing"],
                     platforms=["x"], pipeline_version=cfg.pipeline_version)
@@ -390,7 +390,13 @@ def test_the_page_counts_watched_posts_apart_and_general_ai_on_its_own(conn, cfg
 
     view = industry_ai_view(conn)
     by = {d["key"]: d for d in view["domains"]}
-    assert by["marketing"]["kept"] == 1 and by["marketing"]["from_watch"] == 1
+    assert by["marketing"]["kept"] == 1 and "from_watch" not in by["marketing"]
     assert sum(by["marketing"]["by_type"].values()) == 1
-    assert by["security_it"]["kept"] == 0 and by["security_it"]["from_watch"] == 1
-    assert view["general"]["kept"] == 1 and view["unconfirmed"]["kept"] == 0
+    assert by["security_it"]["kept"] == 0
+    assert "general" not in view and view["unconfirmed"]["kept"] == 0
+    assert (view["collected"], view["kept"]) == (1, 1), "the keyword post only"
+
+    watch = ai_watch_view(conn)
+    assert (watch["kept"], watch["general"], watch["mentions"]) == (2, 1, 1)
+    assert {m["key"]: m["items"] for m in watch["mentioned"]} == {"marketing": 1,
+                                                                   "security_it": 1}

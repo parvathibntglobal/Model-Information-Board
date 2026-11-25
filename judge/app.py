@@ -4197,6 +4197,10 @@ def _warm_industry_ai() -> None:
             for d in summary.get("domains", []):
                 if d.get("kept"):
                     industry_ai_domain_page(d["key"])
+            # AI Watch (2026-11-25): its counts and the first page of each tab's posts.
+            ai_watch_page()
+            for scope in ("general", "kept", "mentions", "dropped"):
+                ai_watch_posts_page(scope=scope)
         except Exception:  # noqa: BLE001 - warming is a courtesy; the page works it out on demand
             log.exception("industry-ai: warming the page cache failed")
 
@@ -4262,6 +4266,61 @@ def industry_ai_domain_page(
         return cache.cached(("domain", *view), build)
     except DomainNotFound as exc:
         raise HTTPException(status_code=404, detail=f"no domain '{exc}'") from exc
+    except BadFilter as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/ai-watch")
+def ai_watch_page() -> dict:
+    """The AI Watch page (2026-11-25): what the observer agent's watch lists hold -
+    the posts only they found, by type and platform, every watched source's yield,
+    mapped people, the industries the posts name, and what was filtered out.
+    COUNTS ONLY, as /industry-ai. Signed-in only (not a public read: judge/gate.py).
+    See judge/industry_ai/view.py ai_watch_view."""
+    from judge.industry_ai import cache
+    from judge.industry_ai.view import ai_watch_view
+
+    def build() -> dict:
+        with _conn() as conn:
+            return ai_watch_view(conn)
+
+    return cache.cached(("watch",), build)
+
+
+@app.get("/ai-watch/posts")
+def ai_watch_posts_page(
+    scope: str = "general",
+    sort: str = "newest",
+    offset: int = 0,
+    limit: int = 25,
+    type: str | None = None,  # noqa: A002 - the page's own filter name
+    platform: str | None = None,
+    kind: str | None = None,
+    reason: str | None = None,
+    domain: str | None = None,
+    source: str | None = None,
+    account: str | None = None,
+    person: str | None = None,
+    q: str | None = None,
+) -> dict:
+    """A page of the observer's posts - an EXCERPT of each with its link, as a
+    domain's page lists them. Carries post text, so signed-in only (judge/gate.py).
+    See judge/industry_ai/view.py ai_watch_posts."""
+    from judge.industry_ai import cache
+    from judge.industry_ai.view import BadFilter, ai_watch_posts
+
+    filters = {"type": type, "platform": platform, "kind": kind, "reason": reason,
+               "domain": domain, "source": source, "account": account, "person": person,
+               "q": q}
+
+    def build() -> dict:
+        with _conn() as conn:
+            return ai_watch_posts(conn, scope=scope, filters=filters, sort=sort,
+                                  offset=offset, limit=limit)
+
+    view = (scope, sort, offset, limit, tuple(sorted((k, v) for k, v in filters.items() if v)))
+    try:
+        return cache.cached(("watch-posts", *view), build)
     except BadFilter as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

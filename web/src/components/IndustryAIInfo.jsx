@@ -16,6 +16,11 @@ import { scheduleWords, when } from '../scheduleWords'
  * come from the payload, so the page cannot disagree with the contract. Every
  * figure here is a SETTING or a count of configured terms, never a count of
  * collected posts - those live on the counts view.
+ *
+ * ONE AGENT PER PAGE (2026-11-25): `agent="industry"` (AI in industries) shows the
+ * keyword agent - its industries, keywords and caps; `agent="watch"` (AI Watch,
+ * routes/AIWatch.jsx) shows the observer agent - its watch lists and people. The
+ * rules both share (AI terms, filters, retention, patterns) are on both.
  */
 
 const TYPE_LABEL = {
@@ -144,7 +149,7 @@ function matches(d, q) {
  * `industry-ai` feed) - the same source as Admin -> Scheduler, so no time is
  * written here. A run list GitHub did not give is said, never "no run yet".
  */
-function WhenItRuns({ watchOn }) {
+function WhenItRuns({ watchOn, isWatch }) {
   const [state, setState] = useState({ data: null, err: null })
   useEffect(() => {
     let alive = true
@@ -167,10 +172,19 @@ function WhenItRuns({ watchOn }) {
       {f && (
         <>
           <p className="iai-def">
-            Both agents run together in one harvest,{' '}
-            <b>{s.unreadable ? 'on a schedule that can’t be read here' : scheduleWords(s.crons)}</b>
-            {watchOn === false && ' (the observer is off in the contract, so a scheduled run is the Industry AI agent alone; a run started by hand can add the observer)'}.
-            A scheduled run harvests only while its on/off switch is on; it can also be started by hand.
+            {s.unreadable ? <b>On a schedule that can’t be read here.</b> : (s.starts_after || []).length > 0 ? (
+              <>
+                <b>Daily, when {s.starts_after.join(' or ')} finishes</b>
+                {s.waits_for && !s.starts_after.includes(s.waits_for) && <>, never while {s.waits_for} is still running</>}
+                {(s.crons || []).length > 0 && <>; a backup run is due {scheduleWords(s.crons)}, for a day that one does not start it</>}.
+              </>
+            ) : <b>{scheduleWords(s.crons)}.</b>}{' '}
+            {isWatch
+              ? <>Each day two runs go one after the other: the keyword run, then the observer&apos;s own run
+                {watchOn === false && ' (the observer is off in the contract, so only a run started by hand reads the watch lists)'}.</>
+              : <>Each day two runs go one after the other: the keyword run, for one group of industries, then the
+                observer agent&apos;s own run.</>}
+            {' '}A scheduled run harvests only while its on/off switch is on; it can also be started by hand.
           </p>
           <dl className="iai-settings">
             <div><dt>On/off switch</dt><dd title={f.variable ? `Repository variable ${f.variable}` : undefined}>
@@ -197,15 +211,15 @@ function WhenItRuns({ watchOn }) {
 /** The words for each reason a post is dropped, as the counts view names them
  *  (IndustryAI.jsx REASON_LABEL), with what each one means. Settings come from
  *  the payload, so no number is written here (rule 11). */
-function FilterWords({ info }) {
+function FilterWords({ info, isWatch }) {
   const { run, watch } = info
-  const rows = [
+  const all = [
     ['No AI term', 'It names none of the AI terms below.'],
-    ['No industry term', <>It names none of the industry&apos;s keywords, or only an ambiguous keyword without
+    !isWatch && ['No industry term', <>It names none of the industry&apos;s keywords, or only an ambiguous keyword without
       one of its context words within <span className="tnum">{run.context_window_words ?? '–'}</span> words.</>],
-    ['Older than the run window', <>Posted more than <span className="tnum">{run.window_days ?? '–'}</span> days
+    !isWatch && ['Older than the run window', <>Posted more than <span className="tnum">{run.window_days ?? '–'}</span> days
       before the run.</>],
-    ['Watched post older than the watch window', <>A watch-list post first seen more than{' '}
+    isWatch && ['Watched post older than the watch window', <>A watch-list post first seen more than{' '}
       <span className="tnum">{watch.lookback_days ?? '–'}</span> days after it was posted.</>],
     ['Same article shared elsewhere', 'The same article linked from several posts: kept once, the copies counted as shares.'],
     ['Same author, same post again', 'One person posting the same thing twice.'],
@@ -218,6 +232,7 @@ function FilterWords({ info }) {
     ['Hiring or job ad', 'An employer advertising a job. A job seeker writing about one is kept.'],
     ['Sign-up ad', 'Mainly a call to register, enrol or use a promo code, unless it also teaches something: then it is kept as How-to & tips.'],
   ]
+  const rows = all.filter(Boolean)
   return (
     <section className="card iai-card">
       <h2>What the filters and labels mean</h2>
@@ -232,11 +247,18 @@ function FilterWords({ info }) {
       </Collapse>
       <Collapse heading="How a kept post is labelled">
         <dl className="iai-words">
-          <div><dt>Industry</dt><dd>Every industry whose keywords the post names. A post found by one
-            industry&apos;s search but naming none of its keywords is counted as <b>Domain unconfirmed</b>, apart
-            from every industry.</dd></div>
-          <div><dt>General AI</dt><dd>A watch-list post that names an AI term but no industry: general AI news and
-            opinion, counted on its own.</dd></div>
+          {isWatch ? (
+            <>
+              <div><dt>General AI</dt><dd>A watched post that names an AI term but no industry: general AI news and
+                opinion. Most of what the observer keeps.</dd></div>
+              <div><dt>Mentions an industry</dt><dd>A watched post that names an industry&apos;s keywords is filed under
+                every industry it names, and shown under Mentions.</dd></div>
+            </>
+          ) : (
+            <div><dt>Industry</dt><dd>Every industry whose keywords the post names. A post found by one
+              industry&apos;s search but naming none of its keywords is counted as <b>Domain unconfirmed</b>, apart
+              from every industry.</dd></div>
+          )}
           <div><dt>Content type</dt><dd>The first type whose pattern matches, in this order:{' '}
             {info.types.map((t) => TYPE_LABEL[t] || t).join(', ')}. A post that matches none is a Discussion.</dd></div>
           <div><dt>Use case</dt><dd>Someone describing what they or their team use AI for. It counts only when the
@@ -277,7 +299,8 @@ function Retention({ info }) {
   )
 }
 
-export default function IndustryAIInfo() {
+export default function IndustryAIInfo({ agent = 'industry' }) {
+  const isWatch = agent === 'watch'
   const [info, setInfo] = useState(null)
   const [err, setErr] = useState(null)
   const [scope, setScope] = useState('active')
@@ -311,51 +334,55 @@ export default function IndustryAIInfo() {
   return (
     <div className="stack stack-4">
       <section className="card iai-card">
-        <h2>Two agents fill this page</h2>
+        <h2>How it works</h2>
         <p className="iai-def">
-          Both are <b>code only</b>: no language model reads, labels or scores a post. They run in the same
-          harvest (see &quot;When it runs&quot;), through the same steps, into the same counts, and a post both of
-          them find is counted once.
+          It is <b>code only</b>: no language model reads, labels or scores a post.{' '}
+          {isWatch
+            ? 'It has its own daily run, after the keyword run (see "When it runs"), and its posts go through the same steps.'
+            : 'It has its own daily run, one group of industries a day (see "When it runs"); the observer agent runs separately, after it.'}
         </p>
         <div className="iai-agents">
-          <div className="iai-agent">
-            <div className="iai-agent-head">
-              <h3>Industry AI agent</h3>
-              <span className={`iai-tag${run.enabled ? ' iai-tag-on' : ''}`}>
-                {run.enabled === true ? 'harvests allowed' : run.enabled === false ? 'harvests refused' : 'not set'}
-              </span>
+          {isWatch ? (
+            <div className="iai-agent">
+              <div className="iai-agent-head">
+                <h3>Observer agent</h3>
+                <span className={`iai-tag${watch.enabled ? ' iai-tag-on' : ''}`}>{watch.enabled ? 'on' : 'off'}</span>
+              </div>
+              <p className="dim iai-def">
+                Finds posts <b>by who or where</b>, with no keyword: the newest posts of chosen communities, accounts
+                and lists (&quot;Watch lists&quot; below). It catches new tools, workflows and opinions the keywords
+                would not have guessed. A watched post needs an AI term; an industry keyword is optional.
+              </p>
+              <p className="dim iai-note">
+                A watched post that names an industry&apos;s keywords is listed under Mentions; one that names
+                none is General AI. It reads
+                back <span className="tnum">{watch.lookback_days ?? '–'}</span> days from when it first sees a post,
+                with its own request caps.
+              </p>
             </div>
-            <p className="dim iai-def">
-              Finds posts <b>by keyword</b>. Each industry has its own keywords and its own searches on{' '}
-              {Object.keys(run.max_requests || {}).map(plat).join(', ')}. A post is kept only if it names an AI term{' '}
-              <i>and</i> one of the industry&apos;s keywords, and was posted within the last{' '}
-              <span className="tnum">{run.window_days ?? '–'}</span> days.
-            </p>
-            <p className="dim iai-note">
-              Searches <span className="tnum">{active.length}</span> of <span className="tnum">{info.domains.length}</span>{' '}
-              industries now: the active ones under &quot;Industries and keywords&quot; below.
-            </p>
-          </div>
-          <div className="iai-agent">
-            <div className="iai-agent-head">
-              <h3>Observer agent</h3>
-              <span className={`iai-tag${watch.enabled ? ' iai-tag-on' : ''}`}>{watch.enabled ? 'on' : 'off'}</span>
+          ) : (
+            <div className="iai-agent">
+              <div className="iai-agent-head">
+                <h3>Industry AI agent</h3>
+                <span className={`iai-tag${run.enabled ? ' iai-tag-on' : ''}`}>
+                  {run.enabled === true ? 'harvests allowed' : run.enabled === false ? 'harvests refused' : 'not set'}
+                </span>
+              </div>
+              <p className="dim iai-def">
+                Finds posts <b>by keyword</b>. Each industry has its own keywords and its own searches on{' '}
+                {Object.keys(run.max_requests || {}).map(plat).join(', ')}. A post is kept only if it names an AI term{' '}
+                <i>and</i> one of the industry&apos;s keywords, and was posted within the last{' '}
+                <span className="tnum">{run.window_days ?? '–'}</span> days.
+              </p>
+              <p className="dim iai-note">
+                Searches <span className="tnum">{active.length}</span> of <span className="tnum">{info.domains.length}</span>{' '}
+                industries and roles now: the active ones under &quot;Industries and keywords&quot; below.
+              </p>
             </div>
-            <p className="dim iai-def">
-              Finds posts <b>by who or where</b>, with no keyword: the newest posts of chosen communities, accounts
-              and lists (&quot;Watch lists&quot; below). It catches new tools, workflows and opinions the keywords
-              would not have guessed. A watched post needs an AI term; an industry keyword is optional.
-            </p>
-            <p className="dim iai-note">
-              A watched post that names an industry&apos;s keywords is shown on that industry&apos;s card, counted
-              apart from what the Industry AI agent found; one that names none is counted as General AI. It reads
-              back <span className="tnum">{watch.lookback_days ?? '–'}</span> days from when it first sees a post,
-              with its own request caps.
-            </p>
-          </div>
+          )}
         </div>
 
-        <h3 className="iai-sub">What happens to every post, from either agent</h3>
+        <h3 className="iai-sub">What happens to every post</h3>
         <ol className="iai-steps">
           <li><b>Harvest</b>: the agent&apos;s queries, within each platform&apos;s request cap.</li>
           <li><b>Sieve</b>: the AI term, keyword and date tests above.</li>
@@ -383,38 +410,40 @@ export default function IndustryAIInfo() {
             {Object.entries(run.pages_per_query).filter(([k]) => k !== 'x_clubbed')
               .map(([k, n]) => `${n} ${n === 1 ? 'page' : 'pages'} on ${plat(k)}`).join(' and ')}.</p>
         )}
-        {caps.length > 0 && (
+        {!isWatch && caps.length > 0 && (
           <>
             <h3 className="iai-sub">Industry AI agent: request cap per platform, per run</h3>
             <ul className="iai-caps">
               {caps.map(([p, n]) => <li key={p}><span>{plat(p)}</span><b className="tnum">{n}</b></li>)}
             </ul>
             <p className="dim iai-note">Reddit and X requests are metered and share their monthly quota with
-              the model fetches. The observer has its own caps, shown with its watch lists.</p>
+              the model fetches.</p>
           </>
         )}
       </section>
 
-      <WhenItRuns watchOn={watch.enabled} />
+      <WhenItRuns watchOn={watch.enabled} isWatch={isWatch} />
 
-      <section className="stack stack-2">
-        <div className="iai-domains-head">
-          <h2 className="iai-h2">Industries and keywords</h2>
-          <div className="iai-domains-tools">
-            <button type="button" className={`chip${scope === 'active' ? ' chip-on' : ''}`}
-                    onClick={() => setScope('active')}>Active <span className="x">{active.length}</span></button>
-            <button type="button" className={`chip${scope === 'all' ? ' chip-on' : ''}`}
-                    onClick={() => setScope('all')}>All <span className="x">{info.domains.length}</span></button>
-            <input className="iai-search" type="search" value={q} placeholder="Find a keyword or query…"
-                   aria-label="Find a keyword or query" onChange={(e) => setQ(e.target.value)} />
+      {!isWatch && (
+        <section className="stack stack-2">
+          <div className="iai-domains-head">
+            <h2 className="iai-h2">Industries and keywords</h2>
+            <div className="iai-domains-tools">
+              <button type="button" className={`chip${scope === 'active' ? ' chip-on' : ''}`}
+                      onClick={() => setScope('active')}>Active <span className="x">{active.length}</span></button>
+              <button type="button" className={`chip${scope === 'all' ? ' chip-on' : ''}`}
+                      onClick={() => setScope('all')}>All <span className="x">{info.domains.length}</span></button>
+              <input className="iai-search" type="search" value={q} placeholder="Find a keyword or query…"
+                     aria-label="Find a keyword or query" onChange={(e) => setQ(e.target.value)} />
+            </div>
           </div>
-        </div>
-        {shown.length === 0 && (
-          <p className="dim">No {scope === 'active' ? 'active ' : ''}industry mentions &quot;{q}&quot;.
-            {scope === 'active' && ' Try All.'}</p>
-        )}
-        {shown.map((d) => <Domain key={d.key} d={d} q={needle} open={Boolean(needle) || shown.length === 1} />)}
-      </section>
+          {shown.length === 0 && (
+            <p className="dim">No {scope === 'active' ? 'active ' : ''}industry mentions &quot;{q}&quot;.
+              {scope === 'active' && ' Try All.'}</p>
+          )}
+          {shown.map((d) => <Domain key={d.key} d={d} q={needle} open={Boolean(needle) || shown.length === 1} />)}
+        </section>
+      )}
 
       <section className="card iai-card">
         <h2>AI terms</h2>
@@ -443,61 +472,63 @@ export default function IndustryAIInfo() {
         )}
       </section>
 
-      <section className="card iai-card">
-        <h2>Watch lists (observer agent)</h2>
-        <p className="dim iai-def">
-          What the observer agent reads on each run: the newest posts of these communities, accounts and lists.
-        </p>
-        <dl className="iai-settings">
-          <div><dt>Switch</dt><dd>{onOff(watch.enabled)}</dd></div>
-          <div><dt>Looks back</dt><dd className="tnum">{watch.lookback_days ?? '–'} days</dd></div>
-        </dl>
-        {watch.x_club_max != null && (
-          <p className="dim iai-note">X accounts are read up to <span className="tnum">{watch.x_club_max}</span> per
-            search{watch.x_pages != null && <>, <span className="tnum">{watch.x_pages}</span> pages each</>}
-            {watch.x_suffix && <>, with <code>{watch.x_suffix}</code> added</>}.</p>
-        )}
-        {src.reddit && (
-          <Collapse heading={<>Reddit communities ({src.reddit.length}){watchCaps.reddit != null && ` · cap ${watchCaps.reddit}`}</>}>
-            <Chips items={src.reddit.map((s) => `r/${s}`)} mono />
-          </Collapse>)}
-        {src.x && (
-          <Collapse heading={<>X accounts ({src.x.length}){watchCaps.x != null && ` · cap ${watchCaps.x}`}</>}>
-            <Chips items={src.x.map((s) => `@${s}`)} mono />
-          </Collapse>)}
-        {src.bluesky && (
-          <Collapse heading={<>Bluesky accounts ({src.bluesky.length}){watchCaps.bluesky != null && ` · cap ${watchCaps.bluesky}`}</>}>
-            <Chips items={src.bluesky} mono />
-          </Collapse>)}
-        {hn.length > 0 && (
-          <Collapse heading={<>Hacker News ({hn.length}){watchCaps.hackernews != null && ` · cap ${watchCaps.hackernews}`}</>}>
-            <Chips items={hn} mono />
-          </Collapse>)}
-        {src.instagram && (
-          <Collapse heading={<>Instagram accounts ({src.instagram.length}){watchCaps.instagram != null && ` · cap ${watchCaps.instagram}`}</>}>
-            <Chips items={src.instagram.map((s) => `@${s}`)} mono />
-          </Collapse>)}
-        {people.length > 0 && (
-          <Collapse heading={<>People on several platforms ({people.length})</>}>
-            <p className="dim iai-def">
-              Each person is counted as one author, not one per platform. Their same post on two platforms
-              {watch.cross_post_hours != null && <> within <span className="tnum">{watch.cross_post_hours}</span> hours</>}
-              {' '}is counted once, as a share.
-            </p>
-            <ul className="iai-ambig">
-              {people.map((p) => (
-                <li key={p.key}>
-                  <b>{personName(p.key)}</b>{' '}
-                  <span className="dim">{Object.entries(p.handles).map(([pl, h]) => `${plat(pl)} ${handle(pl, h)}`).join(' · ')}</span>
-                </li>
-              ))}
-            </ul>
-          </Collapse>)}
-      </section>
+      {isWatch && (
+        <section className="card iai-card">
+          <h2>Watch lists (observer agent)</h2>
+          <p className="dim iai-def">
+            What the observer agent reads on each run: the newest posts of these communities, accounts and lists.
+          </p>
+          <dl className="iai-settings">
+            <div><dt>Switch</dt><dd>{onOff(watch.enabled)}</dd></div>
+            <div><dt>Looks back</dt><dd className="tnum">{watch.lookback_days ?? '–'} days</dd></div>
+          </dl>
+          {watch.x_club_max != null && (
+            <p className="dim iai-note">X accounts are read up to <span className="tnum">{watch.x_club_max}</span> per
+              search{watch.x_pages != null && <>, <span className="tnum">{watch.x_pages}</span> pages each</>}
+              {watch.x_suffix && <>, with <code>{watch.x_suffix}</code> added</>}.</p>
+          )}
+          {src.reddit && (
+            <Collapse heading={<>Reddit communities ({src.reddit.length}){watchCaps.reddit != null && ` · cap ${watchCaps.reddit}`}</>}>
+              <Chips items={src.reddit.map((s) => `r/${s}`)} mono />
+            </Collapse>)}
+          {src.x && (
+            <Collapse heading={<>X accounts ({src.x.length}){watchCaps.x != null && ` · cap ${watchCaps.x}`}</>}>
+              <Chips items={src.x.map((s) => `@${s}`)} mono />
+            </Collapse>)}
+          {src.bluesky && (
+            <Collapse heading={<>Bluesky accounts ({src.bluesky.length}){watchCaps.bluesky != null && ` · cap ${watchCaps.bluesky}`}</>}>
+              <Chips items={src.bluesky} mono />
+            </Collapse>)}
+          {hn.length > 0 && (
+            <Collapse heading={<>Hacker News ({hn.length}){watchCaps.hackernews != null && ` · cap ${watchCaps.hackernews}`}</>}>
+              <Chips items={hn} mono />
+            </Collapse>)}
+          {src.instagram && (
+            <Collapse heading={<>Instagram accounts ({src.instagram.length}){watchCaps.instagram != null && ` · cap ${watchCaps.instagram}`}</>}>
+              <Chips items={src.instagram.map((s) => `@${s}`)} mono />
+            </Collapse>)}
+          {people.length > 0 && (
+            <Collapse heading={<>People on several platforms ({people.length})</>}>
+              <p className="dim iai-def">
+                Each person is counted as one author, not one per platform. Their same post on two platforms
+                {watch.cross_post_hours != null && <> within <span className="tnum">{watch.cross_post_hours}</span> hours</>}
+                {' '}is counted once, as a share.
+              </p>
+              <ul className="iai-ambig">
+                {people.map((p) => (
+                  <li key={p.key}>
+                    <b>{personName(p.key)}</b>{' '}
+                    <span className="dim">{Object.entries(p.handles).map(([pl, h]) => `${plat(pl)} ${handle(pl, h)}`).join(' · ')}</span>
+                  </li>
+                ))}
+              </ul>
+            </Collapse>)}
+        </section>
+      )}
 
       <Retention info={info} />
 
-      <FilterWords info={info} />
+      <FilterWords info={info} isWatch={isWatch} />
 
       <details className="card iai-card iai-patterns">
         <summary><h2>Filter and labelling patterns</h2></summary>

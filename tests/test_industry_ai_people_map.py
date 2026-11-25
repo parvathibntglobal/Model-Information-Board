@@ -244,7 +244,7 @@ def test_the_page_counts_a_person_once_after_a_relabel(conn, cfg):
     """Stored, loaded back (`--relabel`'s path), labelled and read by the page: the
     person flag survives the round trip and the page counts like `counts`."""
     from collect.industry_ai import store
-    from judge.industry_ai.view import industry_ai_view
+    from judge.industry_ai.view import ai_watch_view
 
     store.start_run(conn, "iai-people", mode="harvest", domains=[], platforms=["x", "bluesky"],
                     pipeline_version=cfg.pipeline_version)
@@ -257,5 +257,6 @@ def test_the_page_counts_a_person_once_after_a_relabel(conn, cfg):
 
     assert counts_["domains"]["general"] == {**counts_["domains"]["general"], "kept": 3,
                                              "authors": 2}
-    view = industry_ai_view(conn)
-    assert view["general"]["kept"] == 3 and view["general"]["authors"] == 2
+    # General AI is on AI Watch since 2026-11-25; every post here is General AI.
+    view = ai_watch_view(conn)
+    assert view["general"] == 3 and view["authors"] == 2

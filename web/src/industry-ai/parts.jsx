@@ -34,6 +34,32 @@ export const REASON_LABEL = {
 
 export const n = (v) => (v ?? 0).toLocaleString('en-GB')
 
+/**
+ * TAKE THE READER TO WHAT THEIR CLICK CHANGED (2026-11-25, Parvathi): a bar, a source,
+ * a person or a page button changes a list further down (or opens another tab), and
+ * a change out of sight reads as nothing happening. After the click re-renders, the
+ * element with `id` is scrolled to the top, below the sticky nav (`.iai-anchor`).
+ */
+export function jumpTo(id) {
+  // A click that also switches the tab or view mounts the target a moment later (the
+  // address change re-renders first), and a list still loading leaves the page too
+  // short to scroll to it. So it keeps looking, and re-aligns as the page grows, until
+  // the target sits where `.iai-anchor` puts it - for at most three seconds.
+  let tries = 0
+  let moved = false
+  const go = () => {
+    const el = document.getElementById(id)
+    if (el) {
+      const margin = parseFloat(getComputedStyle(el).scrollMarginTop) || 0
+      if (Math.abs(el.getBoundingClientRect().top - margin) <= 4) return
+      el.scrollIntoView({ behavior: moved ? 'auto' : 'smooth', block: 'start' })
+      moved = true
+    }
+    if (tries++ < 30) setTimeout(go, 100)
+  }
+  setTimeout(go, 60)
+}
+
 /** When the API counted this answer (judge/industry_ai/cache.py: recounted on a visit after 10 minutes; recounted while the visitor waits when over an hour old). */
 export function countedAt(iso) {
   if (!iso) return null
