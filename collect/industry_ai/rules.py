@@ -411,6 +411,22 @@ def _any(patterns, text: str) -> re.Pattern | None:
     return next((p for p in patterns if p.search(text)), None)
 
 
+def _any_naming_ai(patterns, text: str, cfg: Config) -> re.Pattern | None:
+    """`_any` for type patterns: a pattern with a named group `ai` counts only at a
+    match where that group's words name an AI term (contract `type_patterns`, since
+    2026-11-24) - "I use it for my journal" is not an AI use case, "I used Claude to"
+    is. Every match is tried, not only the first. A pattern without the group counts
+    as `_any` does."""
+    for p in patterns:
+        if "ai" not in p.groupindex:
+            if p.search(text):
+                return p
+            continue
+        if any(ai_terms_found(m.group("ai") or "", cfg) for m in p.finditer(text)):
+            return p
+    return None
+
+
 def filter_reason(
     item: Item, cfg: Config, *, is_bot=lambda item: False
 ) -> tuple[str | None, list[str]]:
@@ -483,7 +499,7 @@ def label(item: Item, matched: dict[str, dict], cfg: Config) -> Verdict:
 
     content_type, why = None, None
     for t in cfg.type_order:
-        hit = _any(cfg.type_patterns[t], text)
+        hit = _any_naming_ai(cfg.type_patterns[t], text, cfg)
         if hit:
             content_type, why = t, hit.pattern
             break

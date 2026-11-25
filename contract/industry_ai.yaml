@@ -28,7 +28,10 @@ version: 1
 # Bump when the rules change meaning, so stored labels say which rules made them.
 # iai-1: the first real run (2026-11-24, 32 AI terms, capital "AI" only).
 # iai-2: 32 -> the longer AI-term list, lower-case "ai" counts (#660).
-pipeline_version: iai-2
+# iai-3: the accuracy fixes from the first run's review (2026-11-24): 90-day window,
+#        audit and reverse engineering narrowed, filter patterns tightened, a
+#        use-case pattern's `ai` group must name an AI term.
+pipeline_version: iai-3
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -37,7 +40,12 @@ run:
   cadence: weekly
   # Items posted earlier than this many days ago are not kept (first harvest:
   # how far back to look).
-  window_days: 365
+  # 365 -> 90 (2026-11-24, Parvathi's review of the AI in industries page): 300 of
+  # the first run's 3,500 kept posts (iai-2 labels) were older than 90 days -
+  # Reddit 149, GitHub 76, Hacker News 75 - because their searches are not sorted
+  # by date, so a year-old thread sat among this week's. The page is about what
+  # people do now.
+  window_days: 90
   # REQUEST CAPS PER PLATFORM PER RUN. Reddit and X are metered (RapidAPI) and
   # share their monthly quota with the model fetch - keep these small. A query
   # that would pass its platform's cap is not run, and the run log says so.
@@ -432,25 +440,44 @@ global_exclude_phrases:
   - '\bA\.I\. Artist\b'
 
 # DROPPED: spam, scams and engagement bait.
+# EVERY FILTER BELOW WAS READ ON ITS FIRST-RUN DROPS (2026-11-24, iai-2 labels, the
+# 7,693 stored posts), with the pattern that fired, and the patterns that dropped
+# ordinary posts were narrowed (each change says what it fired on). Filters drop,
+# so a wrong pattern hides a real post (rule 8): narrow before adding.
 spam_patterns:
-  - '\bAI trading bot'
+  # Was the bare phrase: its one hit was a person's own account of using AI at work.
+  - '\bAI trading bot\b.{0,80}\b(join|dm|telegram|discord|whatsapp|signals?|subscribe)\b'
   - '\b\d{3,}\s?% (returns?|profit|gains?)'
   - '\bsignals? group\b'
   - '\bguaranteed (profit|returns?|income)\b'
   - '\b(pump|moon(ing)?|100x)\b.*\b(crypto|token|coin)\b'
   - '\blike (and|&) (retweet|rt|share)\b'
   - '\bcomment ["''“]?AI["''”]? (and|&) I.?ll (dm|send)'
-  - '\bgiveaway\b'
+  # Was the bare word: its one hit was a weekly e-commerce news round-up that
+  # mentioned a marketplace's giveaway notices.
+  - '\b(enter|join|win) (the|our|this|a|my) giveaway\b|\bgiveaway (ends|closes|winners?)\b'
+  # 6 hits, all engagement-bait numbered lists of repos and websites: kept as is.
   - '\bfollow (me )?for more\b'
 
 # DROPPED: a course, webinar or event post that is mainly a sign-up ad...
 ad_patterns:
-  - '\bregister (now|today|here)\b'
+  # Now needs the call's punctuation: a GitHub issue using "register" as a noun
+  # ("the ... register now ...") matched the bare phrase.
+  - '\bregister (now|today|here)\s*[:!👉→]'
   - '\benrol+ (now|today)\b'
   - '\blimited (seats|spots)\b'
   - '\blink in (my )?bio\b'
   - '\bsign up (now|today|free)\b'
-  - '\b(use|with) (code|coupon)\b'
+  # Was '(use|with) (code|coupon)': 4 of its 5 hits were developers writing about
+  # code (examples, a coding tool's mode, open-source projects). Now the code itself
+  # must follow, written as a promo code is: capitals WITH A DIGIT, case-SENSITIVE
+  # inside `(?-i:...)` - so "use code SAVE30" counts, while "use the code" followed by
+  # an ordinary word (a Show HN, measured on this change's first draft) or by an
+  # all-caps format name (JSON, YAML, README: #662 review) does not.
+  - '\buse (the )?(code|coupon|promo code):? (?-i:[A-Z]+\d+[A-Z0-9]*)\b'
+  # KNOWN MISFIRES, KEPT: 3 of its 10 hits were not ads (a person describing their own
+  # bot applying a discount, a budgeting tip, a JSON test fixture); 7 were Black
+  # Friday deals.
   - '\b\d{1,2}\s?% off\b'
 # ...UNLESS it also teaches something: then it is kept, as `how_to`.
 teach_patterns:
@@ -466,7 +493,9 @@ teach_patterns:
 hiring_patterns:
   - '\bwe(’|'')?re hiring\b'
   - '\bnow hiring\b'
-  - '\bjob (opening|opportunity|posting)\b'
+  # REMOVED: '\bjob (opening|opportunity|posting)\b' - all 4 of its hits were job
+  # SEEKERS (a cover letter for a job posting, a tool that tracks postings), the
+  # Personal posts this lane wants.
   - '\bapply (now|here|today)\b'
   - '\bopen (role|position)s?\b'
   - '\b(linkedin\.com/jobs|greenhouse\.io|lever\.co|workable\.com)\b'
@@ -474,21 +503,40 @@ hiring_patterns:
 # DROPPED: sponsored, affiliate or discount content.
 promo_patterns:
   - '#(ad|sponsored|partner)\b'
-  - '\b(sponsored|paid partnership|in partnership with)\b'
-  - '[?&](ref|aff|affiliate|via)=\w+'
+  # Was '(sponsored|paid partnership|in partnership with)': it dropped "state-
+  # sponsored", "not sponsored", "who's sponsored" and a news headline's "in
+  # partnership with".
+  - '\bsponsored (by|post|content|placements?|ad)\b|\bpaid partnership\b|\b(produced|presented|brought to you) in partnership with\b'
+  # Was '(ref|aff|affiliate|via)=': `ref=` is a plain referral tag - a Show HN and a
+  # person's write-up used it - so only affiliate tags count.
+  - '[?&](aff|affiliate|aff_id|affid)=\w+'
   - '\bpromo code\b'
   - '\bdiscount code\b'
 
 # CONTENT TYPE: the first type in `type_order` with a matching pattern wins.
 # An item that matches none is `discussion`.
+# A PATTERN WITH A NAMED GROUP `ai` counts only when the words that group caught
+# name an AI term (rules.ai_terms_found) - "I use it for my notes" is not an AI use
+# case, "I used Claude to" is (2026-11-24, Parvathi's review of the AI in
+# industries page: a post asking for note-taking apps WITHOUT AI was typed a use case).
 type_order: [use_case, how_to, tool_or_product, research, news, discussion]
 type_patterns:
   use_case:
-    - '\bwe (deployed|rolled out|implemented|integrated|launched|use|are using|started using|switched to)\b'
-    - '\b(in|into) production\b'
+    # A TEAM'S DEPLOYMENT may name its AI tool late in the sentence ("we rolled out an
+    # internal assistant for accounting; it runs on Claude"), so for "we ..." and "our
+    # team ... uses" the `ai` group reads to the end of the sentence (#662 review). The
+    # "I used ... to/for" shapes keep a four-word bound: that bound is what keeps "I
+    # use it for my notes" out.
+    - '\bwe (deployed|rolled out|implemented|integrated|launched|use|are using|started using|switched to) (?P<ai>[^.!?\n]{1,120})'
+    # Not "production code/ready/grade/line...": of 5 posts read that this typed a
+    # use case, one was about turning designs into code for production and one a small
+    # shop's own production; none described AI going into production.
+    - '\b(in|into) production\b(?![- ](code|ready|grade|quality|line|company|house|studio))'
     - '\b(a|our|the|in) pilot\b|\bpilot (program|programme|project|study|scheme|phase)s?\b|\bpiloted\b|\bpiloting (a|an|the|our)\b'
-    - '\bour (team|firm|practice|clinic|hospital|hotel|bank|company|department|agency) (uses|is using|started using|has been using|now uses)\b'
-    - '\bI (used|use|tried|have been using|started using) (\w+ ){0,3}(to|for)\b'
+    - '\bour (team|firm|practice|clinic|hospital|hotel|bank|company|department|agency) (uses|is using|started using|has been using|now uses) (?P<ai>[^.!?\n]{1,120})'
+    # Up to four words before "to/for": "I used <tool> <two more words> for" fits.
+    - '\bI (used|use|tried|have been using|started using) (?P<ai>(\S+ ){0,3}\S+) (to|for)\b'
+    - '\bI(’|'')ve been using (?P<ai>(\S+ ){0,3}\S+) (to|for)\b'
     - '\bsince (january|february|march|april|may|june|july|august|september|october|november|december)\b'
     - '\bautomated (our|the)\b'
     - '\b(cut|reduced|saved|lowered) (\w+ ){0,3}by \d'
@@ -695,9 +743,6 @@ domains:
     - accountant
     - accountants
     - bookkeeping
-    - audit
-    - auditor
-    - auditing
     - tax
     - invoice
     - invoicing
@@ -749,7 +794,34 @@ domains:
     - earnings analysis
     - financial modeling
     - revenue recognition
+    # AUDIT IS AMBIGUOUS (2026-11-24, Parvathi's review of the AI in industries
+    # page): as a plain domain term it filed compliance, security and AI-model
+    # audits under Finance. It counts only near a finance word now.
     ambiguous_terms:
+      audit: &finance_audit_context
+      - financial
+      - finance
+      - accounting
+      - accountant
+      - accountants
+      - bookkeeping
+      - books
+      - ledger
+      - tax
+      - taxes
+      - IRS
+      - CPA
+      - GAAP
+      - IFRS
+      - SOX
+      - expense
+      - expenses
+      - revenue
+      - invoices
+      - payroll
+      - statements
+      auditor: *finance_audit_context
+      auditing: *finance_audit_context
       bank:
       - loan
       - account
@@ -2606,7 +2678,14 @@ domains:
     - penetration testing
     - exploit development
     - malware analysis
-    - reverse engineering
+    # NOT the bare "reverse engineering" (2026-11-24, Parvathi's review of the AI
+    # in industries page): it was the only security term in 224 of the 647 kept
+    # Security & IT posts of the first run, and the ones read were game ports,
+    # cracking and decompiling, not security work. Only its security forms count.
+    - malware reverse engineering
+    - firmware reverse engineering
+    - reverse engineering malware
+    - binary analysis
     - phishing detection
     - security questionnaires
     - security audits
@@ -2632,33 +2711,33 @@ domains:
         search:
         - incident response AI
         - penetration testing AI
-        - reverse engineering AI
+        - malware analysis AI
         - SOC 2 AI
       x:
         search:
         - ("threat detection" OR "threat intelligence" OR "log triage" OR "alert triage" OR "incident response" OR "vulnerability scanning") (AI OR ChatGPT OR Claude OR LLM)
-        - ("penetration testing" OR "exploit development" OR "malware analysis" OR "reverse engineering" OR "phishing detection" OR "security questionnaires") (AI OR ChatGPT OR Claude OR LLM)
+        - ("penetration testing" OR "exploit development" OR "malware analysis" OR "binary analysis" OR "phishing detection" OR "security questionnaires") (AI OR ChatGPT OR Claude OR LLM)
         - ("security audits" OR "SOC 2" OR "security automation" OR "identity management" OR "patch management" OR "endpoint security") (AI OR ChatGPT OR Claude OR LLM)
         - ("cloud security" OR "SAST scanning" OR "IT helpdesk" OR "device management" OR "password resets" OR "CTF challenges") (AI OR ChatGPT OR Claude OR LLM)
       github:
         search:
-        - reverse engineering llm
+        - malware analysis llm
         - SOC 2 llm
       hackernews:
         search:
-        - AI reverse engineering
+        - AI malware analysis
         - AI SOC 2
         - AI incident response
       devto:
         search:
-        - AI reverse engineering
+        - AI malware analysis
         - AI SOC 2
         - AI incident response
       bluesky:
         search:
         - AI incident response
         - AI penetration testing
-        - AI reverse engineering
+        - AI malware analysis
       feeds: []
   leaders_founders:
     name: Leaders & Founders
