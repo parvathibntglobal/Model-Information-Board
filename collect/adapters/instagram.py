@@ -109,6 +109,9 @@ class InstagramRun:
     calls: int = 0
     http_errors: int = 0
     failures: list = field(default_factory=list)
+    #: Attempts made again after a failure that may pass. DECLARED UNREAD (rule 9):
+    #: nothing reads it yet; its intended reader is the run log's per-platform watch
+    #: line, once a run shows retries worth reporting. `recovered` below is read.
     retries: int = 0
     #: Failed attempts a retry recovered from; `failure_of` subtracts them.
     recovered: int = 0
