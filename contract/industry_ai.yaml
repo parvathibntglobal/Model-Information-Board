@@ -29,7 +29,8 @@ version: 1
 # iai-3: the accuracy fixes from the first run's review (2026-11-24): 90-day window,
 #        audit and reverse engineering narrowed, filter patterns tightened, a
 #        use-case pattern's `ai` group must name an AI term.
-pipeline_version: iai-3
+# iai-4: keywords toward 50 per umbrella, 381 added (2026-11-25).
+pipeline_version: iai-4
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
