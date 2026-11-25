@@ -81,8 +81,13 @@ function readLine(s) {
   return { text: `failed${r.http_status ? ` (HTTP ${r.http_status})` : ''} · ${full(r.at)}`, tone: 'fail', why: r.detail }
 }
 
-export default function News() {
-  useHead(PRIVATE.news)
+/** `embedded` (2026-11-24, Parvathi): the public "General AI news" tab of AI
+ *  updates (/ai-news-headlines), which owns the page's title and head - so no
+ *  head and no heading here. It also leaves out what is for the team: the
+ *  sources' last reads and the unlisted-sponsor-label note. Those stay on /news,
+ *  which is signed in (the API removes the error text for an anonymous caller). */
+export default function News({ embedded = false }) {
+  useHead(embedded ? false : PRIVATE.news)
   const [days, setDays] = useState(7)
   const [group, setGroup] = useState('all')
   const [llmOnly, setLlmOnly] = useState(false)
@@ -124,7 +129,9 @@ export default function News() {
   const grid = rest.slice(6)
 
   return (
-    <div className="shell section-tight stack stack-4">
+    <div className={embedded ? 'stack stack-4 nw-embedded' : 'shell section-tight stack stack-4'}>
+      {/* Embedded, the tab's sentence under the tabs says this (AiUpdates.jsx). */}
+      {!embedded && (
       <header className="stack stack-1">
         <span className="eyebrow">News</span>
         <h1 className="nw-h1">AI news</h1>
@@ -134,6 +141,7 @@ export default function News() {
           feed&apos;s, else the article&apos;s own link-preview picture, else a card naming the source.
         </p>
       </header>
+      )}
 
       <div className="nw-controls">
         <div className="lv-seg" role="group" aria-label="Which sources">
@@ -171,7 +179,7 @@ export default function News() {
           </p>
           {/* #615 review: a label that looks sponsored but is not on the contract's list is
               reported here, never badged, so a new publisher label is seen rather than missed. */}
-          {Object.keys(data.population.sponsor_like_unlisted || {}).length > 0 && (
+          {!embedded && Object.keys(data.population.sponsor_like_unlisted || {}).length > 0 && (
             <p className="dim nw-count">
               Not badged, but labelled like sponsorship:{' '}
               {Object.entries(data.population.sponsor_like_unlisted).map(([label, n]) => `"${label}" (${n})`).join(', ')}.
@@ -203,6 +211,7 @@ export default function News() {
             </section>
           )}
 
+          {!embedded && (
           <details className="nw-sources">
             <summary>Sources and their last read</summary>
             <table className="nw-table">
@@ -222,6 +231,7 @@ export default function News() {
               </tbody>
             </table>
           </details>
+          )}
         </>
       )}
     </div>

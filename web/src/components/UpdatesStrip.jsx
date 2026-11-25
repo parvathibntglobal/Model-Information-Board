@@ -30,7 +30,7 @@ const fmtDay = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeri
 
 /** The way on from the strip (2026-10-30): every approved update, on /ai-news-headlines. */
 function AllUpdates() {
-  return <Link to="/ai-news-headlines" className="ustrip-all">All updates →</Link>
+  return <Link to="/ai-news-headlines?tab=models" className="ustrip-all">All updates →</Link>
 }
 
 function lastSeen() {

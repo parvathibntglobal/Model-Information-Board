@@ -815,6 +815,13 @@ def _top_providers(providers: list[str], shown: int) -> str:
     return names([f"{who} ({n})" for who, n in top], shown)
 
 
+def next_roundup_day(today: date) -> date:
+    """The next day a week completes, so the next round-ups are built (UTC):
+    `_roundups` builds a week once its last day is before `today`. Shown on the
+    Updates page's Info tab (2026-11-24), so the page names no day itself."""
+    return today + timedelta(days=7 - today.weekday())
+
+
 def _roundups(
     launch_rows: list[tuple],
     price_moves: list[tuple[str, str, date, dict[str, Any]]],
@@ -850,8 +857,13 @@ def _roundups(
                             [split_name(m[2], m[1], m[3])[0] for m in launched],
                             rule["providers_shown"],
                         ),
+                        # EVERY MODEL OF THE WEEK, NAMED (2026-11-24, Parvathi): the
+                        # round-up is the week's record, so its "Launched:" line
+                        # lists them all rather than `names_shown` and "N more".
+                        # Grouped launch updates keep `names_shown`.
                         "names": names(
-                            [split_name(m[2], m[1], m[3])[1] for m in launched], r["names_shown"]
+                            [split_name(m[2], m[1], m[3])[1] for m in launched],
+                            len(launched),
                         ),
                     },
                     models=[m[1] for m in launched],
@@ -1199,6 +1211,8 @@ def listing(
     return {
         **built,
         "home_days": r["home_days"],
+        # Read by Updates.jsx WhenUpdatesArrive.
+        "next_roundup_on": next_roundup_day(now.astimezone(UTC).date()).isoformat(),
         "saving": saving,
         "second_check_pct": r["second_check_pct"],
         "max_window_days": r["max_window_days"],

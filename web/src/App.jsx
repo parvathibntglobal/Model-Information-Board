@@ -81,9 +81,9 @@ const BlogLogs = page(() => import('./routes/BlogLogs'))
 const ContentWorkspace = page(() => import('./routes/ContentWorkspace'))
 const Keywords = page(() => import('./routes/Keywords'))
 const PriceChanges = page(() => import('./routes/PriceChanges'))
-const News = page(() => import('./routes/News'))
 const IndustryAI = page(() => import('./routes/IndustryAI'))
 const IndustryAIDomain = page(() => import('./routes/IndustryAIDomain'))
+const News = page(() => import('./routes/News'))
 const NewsStory = page(() => import('./routes/NewsStory'))
 const Updates = page(() => import('./routes/Updates'))
 const AiUpdates = page(() => import('./routes/AiUpdates'))
@@ -211,10 +211,14 @@ export default function App() {
           <Route path="/benchmarks" element={<Require session={session}><Benchmarks /></Require>} />
           <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />
           <Route path="/price-changes" element={<Require session={session}><PriceChanges /></Require>} />
-          <Route path="/news" element={<Require session={session}><News /></Require>} />
           <Route path="/ai-in-industries" element={<Require session={session}><IndustryAI /></Require>} />
           <Route path="/ai-in-industries/:key" element={<Require session={session}><IndustryAIDomain /></Require>} />
-          <Route path="/news/:id" element={<Require session={session}><NewsStory /></Require>} />
+          {/* 2026-11-24 (Parvathi): the news list is public as the "General AI news"
+              tab of AI updates; /news stays signed in, the same list plus what is
+              for the team - each source's last read and its error text. A story's
+              own page is public. */}
+          <Route path="/news" element={<Require session={session}><News /></Require>} />
+          <Route path="/news/:id" element={<NewsStory />} />
           <Route path="/updates" element={<Require session={session}><Updates /></Require>} />
           {/* Public: the updates a person approved on /updates (2026-10-30). */}
           <Route path="/ai-news-headlines" element={<AiUpdates />} />
