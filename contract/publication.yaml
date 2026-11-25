@@ -57,6 +57,11 @@ withheld_from_public:
     # pages. Remove this line, and the one under `derived_posts.embed_only`, in
     # the same change that names them - so the ruling and the site cannot drift.
     - bluesky
+    # THE OBSERVER'S INSTAGRAM ARM (2026-11-25, ruling
+    # `instagram-via-rapidapi-scraper`): read for the signed-in Industry AI
+    # page only. No Instagram post reaches a public page, and the board's
+    # platform count (the FAQ) does not include it - it is not board evidence.
+    - instagram
   # Whether a public TOTAL (voices, reports, entries, models) counts rows from
   # the sources above. true since 2026-10-15 (approved 2026-10-19): totals
   # include every source, and no page shows a per-platform count. Must be true
@@ -109,6 +114,9 @@ derived_posts:
     # it, and there is no Bluesky embed yet, so a post cannot carry Bluesky at
     # all until both lines are removed together.
     - bluesky
+    # Instagram (2026-11-25), with `withheld_from_public` above: never quoted.
+    # There is no Instagram embed, so no derived post can carry it at all.
+    - instagram
 
 evidence_feed:
   # ⚠ PROPOSED 2026-10-21 by anooj, on branch feat/evidence-feed - NOT RATIFIED.

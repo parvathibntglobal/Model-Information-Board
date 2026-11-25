@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from collect.industry_ai.config import PLATFORMS, Config
+from collect.industry_ai.config import PLATFORMS, WATCH_PLATFORMS, Config
 from collect.industry_ai.rules import Item, first_link
 
 _TAG = re.compile(r"<[^>]+>")
@@ -78,7 +78,9 @@ class QueryStat:
 class Harvest:
     items: dict[str, Item] = field(default_factory=dict)
     queries: list[QueryStat] = field(default_factory=list)
-    requests: dict[str, int] = field(default_factory=lambda: dict.fromkeys(PLATFORMS, 0))
+    # Every platform a run can spend on, watch-only ones (Instagram) included.
+    requests: dict[str, int] = field(
+        default_factory=lambda: dict.fromkeys((*PLATFORMS, *WATCH_PLATFORMS), 0))
     notes: list[str] = field(default_factory=list)
     quota: dict[str, Any] = field(default_factory=dict)
 
@@ -248,6 +250,31 @@ def _bluesky_item(hit) -> Item:
     )
 
 
+def _instagram_item(node: dict) -> Item:
+    """One post node of an Instagram account feed (collect/adapters/instagram.py).
+    `taken_at_timestamp` is epoch seconds; absent stays absent (rule 6)."""
+    from collect.adapters.instagram import caption_of
+
+    code = str(node.get("shortcode") or node.get("id") or "")
+    ts = node.get("taken_at_timestamp")
+    owner = node.get("owner") or {}
+    text = caption_of(node)
+    likes = (node.get("edge_media_preview_like") or {}).get("count")
+    comments = (node.get("edge_media_to_comment") or {}).get("count")
+    return Item(
+        id=f"instagram:{code}",
+        platform="instagram",
+        external_id=code,
+        url=f"https://www.instagram.com/p/{code}/",
+        title="",
+        body=plain(text),
+        created_at=datetime.fromtimestamp(ts, UTC) if isinstance(ts, int) else None,
+        author_id=str(owner["id"]) if owner.get("id") else None,
+        engagement={"likes": likes, "comments": comments},
+        link=first_link(text),
+    )
+
+
 def _feed_item(fid: str, e) -> Item:
     return Item(
         id=f"feeds:{fid}|{e.entry_id}",
@@ -283,13 +310,17 @@ def harvest(
     queries, under their OWN caps (`watch.max_requests`), reading back to
     `watch_since`."""
     out = Harvest()
-    budget = Budget({p: int(cfg.run["max_requests"][p]) for p in platforms})
+    # KEYWORD QUERIES RUN ONLY ON THE KEYWORD PLATFORMS. A watch-only platform
+    # (Instagram, 2026-11-25) has no keyword queries and no `run.max_requests`;
+    # it is passed through to the watch lists below.
+    kw_platforms = [p for p in platforms if p in PLATFORMS]
+    budget = Budget({p: int(cfg.run["max_requests"][p]) for p in kw_platforms})
     rows = {p.get("id"): p for p in contract.platforms}
     by_platform: dict[str, list[tuple[str, str]]] = {}
-    for scope, p, q in plan(cfg, domains=domains, platforms=platforms):
+    for scope, p, q in plan(cfg, domains=domains, platforms=kw_platforms):
         by_platform.setdefault(p, []).append((scope, q))
 
-    for platform in platforms:
+    for platform in kw_platforms:
         wanted = round_robin(by_platform.get(platform, []))
         if not wanted:
             continue
@@ -376,8 +407,6 @@ def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, s
     """The observer's watch lists: one query key per source, `watch:<platform>:<source>`,
     each with its own yield; no domain hint. Own caps, so watching never spends the
     keyword queries' budget (anooj, 2026-11-20)."""
-    from collect.industry_ai.config import WATCH_PLATFORMS
-
     caps = cfg.watch["max_requests"]
     budget = Budget({p: caps[p] for p in WATCH_PLATFORMS if p in platforms})
     by_platform: dict[str, list[str]] = {}
@@ -795,7 +824,67 @@ class _Feeds(_Runner):
         self.client.close()
 
 
+class _Instagram(_Runner):
+    """The observer's Instagram arm (2026-11-25): one feed request per watched
+    account, by the numeric id the contract holds (`watch.instagram`), keeping the
+    posts newer than the watch window's start. Watch lists only: no keyword search."""
+
+    def __init__(self, cfg, rows, contract, store, client_factory, since):
+        from collect.adapters import instagram
+
+        self.since = since
+        self.ids = cfg.instagram_ids()
+        self.client = client_factory(timeout=45.0)
+        self.h = _gated(
+            rows, contract, "instagram", instagram.harvester_for_source,
+            client=self.client, store=store,
+        )
+
+    def run(self, query):
+        handle = query.removeprefix("ig:")
+        uid = self.ids.get(handle)
+        if uid is None:  # the loader pairs every handle with an id; this is a bug
+            raise RuntimeError(f"instagram: no id for watched handle {handle!r}")
+        run = self.h.user_feed(uid, query=query)
+        if run.quota_limit is not None:
+            self.quota = {"quota_limit": run.quota_limit, "quota_remaining": run.quota_remaining}
+        # A POST WITH NO CAPTION IS LEFT OUT, NOT LABELLED: empty text would be
+        # dropped as "no AI term", a judgement about text nobody received. A page
+        # where EVERY post is uncaptioned is the provider fault of 9-17 Nov 2026,
+        # so the query is marked failed rather than read as a quiet account (rule 4).
+        from collect.adapters.instagram import caption_of
+
+        captioned = [n for n in run.posts if caption_of(n).strip()]
+        items = [_instagram_item(n) for n in captioned]
+        # Undated posts are kept, never guessed into or out of the window (rule 6).
+        items = [it for it in items if it.created_at is None or it.created_at >= self.since]
+        notes = []
+        if run.uncaptioned:
+            notes.append(f"{run.uncaptioned} of {len(run.posts)} post(s) came back with "
+                         "no caption and were left out")
+        if run.quota_exhausted:
+            notes.append("quota exhausted")
+        # A FULL PAGE INSIDE THE WINDOW (#667 review, note 4): one request reads an
+        # account's newest PER_PAGE posts, so when every dated one is inside the watch
+        # window, older posts in the window were not read - said, as Reddit's 25-post
+        # page is, never read as "that is all this account posted".
+        from collect.adapters.instagram import PER_PAGE
+        dated = [d for d in (_instagram_item(n).created_at for n in run.posts) if d is not None]
+        if len(run.posts) >= PER_PAGE and dated and min(dated) >= self.since:
+            notes.append(f"truncated: page-full ({len(run.posts)} posts, all inside the "
+                         "watch window; older ones in it not read)")
+        failure = failure_of(run)
+        if run.posts and not captioned:
+            failure = "; ".join(x for x in (failure, "no post carried a caption (provider "
+                                            "fault, seen 9-17 Nov 2026)") if x)
+        return items, max(run.calls, 1), "; ".join(notes), failure
+
+    def close(self):
+        self.client.close()
+
+
 _RUNNERS = {
+    "instagram": _Instagram,
     "reddit": _Reddit,
     "x": _X,
     "github": _GitHub,

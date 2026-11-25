@@ -72,6 +72,8 @@ def _observations(source, *, allowed=True):
 #: `collect/adapters/x.py:observe_x_use` and `devto.py:observe_devto_use`.
 _PLATFORM_OBSERVATIONS = {
     "scraper_provider": "twitter241",
+    # `collect/adapters/instagram.py:observe_instagram_use` (2026-11-25).
+    "instagram_provider": "instagram-looter2",
     "credential_present": True,
     "search_endpoint": "/articles/search",
     # The Google AI forum's paths, as a healthy run's robots gate sees them.
@@ -104,9 +106,11 @@ def test_every_declared_platform_is_the_expected_one():
     here means the preconditions hold, never that the terms were cleared.
     """
     ids = {s["id"] for s in _contract()["sources"]}
-    # The Google AI Developers Forum and Bluesky added 2026-10-26.
+    # The Google AI Developers Forum and Bluesky added 2026-10-26; Instagram
+    # 2026-11-25, for the Industry AI observer only.
     assert ids == {"github", "blogs", "reddit", "arxiv", "x", "devto", "hackernews",
-                   "huggingface", "forum:discuss.ai.google.dev", "bluesky"}
+                   "huggingface", "forum:discuss.ai.google.dev", "bluesky",
+                   "instagram"}
 
 
 def test_base_trust_matches_the_documented_weights():
@@ -153,6 +157,7 @@ def test_base_trust_matches_the_documented_weights():
         "devto": 0.60,
         "forum:discuss.ai.google.dev": 0.80,
         "bluesky": 0.60,
+        "instagram": 0.60,
     }
 
 
@@ -447,7 +452,8 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 56  # ten platforms + forty-six feeds. 53 from
+    assert len(rows) == 57  # eleven platforms + forty-six feeds; 56 until
+    #                        Instagram was added 2026-11-25. 53 from
     #                        2026-11-05 until three Medium publications were
     #                        seated later that day (#603). 35 from
     #                        2026-10-30 until eighteen Substack newsletters were

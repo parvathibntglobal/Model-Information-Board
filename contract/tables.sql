@@ -2868,8 +2868,11 @@ CREATE TABLE IF NOT EXISTS iai_item (
   -- When text retention emptied title and body (contract/industry_ai.yaml
   -- `retention:`); NULL while the text is held. A cleared row is not re-labelled.
   text_cleared_at  timestamptz,
+  -- 'instagram' since 2026-11-25 (20261125T1200_iai_item_instagram.sql): the
+  -- observer's Instagram arm.
   CONSTRAINT iai_item_platform_ck
-    CHECK (platform IN ('reddit', 'x', 'github', 'hackernews', 'devto', 'bluesky', 'feeds')),
+    CHECK (platform IN ('reddit', 'x', 'github', 'hackernews', 'devto', 'bluesky', 'feeds',
+                        'instagram')),
   CONSTRAINT iai_item_verdict_ck CHECK (verdict IN ('kept', 'dropped')),
   CONSTRAINT iai_item_drop_ck CHECK ((verdict = 'dropped') = (drop_reason IS NOT NULL)),
   CONSTRAINT iai_item_type_ck CHECK (content_type IS NULL OR content_type IN

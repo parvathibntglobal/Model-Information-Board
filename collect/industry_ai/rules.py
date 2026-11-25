@@ -298,6 +298,7 @@ def is_watched(item: Item) -> bool:
 #: URL is the anonymous `/i/status/` form names nobody and links to no person.
 _X_STATUS_URL = re.compile(r"^https://(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/")
 _BLUESKY_WATCH = "watch:bluesky:from:"
+_INSTAGRAM_WATCH = "watch:instagram:ig:"
 
 
 def handle_of(item: Item) -> str | None:
@@ -307,7 +308,13 @@ def handle_of(item: Item) -> str | None:
       x           the handle in the post's URL (`author_id` is a numeric account id);
       bluesky     the `from:<handle>` watch query that found it (`author_id` is a DID;
                   `person_of` reads the DID itself where the map holds one);
-      hackernews  `author_id`, which is the username."""
+      hackernews  `author_id`, which is the username;
+      instagram   the `ig:<handle>` watch query that found it (`author_id` is the
+                  numeric account id; Instagram is read only by watching)."""
+    if item.platform == "instagram":
+        found = sorted(k[len(_INSTAGRAM_WATCH):].lower() for k in item.query_keys
+                       if k.startswith(_INSTAGRAM_WATCH))
+        return found[0] if len(found) == 1 else None
     if item.platform == "x":
         m = _X_STATUS_URL.match(item.url or "")
         # `/i/status/` is X's anonymous form, not an account called "i".

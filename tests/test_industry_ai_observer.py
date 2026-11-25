@@ -66,12 +66,31 @@ def one(cfg, it):
 # ── the contract ─────────────────────────────────────────────────────────────
 
 
-def test_the_watch_lists_load_off_and_within_twenty(cfg):
+def test_the_watch_lists_load_off_and_within_their_caps(cfg):
     w = cfg.watch
     assert w["enabled"] is False, "the observer stays off until its own dry run"
-    for p in ("reddit", "x", "bluesky"):
-        assert 0 < len(w[p]) <= 20, p
+    assert 0 < len(w["bluesky"]) <= 20
+    # Raised on 2026-11-25 (anooj): X to 200 (its accounts are clubbed, so 150 accounts
+    # cost 15 queries, not 150) and Reddit to 60 (one listing page per subreddit).
+    assert 0 < len(w["x"]) <= 200
+    assert 0 < len(w["reddit"]) <= 60
     assert len(w["hackernews"]["lists"]) + len(w["hackernews"]["authors"]) <= 20
+
+
+def test_the_x_watch_cap_reads_every_club_over_the_window(cfg):
+    """A cap below clubs x pages leaves the LAST clubs unread, and the list's order
+    decides which accounts those are. The run log says "capped", but nothing would
+    say which accounts went unread - so the cap must cover them all."""
+    w = cfg.watch
+    clubs = -(-len(w["x"]) // w["x_club_max"])
+    assert w["max_requests"]["x"] >= clubs * w["x_pages"]
+
+
+def test_the_reddit_watch_cap_reads_every_subreddit(cfg):
+    """Each watched subreddit costs run.pages_per_query.reddit listing pages; a cap
+    below that leaves the last subreddits in the list unread every run."""
+    w = cfg.watch
+    assert w["max_requests"]["reddit"] >= len(w["reddit"]) * cfg.run["pages_per_query"]["reddit"]
 
 
 @pytest.mark.parametrize(
