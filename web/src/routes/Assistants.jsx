@@ -167,6 +167,30 @@ function GroupTabs({ groups, active, onPick }) {
   )
 }
 
+/**
+ * WHEN THE AGENTS WERE LAST FETCHED (#669 review, 2026-11-25). The agent fetch is
+ * started by hand, so a page that has stopped getting reports would otherwise read
+ * as a quiet one (rule 4). Switched off and never run are each said in words, never
+ * shown as a date. The days are counted here, from the time the API sends.
+ */
+function AgentFetchLine({ f }) {
+  if (!f) return null
+  if (f.state === 'off') {
+    return <p className="dim">The agent fetch is switched off, so no new reports are being collected for these assistants.</p>
+  }
+  if (f.state === 'never') {
+    return <p className="dim">The agent fetch hasn&apos;t completed a search yet, so these counts come from other fetches only.</p>
+  }
+  const t = new Date(f.last_at).getTime()
+  const days = Number.isNaN(t) ? null : Math.floor((Date.now() - t) / 86400000)
+  const ago = days == null ? '' : days === 0 ? ' (today)' : ` (${plural(days, 'day')} ago)`
+  return (
+    <p className="dim">
+      Reports for these assistants were last fetched {fmtDayUtc(f.last_at)}{ago}. The fetch is started by hand, so this date can fall behind.
+    </p>
+  )
+}
+
 function List() {
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
   const [params, setParams] = useSearchParams()
@@ -200,6 +224,7 @@ function List() {
       {!data && !err && !unreadable && <p className="dim">Loading.</p>}
       {data && (
         <>
+          <AgentFetchLine f={data.agent_fetch} />
           <p className="dim">{data.unit_note}</p>
           <GroupTabs groups={groups} active={active} onPick={pick} />
           <div id="as-panel" role="tabpanel" aria-labelledby={`as-tab-${active}`} key={active} className="stack stack-3">

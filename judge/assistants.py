@@ -76,9 +76,11 @@ from judge.config import (
 )
 
 
-def _coverage(conn) -> tuple[set[str], set[str]]:
-    """(listed, searched): the canonical ids the agent fetch is set to search
-    for, and the registry row ids it HAS searched.
+def _fetch_state(conn) -> tuple[tuple[set[str], set[str]], dict]:
+    """((listed, searched), agent_fetch).
+
+    `listed` and `searched` are the canonical ids the agent fetch is set to
+    search for, and the registry row ids it HAS searched.
 
     LISTED IS NOT SEARCHED (#634 review, Parvathi, 2026-11-18). Being in
     contract/tracked_agents.yaml says a fetch will run, not that one has: a
@@ -87,15 +89,34 @@ def _coverage(conn) -> tuple[set[str], set[str]]:
     `due_rows` and its LAST_SUCCESS: an `end` record with status ok that read
     something or could have. With `run.enabled: false` nothing searches, so
     both sets are empty and every silent assistant is `not_tracked`.
+
+    `agent_fetch` IS WHEN THE AGENTS WERE LAST FETCHED (#669 review, Parvathi,
+    2026-11-25). Since #669 the agent fetch has no schedule and runs only when
+    someone starts it, so a page that has stopped getting reports would read as a
+    quiet one (rule 4). It is the newest of those same LAST_SUCCESS times, over
+    every tracked agent, so it can never disagree with a card's state. Three
+    states, each said in words on the page, never shown as a date or as "never":
+        off    `run.enabled: false` - nothing is fetched
+        never  switched on, and no fetch has completed for any agent
+        ran    `last_at`, the newest completed fetch (an ISO time, UTC)
     """
     if not agent_run_rule().enabled:
-        return set(), set()
+        return (set(), set()), {"state": "off"}
     from scripts.run_scheduled_fetches import due_rows
 
+    rows = due_rows(conn, "agents")
     listed = {a.registry for a in tracked_agents()}
-    searched = {r["model_version_id"] for r in due_rows(conn, "agents")
-                if r.get("last_success") is not None}
-    return listed, searched
+    done = [r for r in rows if r.get("last_success") is not None]
+    searched = {r["model_version_id"] for r in done}
+    if not done:
+        return (listed, searched), {"state": "never"}
+    last = max(r["last_success"] for r in done)
+    return (listed, searched), {"state": "ran", "last_at": last.isoformat()}
+
+
+def _coverage(conn) -> tuple[set[str], set[str]]:
+    """(listed, searched); see `_fetch_state`."""
+    return _fetch_state(conn)[0]
 
 
 def _state(reg: dict, reports: int, coverage: tuple[set[str], set[str]]) -> str:
@@ -285,7 +306,7 @@ def assistants_view(conn) -> dict:
     registry = _registry(conn, sorted(in_group | set(agent_canonical_ids())))
     axes = _axis_index(conn)
     names = _vocab_names()
-    coverage = _coverage(conn)
+    coverage, agent_fetch = _fetch_state(conn)
 
     groups = []
     for g in cfg["groups"]:
@@ -337,6 +358,8 @@ def assistants_view(conn) -> dict:
     return {
         "groups": groups,
         "unclassified": unclassified,
+        # Read by web/src/routes/Assistants.jsx `AgentFetchLine`.
+        "agent_fetch": agent_fetch,
         "view": "public",
         "unit_note": (
             "Each person is counted once, however often they posted; a report is one "
