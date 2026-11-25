@@ -4,6 +4,7 @@ import { adminIndustryAi, adminSchedules } from '../api'
 import { Badge, Notice } from './ui'
 import { IconAlert, IconGrid } from './Icons'
 import { when } from '../scheduleWords'
+import { PLATFORM_LABEL } from '../industry-ai/parts'
 
 /**
  * Admin -> Board & content -> AI in industries (2026-11-25, Parvathi): the state
@@ -23,10 +24,8 @@ import { when } from '../scheduleWords'
  * and GET /admin/schedules. Read-only. Every number comes from them (rule 11).
  */
 
-const PLATFORM = {
-  reddit: 'Reddit', x: 'X', github: 'GitHub', hackernews: 'Hacker News', devto: 'dev.to',
-  bluesky: 'Bluesky', feeds: 'Blogs & feeds',
-}
+// One set of platform labels for every AI in industries view (#668 review).
+const PLATFORM = PLATFORM_LABEL
 const n = (v) => (v ?? 0).toLocaleString('en-GB')
 
 function Cell({ k, v, sub }) {

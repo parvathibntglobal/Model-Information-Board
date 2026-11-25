@@ -70,6 +70,10 @@ jobs:
       X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
       REDDIT_PROVIDER: ${{ vars.REDDIT_PROVIDER }}
       SCRAPER_PROVIDER: ${{ vars.SCRAPER_PROVIDER }}
+      # The observer's Instagram arm (2026-11-25): provider name (repo variable)
+      # and an optional own key (secret; empty falls back to RAPIDAPI_KEY).
+      INSTAGRAM_PROVIDER: ${{ vars.INSTAGRAM_PROVIDER }}
+      INSTAGRAM_RAPIDAPI_KEY: ${{ secrets.INSTAGRAM_RAPIDAPI_KEY }}
       GITHUB_TOKEN: ${{ github.token }}
       GH_TOKEN: ${{ github.token }}
       INDUSTRY_AI_ENABLED: ${{ vars.INDUSTRY_AI_ENABLED }}
@@ -106,6 +110,7 @@ jobs:
           fi
           [ -n "$RAPIDAPI_KEY" ]   || echo "::warning::RAPIDAPI_KEY not set - Reddit is skipped this run"
           [ -n "$X_RAPIDAPI_KEY" ] || echo "::warning::X_RAPIDAPI_KEY not set - X is skipped this run"
+          [ -n "$INSTAGRAM_PROVIDER" ] || echo "::warning::INSTAGRAM_PROVIDER not set - the observer skips Instagram this run"
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
       - if: steps.gate.outputs.enabled == 'true'

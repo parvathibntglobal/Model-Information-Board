@@ -110,6 +110,16 @@ class Settings:
     #: source is the honest substitute for a validation that cannot exist.
     x_rapidapi_key: str | None
 
+    #: WHICH RAPIDAPI PROVIDER FRONTS INSTAGRAM (2026-11-25, the observer's
+    #: Instagram arm). `instagram-looter2` today; the host is derived from it
+    #: (`collect/adapters/instagram.py:host_for`) and NOT DEFAULTED, for the X
+    #: reason above. `RAPIDAPI_HOST` is never read for it: that variable already
+    #: sent Reddit to X's host once.
+    instagram_provider: str | None
+    #: Instagram's own RapidAPI key, falling back to `rapidapi_key` - the X
+    #: arm's shape; `instagram.key_for` names which variable was used.
+    instagram_rapidapi_key: str | None
+
     pipeline_version: str
 
     @property
@@ -168,5 +178,7 @@ def settings() -> Settings:
         reddit_provider=os.getenv("REDDIT_PROVIDER") or None,
         scraper_provider=os.getenv("SCRAPER_PROVIDER") or None,
         x_rapidapi_key=os.getenv("X_RAPIDAPI_KEY") or None,
+        instagram_provider=os.getenv("INSTAGRAM_PROVIDER") or None,
+        instagram_rapidapi_key=os.getenv("INSTAGRAM_RAPIDAPI_KEY") or None,
         pipeline_version=os.getenv("PIPELINE_VERSION", PIPELINE_VERSION),
     )

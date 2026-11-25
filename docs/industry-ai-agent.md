@@ -31,7 +31,8 @@ source):
   Governance (*Public Sector & Nonprofit*, *AI Policy & Governance*).
 
 It harvests from Reddit, X, GitHub, Hacker News, dev.to, Bluesky and blog/RSS feeds,
-driven by **keywords per domain per platform** in `contract/industry_ai.yaml`.
+driven by **keywords per domain per platform** in `contract/industry_ai.yaml`. The
+observer (below) also reads **Instagram**, by watched account only (since 2026-11-25).
 
 **How the contract expresses this** (#644 review):
 - **`kind`:** each domain is an `industry` or a `function` (a role that cuts across
@@ -88,6 +89,15 @@ workflows, launches, and opinions from the people who shape the field.
 **One lane, one pipeline, one page.** It runs the same stages (§3) into the same
 tables. A post found by both a keyword query and a watch source is **one row with
 both query keys**.
+
+**Instagram, watched accounts only (anooj, 2026-11-25).** `watch.instagram` holds
+`[handle, "id"]` pairs; a run asks each account's newest 12 posts by its numeric id
+(one request; `collect/adapters/instagram.py`, RapidAPI provider `instagram-looter2`,
+ruling `instagram-via-rapidapi-scraper`). No keyword search, and nothing reaches a
+public page (contract/publication.yaml). A post with no caption is left out rather
+than labelled; a page where no post has one is the query's failure (the provider
+returned captionless posts on 9-17 Nov 2026). Needs `INSTAGRAM_PROVIDER` set
+(repo variable for the workflow); unset, Instagram is skipped with that reason.
 
 **Where it differs:**
 - **The sieve:** a watched post needs an AI term; an industry term is optional.

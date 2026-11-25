@@ -32,7 +32,7 @@ version: 1
 # iai-3: the accuracy fixes from the first run's review (2026-11-24): 90-day window,
 #        audit and reverse engineering narrowed, filter patterns tightened, a
 #        use-case pattern's `ai` group must name an AI term.
-# iai-4: keywords toward 50 per umbrella, 381 added (2026-11-25).
+# iai-4: keywords toward 50 per umbrella, 363 added (2026-11-25; 18 removed in review).
 pipeline_version: iai-4
 # WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
 # read by the AI in industries Info view so "Rules version iai-4" means something
@@ -656,7 +656,9 @@ retention:
 #     the run log, so a source that brings nothing is flagged for pruning.
 #   * its own switch (`enabled`) and its own request caps, so watching can never
 #     starve the keyword queries. Off until its first dry run.
-# Lists are capped at 20 per platform for now. Checked 2026-11-20: the 13 Bluesky
+# Lists are capped at 20 per platform for now, except X (150 accounts), Reddit (55
+# subreddits) and Instagram (200 accounts) since 2026-11-25 (anooj's additions; see
+# each list). Checked 2026-11-20: the 13 Bluesky
 # handles resolve (public getProfile); the HN authors have posts (Algolia
 # author_<name>); X `from:` clubbing returns only the listed accounts' posts on our
 # route (1 request) - but one prolific account filled a page (swyx 16 of 20 over
@@ -669,21 +671,327 @@ watch:
   # How far back a watched source is read on each run (the run's window for watch
   # queries; X adds it as `since:`).
   lookback_days: 7
-  # Watch requests per platform per run, separate from run.max_requests.
-  max_requests: {reddit: 25, x: 30, bluesky: 20, hackernews: 15}
+  # Watch requests per platform per run, separate from run.max_requests. X is
+  # clubs x x_pages, so every club can be read over the whole window: 15 clubs of the
+  # 150 accounts x 10 pages = 150 (was 30 for 2 clubs, 2026-11-25). A ceiling, not a
+  # spend: paging stops at `since:`. Reddit is one listing page per subreddit
+  # (run.pages_per_query.reddit), so 43 subreddits = 43 (was 25 for 20, 2026-11-25).
+  # Instagram is one feed request per account (its id is stored below), so the cap
+  # is the number of accounts. Its plan is 15,000 requests a month (read 2026-11-25).
+  # AGAINST THE MONTHLY QUOTAS (#667 review, rule 7). Ceilings per run, keyword +
+  # watch: X 220 + 150 = 370, Reddit 60 + 43 = 103, Instagram 200. Plans: X 100,000
+  # a month (twitter241; the provider read 97,777 left at 2026-11-25 06:15Z, after
+  # that day's run), Reddit 1,000,000 (reddit34; 999,397 left, same reading),
+  # Instagram 15,000 (instagram-looter2, Instagram's own key use only). The X and
+  # Reddit quotas are SHARED with the model fetch. At one run a WEEK (the workflow's
+  # schedule on 2026-11-25) a month is at most X ~1,600, Reddit ~450, Instagram
+  # ~870. At one run a DAY (the schedule the rotation PR proposes, anooj 2026-11-24)
+  # at most X 11,100 (11% of the plan), Reddit 3,090 (0.3%), Instagram 6,000 (40%):
+  # the model fetch keeps at least 88,900 X and 996,910 Reddit requests a month.
+  # Ceilings, not spend: X paging stops at `since:`, and a short list asks less.
+  max_requests: {reddit: 43, x: 150, bluesky: 20, hackernews: 15, instagram: 200}
   # X pages per clubbed account query, and how many accounts one query clubs.
   x_pages: 10
   x_club_max: 10
   # Replies excluded in the first test runs (anooj, 2026-11-20); kept later.
   x_suffix: "-filter:replies"
-  reddit: [ChatGPTPro, AI_Agents, ArtificialInteligence, PromptEngineering, vibecoding, ClaudeAI, ClaudeCode, OpenAI, LocalLLaMA, GeminiAI, cursor, LLMDevs, aipromptprogramming, AIAssisted, ChatGPTPromptGenius, perplexity_ai, midjourney, StableDiffusion, MachineLearning, Anthropic]
-  x: [karpathy, sama, simonw, emollick, AndrewYNg, swyx, gdb, ylecun, jeremyphoward, amasad, rauchg, OfficialLoganK, goodside, alliekmiller, lennysan, danshipper, levelsio, hwchase17, alexalbert__, rowancheung]
-  bluesky: [simonwillison.net, emollick.bsky.social, natolambert.bsky.social, minimaxir.bsky.social, vickiboykis.com, garymarcus.bsky.social, melaniemitchell.bsky.social, eugeneyan.com, howard.fm, swyx.io, randomwalker.bsky.social, hamel.bsky.social, karpathy.bsky.social]
+  # REDDIT: 20 from 2026-11-20; 35 added by anooj on 2026-11-25 from a subreddit table
+  # anooj sent and two published lists (usefulai.com "Best AI Subreddits", updated
+  # 2026-07-12; daily.dev "best subreddits for AI coding", 2026-09-10).
+  # EACH NEW ONE WAS CHECKED on 2026-11-25 with the watcher's own request (one
+  # newest-first listing page, getPostsBySubreddit): its posts name the subreddit
+  # asked for. That check, not the status, is the test - a made-up name also answered
+  # 200 with 25 posts, naming no subreddit. Left out: r/programming (0 of its newest
+  # 25 posts named an AI term, by rules.ai_terms_found) and r/AiForSmallBusiness (an
+  # empty page under three spellings).
+  # FIELD COMMUNITIES ARE NOT WATCHED (anooj, 2026-11-25, #667). A watched post has no
+  # domain of its own: it is filed under every domain its terms name and counted APART
+  # ("from watch lists"), never in a domain's own figures. A community about one field
+  # is that field's evidence, so it is a keyword LISTING of its domain instead
+  # (`domains.<key>.queries.reddit.subreddits`), counted in the domain. Moved there:
+  # webdev, coding, devops, googlecloud -> engineering/software_ai; dataengineering,
+  # databricks, datascience -> data_analytics. Already listed by their domain, so only
+  # removed here: cybersecurity, sysadmin (security_it), productivity (personal),
+  # ExperiencedDevs (engineering/software_ai), automation (operations).
+  # Measured 2026-11-24/25 over both real runs: 81% of what the watch lists kept (686
+  # of 849) named no industry - the observer is the cross-domain AI feed.
+  # ONE PAGE IS 25 POSTS: on 2026-11-25 that was about 3 hours of r/ChatGPT, 6 of
+  # r/aiwars and 7 of r/generativeAI, so a daily run reads only a slice of the busiest.
+  reddit: [ChatGPTPro, AI_Agents, ArtificialInteligence, PromptEngineering, vibecoding, ClaudeAI, ClaudeCode, OpenAI, LocalLLaMA, GeminiAI, cursor, LLMDevs, aipromptprogramming, AIAssisted, ChatGPTPromptGenius, perplexity_ai, midjourney, StableDiffusion, MachineLearning, Anthropic,
+           WritingWithAI, generativeAI, aiArt, GithubCopilot, Rag, LangChain, LocalLLM, comfyui, nocode, learnmachinelearning, openclaw, singularity, artificial, deeplearning, mlops, ChatGPT, codex, MistralAI, ChatGPTCoding, hermesagent, ClaudeCowork, ElevenLabs, aiwars]
+  # X: 20 accounts from 2026-11-20, and 130 added by anooj on 2026-11-25 from
+  # gathered lists (builders and solo founders; AI researchers, lab leaders,
+  # investors and developers; AI labs' and institutes' own accounts; published
+  # "AI accounts to follow" lists from Amperly, Salesforce, BBVA, JADBio and Signum,
+  # some of them years old).
+  # EVERY HANDLE WAS CHECKED on 2026-11-25 through our route's user lookup (twitter241
+  # /user): each exists, is public and answers to the handle as written. The lookup
+  # was first tried on one real and one made-up handle, and told them apart.
+  # WRONG IN THE LISTS, and what was done:
+  #   MetaAI        another account, no posts       -> AIatMeta (Meta's)
+  #   DeepMind      no longer exists                -> GoogleDeepMind
+  #   FLIxrisk      unavailable                     -> FLI_org (Future of Life Institute)
+  #   facebookai    protected, no posts             -> left out (AIatMeta is listed)
+  #   GroqInc       no posts, not Groq's            -> left out (real handle not found)
+  #   etzioni       unavailable                     -> left out
+  #   FHIoxford     the institute closed, April 2024 -> left out
+  # LEFT OUT, not being about AI: three gadget reviewers (MKBHD, iJustine,
+  # Mrwhosetheboss) and a small vendor's marketing account.
+  # CLUBBED x_club_max AT A TIME BY POSITION IN THIS LIST, quietest first by LIFETIME
+  # post count on 2026-11-25 (87 to about 2.2 million). Line breaks mean nothing to
+  # the loader: the list is written 10 to a line so that, while its length is a
+  # multiple of 10, a line is a club. A busy account fills its club's pages (the swyx
+  # problem above), so busy accounts share clubs only with each other; the busiest,
+  # AIFrontliner (over 8 times the next), is in the last club with the nine next
+  # busiest. A lifetime count is not a weekly rate - the first dry run's per-account
+  # counts decide whether this order holds. Adding an account shifts every club after
+  # it by one place.
+  x: [MichaelAuli, geoffreyhinton, cynthiabreazeal, faustospain, chipro, CovariantAI, HsrYueli, robotsmarts, godofprompt, amandaj0hnstone,
+      midjourney, adelynzhou, AnthropicAI, nickmalhotra, tegmark, tim_cook, AndrewYNg, lmthang, OpenAI, 0xROAS,
+      alexalbert__, eladgil, satyanadella, tessalau, AIatMeta, sundarpichai, drfeifei, ayeshakhanna1, jovialjoy, demishassabis,
+      GoogleAI, _KarenHao, kaifulee, lexfridman, soumithchintala, Reza_Zadeh, DrJimFan, GoogleDeepMind, goodside, tristanharris,
+      Thom_Wolf, AriaWestcott, FutureStacked, KayFButterfield, gdb, StanfordHAI, romanyam, reidhoffman, MIT_CSAIL, EXM7777,
+      FLI_org, vasuman, clarashih, sama, Whats_AI, marek_rosa, Hesamation, MFordFuture, petitegeek, vinod1975,
+      mreflow, AravSrinivas, heykahn, tobi, karpathy, corbin_braun, alliekmiller, jeggers, egeberkina, mattshumer_,
+      OfficialLoganK, VanRijmenam, rowancheung, rileybrown, NVIDIAAI, eptwts, nvidia, heyBarsee, pmarca, _ganeshp,
+      nickfloats, hwchase17, ID_AA_Carmack, mckaywrigley, rasbt, omarsar0, fchollet, hardmaru, rryssf, naval,
+      pmddomingos, YuHelenYu, danshipper, ylecun, erikbryn, addyosmani, MengTo, amasad, TheAIColony, balajis,
+      ClementDelangue, CatherineAdenle, javilopen, CharaspowerAI, ESYudkowsky, DataChaz, emollick, marclou, BernardMarr, marcusborba,
+      lennysan, IBMData, kimmonismus, _akhaliq, ThePrimeagen, Datasciencectrl, jackfriks, SASsoftware, svpino, bing,
+      rauchg, antgrasso, paulg, minchoi, simonw, Strategy_Gal, LinusEkenstam, gregisenberg, jeremyphoward, GaryMarcus,
+      DeepLearn007, Shawnife, theo, AmirMushich, dhh, garrytan, nigewillson, swyx, kdnuggets, sallyeaves,
+      kloss_xyz, TamaraMcCleary, steipete, tunguz, AIHighlight, levelsio, Ronald_vanLoon, KirkDBorne, Scobleizer, AIFrontliner]
+  # BLUESKY: DORMANT ACCOUNTS OUT (anooj, 2026-11-25, #667). Bluesky's public search has
+  # no working date limit (`since`, as a parameter in three forms or in the query,
+  # answered HTTP 400 on api.bsky.app, 2026-11-25), so each run reads an account's
+  # newest 100 posts, however old. Over both real runs 1,085 of the 1,773 watch drops
+  # were such old Bluesky posts. Left out: no post in the 30 days to 2026-11-25 -
+  # eugeneyan.com (newest 2025-09-17), howard.fm (2026-05-11), swyx.io (2026-01-26),
+  # hamel.bsky.social (2026-09-27), karpathy.bsky.social (2023-05-27). Jeremy Howard,
+  # swyx and Karpathy are still watched on X; Eugene Yan and Hamel Husain are not
+  # watched anywhere now. Low but alive, kept: vickiboykis.com (2 posts in 30 days),
+  # garymarcus.bsky.social (1), randomwalker.bsky.social (1), melaniemitchell (5).
+  bluesky: [simonwillison.net, emollick.bsky.social, natolambert.bsky.social, minimaxir.bsky.social, vickiboykis.com, garymarcus.bsky.social, melaniemitchell.bsky.social, randomwalker.bsky.social]
+  # INSTAGRAM (anooj, 2026-11-25): WATCHED ACCOUNTS ONLY - no keyword search. Read for
+  # the signed-in Industry AI page; never shown publicly or quoted
+  # (contract/publication.yaml). Route and terms: collect/adapters/instagram.py, ruling
+  # `instagram-via-rapidapi-scraper` in contract/sources.yaml.
+  #   WHERE THEY CAME FROM: the "fits the observer" section of
+  #   docs/proposals/observer-instagram-watch-list.md (211 handles from anooj's lists
+  #   of 2026-11-25: automation, tools and tutorials, news, explainers, founders).
+  #   CHECKED 2026-11-25: each handle looked up once through the provider's /id
+  #   (a made-up name returns no id): 200 resolved, 11 did not.
+  #   [handle, "id"]: the numeric id is the account (a handle can change hands), and a
+  #   run reads the feed by id - one request per account. Ids are quoted strings.
+  #   NOT RESOLVED, LEFT OUT (renamed, removed, or misspelt in the source list):
+  #   ai.innovator, ai_guy_yt, ai_wealth, aitrendz_xyz, codestreak.dev, codingden,
+  #     itsfinn.ai, kanekallaway, onlytapa.ai, socialmediawithmichelle, yaswantpalaghat
+  instagram:
+    - [100xengineers, "59144133226"]
+    - [_dbrogle, "42424120009"]
+    - [_karsten, "18312374"]
+    - [_no_hype_ai, "26355014945"]
+    - [adamstewartmarketing, "53607877891"]
+    - [adrien.ninet, "55150329708"]
+    - [ai.advantage, "4143773341"]
+    - [ai.artificialintelligence.ai, "39124472666"]
+    - [ai.volve.news, "61463786383"]
+    - [ai_dev_official, "17929096430"]
+    - [aibymg, "26616239814"]
+    - [aigleeson, "59568481623"]
+    - [airesearches, "63815533095"]
+    - [aitoolhub.co, "67475982904"]
+    - [aitrendz.xyz, "59148354604"]
+    - [aiviralcreator, "69063015238"]
+    - [aiwithremy, "78266523500"]
+    - [akilwade, "37580195"]
+    - [alassafi.ai, "74737900948"]
+    - [albert.olgaard, "69622892496"]
+    - [algovaultai, "65441721836"]
+    - [alimirza2k, "45742527"]
+    - [alliekmiller, "16124384"]
+    - [andremass.ai, "57182559252"]
+    - [angus.sewell, "30277756754"]
+    - [app_source_hub, "7543279871"]
+    - [artem.novitckii, "47640533743"]
+    - [artificialintelligence.digest, "7550503941"]
+    - [artificialintelligencefacts, "21290893279"]
+    - [artificialityinstitute, "16102118803"]
+    - [ashiqcinematic, "63723773259"]
+    - [askcatgpt, "69059572228"]
+    - [automatewithmarko, "70894974456"]
+    - [awakpenn, "3189157336"]
+    - [badxstudio, "48396643791"]
+    - [bashi_fuirkashi, "1462428012"]
+    - [bennett.spooner, "23317230"]
+    - [bilawal.ai, "18039316"]
+    - [bolstart_, "44407854135"]
+    - [brand.nat, "7403909921"]
+    - [bravetech.ai, "64714534909"]
+    - [braydenharlow.ai, "75548438299"]
+    - [brodyautomates, "39812398282"]
+    - [by.shlabu, "76809673299"]
+    - [byjackprice, "38258380738"]
+    - [byjoeym, "65888033401"]
+    - [bywaviboy, "75171266466"]
+    - [caste.ai, "75846002547"]
+    - [chase.h.ai, "70101223844"]
+    - [chatgptips, "57492138219"]
+    - [chatgptmastery, "58768100386"]
+    - [chatgptricks, "57666094056"]
+    - [cleoabram, "48537154"]
+    - [concept_bytes, "63945343255"]
+    - [cooper.simson, "308198893"]
+    - [costlyeditor, "64176849805"]
+    - [dailychatgpt, "73942005592"]
+    - [dallionking, "22948712"]
+    - [deeplearningnerds, "25466242760"]
+    - [deonnahodges, "1691251220"]
+    - [digital_windows_ai, "60836890310"]
+    - [digitaljeff, "44757011"]
+    - [digitalsamaritan, "43834396136"]
+    - [dimitristeachesai, "1322198590"]
+    - [drcintas, "67480175680"]
+    - [elizatan_, "199658976"]
+    - [eluna.ai, "57463265457"]
+    - [evolving.ai, "58712495227"]
+    - [fabionkallaku, "17212261431"]
+    - [felipe.sf.insider, "46115175435"]
+    - [futurewithfawzi, "37116158825"]
+    - [gannon.meyer, "52091500"]
+    - [gayatri.tech, "13719608165"]
+    - [gigee.ai, "75861161898"]
+    - [harpercarrollai, "5787807072"]
+    - [harsh.solankii, "561942643"]
+    - [helloryans, "62217024990"]
+    - [heysirio, "66358111114"]
+    - [hubverse, "11866297972"]
+    - [iamkylebalmer, "61719102409"]
+    - [imanoubou, "175433082"]
+    - [innovation, "66823923820"]
+    - [invideo.io, "9634891838"]
+    - [itsmariahbrunner, "80811707701"]
+    - [itstylergermain, "59316832724"]
+    - [iustin.ai, "75320261193"]
+    - [jalves.official, "5920358957"]
+    - [janustiu, "50542578765"]
+    - [jasoncooperson, "60460786182"]
+    - [jennie.makes, "67106848996"]
+    - [jens.heitmann, "74183486377"]
+    - [johnbucog, "684624928"]
+    - [joshhoole, "3429733525"]
+    - [joshualarosa.ai, "72085647676"]
+    - [kaigenerated, "14789588562"]
+    - [kallawaymarketing, "67218622229"]
+    - [karanlohiaa_, "55655949165"]
+    - [kaye.creatives, "37292411459"]
+    - [kayvon.ai, "75705826036"]
+    - [keanu.visuals, "258162501"]
+    - [keeran.ai, "76660885840"]
+    - [khris.sheer, "44610235151"]
+    - [koen.agi, "70138515623"]
+    - [leadwithzoe, "21982996"]
+    - [leoreal.ai, "79557893926"]
+    - [liamjohnston.ai, "71547308243"]
+    - [mach.learning, "36743078512"]
+    - [madeline.m.zhang, "12187795666"]
+    - [marketing.with.m, "68008198193"]
+    - [marwanetane, "45550611790"]
+    - [mattfarmerai, "223363740"]
+    - [matthewberman_ai, "64930383287"]
+    - [mavgpt, "76592988239"]
+    - [metav3rse, "49158102167"]
+    - [mewtru, "10241304545"]
+    - [mohamed.adany, "3961332239"]
+    - [mpaige13, "14223940"]
+    - [mr.eflow, "58614051644"]
+    - [mr.grateful, "266064756"]
+    - [mr.pynk, "75792190419"]
+    - [nateherkai, "68890272897"]
+    - [nathanhodgson.ai, "69517826617"]
+    - [neilpatel, "7543806209"]
+    - [nicholas.puru, "62439081529"]
+    - [nick_saraev, "72269881052"]
+    - [nickismeta, "47174749743"]
+    - [nicksadler.io, "72177937983"]
+    - [nicola.ai, "78338858351"]
+    - [nicolascole77, "319852764"]
+    - [ninjaaitools, "57652729329"]
+    - [nocode.joshua, "66737182384"]
+    - [noevarner.ai, "77419916006"]
+    - [nomadatoast, "61142553174"]
+    - [officialpwnkumar, "3603319704"]
+    - [ohneis652, "8371935240"]
+    - [olivermerrick___, "74456039218"]
+    - [onlyzita, "11706414183"]
+    - [openai, "45374573700"]
+    - [overpowered.ai, "59127557878"]
+    - [parthknowsai, "75991090903"]
+    - [paulo.ia, "3905595"]
+    - [pauloshimas, "78272857188"]
+    - [perceiveai, "55654690408"]
+    - [power.ai, "58134309921"]
+    - [prompteto, "61221103917"]
+    - [raycfu, "36825651871"]
+    - [realrileybrown, "44218254224"]
+    - [realrobertgutierrez, "5678686750"]
+    - [rndyrbrts, "39314083924"]
+    - [rossfledderjohn, "13653883"]
+    - [rourke, "64325658281"]
+    - [rowancheung, "58394680560"]
+    - [rpn, "10175308832"]
+    - [rpn.tech, "71359928197"]
+    - [sabrina_ramonov, "68188160639"]
+    - [sam.john.creates, "58702806799"]
+    - [sanidhya.ai, "57810167530"]
+    - [sanjogsays, "76669332789"]
+    - [sebastian_volkis, "64852407285"]
+    - [sebastien, "487717181"]
+    - [shedoesai, "62647270150"]
+    - [shekhargupta.ai, "5461407591"]
+    - [simonmeyer_director, "6044952687"]
+    - [simplydigital.gr, "4519853977"]
+    - [sina.growthtech, "34970431059"]
+    - [sineadbovell, "30472835"]
+    - [social.cameo, "61726547298"]
+    - [socialtypro, "8702285404"]
+    - [softgirlnocode, "75866082497"]
+    - [soojintech, "4767653104"]
+    - [sourcetms, "71639293000"]
+    - [tapewarp.ai, "73951248044"]
+    - [tech_shuffle, "54094105176"]
+    - [tech_with_tim, "12331116859"]
+    - [techbible.ai, "45898032983"]
+    - [tecotech_47, "66751421028"]
+    - [tennyhainsworth__, "30570433537"]
+    - [theaiavalanche, "64063006724"]
+    - [theaigirl, "181325016"]
+    - [theaisavvy, "58360194597"]
+    - [theaisurfer, "57697835322"]
+    - [thebusinessmagnets, "26185478424"]
+    - [thechriscordero, "59144686553"]
+    - [theclarkgary, "3572519202"]
+    - [thedeepview.co, "62443059423"]
+    - [theinsiders_club, "51246587430"]
+    - [themorad, "2118860768"]
+    - [thesocialabhii, "44980610101"]
+    - [thevarunmayya, "7695520761"]
+    - [thisisnickys, "14225861"]
+    - [tudormorari.ai, "19345727635"]
+    - [tumifnx, "6007979818"]
+    - [uncover.ai, "59249986892"]
+    - [v.i.s.h.ai, "64035600264"]
+    - [welcome.ai, "4467912123"]
+    - [winkguys, "59715523957"]
+    - [wordofmachine, "43095140014"]
+    - [wright_mode, "3077957799"]
+    - [yourchatgptguide, "58686955965"]
+    - [zeeeljain, "53307132248"]
   hackernews:
     lists: [show_hn, ask_hn, front_page]
-    # tptacek on probation: very prolific, mostly not about AI; kept only if his
-    # first-run yield passes the sieve often.
-    authors: [simonw, minimaxir, swyx, jph00, karpathy, tptacek]
+    # tptacek LEFT OUT (2026-11-25, #667): he was on probation (prolific, mostly not
+    # about AI); over both real runs 34 of his posts were dropped for naming no AI term.
+    authors: [simonw, minimaxir, swyx, jph00, karpathy]
   # ONE PERSON, SEVERAL HANDLES (2026-11-20). Six watched people post on two or three
   # platforms. Without this map a person counts as one author PER PLATFORM, and their
   # same post on X and Bluesky stays two items. Measured 2026-11-20 over one 7-day
@@ -699,18 +1007,18 @@ watch:
   # query links to its person too, and a `from:<handle>` post whose author is another
   # DID - a handle that changed hands - links to no one. Resolved by hand on
   # 2026-11-24 through com.atproto.identity.resolveHandle on api.bsky.app (the adapter's
-  # own host), all six HTTP 200. Re-resolve when a Bluesky handle here changes.
+  # own host), all six HTTP 200; three remain (2026-11-25). Re-resolve when a Bluesky
+  # handle here changes.
   people:
     simon_willison: {x: simonw, bluesky: simonwillison.net, hackernews: simonw,
                      bluesky_did: "did:plc:kft6lu4trxowqmter2b6vg6z"}
-    andrej_karpathy: {x: karpathy, bluesky: karpathy.bsky.social, hackernews: karpathy,
-                      bluesky_did: "did:plc:j7gi6r4kh6uof7rfrqpm3fej"}
-    swyx: {x: swyx, bluesky: swyx.io, hackernews: swyx,
-           bluesky_did: "did:plc:xxuso5disl5vq5xfzlr7mf52"}
+    # Karpathy, swyx and Jeremy Howard lost their Bluesky handles and DIDs with those
+    # accounts (2026-11-25, dormant there; see `bluesky` above).
+    andrej_karpathy: {x: karpathy, hackernews: karpathy}
+    swyx: {x: swyx, hackernews: swyx}
     ethan_mollick: {x: emollick, bluesky: emollick.bsky.social,
                     bluesky_did: "did:plc:flxq4uyjfotciovpw3x3fxnu"}
-    jeremy_howard: {x: jeremyphoward, bluesky: howard.fm, hackernews: jph00,
-                    bluesky_did: "did:plc:ihze7dasblwewgunyesfbm23"}
+    jeremy_howard: {x: jeremyphoward, hackernews: jph00}
     max_woolf: {bluesky: minimaxir.bsky.social, hackernews: minimaxir,
                 bluesky_did: "did:plc:oxaernim5mj2mmy3ytrvb42n"}
   # A CROSS-POST IS THE SAME POST, NOW, ON ANOTHER PLATFORM (#653 review). Dedupe pass 3
@@ -2405,6 +2713,12 @@ domains:
             - ExperiencedDevs
             - softwareengineering
             - ChatGPTCoding
+            # From the observer's watch list (2026-11-25, #667): field communities count
+            # in their domain. Checked that day: each listing's posts name the subreddit.
+            - webdev
+            - coding
+            - devops
+            - googlecloud
             search:
             - AI code review team
             - coding agent production
@@ -2665,6 +2979,11 @@ domains:
         - dataanalysis
         - BusinessIntelligence
         - analytics
+        # From the observer's watch list (2026-11-25, #667): field communities count in
+        # their domain. Checked that day: each listing's posts name the subreddit.
+        - dataengineering
+        - databricks
+        - datascience
         search:
         - text-to-SQL AI
         - data labeling AI

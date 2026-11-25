@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { adminSchedules, industryAiInfo } from '../api'
+// One set of platform labels for every AI in industries view (#668 review).
+import { PLATFORM_LABEL } from '../industry-ai/parts'
 import { scheduleWords, when } from '../scheduleWords'
 
 /**
@@ -16,10 +18,6 @@ import { scheduleWords, when } from '../scheduleWords'
  * collected posts - those live on the counts view.
  */
 
-const PLATFORM_LABEL = {
-  reddit: 'Reddit', x: 'X', github: 'GitHub', hackernews: 'Hacker News', devto: 'dev.to',
-  bluesky: 'Bluesky', feeds: 'Blogs & feeds',
-}
 const TYPE_LABEL = {
   use_case: 'Use case', how_to: 'How-to & tips', tool_or_product: 'Tool or product',
   research: 'Research', news: 'News', discussion: 'Discussion',
@@ -329,7 +327,7 @@ export default function IndustryAIInfo() {
             </div>
             <p className="dim iai-def">
               Finds posts <b>by keyword</b>. Each industry has its own keywords and its own searches on{' '}
-              {Object.keys(PLATFORM_LABEL).map(plat).join(', ')}. A post is kept only if it names an AI term{' '}
+              {Object.keys(run.max_requests || {}).map(plat).join(', ')}. A post is kept only if it names an AI term{' '}
               <i>and</i> one of the industry&apos;s keywords, and was posted within the last{' '}
               <span className="tnum">{run.window_days ?? '–'}</span> days.
             </p>
@@ -474,6 +472,10 @@ export default function IndustryAIInfo() {
         {hn.length > 0 && (
           <Collapse heading={<>Hacker News ({hn.length}){watchCaps.hackernews != null && ` · cap ${watchCaps.hackernews}`}</>}>
             <Chips items={hn} mono />
+          </Collapse>)}
+        {src.instagram && (
+          <Collapse heading={<>Instagram accounts ({src.instagram.length}){watchCaps.instagram != null && ` · cap ${watchCaps.instagram}`}</>}>
+            <Chips items={src.instagram.map((s) => `@${s}`)} mono />
           </Collapse>)}
         {people.length > 0 && (
           <Collapse heading={<>People on several platforms ({people.length})</>}>

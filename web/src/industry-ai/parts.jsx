@@ -11,7 +11,7 @@ export const TYPE_LABEL = {
 export const STAGE_LABEL = { deployed: 'deployed', pilot: 'pilot', first_hand: 'first-hand' }
 export const PLATFORM_LABEL = {
   reddit: 'Reddit', x: 'X', github: 'GitHub', hackernews: 'Hacker News', devto: 'dev.to',
-  bluesky: 'Bluesky', feeds: 'Blogs & feeds',
+  bluesky: 'Bluesky', feeds: 'Blogs & feeds', instagram: 'Instagram',
 }
 // What a row IS, read from the platform's own id and link (judge/industry_ai/view.py
 // `_KIND`). X and Bluesky replies are not told apart from posts: nothing stored says.

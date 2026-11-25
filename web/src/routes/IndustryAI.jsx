@@ -197,7 +197,7 @@ export default function IndustryAI() {
         <p className="dim iai-lede">
           How much data we have collected about AI in {kindText || 'industries and roles'}, from Reddit, X, GitHub,
           Hacker News, dev.to, Bluesky and blogs, by keyword searches and by watched communities and
-          accounts. Click an industry to see its posts and every breakdown.
+          accounts (Instagram too, watched accounts only). Click an industry to see its posts and every breakdown.
         </p>
         {last && (
           <p className="dim iai-note">

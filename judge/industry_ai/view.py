@@ -310,8 +310,14 @@ def industry_ai_info() -> dict[str, Any]:
             "enabled": watch.get("enabled"),
             "lookback_days": watch.get("lookback_days"),
             "max_requests": watch.get("max_requests") or {},
-            "sources": {p: watch[p] for p in ("reddit", "x", "bluesky", "hackernews")
-                        if p in watch},
+            "sources": {
+                **{p: watch[p] for p in ("reddit", "x", "bluesky", "hackernews") if p in watch},
+                # INSTAGRAM (#667): `[handle, "id"]` pairs; the handle only, as the
+                # Bluesky DID is left out of `people` - the id is for the code.
+                **({"instagram": [e[0] if isinstance(e, (list, tuple)) else e
+                                  for e in watch["instagram"]]}
+                   if watch.get("instagram") else {}),
+            },
             # ONE PERSON, SEVERAL HANDLES (`watch.people`, #653): who is counted as
             # one author across platforms. Handles only; the Bluesky DID is an id the
             # code matches on, not something a reader needs.
@@ -371,7 +377,9 @@ def _requests_by_agent(total: dict, queries: list) -> dict[str, dict[str, int]]:
         if isinstance(q, dict) and q.get("domain") == "watch":
             p = q.get("platform")
             watch[p] = watch.get(p, 0) + int(q.get("requests") or 0)
-    keyword = {p: max(int(n or 0) - watch.get(p, 0), 0) for p, n in total.items()}
+    # Not clamped at 0 (#668 review): watch queries summing past the run's total
+    # would be an inconsistency, and a negative figure shows it where 0 would hide it.
+    keyword = {p: int(n or 0) - watch.get(p, 0) for p, n in total.items()}
     return {"requests_keyword": {p: n for p, n in keyword.items() if n},
             "requests_watch": {p: n for p, n in watch.items() if n}}
 
@@ -465,6 +473,7 @@ def industry_ai_admin(conn) -> dict[str, Any]:
 #               unless retention cleared the text: then "unknown" (rule 6)
 #   devto, feeds  article
 #   x, bluesky  post: a reply is NOT told apart from a post (nothing stored says)
+#   instagram   post: an account's own feed, read by the observer only
 
 EXCERPT_CHARS = 600
 PAGE_MAX = 100
@@ -482,7 +491,8 @@ _KIND = (
     "WHEN 'hackernews' THEN CASE WHEN coalesce(title, '') <> '' THEN 'story' "
     "  WHEN text_cleared_at IS NOT NULL THEN 'unknown' ELSE 'comment' END "
     "WHEN 'devto' THEN 'article' WHEN 'feeds' THEN 'article' "
-    "WHEN 'x' THEN 'post' WHEN 'bluesky' THEN 'post' ELSE 'unknown' END"
+    "WHEN 'x' THEN 'post' WHEN 'bluesky' THEN 'post' WHEN 'instagram' THEN 'post' "
+    "ELSE 'unknown' END"
 )
 #: Engagement summed into one number to SORT by, and never shown (rule 3, first
 #: exception): the page says in words that "most engaged" orders by the

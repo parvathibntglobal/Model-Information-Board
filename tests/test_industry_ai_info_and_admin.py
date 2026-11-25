@@ -60,6 +60,10 @@ def test_the_info_payload_carries_what_the_page_reads():
     assert {d["kind"] for d in info["domains"]} <= {"industry", "function"}
     # The Bluesky DID is for the code: never in the payload.
     assert all("bluesky_did" not in p["handles"] for p in info["watch"]["people"])
+    # Instagram's numeric account id is for the code too: handles only (#667, #668).
+    instagram = info["watch"]["sources"].get("instagram")
+    if instagram is not None:
+        assert instagram and all(isinstance(h, str) and not h.isdigit() for h in instagram)
 
 
 # ── Admin: the redaction ─────────────────────────────────────────────────────
