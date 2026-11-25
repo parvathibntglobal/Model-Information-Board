@@ -98,3 +98,9 @@
 .iai-collapse > summary:hover{color:var(--text)}
 .iai-collapse-body{display:flex;flex-direction:column;gap:var(--s2);padding:var(--s2) 0 var(--s1) 14px}
 .iai-q-label{font-size:var(--fs-xs);color:var(--text-2)}
+
+/* Plain-words lists on the Info view (2026-11-25): a term, then what it means. */
+.iai-words{display:grid;grid-template-columns:minmax(160px,max-content) 1fr;gap:8px var(--s3);margin:0}
+.iai-words > div{display:contents}
+.iai-words dt{font-weight:600;color:var(--text)}
+.iai-words dd{margin:0;color:var(--text-2)}

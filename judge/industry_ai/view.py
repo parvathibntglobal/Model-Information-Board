@@ -13,6 +13,7 @@ definitions are read from contract/industry_ai.yaml directly.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -267,6 +268,16 @@ def industry_ai_info() -> dict[str, Any]:
             "pages_per_query": run.get("pages_per_query") or {},
             "min_text_chars": run.get("min_text_chars"),
             "context_window_words": run.get("context_window_words"),
+            # 2026-11-25: the smaller settings that explain some drops and flags.
+            "low_engagement_max": run.get("low_engagement_max"),
+            "x_clubbed_min_keywords": run.get("x_clubbed_min_keywords"),
+        },
+        # TEXT RETENTION (contract `retention:`), shown on the Info view
+        # (2026-11-25): when a post's words are emptied, and for which posts.
+        "retention": {
+            "clear_text_after_days": (c.get("retention") or {}).get("clear_text_after_days"),
+            "dropped": (c.get("retention") or {}).get("dropped"),
+            "kept_domains": list((c.get("retention") or {}).get("kept_domains") or []),
         },
         "query_suffix": c.get("query_suffix") or {},
         "ai_terms": list(c.get("ai_terms") or []),
@@ -289,6 +300,108 @@ def industry_ai_info() -> dict[str, Any]:
                 for k, hs in (watch.get("people") or {}).items()
             ],
             "cross_post_hours": watch.get("cross_post_hours"),
+            "x_pages": watch.get("x_pages"),
+            "x_club_max": watch.get("x_club_max"),
+            "x_suffix": watch.get("x_suffix"),
         },
         "domains": domains,
     }
+
+
+# ── Admin -> Board & content -> AI in industries (2026-11-25, Parvathi) ────────
+# The state of the Industry AI data, for the team: which rules the stored labels
+# were made with against the contract's, the last runs and their requests
+# against the caps, posts saved but not labelled, and text retention. Counts and
+# settings only - no post text, link or author. The on/off switch for scheduled
+# runs (INDUSTRY_AI_ENABLED) is not read here: Admin -> Scheduler reads it.
+
+#: Runs listed, newest first.
+ADMIN_RUNS = 5
+
+
+def _run_detail(status: str, detail: str | None) -> str | None:
+    """An ok run's detail is the script's own summary ("N new item(s); ...").
+    An error's detail can carry anything the failure printed - a host name, a
+    path - so only what the script itself wrote (what was saved) and the
+    exception's type name are sent; the rest stays in the run log."""
+    if not detail:
+        return None
+    if status == "ok":
+        return detail
+    m = _RUN_ERROR.match(detail)
+    if m:
+        return f"{m.group(1)} {m.group(2)}" if m.group(1) else m.group(2)
+    return "error (the run log has the details)"
+
+
+#: scripts/run_industry_ai.py's error detail: an optional "what was saved." then
+#: "<ExceptionType>: <message>".
+_RUN_ERROR = re.compile(
+    r"^((?:\d+ new item\(s\) SAVED before the error;[^.]*?(?:\([^)]*\))?\.|nothing saved\.)?)\s*"
+    r"([A-Za-z_][\w.]*(?:Error|Exception|Exit|Interrupt|Warning)):"
+)
+
+
+def industry_ai_admin(conn) -> dict[str, Any]:
+    c = _contract()
+    run = c.get("run") or {}
+    watch = c.get("watch") or {}
+    ret = c.get("retention") or {}
+    out: dict[str, Any] = {
+        "pipeline_version": c.get("pipeline_version"),
+        "harvest_enabled": run.get("enabled"),
+        "watch_enabled": watch.get("enabled"),
+        "caps": run.get("max_requests") or {},
+        "watch_caps": watch.get("max_requests") or {},
+        "retention": {
+            "clear_text_after_days": ret.get("clear_text_after_days"),
+            "dropped": ret.get("dropped"),
+            "kept_domains": list(ret.get("kept_domains") or []),
+        },
+    }
+    try:
+        total, kept, pending, cleared = conn.execute(
+            "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept'), "
+            "count(*) FILTER (WHERE drop_stage = 'pending'), "
+            "count(*) FILTER (WHERE text_cleared_at IS NOT NULL) FROM iai_item"
+        ).fetchone()
+        versions = {
+            v: int(n) for v, n in conn.execute(
+                "SELECT pipeline_version, count(*) FROM iai_item "
+                "WHERE drop_stage IS DISTINCT FROM 'pending' GROUP BY 1 ORDER BY 1"
+            ).fetchall()
+        }
+        due = None
+        if ret.get("clear_text_after_days") is not None:
+            # The same rows collect/industry_ai/store.py clear_text would empty now.
+            (due,) = conn.execute(
+                "SELECT count(*) FROM iai_item WHERE text_cleared_at IS NULL "
+                "AND first_seen_at < now() - make_interval(days => %(d)s) "
+                "AND ((%(dropped)s AND verdict = 'dropped') "
+                "     OR (verdict = 'kept' AND domains && %(kept)s::text[]))",
+                {"d": int(ret["clear_text_after_days"]), "dropped": bool(ret.get("dropped")),
+                 "kept": list(ret.get("kept_domains") or [])},
+            ).fetchone()
+        runs = conn.execute(
+            "SELECT started_at, finished_at, mode, status, pipeline_version, requests, detail "
+            "FROM iai_run ORDER BY started_at DESC LIMIT %s", (ADMIN_RUNS,)
+        ).fetchall()
+    except Exception as e:  # noqa: BLE001 - an unmigrated database is a state, not a crash
+        conn.rollback()
+        out["unreadable"] = (f"the Industry AI tables could not be read ({type(e).__name__}) "
+                             "- run `python -m collect.cli db migrate`")
+        return out
+    out.update(
+        items={"stored": int(total), "kept": int(kept), "pending": int(pending),
+               "text_cleared": int(cleared), "text_due": None if due is None else int(due)},
+        # Labelled rows by the rules version that labelled them; `pending` rows
+        # carry none yet and are counted apart.
+        versions=versions,
+        runs=[
+            {"started_at": r[0].isoformat(), "finished_at": r[1].isoformat() if r[1] else None,
+             "mode": r[2], "status": r[3], "pipeline_version": r[4],
+             "requests": r[5] or {}, "detail": _run_detail(r[3], r[6])}
+            for r in runs
+        ],
+    )
+    return out

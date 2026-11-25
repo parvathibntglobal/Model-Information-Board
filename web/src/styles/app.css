@@ -1777,6 +1777,9 @@ th.r,td.r{text-align:right}
   background:var(--border-soft);border:1px solid var(--border-soft);border-radius:var(--r-sm);overflow:hidden}
 .adm-plan-cell{display:flex;flex-direction:column;gap:6px;padding:12px 14px;background:var(--bg-elev)}
 .adm-plan-v{font-size:var(--fs-sm);color:var(--text-2)}
+/* Admin -> AI in industries (2026-11-25): requests used / cap, one platform each. */
+.iai-adm-req{display:inline-block;margin-right:12px;white-space:nowrap}
+.adm-plan-grid.iai-adm-four{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:640px){.adm-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* ================================================================ blog showcase

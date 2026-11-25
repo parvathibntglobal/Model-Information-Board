@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { industryAiInfo } from '../api'
+import { adminSchedules, industryAiInfo } from '../api'
+import { scheduleWords, when } from '../scheduleWords'
 
 /**
  * AI IN INDUSTRIES -> INFO (2026-11-24, Parvathi): what the page's two agents -
@@ -139,6 +140,145 @@ function matches(d, q) {
   return [d, ...d.groups].some((b) => hay(b).some((s) => String(s || '').toLowerCase().includes(q)))
 }
 
+/**
+ * WHEN IT RUNS (2026-11-25, Parvathi): the harvest's schedule, switch, last and
+ * next run, read from the workflow file and GitHub (GET /admin/schedules, the
+ * `industry-ai` feed) - the same source as Admin -> Scheduler, so no time is
+ * written here. A run list GitHub did not give is said, never "no run yet".
+ */
+function WhenItRuns({ watchOn }) {
+  const [state, setState] = useState({ data: null, err: null })
+  useEffect(() => {
+    let alive = true
+    adminSchedules()
+      .then((d) => alive && setState({ data: d, err: null }))
+      .catch((e) => alive && setState({ data: null, err: e.message }))
+    return () => { alive = false }
+  }, [])
+  const f = state.data?.feeds.find((x) => x.key === 'industry-ai')
+  const s = f?.setup || {}
+  const gh = f?.github || {}
+  const last = (gh.runs || [])[0]
+  const sw = f?.switch?.state
+  return (
+    <section className="card iai-card">
+      <h2>When it runs</h2>
+      {state.err && <p className="dim">The schedule could not be read: {state.err}</p>}
+      {!state.data && !state.err && <p className="dim">Reading the schedule…</p>}
+      {state.data && !f && <p className="dim">This backend does not report the Industry AI schedule.</p>}
+      {f && (
+        <>
+          <p className="iai-def">
+            Both agents run together in one harvest,{' '}
+            <b>{s.unreadable ? 'on a schedule that can’t be read here' : scheduleWords(s.crons)}</b>
+            {watchOn === false && ' (the observer is off in the contract, so a scheduled run is the Industry AI agent alone; a run started by hand can add the observer)'}.
+            A scheduled run harvests only while its on/off switch is on; it can also be started by hand.
+          </p>
+          <dl className="iai-settings">
+            <div><dt>On/off switch</dt><dd title={f.variable ? `Repository variable ${f.variable}` : undefined}>
+              {sw === 'on' ? 'on' : sw === 'off' ? 'off' : 'can’t be read here'}
+            </dd></div>
+            <div><dt>Last run</dt><dd>
+              {gh.unreadable ? 'can’t be read here'
+                : last ? <>{when(last.started_at)}<span className="dim iai-dd-note">{' '}
+                  {(last.conclusion || last.status).replace('_', ' ')}</span></> : 'no run yet'}
+            </dd></div>
+            <div><dt>Next due</dt><dd>
+              {f.next_run ? when(f.next_run) : '–'}
+              {sw === 'off' && <span className="dim iai-dd-note"> (does nothing while the switch is off)</span>}
+            </dd></div>
+          </dl>
+          <p className="dim iai-note">GitHub often starts a scheduled job late, so &quot;next due&quot; is when a
+            run is due, not when it finishes. Admin → Scheduler shows every run.</p>
+        </>
+      )}
+    </section>
+  )
+}
+
+/** The words for each reason a post is dropped, as the counts view names them
+ *  (IndustryAI.jsx REASON_LABEL), with what each one means. Settings come from
+ *  the payload, so no number is written here (rule 11). */
+function FilterWords({ info }) {
+  const { run, watch } = info
+  const rows = [
+    ['No AI term', 'It names none of the AI terms below.'],
+    ['No industry term', <>It names none of the industry&apos;s keywords, or only an ambiguous keyword without
+      one of its context words within <span className="tnum">{run.context_window_words ?? '–'}</span> words.</>],
+    ['Older than the run window', <>Posted more than <span className="tnum">{run.window_days ?? '–'}</span> days
+      before the run.</>],
+    ['Watched post older than the watch window', <>A watch-list post first seen more than{' '}
+      <span className="tnum">{watch.lookback_days ?? '–'}</span> days after it was posted.</>],
+    ['Same article shared elsewhere', 'The same article linked from several posts: kept once, the copies counted as shares.'],
+    ['Same author, same post again', 'One person posting the same thing twice.'],
+    ['Near-duplicate text', 'Almost the same words as a post already kept.'],
+    ['Too short', <>Fewer than <span className="tnum">{run.min_text_chars ?? '–'}</span> characters of text.</>],
+    ['Bot account', 'Posted by an account on the bot list.'],
+    ['Not English', 'Written in another language.'],
+    ['Spam or scam', 'Matches a spam pattern: engagement bait, trading-signal groups, “guaranteed returns” and the like.'],
+    ['Sponsored or affiliate', 'Labelled as sponsored, a paid partnership, or carrying an affiliate tag.'],
+    ['Hiring or job ad', 'An employer advertising a job. A job seeker writing about one is kept.'],
+    ['Sign-up ad', 'Mainly a call to register, enrol or use a promo code, unless it also teaches something: then it is kept as How-to & tips.'],
+  ]
+  return (
+    <section className="card iai-card">
+      <h2>What the filters and labels mean</h2>
+      <p className="dim iai-def">
+        The reasons a post is dropped, as the counts view names them, and how a kept post is labelled. The exact
+        patterns are under &quot;Filter and labelling patterns&quot; below.
+      </p>
+      <Collapse heading={<>Why a post is dropped <span className="tnum">({rows.length})</span></>}>
+        <dl className="iai-words">
+          {rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+        </dl>
+      </Collapse>
+      <Collapse heading="How a kept post is labelled">
+        <dl className="iai-words">
+          <div><dt>Industry</dt><dd>Every industry whose keywords the post names. A post found by one
+            industry&apos;s search but naming none of its keywords is counted as <b>Domain unconfirmed</b>, apart
+            from every industry.</dd></div>
+          <div><dt>General AI</dt><dd>A watch-list post that names an AI term but no industry: general AI news and
+            opinion, counted on its own.</dd></div>
+          <div><dt>Content type</dt><dd>The first type whose pattern matches, in this order:{' '}
+            {info.types.map((t) => TYPE_LABEL[t] || t).join(', ')}. A post that matches none is a Discussion.</dd></div>
+          <div><dt>Use case</dt><dd>Someone describing what they or their team use AI for. It counts only when the
+            sentence names an AI tool or term: &quot;I use it for my notes&quot; is not a use case, &quot;I used
+            Claude to&quot; is.</dd></div>
+          <div><dt>Use-case stage</dt><dd>For a use case only: deployed, pilot or first-hand, from the first stage
+            pattern that matches; none when no pattern does.</dd></div>
+          <div><dt>Low engagement</dt><dd>A post with engagement at or below{' '}
+            <span className="tnum">{run.low_engagement_max ?? '–'}</span> is flagged, never dropped.</dd></div>
+        </dl>
+      </Collapse>
+    </section>
+  )
+}
+
+/** TEXT RETENTION (contract `retention:`): when a post's words are emptied. */
+function Retention({ info }) {
+  const r = info.retention || {}
+  if (r.clear_text_after_days == null) return null
+  const name = (k) => info.domains.find((d) => d.key === k)?.name || k
+  const kept = (r.kept_domains || []).map(name)
+  const which = [r.dropped && 'every dropped post', kept.length > 0 && `every kept post in ${kept.join(', ')}`]
+    .filter(Boolean).join(' and ')
+  return (
+    <section className="card iai-card">
+      <h2>How long a post&apos;s text is kept</h2>
+      <p className="iai-def">
+        <span className="tnum">{r.clear_text_after_days}</span> days after a post is first stored, its title and text
+        are emptied for {which || 'no post (nothing is set to be cleared)'}. The row stays, with its dates, labels
+        and reasons, so every count on the page is unchanged, and a cleared post is never labelled again.
+      </p>
+      {kept.length > 0 && (
+        <p className="dim iai-note">{kept.join(', ')} {kept.length === 1 ? 'holds' : 'hold'} posts about people&apos;s
+          own lives, so even a kept one loses its words. Anything drafted from those posts has to quote them within
+          that time.</p>
+      )}
+    </section>
+  )
+}
+
 export default function IndustryAIInfo() {
   const [info, setInfo] = useState(null)
   const [err, setErr] = useState(null)
@@ -229,15 +369,17 @@ export default function IndustryAIInfo() {
           <li><b>Store</b>: only counts reach the page; no post text, link or author is shown.</li>
         </ol>
         <dl className="iai-settings">
-          {/* run.enabled only allows or refuses a harvest; whether the weekly
-              schedule fires is the INDUSTRY_AI_ENABLED repository variable,
-              which this page cannot read - so neither label says "running". */}
-          <div><dt>Schedule</dt><dd>{run.cadence || 'not set'}<span className="dim iai-dd-note"> when
-            INDUSTRY_AI_ENABLED is set</span></dd></div>
           <div><dt>Shortest post kept</dt><dd className="tnum">{run.min_text_chars ?? '–'} characters</dd></div>
           <div><dt>Context distance</dt><dd className="tnum">{run.context_window_words ?? '–'} words</dd></div>
           <div><dt>Rules version</dt><dd className="mono">{info.pipeline_version || '–'}</dd></div>
         </dl>
+        {run.pages_per_query?.x_clubbed != null && run.x_clubbed_min_keywords != null && (
+          <p className="dim iai-note">An X search that groups at least{' '}
+            <span className="tnum">{run.x_clubbed_min_keywords}</span> keywords reads{' '}
+            <span className="tnum">{run.pages_per_query.x_clubbed}</span> pages of results; any other search reads{' '}
+            {Object.entries(run.pages_per_query).filter(([k]) => k !== 'x_clubbed')
+              .map(([k, n]) => `${n} ${n === 1 ? 'page' : 'pages'} on ${plat(k)}`).join(' and ')}.</p>
+        )}
         {caps.length > 0 && (
           <>
             <h3 className="iai-sub">Industry AI agent: request cap per platform, per run</h3>
@@ -249,6 +391,8 @@ export default function IndustryAIInfo() {
           </>
         )}
       </section>
+
+      <WhenItRuns watchOn={watch.enabled} />
 
       <section className="stack stack-2">
         <div className="iai-domains-head">
@@ -305,6 +449,11 @@ export default function IndustryAIInfo() {
           <div><dt>Switch</dt><dd>{onOff(watch.enabled)}</dd></div>
           <div><dt>Looks back</dt><dd className="tnum">{watch.lookback_days ?? '–'} days</dd></div>
         </dl>
+        {watch.x_club_max != null && (
+          <p className="dim iai-note">X accounts are read up to <span className="tnum">{watch.x_club_max}</span> per
+            search{watch.x_pages != null && <>, <span className="tnum">{watch.x_pages}</span> pages each</>}
+            {watch.x_suffix && <>, with <code>{watch.x_suffix}</code> added</>}.</p>
+        )}
         {src.reddit && (
           <Collapse heading={<>Reddit communities ({src.reddit.length}){watchCaps.reddit != null && ` · cap ${watchCaps.reddit}`}</>}>
             <Chips items={src.reddit.map((s) => `r/${s}`)} mono />
@@ -338,6 +487,10 @@ export default function IndustryAIInfo() {
             </ul>
           </Collapse>)}
       </section>
+
+      <Retention info={info} />
+
+      <FilterWords info={info} />
 
       <details className="card iai-card iai-patterns">
         <summary><h2>Filter and labelling patterns</h2></summary>

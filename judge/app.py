@@ -4128,6 +4128,19 @@ def industry_ai_page() -> dict:
         return industry_ai_view(conn)
 
 
+@app.get("/admin/industry-ai")
+def admin_industry_ai() -> dict:
+    """Admin -> Board & content -> AI in industries: the state of the Industry AI
+    data - the rules versions the stored labels carry against the contract's, the
+    last runs with their requests against the caps, posts saved but not labelled,
+    and text retention. Counts and settings only. Signed-in (an /admin route).
+    See judge/industry_ai/view.py industry_ai_admin."""
+    from judge.industry_ai.view import industry_ai_admin
+
+    with _conn() as conn:
+        return industry_ai_admin(conn)
+
+
 @app.get("/industry-ai/info")
 def industry_ai_info_page() -> dict:
     """The "AI in industries" Info view: what the agent searches for and how it

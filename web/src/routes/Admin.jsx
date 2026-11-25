@@ -18,6 +18,7 @@ import FetchPanel from '../components/FetchPanel'
 import ModelProposal from '../components/ModelProposal'
 import SchedulerTabs from '../components/SchedulerTabs'
 import { AiBenchmarksPanel, AiUpdatesPanel } from '../components/PublicSectionPanels'
+import IndustryAiAdminPanel from '../components/IndustryAiAdminPanel'
 import BlogsPanel from '../components/BlogsPanel'
 import QuizPanel from '../components/QuizPanel'
 import FeedSummaryPanel from '../components/FeedSummaryPanel'
@@ -322,6 +323,15 @@ const SECTIONS = [
     title: 'AI updates',
     blurb: 'The public updates page: decisions, the home page and the timing',
     render: () => <AiUpdatesPanel />,
+  },
+  // AI IN INDUSTRIES (2026-11-25, Parvathi): a signed-in page, so not what a
+  // public page holds but the state of its data - labels against the
+  // contract's rules, posts waiting, the last runs and their requests.
+  {
+    id: 'ai-in-industries',
+    title: 'AI in industries',
+    blurb: 'The Industry AI data: rules version, runs and requests, posts waiting, text retention',
+    render: () => <IndustryAiAdminPanel />,
   },
   {
     id: 'blogs',
