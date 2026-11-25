@@ -1794,6 +1794,17 @@ terms_rulings:
       `derived_posts.embed_only`, so it is neither shown nor quoted, and the
       board's platform count leaves it out.
 
+      WHY THE BASIS IS `public-derived-publication` THOUGH NOTHING IS PUBLISHED
+      (#667 review, 2026-11-25). A basis is not chosen per source: it is the
+      repository's one use undertaking (`use_basis_undertaking` at the top of
+      this file, asserting `public-derived-publication` since 2026-11-12), and
+      every run observes that one value (collect/adapters/basis.py
+      `observe_use_basis`). Reddit's and X's RapidAPI rulings name the same
+      basis. A narrower value such as `internal-development-only` would never be
+      observed, so this ruling would refuse every run. What Instagram's own use
+      is narrower than the basis is recorded above and enforced in
+      contract/publication.yaml: signed-in only, never shown or quoted.
+
       WHAT WAS NOT READ, RECORDED RATHER THAN RESOLVED. Instagram's Terms of Use
       restrict collecting content by automated means without Meta's permission;
       they were not read in full for this ruling, nor were RapidAPI's terms or

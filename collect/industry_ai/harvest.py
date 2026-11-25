@@ -864,6 +864,15 @@ class _Instagram(_Runner):
                          "no caption and were left out")
         if run.quota_exhausted:
             notes.append("quota exhausted")
+        # A FULL PAGE INSIDE THE WINDOW (#667 review, note 4): one request reads an
+        # account's newest PER_PAGE posts, so when every dated one is inside the watch
+        # window, older posts in the window were not read - said, as Reddit's 25-post
+        # page is, never read as "that is all this account posted".
+        from collect.adapters.instagram import PER_PAGE
+        dated = [d for d in (_instagram_item(n).created_at for n in run.posts) if d is not None]
+        if len(run.posts) >= PER_PAGE and dated and min(dated) >= self.since:
+            notes.append(f"truncated: page-full ({len(run.posts)} posts, all inside the "
+                         "watch window; older ones in it not read)")
         failure = failure_of(run)
         if run.posts and not captioned:
             failure = "; ".join(x for x in (failure, "no post carried a caption (provider "

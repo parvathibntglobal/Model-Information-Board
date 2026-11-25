@@ -210,6 +210,18 @@ def test_a_page_with_no_caption_at_all_is_a_failure_not_a_quiet_account():
     assert items == [] and "no post carried a caption" in failure
 
 
+def test_a_full_page_inside_the_window_says_older_posts_were_not_read():
+    """#667 review, note 4: twelve posts, all this week, is not "all this week"."""
+    full = [node(f"F{i}", ts=NOW - timedelta(hours=i)) for i in range(instagram.PER_PAGE)]
+    _, _, detail, _ = runner(full).run("ig:someone")
+    assert "truncated: page-full (12 posts" in detail
+    # One post older than the window means the page reached past it: nothing missed.
+    reaching = full[:-1] + [node("OLD", ts=NOW - timedelta(days=30))]
+    assert "page-full" not in runner(reaching).run("ig:someone")[2]
+    # A short page is the whole of what the account has: nothing to say.
+    assert "page-full" not in runner(full[:5]).run("ig:someone")[2]
+
+
 def test_the_handle_comes_from_the_watch_query():
     it = Item(id="instagram:N1", platform="instagram", external_id="N1",
               url="https://www.instagram.com/p/N1/", title="", body="b", created_at=NOW,

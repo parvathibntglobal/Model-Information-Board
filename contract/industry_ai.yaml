@@ -670,6 +670,17 @@ watch:
   # (run.pages_per_query.reddit), so 43 subreddits = 43 (was 25 for 20, 2026-11-25).
   # Instagram is one feed request per account (its id is stored below), so the cap
   # is the number of accounts. Its plan is 15,000 requests a month (read 2026-11-25).
+  # AGAINST THE MONTHLY QUOTAS (#667 review, rule 7). Ceilings per run, keyword +
+  # watch: X 220 + 150 = 370, Reddit 60 + 43 = 103, Instagram 200. Plans: X 100,000
+  # a month (twitter241; the provider read 97,777 left at 2026-11-25 06:15Z, after
+  # that day's run), Reddit 1,000,000 (reddit34; 999,397 left, same reading),
+  # Instagram 15,000 (instagram-looter2, Instagram's own key use only). The X and
+  # Reddit quotas are SHARED with the model fetch. At one run a WEEK (the workflow's
+  # schedule on 2026-11-25) a month is at most X ~1,600, Reddit ~450, Instagram
+  # ~870. At one run a DAY (the schedule the rotation PR proposes, anooj 2026-11-24)
+  # at most X 11,100 (11% of the plan), Reddit 3,090 (0.3%), Instagram 6,000 (40%):
+  # the model fetch keeps at least 88,900 X and 996,910 Reddit requests a month.
+  # Ceilings, not spend: X paging stops at `since:`, and a short list asks less.
   max_requests: {reddit: 43, x: 150, bluesky: 20, hackernews: 15, instagram: 200}
   # X pages per clubbed account query, and how many accounts one query clubs.
   x_pages: 10
