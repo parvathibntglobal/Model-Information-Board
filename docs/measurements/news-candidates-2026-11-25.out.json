@@ -1,0 +1,226 @@
+{
+ "run_at": "2026-11-25T04:48:12+00:00",
+ "candidates": {
+  "the_batch": {
+   "label": "The Batch (DeepLearning.AI)",
+   "tried": [
+    {
+     "url": "https://www.deeplearning.ai/the-batch/feed/",
+     "robots": "allowed",
+     "http": 404,
+     "final_url": "https://www.deeplearning.ai/the-batch/feed",
+     "items": 0
+    },
+    {
+     "url": "https://www.deeplearning.ai/feed/",
+     "robots": "allowed",
+     "http": 404,
+     "final_url": "https://www.deeplearning.ai/feed",
+     "items": 0
+    },
+    {
+     "url": "https://www.deeplearning.ai/the-batch/rss.xml",
+     "robots": "allowed",
+     "http": 404,
+     "final_url": "https://www.deeplearning.ai/the-batch/rss.xml",
+     "items": 0
+    }
+   ],
+   "feed": null
+  },
+  "import_ai": {
+   "label": "Import AI (Jack Clark)",
+   "tried": [
+    {
+     "url": "https://importai.substack.com/feed",
+     "robots": "allowed",
+     "http": 200,
+     "final_url": "https://importai.substack.com/feed",
+     "items": 20
+    }
+   ],
+   "feed": {
+    "url": "https://importai.substack.com/feed",
+    "title": "Import AI",
+    "items": 20,
+    "newest": "2026-11-23",
+    "oldest": "2026-06-29",
+    "items_7d": 1,
+    "undated": 0,
+    "with_summary": 7,
+    "with_picture": 20,
+    "llm_items": 5,
+    "with_author": 20
+   }
+  },
+  "bens_bites": {
+   "label": "Ben's Bites",
+   "tried": [
+    {
+     "url": "https://www.bensbites.com/feed",
+     "robots": "allowed",
+     "http": 200,
+     "final_url": "https://www.bensbites.com/feed",
+     "items": 20
+    }
+   ],
+   "feed": {
+    "url": "https://www.bensbites.com/feed",
+    "title": "Ben's Bites",
+    "items": 20,
+    "newest": "2026-11-24",
+    "oldest": "2026-09-22",
+    "items_7d": 2,
+    "undated": 0,
+    "with_summary": 6,
+    "with_picture": 20,
+    "llm_items": 6,
+    "with_author": 6
+   }
+  },
+  "the_rundown": {
+   "label": "The Rundown AI",
+   "tried": [
+    {
+     "url": "https://www.therundown.ai/feed",
+     "robots": "allowed",
+     "http": 200,
+     "final_url": "https://www.therundown.ai/feed",
+     "items": 50
+    }
+   ],
+   "feed": {
+    "url": "https://www.therundown.ai/feed",
+    "title": "The Rundown AI",
+    "items": 50,
+    "newest": "2026-11-24",
+    "oldest": "2026-10-16",
+    "items_7d": 8,
+    "undated": 0,
+    "with_summary": 33,
+    "with_picture": 0,
+    "llm_items": 20,
+    "with_author": 0
+   }
+  },
+  "anthropic": {
+   "label": "Anthropic news and research",
+   "tried": [
+    {
+     "url": "https://www.anthropic.com/rss.xml",
+     "robots": "allowed",
+     "http": 404,
+     "final_url": "https://www.anthropic.com/rss.xml",
+     "items": 0
+    },
+    {
+     "url": "https://www.anthropic.com/news/rss.xml",
+     "robots": "allowed",
+     "http": 404,
+     "final_url": "https://www.anthropic.com/news/rss.xml",
+     "items": 0
+    },
+    {
+     "url": "https://www.anthropic.com/feed.xml",
+     "robots": "allowed",
+     "http": 404,
+     "final_url": "https://www.anthropic.com/feed.xml",
+     "items": 0
+    }
+   ],
+   "feed": null
+  },
+  "huggingface_blog": {
+   "label": "Hugging Face blog",
+   "tried": [
+    {
+     "url": "https://huggingface.co/blog/feed.xml",
+     "robots": "allowed",
+     "http": 200,
+     "final_url": "https://huggingface.co/blog/feed.xml",
+     "items": 916
+    }
+   ],
+   "feed": {
+    "url": "https://huggingface.co/blog/feed.xml",
+    "title": "Hugging Face - Blog",
+    "items": 916,
+    "newest": "2026-11-24",
+    "oldest": "2020-02-14",
+    "items_7d": 8,
+    "undated": 0,
+    "with_summary": 0,
+    "with_picture": 0,
+    "llm_items": 322,
+    "with_author": 0
+   }
+  },
+  "marktechpost": {
+   "label": "MarkTechPost",
+   "tried": [
+    {
+     "url": "https://www.marktechpost.com/feed/",
+     "robots": "allowed",
+     "http": 200,
+     "final_url": "https://www.marktechpost.com/feed/",
+     "items": 10
+    }
+   ],
+   "feed": {
+    "url": "https://www.marktechpost.com/feed/",
+    "title": "MarkTechPost",
+    "items": 10,
+    "newest": "2026-11-24",
+    "oldest": "2026-11-22",
+    "items_7d": 10,
+    "undated": 0,
+    "with_summary": 10,
+    "with_picture": 4,
+    "llm_items": 8,
+    "with_author": 10
+   }
+  },
+  "ahead_of_ai": {
+   "label": "Ahead of AI (Sebastian Raschka)",
+   "tried": [
+    {
+     "url": "https://magazine.sebastianraschka.com/feed",
+     "robots": "allowed",
+     "http": 200,
+     "final_url": "https://magazine.sebastianraschka.com/feed",
+     "items": 20
+    }
+   ],
+   "feed": {
+    "url": "https://magazine.sebastianraschka.com/feed",
+    "title": "Ahead of AI",
+    "items": 20,
+    "newest": "2026-11-15",
+    "oldest": "2025-10-05",
+    "items_7d": 0,
+    "undated": 0,
+    "with_summary": 18,
+    "with_picture": 20,
+    "llm_items": 19,
+    "with_author": 20
+   }
+  },
+  "techpresso": {
+   "label": "Techpresso",
+   "tried": [
+    {
+     "url": "https://dupple.com/techpresso/feed",
+     "robots": "allowed",
+     "http": 404,
+     "final_url": "https://dupple.com/techpresso/feed",
+     "items": 0
+    },
+    {
+     "url": "https://techpresso.beehiiv.com/feed",
+     "robots": "robots.txt: robots.txt gave no answer, and an unreachable robots.txt is not permission (https://rss.hiivinternal.com/feeds/ez2zQOMePQ.xml)"
+    }
+   ],
+   "feed": null
+  }
+ }
+}
