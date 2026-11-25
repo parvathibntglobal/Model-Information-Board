@@ -134,7 +134,10 @@ story:
 # not ... otherwise modify our feed content" (read 2026-10-22). It is NOT
 # listed: anooj, 2026-10-29, kept it as it is and recorded the accepted risk on
 # its source entry above. Listing it is the way out if TechCrunch asks.
-as_given: {}
+as_given:
+  import_ai: "Substack: the feed carries each post's full text, so only the publisher's own description is shown, never text cut from the body (#666 review, 2026-11-25)"
+  ahead_of_ai: "Substack: the feed carries each post's full text, so only the publisher's own description is shown, never text cut from the body (#666 review, 2026-11-25)"
+  bens_bites: "Substack: the feed carries each post's full text, so only the publisher's own description is shown, never text cut from the body (#666 review, 2026-11-25)"
 
 # THE SPONSORED BADGE (#614, agreed by Parvathi 2026-11-09). An item carries the
 # badge when the PUBLISHER labels it, in its own feed: a category, or the
@@ -405,7 +408,19 @@ sources:
   # updated 2026-10-06), bar anyone who "crawls, scrapes, or spiders" Substack or
   # "copies or stores any significant portion of the content"; they say nothing
   # about the feed each publication serves, or about a headline with a link. No
-  # publication-specific terms were found on the three. Seated as Latent Space is.
+  # publication-specific terms were found on the three.
+  # WHAT WE DO GOES PAST A HEADLINE WITH A LINK, AND THIS IS THE ACCEPTED RISK
+  # (#666 review, Parvathi):
+  #   * THE RAW STORE KEEPS EACH FEED WHOLE, content-hash addressed and never
+  #     deleted, like every source's. A Substack feed carries each free post's FULL
+  #     TEXT in `content:encoded`, so every free issue is stored whole. Never shown.
+  #     How long the raw store keeps feeds is a wider question than this list.
+  #   * NOTHING CUT FROM THE POST BODY IS SHOWN: the three are `as_given` (above),
+  #     so the page shows only the feed's own description (Substack's subtitle,
+  #     written by the publisher to be displayed), whole, and no link preview. Not
+  #     the body fallback (`feed_content`) the other sources get.
+  # Latent Space and Interconnects (Substack too) still get the body fallback; whether
+  # they join `as_given` is a follow-up question, not changed here.
   - key: import_ai
     group: writer
     label: Import AI (Jack Clark)
@@ -432,7 +447,7 @@ sources:
     label: The Rundown AI
     kind: feed
     url: https://www.therundown.ai/feed
-    terms: "Terms (read 2026-11-25 at /terms-privacy, undated): 'You may not copy, distribute, modify, publish, or otherwise exploit any part of the Materials without prior written authorization', and no 'robotic automation to access or extract information'; no feed clause. The Rundown publishes the feed itself. So HEADLINE, DATE AND LINK ONLY (headline_only)."
+    terms: "Terms (read 2026-11-25 at /terms-privacy, undated): 'You may not copy, distribute, modify, publish, or otherwise exploit any part of the Materials without prior written authorization', and no 'robotic automation to access or extract information'; no feed clause. The Rundown publishes the feed itself. So HEADLINE, DATE AND LINK ONLY (headline_only). ACCEPTED RISK (#666 review): reading the feed is automated access, which the 'robotic automation' clause names; we read it because a published feed exists to be read by software, once per harvest, robots.txt asked. The way out is one line: remove the source the day The Rundown asks."
     daily: false
 
   # ── releases, through the GitHub API ──────────────────────────────────────
