@@ -55,7 +55,7 @@ FEEDS: tuple[dict[str, Any], ...] = (
         "key": "industry-ai",
         "file": "industry-ai-harvest.yml",
         "variable": "INDUSTRY_AI_ENABLED",
-        "feeds": "AI in industries: data about AI in five industries",
+        "feeds": "AI in industries: data about AI across industries and roles",
     },
 )
 

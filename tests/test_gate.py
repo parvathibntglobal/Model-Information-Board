@@ -285,7 +285,8 @@ def test_an_anonymous_news_read_carries_no_fetch_error_text(monkeypatch):
     assert "boom" not in str(anon)
     # Our notes on the publisher's terms and the labels to consider (#661 review).
     assert anon["sources"][0]["terms"] is None
-    assert anon["population"]["sponsor_like_unlisted"] == {}
+    # Withheld reads as None, never as an empty "none found" (rule 6).
+    assert anon["population"]["sponsor_like_unlisted"] is None
     assert "ask us to stop" not in str(anon) and "Partner content" not in str(anon)
     signed = _client().get("/news", headers={"Authorization": "Bearer s3cret"}).json()
     assert signed["sources"][0]["last_read"]["detail"] == "boom at host"

@@ -161,8 +161,8 @@ const INTROS = {
     + 'The registry poll keeps its new models and price changes current; its benchmark headlines come '
     + 'from the benchmarks run (the Benchmarks tab). Everything here is read-only.',
   'industry-ai': 'The Industry AI agent harvests data about AI across industries and roles with the '
-    + 'queries in contract/industry_ai.yaml (its active domains), and its observer reads watched '
-    + 'communities and accounts; weekly, behind its own switch. It shares the Reddit and X quota with '
+    + 'queries in contract/industry_ai.yaml, and its observer reads watched communities and accounts, '
+    + 'on the schedule below, behind its own switch. It shares the Reddit and X quota with '
     + 'the model fetches; every platform has a request cap per run. Everything here is read-only.',
 }
 

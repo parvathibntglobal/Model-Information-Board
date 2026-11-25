@@ -109,3 +109,27 @@ def test_if_that_recount_fails_the_old_answer_is_sent(monkeypatch):
         raise RuntimeError("database down")
 
     assert cache.cached(("summary",), broken)["v"] == 1
+
+
+def test_an_over_age_view_is_recounted_once_however_many_visitors_wait(monkeypatch):
+    """#665, after merge: visitors arriving during a recount get the old answer, and
+    only one recount runs."""
+    cache.cached(("summary",), lambda: {"v": 1})
+    monkeypatch.setattr(cache, "MAX_AGE_SECONDS", 0)
+    started, release, calls = threading.Event(), threading.Event(), []
+
+    def slow():
+        calls.append(1)
+        started.set()
+        release.wait(5)
+        return {"v": 2}
+
+    first = []
+    t = threading.Thread(target=lambda: first.append(cache.cached(("summary",), slow)))
+    t.start()
+    assert started.wait(5)
+    others = [cache.cached(("summary",), slow)["v"] for _ in range(3)]
+    release.set()
+    t.join(5)
+    assert others == [1, 1, 1], "the old answer while the recount runs"
+    assert first[0]["v"] == 2 and calls == [1], "one recount, its answer kept"

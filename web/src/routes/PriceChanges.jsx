@@ -3,6 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { BoardUnreadable, adminPriceChanges } from '../api'
 import { modelPagePath } from '../catalog/format'
 import { Badge, Stat, Unreadable } from '../components/ui'
+import PageLinks from '../components/PageLinks'
+
+/** Top right (2026-11-25): the public pricing table. */
+const PRICE_LINKS = [
+  { to: '/ai-model-pricing', label: 'Public page', title: 'AI model pricing & specs table, the public page' },
+]
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import '../styles/price-changes.css'
@@ -195,7 +201,10 @@ export default function PriceChanges() {
   if (err) {
     return (
       <div className="shell section-tight stack stack-3 pc-page">
-        <h1>Price changelog</h1>
+        <div className="page-head-row">
+          <h1>Price changelog</h1>
+          <PageLinks links={PRICE_LINKS} />
+        </div>
         {err instanceof BoardUnreadable
           ? <Unreadable detail={err.message} compact />
           : <p className="pc-error">{err.message}</p>}
@@ -206,7 +215,11 @@ export default function PriceChanges() {
   return (
     <div className="shell section-tight stack stack-3 pc-page">
       <header className="stack stack-2">
-        <h1>Price changelog</h1>
+        <div className="page-head-row">
+          <h1>Price changelog</h1>
+          {/* No Admin section holds prices; the public table shows today's. */}
+          <PageLinks links={PRICE_LINKS} />
+        </div>
         <p className="dim">
           Every change to a tracked model&apos;s <strong>OpenRouter list price</strong>, as the registry poll saw it,
           per million tokens. Hover a pill, a menu option, a badge or a figure for its rule.

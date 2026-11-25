@@ -2,6 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BoardUnreadable, adminSchedules, approveAllUpdates, reviewUpdate, undoUpdate, updatesList } from '../api'
 import { Badge, Unreadable } from '../components/ui'
+import PageLinks, { ADMIN } from '../components/PageLinks'
+
+/** Top right (2026-11-25): the public page, its Admin section and its schedule. */
+const UPDATES_LINKS = [
+  { to: '/ai-news-headlines?tab=models', label: 'Public page', title: 'AI updates → AI model updates, the public page' },
+  { to: ADMIN.section('ai-updates'), label: 'Admin', title: 'Admin → Board & content → AI updates' },
+  { to: ADMIN.scheduler('registry-poll'), label: 'Schedule', title: 'Admin → Scheduler → AI updates feeds' },
+]
+import { scheduleWords, when } from '../scheduleWords'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import '../styles/updates.css'
@@ -427,28 +436,8 @@ function StyleCatalog({ catalog }) {
   )
 }
 
-// ONE TIME FORMAT, the schedule's own (judge/sections_status.py cron_words):
-// UTC, then IST in brackets - so "next" and "last" read like the schedule.
-const fmtUtc = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-const fmtIst = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-function when(iso) {
-  if (!iso) return null
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return `${fmtUtc.format(d)} UTC (${fmtIst.format(d)} IST)`
-}
 const fmtRoundupDay = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' })
 
-/** The schedule in words, "daily at A and B" rather than "daily at A and daily at B". */
-function scheduleWords(crons) {
-  const words = (crons || []).map((c) => c.words)
-  if (!words.length) return 'no schedule'
-  const head = words[0].includes(' at ') ? `${words[0].split(' at ')[0]} at ` : null
-  if (head && words.every((w) => w.startsWith(head))) {
-    return head + words.map((w) => w.slice(head.length)).join(' and ')
-  }
-  return words.join(' and ')
-}
 
 /** One job that feeds the updates: its schedule, switch, last and next run.
  *  A run list GitHub did not give is said, never shown as "no run yet" (rule 6). */
@@ -741,7 +730,10 @@ export default function Updates() {
   if (err) {
     return (
       <div className="shell section-tight stack stack-3 up-page">
-        <h1>Updates</h1>
+        <div className="page-head-row">
+          <h1>Updates</h1>
+          <PageLinks links={UPDATES_LINKS} />
+        </div>
         {err instanceof BoardUnreadable
           ? <Unreadable detail={err.message} compact />
           : <p className="pc-error">{err.message}</p>}
@@ -753,7 +745,10 @@ export default function Updates() {
   return (
     <div className="shell section-tight stack stack-3 up-page">
       <header className="stack stack-2">
-        <h1>Updates</h1>
+        <div className="page-head-row">
+          <h1>Updates</h1>
+          <PageLinks links={UPDATES_LINKS} />
+        </div>
         <p className="dim">
           What changed for AI models: launches, price cuts and rises, retirements and benchmark results. Each update
           is built from the board&apos;s own data and worded from a fixed template, and shows here as soon as it is

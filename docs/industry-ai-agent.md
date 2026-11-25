@@ -380,8 +380,9 @@ In order. The first that matches drops the item:
   summary; each domain's tab, filters, order and page) is worked out once and kept for
   10 minutes. After that the old answer is still sent at once while ONE background
   refresh replaces it. Refreshes happen only when someone asks, so an answer older than
-  an hour is never sent: it is recounted while the visitor waits (~5 s), and the old one
-  is sent only if that recount fails. The summary and each collecting domain's first view are worked
+  an hour is recounted while the visitor waits (~5 s), ONE recount per view (anyone
+  arriving meanwhile gets the old answer at once); the old one is sent only if that
+  recount fails, its `counted_at` showing its age. The summary and each collecting domain's first view are worked
   out at API startup. Every answer carries `counted_at`, shown on the page. Measured on
   2026-11-24 from a developer machine against the shared database: ~5 s uncached,
   under 0.04 s kept.

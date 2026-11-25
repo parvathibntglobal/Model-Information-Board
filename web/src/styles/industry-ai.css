@@ -34,6 +34,76 @@
 .iai-trend-col{flex:1;height:100%;display:flex;align-items:flex-end}
 .iai-trend-bar{display:block;width:100%;background:var(--accent);border-radius:var(--r-sm) var(--r-sm) 0 0}
 
+/* The Info view (components/IndustryAIInfo.jsx, 2026-11-24): the contract's
+   keywords, queries and settings, behind the Info button at the top right. */
+.iai-head-row{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s3);flex-wrap:wrap}
+.iai-info-btn{flex:none}
+.iai-h2{font-size:var(--fs-h2);margin:0}
+
+.iai-steps{margin:0;padding-left:1.25rem;display:flex;flex-direction:column;gap:var(--s1);font-size:var(--fs-sm)}
+.iai-settings{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:var(--s3);margin:0}
+.iai-settings div{display:flex;flex-direction:column;gap:2px}
+.iai-settings dt{font-size:var(--fs-xs);color:var(--text-2)}
+.iai-settings dd{margin:0;font-weight:600}
+.iai-caps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2)}
+.iai-caps li{display:flex;gap:var(--s2);align-items:baseline;padding:var(--s1) var(--s3);
+  border:1px solid var(--border);border-radius:var(--r-pill);font-size:var(--fs-sm);color:var(--text-2)}
+.iai-caps b{color:var(--text)}
+
+.iai-domains-head{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);flex-wrap:wrap}
+.iai-domains-tools{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
+.iai-search{height:30px;min-width:220px;padding:0 12px;border-radius:var(--r-pill);
+  border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:var(--fs-sm)}
+.iai-search::placeholder{color:var(--text-3)}
+.iai-search:focus{outline:none;border-color:var(--border-strong)}
+
+.iai-domain{padding:0}
+.iai-domain > summary,.iai-patterns > summary{cursor:pointer;list-style:none}
+.iai-domain > summary::-webkit-details-marker,.iai-patterns > summary::-webkit-details-marker{display:none}
+.iai-domain > summary{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;padding:var(--s3) var(--card-pad)}
+.iai-domain > summary::before,.iai-patterns > summary::before{content:'▸';color:var(--text-3);font-size:var(--fs-xs)}
+.iai-domain[open] > summary::before,.iai-patterns[open] > summary::before{content:'▾'}
+.iai-patterns > summary{display:flex;align-items:center;gap:var(--s2)}
+.iai-domain-name{font-weight:600}
+.iai-domain-n{margin-left:auto;font-size:var(--fs-xs)}
+.iai-domain-body{display:flex;flex-direction:column;gap:var(--s2);padding:0 var(--card-pad) var(--card-pad)}
+.iai-tag{font-size:var(--fs-xs);font-family:var(--font-mono);padding:1px 8px;border-radius:var(--r-pill);
+  border:1px solid var(--border);color:var(--text-3)}
+.iai-tag-on{color:var(--pass);border-color:var(--pass);background:var(--pass-dim)}
+.iai-group{border-top:1px solid var(--border-soft);padding-top:var(--s3);margin-top:var(--s2);
+  display:flex;flex-direction:column;gap:var(--s2)}
+.iai-group-name{font-size:var(--fs-body);margin:0}
+
+.iai-chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.iai-chip{padding:2px 10px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--text);
+  font-size:var(--fs-xs);line-height:1.6}
+.iai-chips-mono .iai-chip{font-family:var(--font-mono);color:var(--text-2);word-break:break-word}
+.iai-ambig{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:var(--fs-sm)}
+.iai-queries{margin:0;display:flex;flex-direction:column;gap:var(--s2)}
+.iai-queries dt{font-size:var(--fs-xs);color:var(--text-2);margin-bottom:4px}
+.iai-queries dd{margin:0}
+.iai-dd-note{display:block;font-weight:400;font-size:var(--fs-xs)}
+.iai-agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--gap)}
+.iai-agent{border:1px solid var(--border);border-radius:var(--r-card);padding:var(--s4);
+  display:flex;flex-direction:column;gap:var(--s2);background:var(--surface-2)}
+.iai-agent-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s2)}
+.iai-agent-head h3{font-size:var(--fs-h3);margin:0}
+
+/* A list folded under its heading (IndustryAIInfo.jsx `Collapse`, 2026-11-24): the
+   heading keeps its look, with a caret; the list shows when it is opened. */
+.iai-collapse > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;width:fit-content}
+.iai-collapse > summary::-webkit-details-marker{display:none}
+.iai-collapse > summary::before{content:'\25B8';color:var(--text-3);font-size:var(--fs-xs);font-family:var(--font-sans)}
+.iai-collapse[open] > summary::before{content:'\25BE'}
+.iai-collapse > summary:hover{color:var(--text)}
+.iai-collapse-body{display:flex;flex-direction:column;gap:var(--s2);padding:var(--s2) 0 var(--s1) 14px}
+.iai-q-label{font-size:var(--fs-xs);color:var(--text-2)}
+
+/* Plain-words lists on the Info view (2026-11-25): a term, then what it means. */
+.iai-words{display:grid;grid-template-columns:minmax(160px,max-content) 1fr;gap:8px var(--s3);margin:0}
+.iai-words > div{display:contents}
+.iai-words dt{font-weight:600;color:var(--text)}
+.iai-words dd{margin:0;color:var(--text-2)}
 /* One domain's page (routes/IndustryAIDomain.jsx): breakdowns as filters, then posts. */
 .iai-open{color:inherit;text-decoration:none}
 .iai-open:hover{color:var(--accent)}

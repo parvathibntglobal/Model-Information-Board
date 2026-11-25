@@ -2222,9 +2222,11 @@ columns:
         The run's counts by stage, domain, type and platform, as printed in the run log and posted to INDUSTRY_AI_ISSUE. Kept for history; the page computes live counts from iai_item.
     detail:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        A run's one-line outcome or error. Intended reader: an Admin run list; none yet.
+        A run's one-line outcome or error. Read by judge/industry_ai/view.py industry_ai_admin
+        (Admin -> AI in industries, the last runs, 2026-11-25, #668): an ok run's detail as
+        written; an error's only up to what the script wrote and the exception's type.
     domains:
       reviewed: true
       state: write_only
@@ -2247,9 +2249,10 @@ columns:
         harvest or relabel; read by judge/industry_ai/view.py (the last run).
     pipeline_version:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        The rules version a run labelled with. Intended reader: an Admin run list; none yet.
+        The rules version a run labelled with. Read by judge/industry_ai/view.py
+        industry_ai_admin (Admin -> AI in industries, the last runs, 2026-11-25, #668).
     platforms:
       reviewed: true
       state: write_only
@@ -2257,9 +2260,13 @@ columns:
         The platforms a run covered. Intended reader: an Admin run list; none yet.
     queries:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        Per-query yield (requests, items, status) for the prune? review; printed in the run log. Intended reader: an Admin query-yield view; none yet.
+        Per-query yield (requests, items, status) for the prune? review; printed in the run log.
+        Read by judge/industry_ai/view.py industry_ai_admin (2026-11-25, #668 review point 6):
+        the observer's queries (domain "watch") split a run's requests into the keyword
+        agent's and the observer's, each shown against its own cap. A query-yield view is
+        still to come.
     quota:
       reviewed: true
       state: write_only

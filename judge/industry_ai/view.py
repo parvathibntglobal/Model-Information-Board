@@ -15,6 +15,7 @@ definitions are read from contract/industry_ai.yaml directly.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -222,6 +223,237 @@ def industry_ai_view(conn) -> dict[str, Any]:
     }
 
 
+# ── THE INFO PAGE (2026-11-24, Parvathi) ─────────────────────────────────────
+# What the agent searches for and how it decides, read from the contract as it
+# stands: every domain's keywords, ambiguous terms and their context words,
+# exclusions and queries; the AI terms; the run and watch settings; the filter
+# and type patterns. Nothing here is read from the database and nothing is a
+# count of stored items, so it renders before any run has happened. Values are
+# passed through as the contract writes them: a number in this payload is a
+# setting, never a measurement (rule 3).
+
+#: The contract's pattern lists, in the order the page shows them.
+_PATTERN_LISTS = ("spam_patterns", "ad_patterns", "hiring_patterns", "promo_patterns",
+                  "teach_patterns")
+
+
+def _terms_block(b: dict) -> dict[str, Any]:
+    """One domain's or group's own terms, ambiguous terms, exclusions and queries."""
+    queries = b.get("queries") or {}
+    return {
+        "terms": list(b.get("domain_terms") or []),
+        "ambiguous": [{"term": t, "context": list(ctx or [])}
+                      for t, ctx in (b.get("ambiguous_terms") or {}).items()],
+        "exclude_phrases": list(b.get("exclude_phrases") or []),
+        # platform -> {"search": [...], "subreddits": [...]}; feeds is a plain list.
+        "queries": {
+            p: ({"search": list(q)} if isinstance(q, list)
+                else {k: list(v or []) for k, v in (q or {}).items()})
+            for p, q in queries.items()
+        },
+    }
+
+
+def industry_ai_info() -> dict[str, Any]:
+    c = _contract()
+    run = c.get("run") or {}
+    watch = c.get("watch") or {}
+    domains = []
+    for k, d in c["domains"].items():
+        domains.append({
+            "key": k,
+            "name": d.get("name", k),
+            "kind": d.get("kind"),
+            "active": d.get("active"),
+            "definition": d.get("definition"),
+            **_terms_block(d),
+            "groups": [{"key": gk, "name": (g or {}).get("name", gk),
+                        "definition": (g or {}).get("definition"), **_terms_block(g or {})}
+                       for gk, g in (d.get("groups") or {}).items()],
+        })
+    return {
+        # `rules_version`, not `pipeline_version` (#668 review): the field-name audit
+        # matches names across payloads, and /coverage's own field has no reader.
+        "rules_version": c.get("pipeline_version"),
+        "run": {
+            "enabled": run.get("enabled"),
+            "cadence": run.get("cadence"),
+            "window_days": run.get("window_days"),
+            "max_requests": run.get("max_requests") or {},
+            "pages_per_query": run.get("pages_per_query") or {},
+            "min_text_chars": run.get("min_text_chars"),
+            "context_window_words": run.get("context_window_words"),
+            # 2026-11-25: the smaller settings that explain some drops and flags.
+            "low_engagement_max": run.get("low_engagement_max"),
+            "x_clubbed_min_keywords": run.get("x_clubbed_min_keywords"),
+        },
+        # TEXT RETENTION (contract `retention:`), shown on the Info view
+        # (2026-11-25): when a post's words are emptied, and for which posts.
+        "retention": {
+            "clear_text_after_days": (c.get("retention") or {}).get("clear_text_after_days"),
+            "dropped": (c.get("retention") or {}).get("dropped"),
+            "kept_domains": list((c.get("retention") or {}).get("kept_domains") or []),
+        },
+        # A domain's page shows each post's text up to this many characters (#665),
+        # so the Info view can say so without writing the number (#668 review, 3).
+        "excerpt_chars": EXCERPT_CHARS,
+        # What each rules version changed (contract `versions:`, #668 review Q2).
+        "versions": {str(k): str(v) for k, v in (c.get("versions") or {}).items()},
+        "query_suffix": c.get("query_suffix") or {},
+        "ai_terms": list(c.get("ai_terms") or []),
+        "global_exclude_phrases": list(c.get("global_exclude_phrases") or []),
+        "patterns": {k: list(c.get(k) or []) for k in _PATTERN_LISTS},
+        "type_patterns": {t: list(v or []) for t, v in (c.get("type_patterns") or {}).items()},
+        "stage_patterns": {s: list(v or []) for s, v in (c.get("stage_patterns") or {}).items()},
+        "types": list(c["type_order"]),
+        "watch": {
+            "enabled": watch.get("enabled"),
+            "lookback_days": watch.get("lookback_days"),
+            "max_requests": watch.get("max_requests") or {},
+            "sources": {
+                **{p: watch[p] for p in ("reddit", "x", "bluesky", "hackernews") if p in watch},
+                # INSTAGRAM (#667): `[handle, "id"]` pairs; the handle only, as the
+                # Bluesky DID is left out of `people` - the id is for the code.
+                **({"instagram": [e[0] if isinstance(e, (list, tuple)) else e
+                                  for e in watch["instagram"]]}
+                   if watch.get("instagram") else {}),
+            },
+            # ONE PERSON, SEVERAL HANDLES (`watch.people`, #653): who is counted as
+            # one author across platforms. Handles only; the Bluesky DID is an id the
+            # code matches on, not something a reader needs.
+            "people": [
+                {"key": k, "handles": {p: h for p, h in (hs or {}).items() if p != "bluesky_did"}}
+                for k, hs in (watch.get("people") or {}).items()
+            ],
+            "cross_post_hours": watch.get("cross_post_hours"),
+            "x_pages": watch.get("x_pages"),
+            "x_club_max": watch.get("x_club_max"),
+            "x_suffix": watch.get("x_suffix"),
+        },
+        "domains": domains,
+    }
+
+
+# ── Admin -> Board & content -> AI in industries (2026-11-25, Parvathi) ────────
+# The state of the Industry AI data, for the team: which rules the stored labels
+# were made with against the contract's, the last runs and their requests
+# against the caps, posts saved but not labelled, and text retention. Counts and
+# settings only - no post text, link or author. The on/off switch for scheduled
+# runs (INDUSTRY_AI_ENABLED) is not read here: Admin -> Scheduler reads it.
+
+#: Runs listed, newest first.
+ADMIN_RUNS = 5
+
+
+def _run_detail(status: str, detail: str | None) -> str | None:
+    """An ok run's detail is the script's own summary ("N new item(s); ...").
+    An error's detail can carry anything the failure printed - a host name, a
+    path - so only what the script itself wrote (what was saved) and the
+    exception's type name are sent; the rest stays in the run log."""
+    if not detail:
+        return None
+    if status == "ok":
+        return detail
+    m = _RUN_ERROR.match(detail)
+    if m:
+        return f"{m.group(1)} {m.group(2)}" if m.group(1) else m.group(2)
+    return "error (the run log has the details)"
+
+
+#: scripts/run_industry_ai.py's error detail: an optional "what was saved." then
+#: "<ExceptionType>: <message>".
+_RUN_ERROR = re.compile(
+    r"^((?:\d+ new item\(s\) SAVED before the error;[^.]*?(?:\([^)]*\))?\.|nothing saved\.)?)\s*"
+    r"([A-Za-z_][\w.]*(?:Error|Exception|Exit|Interrupt|Warning)):"
+)
+
+
+def _requests_by_agent(total: dict, queries: list) -> dict[str, dict[str, int]]:
+    """A run's requests per platform, split: the observer's are its queries with
+    domain "watch" (collect/industry_ai/harvest.py); the keyword agent's are the
+    rest of the run's total, so the two always add up to what the run spent."""
+    watch: dict[str, int] = {}
+    for q in queries:
+        if isinstance(q, dict) and q.get("domain") == "watch":
+            p = q.get("platform")
+            watch[p] = watch.get(p, 0) + int(q.get("requests") or 0)
+    # Not clamped at 0 (#668 review): watch queries summing past the run's total
+    # would be an inconsistency, and a negative figure shows it where 0 would hide it.
+    keyword = {p: int(n or 0) - watch.get(p, 0) for p, n in total.items()}
+    return {"requests_keyword": {p: n for p, n in keyword.items() if n},
+            "requests_watch": {p: n for p, n in watch.items() if n}}
+
+
+def industry_ai_admin(conn) -> dict[str, Any]:
+    c = _contract()
+    run = c.get("run") or {}
+    watch = c.get("watch") or {}
+    ret = c.get("retention") or {}
+    out: dict[str, Any] = {
+        # `rules_version`, not `pipeline_version` (#668 review): the field-name audit
+        # matches names across payloads, and this one is read here only.
+        "rules_version": c.get("pipeline_version"),
+        "harvest_enabled": run.get("enabled"),
+        "watch_enabled": watch.get("enabled"),
+        "caps": run.get("max_requests") or {},
+        "watch_caps": watch.get("max_requests") or {},
+        "retention": {
+            "clear_text_after_days": ret.get("clear_text_after_days"),
+            "dropped": ret.get("dropped"),
+            "kept_domains": list(ret.get("kept_domains") or []),
+        },
+    }
+    try:
+        total, kept, pending, cleared = conn.execute(
+            "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept'), "
+            "count(*) FILTER (WHERE drop_stage = 'pending'), "
+            "count(*) FILTER (WHERE text_cleared_at IS NOT NULL) FROM iai_item"
+        ).fetchone()
+        versions = {
+            v: int(n) for v, n in conn.execute(
+                "SELECT pipeline_version, count(*) FROM iai_item "
+                "WHERE drop_stage IS DISTINCT FROM 'pending' GROUP BY 1 ORDER BY 1"
+            ).fetchall()
+        }
+        due = None
+        if ret.get("clear_text_after_days") is not None:
+            # The same rows collect/industry_ai/store.py clear_text would empty now.
+            (due,) = conn.execute(
+                "SELECT count(*) FROM iai_item WHERE text_cleared_at IS NULL "
+                "AND first_seen_at < now() - make_interval(days => %(d)s) "
+                "AND ((%(dropped)s AND verdict = 'dropped') "
+                "     OR (verdict = 'kept' AND domains && %(kept)s::text[]))",
+                {"d": int(ret["clear_text_after_days"]), "dropped": bool(ret.get("dropped")),
+                 "kept": list(ret.get("kept_domains") or [])},
+            ).fetchone()
+        runs = conn.execute(
+            "SELECT started_at, finished_at, mode, status, pipeline_version, requests, detail, "
+            "queries "
+            "FROM iai_run ORDER BY started_at DESC LIMIT %s", (ADMIN_RUNS,)
+        ).fetchall()
+    except Exception as e:  # noqa: BLE001 - an unmigrated database is a state, not a crash
+        conn.rollback()
+        out["unreadable"] = (f"the Industry AI tables could not be read ({type(e).__name__}) "
+                             "- run `python -m collect.cli db migrate`")
+        return out
+    out.update(
+        items={"stored": int(total), "kept": int(kept), "pending": int(pending),
+               "text_cleared": int(cleared), "text_due": None if due is None else int(due)},
+        # Labelled rows by the rules version that labelled them; `pending` rows
+        # carry none yet and are counted apart.
+        versions=versions,
+        runs=[
+            {"started_at": r[0].isoformat(), "finished_at": r[1].isoformat() if r[1] else None,
+             "mode": r[2], "status": r[3], "rules_version": r[4],
+             # REQUESTS BY AGENT (#668 review, point 6, rule 7): `iai_run.requests` is
+             # the run's total per platform, keyword and watch together, while each
+             # agent has its own cap. Each figure is shown against its own cap.
+             **_requests_by_agent(r[5] or {}, r[7] or []),
+             "detail": _run_detail(r[3], r[6])}
+            for r in runs
+        ],
+    )
+    return out
 # ── ONE DOMAIN, IN DETAIL (2026-11-24, Parvathi) ──────────────────────────────
 #
 # The page a domain card opens (/ai-in-industries/<key>): the same counts as the

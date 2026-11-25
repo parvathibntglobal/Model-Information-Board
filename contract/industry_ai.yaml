@@ -32,8 +32,16 @@ version: 1
 # iai-3: the accuracy fixes from the first run's review (2026-11-24): 90-day window,
 #        audit and reverse engineering narrowed, filter patterns tightened, a
 #        use-case pattern's `ai` group must name an AI term.
-# iai-4: keywords toward 50 per umbrella, 381 added (2026-11-25).
+# iai-4: keywords toward 50 per umbrella, 363 added (2026-11-25; 18 removed in review).
 pipeline_version: iai-4
+# WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
+# read by the AI in industries Info view so "Rules version iai-4" means something
+# on the page. Add a line whenever `pipeline_version` is bumped.
+versions:
+  iai-1: "2026-11-24: the first real run - 32 AI terms, capital \"AI\" only"
+  iai-2: "2026-11-24: the longer AI-term list; lower-case \"ai\" counts (#660)"
+  iai-3: "2026-11-24: accuracy fixes from the first run - 90-day window, audit and reverse engineering narrowed, filters narrowed, a use case must name an AI tool (#662)"
+  iai-4: "2026-11-25: keywords toward 50 per umbrella, 363 added (#664)"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any

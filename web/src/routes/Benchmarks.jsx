@@ -12,6 +12,14 @@ import {
   undoBenchmarkName,
 } from '../api'
 import { Unreadable } from '../components/ui'
+import PageLinks, { ADMIN } from '../components/PageLinks'
+
+/** Top right (2026-11-25): the public page, its Admin section and its schedule. */
+const BENCH_LINKS = [
+  { to: '/ai-benchmarks', label: 'Public page', title: 'AI benchmarks, the public page' },
+  { to: ADMIN.section('ai-benchmarks'), label: 'Admin', title: 'Admin → Board & content → AI benchmarks' },
+  { to: ADMIN.scheduler('benchmarks'), label: 'Schedule', title: 'Admin → Scheduler → Benchmarks' },
+]
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import '../styles/benchmarks.css'
@@ -980,7 +988,10 @@ export default function Benchmarks() {
   if (error) {
     return (
       <div className="shell section-tight stack stack-3">
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
+        <div className="page-head-row">
+          <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
+          <PageLinks links={BENCH_LINKS} />
+        </div>
         {error instanceof BoardUnreadable
           ? <Unreadable detail={error.message} compact />
           : <p className="bm-error">{error.message}</p>}
@@ -992,8 +1003,13 @@ export default function Benchmarks() {
   return (
     <div className="shell section-tight stack stack-4 bm-page">
       <div className="stack stack-1">
-        <span className="eyebrow">Signed in</span>
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
+        <div className="page-head-row">
+          <div className="stack stack-1">
+            <span className="eyebrow">Signed in</span>
+            <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
+          </div>
+          <PageLinks links={BENCH_LINKS} />
+        </div>
         <p className="muted">
           Published results for the {table?.counts.models ?? 'tracked'} tracked text models
           {table ? ` and ${table.counts.registry_models} other models (text, image, video and speech)` : ''}, from

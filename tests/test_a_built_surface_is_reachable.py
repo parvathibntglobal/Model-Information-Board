@@ -98,6 +98,13 @@ NOT_ADMIN_PANELS = {
     # A count's link into the evidence feed, for a seated model only
     # (2026-10-23): mounted by the Models pages, Compare, Reports and the blogs.
     "FeedLink",
+    # The AI in industries Info view (2026-11-24, #668): mounted by
+    # routes/IndustryAI.jsx at ?view=info, a signed-in page, not an admin panel.
+    "IndustryAIInfo",
+    # Top-right links to a page's public page and Admin section (2026-11-25,
+    # #668): mounted by seven signed-in pages (Benchmarks, Updates, News, Price
+    # changelog, AI in industries, Models, Board), not an admin panel.
+    "PageLinks",
 }
 
 

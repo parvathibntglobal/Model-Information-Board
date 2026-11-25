@@ -56,6 +56,9 @@ TOP_KEYS = {
     "domains",
     "watch",
     "retention",
+    # What each pipeline_version changed, one line each, for the Info view
+    # (judge/industry_ai/view.py reads it; the rules never do). #668, 2026-11-25.
+    "versions",
 }
 #: `retention:` (anooj, 2026-11-24): when a stored item's TEXT is cleared. Rows are
 #: never deleted - the page's counts need them.

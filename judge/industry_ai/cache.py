@@ -12,11 +12,13 @@ after that, an answer older than `TTL_SECONDS` is still sent at once and ONE
 background refresh replaces it (the `/seo/indexable` pattern in judge/app.py).
 A refresh that fails keeps the old answer, and the next request tries again.
 
-NEVER OLDER THAN `MAX_AGE_SECONDS` (#665 review, point 3). Refreshes happen only
-when someone asks, so after a quiet weekend the kept answer predates the weekend's
-harvest. An answer that old is recounted while the visitor waits (~5 s) instead of
-being sent; only if that recount fails is the old answer sent, its `counted_at`
-saying how old it is. An
+RECOUNTED WHEN OVER `MAX_AGE_SECONDS` (#665 review, point 3). Refreshes happen
+only when someone asks, so after a quiet weekend the kept answer predates the
+weekend's harvest. An answer that old is recounted while the visitor waits (~5 s)
+instead of being sent; only if that recount fails is the old answer sent, its
+`counted_at` saying how old it is. ONE RECOUNT PER VIEW (#665, after merge): the
+key is marked in `_refreshing` while it runs, so a visitor arriving meanwhile gets
+the old answer at once rather than starting a recount of their own. An
 error (an unknown domain, a bad filter) is raised and never kept. An answer that
 carries a `reason` (the tables could not be read) is never kept either, so a
 migration is seen on the next load.
@@ -89,8 +91,17 @@ def cached(key: Hashable, build: Callable[[], dict]) -> dict[str, Any]:
                     target=_refresh, args=(key, build), name="industry-ai-refresh", daemon=True
                 ).start()
             return entry[1]
+        if too_old:
+            # ONE RECOUNT AT A TIME: another visitor's recount (or a background
+            # refresh) of this view is running, so send the old answer at once.
+            if key in _refreshing:
+                return entry[1]
+            _refreshing.add(key)
     try:
         answer = _work(build)
+        # Kept before the mark below is cleared, so no visitor sees the old answer
+        # as unclaimed in between and starts a second recount.
+        _store(key, answer)
     except Exception:
         if not too_old:
             raise
@@ -98,7 +109,10 @@ def cached(key: Hashable, build: Callable[[], dict]) -> dict[str, Any]:
         # says its age, rather than no page. An error with nothing kept still raises.
         log.exception("industry-ai: recounting %r failed; sending the old answer", key)
         return entry[1]
-    _store(key, answer)
+    finally:
+        if too_old:
+            with _lock:
+                _refreshing.discard(key)
     return answer
 
 

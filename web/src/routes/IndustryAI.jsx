@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import PageLinks, { ADMIN } from '../components/PageLinks'
 import { industryAi } from '../api'
+import IndustryAIInfo from '../components/IndustryAIInfo'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import { fmtDayUtc } from '../dates'
@@ -10,13 +12,14 @@ import '../styles/industry-ai.css'
 /**
  * AI IN INDUSTRIES (2026-11-20): how much data the Industry AI agent and its
  * observer have collected for each domain (industries and roles, from
- * contract/industry_ai.yaml). Signed in. Which domains are named is read from the
- * data, never written here: it said "five industries" while the active five were
- * mostly roles (2026-11-24).
+ * contract/industry_ai.yaml). Signed in. The intro gives the number of domains,
+ * from the data, and names none of them (Parvathi, 2026-11-24): the Info view
+ * lists them and says which are active.
  *
- * COUNTS ONLY. The API sends no post text, link or author (judge/industry_ai/
- * view.py), so nothing here can show one. Each card opens its domain's own page
- * (routes/IndustryAIDomain.jsx, signed in), which does list the posts. Every number
+ * COUNTS ONLY ON THIS SUMMARY. Its API sends no post text, link or author
+ * (judge/industry_ai/view.py industry_ai_view). Each card opens its domain's own
+ * page (routes/IndustryAIDomain.jsx, signed in), which lists the posts, each with
+ * its text up to its first `excerpt_chars` characters and a link (#665). Every number
  * is a count of stored items, beside its denominator: what the domain's queries
  * found, and what the rules filtered out and why - so a small "kept" never reads as
  * "nothing out there" (rules 4 and 7). Items no domain's terms confirmed are counted
@@ -122,7 +125,11 @@ export default function IndustryAI() {
   useHead(PRIVATE.industryAi)
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
+  // THE INFO VIEW (2026-11-24): `?view=info`, so it can be linked and the back
+  // button returns to the counts. The counts are still loaded once, either way.
   const [params, setParams] = useSearchParams()
+  const showInfo = params.get('view') === 'info'
+  const toggleInfo = () => setParams(showInfo ? {} : { view: 'info' })
 
   useEffect(() => {
     let alive = true
@@ -131,13 +138,20 @@ export default function IndustryAI() {
   }, [])
 
   const last = data?.last_run
+  // THE INTRO COUNTS THE DOMAINS FROM THE PAYLOAD (2026-11-24, Parvathi): every
+  // domain in contract/industry_ai.yaml, active or not, so the number follows
+  // the contract (rule 11). INDUSTRIES AND ROLES APART (#668 review, point 5):
+  // each domain's `kind` is `industry` or `function` (a role in every industry),
+  // and calling roles industries misnamed them. The Info view lists them.
+  const kinds = (data?.domains || []).reduce((acc, d) => {
+    acc[d.kind] = (acc[d.kind] || 0) + 1
+    return acc
+  }, {})
+  const kindText = [
+    kinds.industry && `${kinds.industry} ${kinds.industry === 1 ? 'industry' : 'industries'}`,
+    kinds.function && `${kinds.function} ${kinds.function === 1 ? 'role' : 'roles'}`,
+  ].filter(Boolean).join(' and ')
   const filtered = (data?.dropped || []).reduce((s, r) => s + r.items, 0)
-  // The active domains' names, from the contract the API reads: the lede names them
-  // so it cannot go stale when the active set changes.
-  const active = (data?.domains || []).filter((d) => d.active).map((d) => d.name)
-  const activeText = active.length > 1
-    ? `${active.slice(0, -1).join(', ')} and ${active[active.length - 1]}`
-    : active[0]
   const domains = data?.domains || []
   const own = domains.filter((d) => d.kept > 0).sort((a, b) => b.kept - a.kept)
   const watchOnly = domains.filter((d) => !d.kept && d.from_watch > 0)
@@ -163,27 +177,43 @@ export default function IndustryAI() {
   return (
     <div className="shell section-tight stack stack-4">
       <header className="stack stack-1">
-        <span className="eyebrow">Industry AI</span>
-        <h1 className="iai-h1">AI in industries</h1>
+        <div className="iai-head-row">
+          <div className="stack stack-1">
+            <span className="eyebrow">Industry AI</span>
+            <h1 className="iai-h1">AI in industries{showInfo && <span className="dim"> · Info</span>}</h1>
+          </div>
+          <div className="page-links">
+            {/* No public page: AI in industries is signed in. */}
+            <PageLinks links={[
+              { to: ADMIN.section('ai-in-industries'), label: 'Admin', title: 'Admin → Board & content → AI in industries' },
+              { to: ADMIN.scheduler('industry-ai'), label: 'Schedule', title: 'Admin → Scheduler → Industry AI' },
+            ]} />
+            <button type="button" className="btn btn-ghost iai-info-btn" onClick={toggleInfo}
+                    aria-pressed={showInfo}>
+              {showInfo ? '← Counts' : 'ⓘ Info'}
+            </button>
+          </div>
+        </div>
         <p className="dim iai-lede">
-          How much data we have collected about how AI is used across industries and roles
-          {activeText ? <> (now: {activeText})</> : null}, from Reddit, X, GitHub, Hacker News, dev.to,
-          Bluesky and blogs, by keyword searches and by watched communities and accounts (Instagram too,
-          watched accounts only). Click a domain to see its posts and every breakdown.
+          How much data we have collected about AI in {kindText || 'industries and roles'}, from Reddit, X, GitHub,
+          Hacker News, dev.to, Bluesky and blogs, by keyword searches and by watched communities and
+          accounts (Instagram too, watched accounts only). Click an industry to see its posts and every breakdown.
         </p>
         {last && (
           <p className="dim iai-note">
             Last run {fmtDayUtc(last.finished_at || last.started_at) || '–'} ({last.mode}, {last.status}).
-            {countedAt(data?.counted_at) && <> Counted at {countedAt(data.counted_at)}; recounted on a visit after 10 minutes, and never shown more than an hour old.</>}
+            {countedAt(data?.counted_at) && <> Counted at {countedAt(data.counted_at)}; recounted on a visit after 10 minutes, and recounted when over an hour old.</>}
           </p>
         )}
       </header>
 
-      {err && <p className="iai-error">Could not load: {err}</p>}
-      {!data && !err && <p className="dim">Loading…</p>}
-      {data?.reason && <p className="iai-error">{data.reason}</p>}
+      {showInfo && <IndustryAIInfo />}
 
-      {data && !data.reason && (
+      {!showInfo && err && <p className="iai-error">Could not load: {err}</p>}
+      {!showInfo && !data && !err && <p className="dim">Loading…</p>}
+      {!showInfo && data?.reason && <p className="iai-error">{data.reason}</p>}
+
+      {!showInfo && data && !data.reason && (
         <>
           <div className="iai-totals">
             <div><b className="tnum">{n(data.collected)}</b><span>items collected</span></div>
