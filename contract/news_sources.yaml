@@ -134,7 +134,10 @@ story:
 # not ... otherwise modify our feed content" (read 2026-10-22). It is NOT
 # listed: anooj, 2026-10-29, kept it as it is and recorded the accepted risk on
 # its source entry above. Listing it is the way out if TechCrunch asks.
-as_given: {}
+as_given:
+  import_ai: "Substack: the feed carries each post's full text, so only the publisher's own description is shown, never text cut from the body (#666 review, 2026-11-25)"
+  ahead_of_ai: "Substack: the feed carries each post's full text, so only the publisher's own description is shown, never text cut from the body (#666 review, 2026-11-25)"
+  bens_bites: "Substack: the feed carries each post's full text, so only the publisher's own description is shown, never text cut from the body (#666 review, 2026-11-25)"
 
 # THE SPONSORED BADGE (#614, agreed by Parvathi 2026-11-09). An item carries the
 # badge when the PUBLISHER labels it, in its own feed: a category, or the
@@ -174,6 +177,8 @@ sponsored_labels:
 headline_only:
   every_vibe_check: "terms forbid automatic copying ('no scraping'), read 2026-11-09"
   mit_tr_ai: "terms bar robots and scrapers and grant use 'case-by-case', read 2026-11-09"
+  the_rundown: "terms bar copying or publishing 'any part of the Materials without prior written authorization', read 2026-11-25"
+  huggingface_blog: "terms bar reproducing or republishing 'our proprietary materials' without written permission, read 2026-11-25"
 
 # What the News page shows by default, and the longest window it may ask for.
 page:
@@ -299,6 +304,16 @@ sources:
     url: https://every.to/vibe-check/feed
     terms: "Terms (read 2026-11-09) forbid to 'extensively or automatically copy any content from the Services (in other words, no scraping)'; no feed clause. Every publishes the feed itself. So HEADLINE, DATE AND LINK ONLY (headline_only, #615 review): no summary stored, no article page asked. Paywalled articles: 8 of 10 pages (2026-11-09)."
     daily: false
+  # From daily.dev's "best AI news sources" list (anooj, 2026-11-25). Probed that
+  # day: docs/measurements/news-candidates-2026-11-25.*: the feed answers 200 and
+  # robots.txt allows it to our User-Agent, every hop asked.
+  - key: marktechpost
+    group: selected
+    label: MarkTechPost
+    kind: feed
+    url: https://www.marktechpost.com/feed/
+    terms: "NOT READ: marktechpost.com refused our terms reader (403 on the site and its /terms-of-use/, 2026-11-25), though its feed answered our client 200. Every item carries a byline (10 of 10, 2026-11-25)."
+    daily: false
 
   # ── AI labs: official feeds, no rule against headline plus link ───────────
   - key: openai
@@ -350,6 +365,13 @@ sources:
     url: https://openrouter.ai/blog/feed.xml
     terms: "Official feed; no licence stated, nothing against headline plus link."
     daily: false
+  - key: huggingface_blog
+    group: lab
+    label: Hugging Face blog
+    kind: feed
+    url: https://huggingface.co/blog/feed.xml
+    terms: "Terms (read 2026-11-25, effective 2022-09-15): 'You may not alter, reproduce, republish, license any of our proprietary materials, unless we expressly give you a written permission'; no feed clause, no automated-access clause. So HEADLINE, DATE AND LINK ONLY (headline_only). Its feed carries no summary anyway: 0 of 916 items (2026-11-25)."
+    daily: false
 
   # ── writers and newsletters ────────────────────────────────────────────────
   - key: simonwillison
@@ -379,6 +401,53 @@ sources:
     kind: feed
     url: https://www.interconnects.ai/feed
     terms: "Newsletter's own feed; no licence stated, nothing against headline plus link."
+    daily: false
+  # Four newsletters from daily.dev's list (anooj, 2026-11-25), probed that day
+  # (docs/measurements/news-candidates-2026-11-25.*). Three are on Substack, like
+  # Latent Space and Interconnects above. SUBSTACK'S TERMS, read 2026-11-25 (last
+  # updated 2026-10-06), bar anyone who "crawls, scrapes, or spiders" Substack or
+  # "copies or stores any significant portion of the content"; they say nothing
+  # about the feed each publication serves, or about a headline with a link. No
+  # publication-specific terms were found on the three.
+  # WHAT WE DO GOES PAST A HEADLINE WITH A LINK, AND THIS IS THE ACCEPTED RISK
+  # (#666 review, Parvathi):
+  #   * THE RAW STORE KEEPS EACH FEED WHOLE, content-hash addressed and never
+  #     deleted, like every source's. A Substack feed carries each free post's FULL
+  #     TEXT in `content:encoded`, so every free issue is stored whole. Never shown.
+  #     How long the raw store keeps feeds is a wider question than this list.
+  #   * NOTHING CUT FROM THE POST BODY IS SHOWN: the three are `as_given` (above),
+  #     so the page shows only the feed's own description (Substack's subtitle,
+  #     written by the publisher to be displayed), whole, and no link preview. Not
+  #     the body fallback (`feed_content`) the other sources get.
+  # Latent Space and Interconnects (Substack too) still get the body fallback; whether
+  # they join `as_given` is a follow-up question, not changed here.
+  - key: import_ai
+    group: writer
+    label: Import AI (Jack Clark)
+    kind: feed
+    url: https://importai.substack.com/feed
+    terms: "Substack's terms (read 2026-11-25; see the note above): no feed clause, nothing against headline plus link."
+    daily: false
+  - key: ahead_of_ai
+    group: writer
+    label: Ahead of AI (Sebastian Raschka)
+    kind: feed
+    url: https://magazine.sebastianraschka.com/feed
+    terms: "Substack's terms (read 2026-11-25; see the note above): no feed clause, nothing against headline plus link."
+    daily: false
+  - key: bens_bites
+    group: writer
+    label: Ben's Bites
+    kind: feed
+    url: https://www.bensbites.com/feed
+    terms: "Its sign-up links Substack's terms (read 2026-11-25; see the note above); its own /terms answers 404. No feed clause, nothing against headline plus link."
+    daily: false
+  - key: the_rundown
+    group: writer
+    label: The Rundown AI
+    kind: feed
+    url: https://www.therundown.ai/feed
+    terms: "Terms (read 2026-11-25 at /terms-privacy, undated): 'You may not copy, distribute, modify, publish, or otherwise exploit any part of the Materials without prior written authorization', and no 'robotic automation to access or extract information'; no feed clause. The Rundown publishes the feed itself. So HEADLINE, DATE AND LINK ONLY (headline_only). ACCEPTED RISK (#666 review): reading the feed is automated access, which the 'robotic automation' clause names; we read it because a published feed exists to be read by software, once per harvest, robots.txt asked. The way out is one line: remove the source the day The Rundown asks."
     daily: false
 
   # ── releases, through the GitHub API ──────────────────────────────────────

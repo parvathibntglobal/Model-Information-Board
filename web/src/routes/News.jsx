@@ -157,7 +157,7 @@ export default function News({ embedded = false }) {
         <label className="nw-check">
           <input type="checkbox" checked={llmOnly} onChange={(e) => setLlmOnly(e.target.checked)} /> LLM only
         </label>
-        <label className="nw-check" title="Stories the publisher itself labels sponsored, in its feed's categories or author. A sponsored story the publisher does not label is not caught.">
+        <label className="nw-check" title="Stories the publisher itself labels sponsored, in its feed's categories or author. A sponsored story the publisher does not label is not caught, and nor is a sponsor section inside a newsletter issue (Ben's Bites, The Rundown): their feeds print no label.">
           <input type="checkbox" checked={hideSponsored} onChange={(e) => setHideSponsored(e.target.checked)} /> Hide sponsored
         </label>
         <input className="lv-search" placeholder="Search headlines" value={query} onChange={(e) => setQuery(e.target.value)} />
