@@ -424,11 +424,15 @@ def test_the_four_workflows_are_wired_to_the_guard():
 
 
 def test_the_crons_are_where_anooj_put_them():
-    """2026-11-13, #631: no timer outside GitHub; the agent cron moves to 04:00
-    so the delayed run lands near 10:00-11:00 and the night ends inside one UTC
-    day. The model cron is a backup after the agents' latest start seen."""
-    assert _wf("agent-fetches.yml")[True]["schedule"] == [{"cron": "0 4 * * *"}]
-    assert _wf("scheduled-fetches.yml")[True]["schedule"] == [{"cron": "0 16 * * *"}]
+    """2026-11-25 (anooj): the agent fetch is started by hand only - no cron - and
+    the model fetch's own cron, 04:00 UTC, is its trigger, so even a start 10 hours
+    late ends inside the UTC day the extraction cap counts. (2026-11-13, #631: the
+    agents had 04:00 and the model fetch a 16:00 backup behind them.)"""
+    assert "schedule" not in _wf("agent-fetches.yml")[True]
+    assert _wf("scheduled-fetches.yml")[True]["schedule"] == [{"cron": "0 4 * * *"}]
+    # The model cron is not later than the day's window opening it counts from, so
+    # its run is never counted against the previous day's.
+    assert _entries()["scheduled-fetches.yml"].window_opens == (4, 0)
 
 
 def test_every_workflow_counting_a_nightly_hand_start_can_be_given_one():

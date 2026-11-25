@@ -205,6 +205,23 @@ export default function SchedulerPanel() {
               </span>
             </div>
 
+            {/* ── the agents: manual only (2026-11-25, anooj) ─────────── */}
+            {links.agent_workflow && (
+              <div className="stack stack-1">
+                <span className="label">Agent fetches (started by hand)</span>
+                <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                  <a className="btn btn-ghost" href={links.agent_workflow} target="_blank" rel="noopener noreferrer">Run agents now / see their runs ↗</a>
+                </div>
+                <span className="dim" style={{ fontSize: 11 }}>
+                  The agents have no schedule: they run only when started here, with GitHub&apos;s <strong>Run workflow</strong>{' '}
+                  button, and spend from the same daily extraction budget as the model fetch. Type <code>nightly</code> in
+                  its <em>slot</em> box for a real run: the scheduled model fetch does not start while it runs, and the
+                  agents&apos; finish starts the model fetch (a second pass if the models already ran that day). Left empty,
+                  it is a test: it starts nothing and holds nothing off, so it can overlap a model fetch.
+                </span>
+              </div>
+            )}
+
             {/* ── queue ───────────────────────────────────────────────── */}
             <div className="stack stack-1">
               <span className="label">Queue — who the next run would fetch, in order</span>

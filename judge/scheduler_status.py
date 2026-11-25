@@ -37,6 +37,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "scheduled-fetches.yml"
 WORKFLOW_FILE = WORKFLOW.name
+#: The agent fetch (2026-11-25, anooj): manual only, started from Admin's link.
+AGENT_WORKFLOW_FILE = "agent-fetches.yml"
 API = "https://api.github.com"
 CACHE_S = 60
 
@@ -401,6 +403,10 @@ def overview(conn) -> dict:
         out["links"] = {
             "workflow": f"https://github.com/{slug}/actions/workflows/{WORKFLOW_FILE}",
             "secrets": f"https://github.com/{slug}/settings/secrets/actions",
+            # THE AGENT FETCH IS MANUAL ONLY since 2026-11-25 (anooj): no cron, so it
+            # runs when a person starts it from this link - GitHub's own Run workflow
+            # button. The panel itself still changes nothing.
+            "agent_workflow": f"https://github.com/{slug}/actions/workflows/{AGENT_WORKFLOW_FILE}",
         }
     else:
         out["github"] = {"runs": [], "unreadable": "no repository known: set GITHUB_REPOSITORY "
