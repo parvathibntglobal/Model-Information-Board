@@ -84,6 +84,16 @@ def test_a_labelling_failure_keeps_the_harvest_and_says_so(wired, conn, monkeypa
     assert detail.startswith("2 new item(s) SAVED before the error")
     assert "labelling broke" in detail
 
+    # THE PAGE: the two unjudged posts are waiting, not "filtered out" (#663 review).
+    from judge.industry_ai.view import industry_ai_view
+
+    page = industry_ai_view(conn)
+    assert page["pending"] == 2
+    assert page["dropped"] == []
+    assert page["kept"] == 0
+    assert page["collected"] == page["kept"] + page["pending"] + sum(
+        r["items"] for r in page["dropped"])
+
 
 def test_a_clean_run_labels_and_records_its_times(wired, conn):
     assert wired.main(["--domains", "marketing", "--platforms", "reddit"]) == 0
