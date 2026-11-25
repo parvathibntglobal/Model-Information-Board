@@ -184,7 +184,7 @@ export default function IndustryAI() {
         {last && (
           <p className="dim iai-note">
             Last run {fmtDayUtc(last.finished_at || last.started_at) || '–'} ({last.mode}, {last.status}).
-            {countedAt(data?.counted_at) && <> Counted at {countedAt(data.counted_at)}; recounted on a visit after 10 minutes, and never shown more than an hour old.</>}
+            {countedAt(data?.counted_at) && <> Counted at {countedAt(data.counted_at)}; recounted on a visit after 10 minutes, and recounted when over an hour old.</>}
           </p>
         )}
       </header>
