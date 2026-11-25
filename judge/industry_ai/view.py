@@ -241,6 +241,7 @@ def industry_ai_view(conn) -> dict[str, Any]:
 #               unless retention cleared the text: then "unknown" (rule 6)
 #   devto, feeds  article
 #   x, bluesky  post: a reply is NOT told apart from a post (nothing stored says)
+#   instagram   post: an account's own feed, read by the observer only
 
 EXCERPT_CHARS = 600
 PAGE_MAX = 100
@@ -258,7 +259,8 @@ _KIND = (
     "WHEN 'hackernews' THEN CASE WHEN coalesce(title, '') <> '' THEN 'story' "
     "  WHEN text_cleared_at IS NOT NULL THEN 'unknown' ELSE 'comment' END "
     "WHEN 'devto' THEN 'article' WHEN 'feeds' THEN 'article' "
-    "WHEN 'x' THEN 'post' WHEN 'bluesky' THEN 'post' ELSE 'unknown' END"
+    "WHEN 'x' THEN 'post' WHEN 'bluesky' THEN 'post' WHEN 'instagram' THEN 'post' "
+    "ELSE 'unknown' END"
 )
 #: Engagement summed into one number to SORT by, and never shown (rule 3, first
 #: exception): the page says in words that "most engaged" orders by the
