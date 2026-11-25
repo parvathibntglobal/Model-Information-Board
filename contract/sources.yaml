@@ -1754,6 +1754,66 @@ terms_rulings:
       RE-REVIEW REQUIRED BEFORE: any monetization, any use of the firehose or a
       PDS rather than the AppView search, or fetching bsky.app HTML.
 
+  # ── Instagram, the Industry AI observer only ─────────────────────────────
+  - id: instagram-via-rapidapi-scraper
+    party: platform
+    platform_host: instagram.com
+    reviewed_on: 2026-11-25
+    reviewed_by: anooj
+    basis: public-derived-publication
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: false
+    live_preconditions:
+      access_path: [rapidapi-reseller]
+      instagram_provider: [instagram-looter2]
+      credential_present: [true]
+      use_basis: [public-derived-publication]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+      credentials_issued_by_platform: [false]
+      legal_review_completed: [false]
+    summary: >-
+      PROPOSED 2026-11-25 (anooj: "for instagram we have a rapid api key, same as
+      reddit and X, so it should also go in with them"); for review on the PR that
+      carries it, like every ruling here. INHERITS `x-via-rapidapi-scraper`'s
+      position, and its open conditions with it.
+
+      THE ROUTE. A RapidAPI scraper provider selected by `INSTAGRAM_PROVIDER`
+      (`instagram-looter2` today), NOT Meta's Graph API - the reseller shape of
+      the Reddit and X arms. Two calls: `/id?username=` (used only to build the
+      watch list) and `/user-feeds2?id=&count=12` (a named account's newest
+      posts). Instagram HTML is never fetched by this repository.
+
+      WHAT IT IS FOR, AND THE LIMIT. The Industry AI OBSERVER only: the newest
+      posts of the accounts in contract/industry_ai.yaml `watch.instagram`, for
+      counts on the SIGNED-IN Industry AI page. Not board evidence, no keyword
+      search, and nothing reaches a public page: `instagram` is in
+      contract/publication.yaml `withheld_from_public` and
+      `derived_posts.embed_only`, so it is neither shown nor quoted, and the
+      board's platform count leaves it out.
+
+      WHAT WAS NOT READ, RECORDED RATHER THAN RESOLVED. Instagram's Terms of Use
+      restrict collecting content by automated means without Meta's permission;
+      they were not read in full for this ruling, nor were RapidAPI's terms or
+      the provider's listing terms - three documents, as on the X route.
+      Credentials are not issued by the platform (the condition Reddit's Data
+      API Terms 2.8 records as unresolved). Terms findings inform and never
+      block (this file's top); this paragraph is the record of that risk. The
+      official alternative is Meta's `business_discovery` (a Meta app, a
+      Business or Creator account, App Review) - not taken, a team decision.
+
+      PROVIDER RELIABILITY. The 2026-11-04..17 trial through this provider's
+      hashtag endpoint had captions on 4-5 Nov only; 6 Nov answered HTTP 500 and
+      9-17 Nov returned posts with no captions. On 2026-11-25 the account feed
+      returned 12 of 12 posts captioned. The adapter counts uncaptioned posts
+      per account rather than reading them as "nothing about AI".
+
+      RE-REVIEW REQUIRED BEFORE: any public display of Instagram posts, any use
+      as board evidence, keyword or hashtag search, or a provider swap (the
+      `instagram_provider` precondition refuses one).
+
 
 sources:
 
@@ -2146,6 +2206,30 @@ sources:
       this source commits to all three. Quoted like Hacker News, credited as
       the platform with a link to the post. base_trust 0.60, as X: short
       social posts.
+
+  - id: instagram
+    platform: instagram
+    endpoint: https://instagram-looter2.p.rapidapi.com
+    base_trust: 0.60
+    provenance: seed
+    terms_ruling: instagram-via-rapidapi-scraper
+    terms_evidence:
+      checked_on: 2026-11-25
+      access_path: rapidapi-reseller
+      republication_claimed: false
+      terms_document_read: false
+      credentials_issued_by_platform: false
+      legal_review_completed: false
+    tos_notes: >-
+      Ruling instagram-via-rapidapi-scraper, proposed 2026-11-25. A RapidAPI
+      scraper provider selected by `INSTAGRAM_PROVIDER` (`instagram-looter2`
+      today), not Meta's Graph API; the Industry AI observer only, for the
+      signed-in page. Withheld from every public page and never quoted
+      (contract/publication.yaml). Instagram's Terms of Use restrict automated
+      collection and were not read in full; RapidAPI's and the provider's terms
+      were not read: recorded as the accepted risk, as on the X route. `endpoint`
+      records the provider the ruling was made for; the adapter derives the host
+      from `INSTAGRAM_PROVIDER`. base_trust 0.60, as X: short social posts.
 
 
 feeds:

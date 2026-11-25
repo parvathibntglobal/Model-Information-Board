@@ -42,7 +42,11 @@ sys.path.insert(0, str(ROOT))
 
 from collect.config import settings  # noqa: E402
 from collect.industry_ai import config as iai_config  # noqa: E402
-from collect.industry_ai.config import PLATFORMS  # noqa: E402
+from collect.industry_ai.config import PLATFORMS, WATCH_PLATFORMS  # noqa: E402
+
+#: Every platform a run can touch: the keyword platforms, then any the observer
+#: alone reads (Instagram, 2026-11-25), which get watch lists and no keyword queries.
+ALL_PLATFORMS = (*PLATFORMS, *(p for p in WATCH_PLATFORMS if p not in PLATFORMS))
 
 #: The bot list's source name per platform (contract/bots.yaml).
 BOT_SOURCES = {
@@ -217,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         "--relabel", action="store_true", help="re-apply the rules to every stored item; no network"
     )
     ap.add_argument("--domains", nargs="+", help="default: every domain in the contract")
-    ap.add_argument("--platforms", nargs="+", choices=PLATFORMS, help="default: all")
+    ap.add_argument("--platforms", nargs="+", choices=ALL_PLATFORMS, help="default: all")
     ap.add_argument(
         "--post-summary",
         action="store_true",
@@ -259,7 +263,7 @@ def main(argv: list[str] | None = None) -> int:
             "This is the switch, not a failure."
         )
         return 0
-    platforms = args.platforms or list(PLATFORMS)
+    platforms = args.platforms or list(ALL_PLATFORMS)
     run_id = f"iai-{datetime.now(UTC):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}"
     since = datetime.now(UTC) - timedelta(days=int(cfg.run["window_days"]))
     # THE OBSERVER'S WATCH LISTS run when the contract switches them on, or by hand
@@ -279,9 +283,10 @@ def main(argv: list[str] | None = None) -> int:
     from collect.industry_ai.harvest import plan, round_robin
 
     if args.plan:
-        planned = plan(cfg, domains=keyword_domains, platforms=platforms)
+        kw_platforms = [p for p in platforms if p in PLATFORMS]
+        planned = plan(cfg, domains=keyword_domains, platforms=kw_platforms)
         say(f"\n1 Harvest (plan only; nothing is requested): {len(planned)} query(ies)")
-        for p in platforms:
+        for p in kw_platforms:
             qs = [(d, q) for d, pp, q in planned if pp == p]
             qs = round_robin(qs)
             if not qs:

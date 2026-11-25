@@ -168,8 +168,8 @@ export default function IndustryAI() {
         <p className="dim iai-lede">
           How much data we have collected about how AI is used across industries and roles
           {activeText ? <> (now: {activeText})</> : null}, from Reddit, X, GitHub, Hacker News, dev.to,
-          Bluesky and blogs, by keyword searches and by watched communities and accounts. Click a domain to
-          see its posts and every breakdown.
+          Bluesky and blogs, by keyword searches and by watched communities and accounts (Instagram too,
+          watched accounts only). Click a domain to see its posts and every breakdown.
         </p>
         {last && (
           <p className="dim iai-note">

@@ -481,5 +481,9 @@ def _settings(environment: str):
         # keys are different subscriptions, each 403 on the other's provider.
         # X gets its own variable for the same reason it got its own host.
         x_rapidapi_key=None,
+        # Added 2026-11-25 with the observer's Instagram arm: its provider and
+        # its own key, the X arm's two variables.
+        instagram_provider=None,
+        instagram_rapidapi_key=None,
         pipeline_version="test",
     )

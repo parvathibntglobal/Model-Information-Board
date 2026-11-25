@@ -65,7 +65,7 @@ RETENTION_KEYS = {"clear_text_after_days", "dropped", "kept_domains"}
 #: The platforms whose watch lists the code READS today. A list for any other
 #: platform (dev.to tags, GitHub repos, feeds) is refused as an unknown key
 #: until its runner exists - a refused list cannot be mistaken for a watched one.
-WATCH_PLATFORMS = ("reddit", "x", "bluesky", "hackernews")
+WATCH_PLATFORMS = ("reddit", "x", "bluesky", "hackernews", "instagram")
 WATCH_KEYS = {"enabled", "lookback_days", "max_requests", "x_pages", "x_club_max", "x_suffix",
               "people", "cross_post_hours", *WATCH_PLATFORMS}
 #: The platforms whose watched ACCOUNTS a person can be mapped across (Reddit watches
@@ -82,6 +82,11 @@ _REDDIT_SUB = re.compile(r"^[A-Za-z0-9_]{2,21}$")
 _X_HANDLE = re.compile(r"^[A-Za-z0-9_]{1,15}$")
 _BSKY_HANDLE = re.compile(r"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$")
 _HN_USER = re.compile(r"^[A-Za-z0-9_-]{2,15}$")
+#: Instagram usernames: letters, digits, `.` and `_`, at most 30 (2026-11-25).
+_IG_HANDLE = re.compile(r"^[A-Za-z0-9._]{1,30}$")
+#: An Instagram account's numeric id (the provider's `user_id`): the account,
+#: where the handle is only its current name.
+_IG_ID = re.compile(r"^[0-9]{3,25}$")
 #: The longest `since:` an X watch query carries ("since:2026-11-20").
 _SINCE_CHARS = len(" since:2026-11-20")
 RUN_KEYS = {
@@ -222,7 +227,8 @@ class Config:
 
         Reddit: `r/<sub>` (a listing, newest first). X: accounts clubbed with OR as
         `(from:a OR from:b ...)`; harvest adds `since:` and the suffix. Bluesky:
-        `from:<handle>`. Hacker News: `hn:list:<tag>` or `hn:author:<name>`."""
+        `from:<handle>`. Hacker News: `hn:list:<tag>` or `hn:author:<name>`.
+        Instagram: `ig:<handle>` (one feed request; the id is in `instagram_ids`)."""
         w = self.watch
         out = [("reddit", f"r/{s}") for s in w["reddit"]]
         accts, n = list(w["x"]), int(w["x_club_max"])
@@ -231,7 +237,12 @@ class Config:
         out += [("bluesky", f"from:{h}") for h in w["bluesky"]]
         out += [("hackernews", f"hn:list:{t}") for t in w["hackernews"]["lists"]]
         out += [("hackernews", f"hn:author:{a}") for a in w["hackernews"]["authors"]]
+        out += [("instagram", f"ig:{h}") for h, _ in w["instagram"]]
         return out
+
+    def instagram_ids(self) -> dict[str, str]:
+        """Watched Instagram handle -> the account's numeric id, as the contract holds it."""
+        return dict(self.watch["instagram"])
 
 
 def is_watch_x(query: str) -> bool:
@@ -335,6 +346,33 @@ def _handles(value: Any, pattern: re.Pattern, where: str) -> tuple[str, ...]:
     return out
 
 
+def _instagram(value: Any) -> tuple[tuple[str, str], ...]:
+    """`watch.instagram`: `[handle, "id"]` pairs (2026-11-25). A list rather than a
+    mapping because YAML lets a repeated mapping key silently replace the first
+    (rule 12); here a repeat - of a handle or of an id - is refused."""
+    where = "watch.instagram"
+    if not isinstance(value, list):
+        raise IndustryAIConfigError(f"{where} must be a list of [handle, id] pairs")
+    out = []
+    for i, pair in enumerate(value):
+        if (not isinstance(pair, list) or len(pair) != 2
+                or not all(isinstance(x, str) for x in pair)):
+            raise IndustryAIConfigError(
+                f"{where}[{i}]: {pair!r} is not a [handle, \"id\"] pair of two strings")
+        handle, uid = pair
+        if not _IG_HANDLE.match(handle):
+            raise IndustryAIConfigError(f"{where}[{i}]: not a valid name {handle!r}")
+        if not _IG_ID.match(uid):
+            raise IndustryAIConfigError(f"{where}[{i}]: {uid!r} is not a numeric account id")
+        out.append((handle, uid))
+    for k, label in ((0, "handle"), (1, "id")):
+        seen = [p[k].lower() for p in out]
+        dupes = sorted({s for s in seen if seen.count(s) > 1})
+        if dupes:
+            raise IndustryAIConfigError(f"{where}: {label} listed twice {dupes}")
+    return tuple(out)
+
+
 def _watch(raw: Any, suffix: dict[str, str]) -> dict[str, Any]:
     """The observer's `watch:` block, every key required (rule 12)."""
     where = "watch"
@@ -379,6 +417,7 @@ def _watch(raw: Any, suffix: dict[str, str]) -> dict[str, Any]:
             "authors": _handles(_need(hn, "authors", "watch.hackernews"), _HN_USER,
                                 "watch.hackernews.authors"),
         },
+        "instagram": _instagram(raw["instagram"]),
     }
     # X CUTS OFF A LONG QUERY RATHER THAN REFUSING IT, so a clubbed account list
     # plus `since:` and both suffixes must fit (the keyword queries' guard, #644).

@@ -1,10 +1,16 @@
-# Instagram accounts to watch: parked (anooj, 2026-11-25)
+# Instagram accounts to watch (anooj, 2026-11-25)
 
 285 distinct handles: 211 fit, 35 art/video, 39 held.
 
-Not in the contract: the observer has no Instagram route. `watch:` refuses an unknown
-platform key, and reading other accounts' posts needs Meta's `business_discovery`
-API (a team decision, still open). Add these when that route exists.
+**THE "FITS" LIST IS NOW IN THE CONTRACT** (same day, anooj: Instagram goes in with
+Reddit and X, through the RapidAPI key). Each handle was looked up once; the ones
+that resolved are in `contract/industry_ai.yaml` `watch.instagram` with their account
+ids, and the ones that did not are named in the comment above that list. The route is
+`collect/adapters/instagram.py` (RapidAPI provider `instagram-looter2`, ruling
+`instagram-via-rapidapi-scraper`), not Meta's `business_discovery`.
+
+**STILL PARKED:** the AI image and video showcases and the held list below. Neither
+is in the contract; decide them on the first runs' per-account yield.
 
 **Sources** (each row says which named it): doc 1 and doc 2 = anooj's two lists;
 keeran = keeranai.com (updated 2026-11-17); smacient = smacient.com (undated);
