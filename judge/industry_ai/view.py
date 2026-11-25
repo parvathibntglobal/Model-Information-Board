@@ -81,7 +81,8 @@ def industry_ai_view(conn) -> dict[str, Any]:
     by_type = _count_by(conn, "content_type")
     by_platform = _count_by(conn, "platform")
     by_stage = _count_by(conn, "stage_guess")
-    by_month = _count_by(conn, "to_char(date_trunc('month', created_at), 'YYYY-MM')")
+    # No by-month counts here since 2026-11-24: the summary's cards dropped the month
+    # chart (one spike, the harvest window), and the domain page counts its own months.
     # AUTHORS: a person mapped in `watch.people` is ONE author on every platform -
     # their `person:<key>` flag, set by collect/industry_ai/pipeline.py, which counts
     # the same way. Anyone else is one author per (platform, account).
@@ -171,7 +172,6 @@ def industry_ai_view(conn) -> dict[str, Any]:
             "by_type": by_type.get(key, {}),
             "by_platform": by_platform.get(key, {}),
             "by_stage": by_stage.get(key, {}),
-            "by_month": dict(sorted(by_month.get(key, {}).items())),
         }
 
     domains = [

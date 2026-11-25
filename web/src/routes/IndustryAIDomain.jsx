@@ -5,28 +5,32 @@ import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import { fmtDayUtc } from '../dates'
 import {
-  Bars, KIND_LABEL, PLATFORM_LABEL, REASON_LABEL, STAGE_LABEL, TYPE_LABEL, n,
+  Bars, KIND_LABEL, PLATFORM_LABEL, REASON_LABEL, STAGE_LABEL, TYPE_LABEL, countedAt, n,
 } from '../industry-ai/parts'
 import '../styles/industry-ai.css'
 
 /**
  * ONE DOMAIN OF "AI IN INDUSTRIES" (2026-11-24, Parvathi), opened from its card on
  * /ai-in-industries. Signed in. Everything the Industry AI agent stored for the
- * domain: the card's counts, every breakdown its labels allow (each one a filter),
- * and the posts - an EXCERPT of each, with its link, author id, date, engagement and
- * every label the code rules gave it (judge/industry_ai/view.py
- * `industry_ai_domain_view`).
+ * domain (judge/industry_ai/view.py `industry_ai_domain_view`), laid out so it
+ * reads simply:
  *
- * Three populations, never added together (rules 4 and 7): kept by the domain's own
- * queries; kept from the watch lists and filed here by their terms (counted apart on
- * the card too); and filtered out, with the reason. Every list says how many match.
- * The filters live in the address, so a view can be shared with the team.
+ *   - three population tabs, never added together (rules 4 and 7): kept by the
+ *     domain's own searches; kept from the watch lists and filed here by their
+ *     words; and filtered out, with the reason;
+ *   - two view tabs: POSTS (one row of dropdown filters, then compact posts whose
+ *     extra labels fold away under "Details") and BREAKDOWNS (collapsible sections;
+ *     clicking a bar filters the posts and opens them).
+ *
+ * Every list says how many match. Tabs and filters live in the address, so a view
+ * can be shared with the team.
  */
 
-const SCOPE_LABEL = {
-  kept: 'Kept',
-  from_watch: 'From watch lists',
-  dropped: 'Filtered out',
+const SCOPE_LABEL = { kept: 'Kept', from_watch: 'From watch lists', dropped: 'Filtered out' }
+const SCOPE_NOTE = {
+  kept: 'Kept: found by this domain’s own searches and confirmed by its words. The card’s "posts kept".',
+  from_watch: 'Kept from the watched communities and accounts, and filed here by their words. Counted apart from "kept", as on the card.',
+  dropped: 'Found by this domain’s searches and filtered out by the code rules, each with its reason.',
 }
 const SORT_LABEL = {
   newest: 'Newest posted', oldest: 'Oldest posted', engaged: 'Most engaged', first_seen: 'Newest found',
@@ -53,7 +57,7 @@ function queryLabel(key) {
 }
 function flagLabel(f) {
   if (f.startsWith('also_matches:')) return `also matches ${f.slice(13).replace(/_/g, ' ')}`
-  if (f.startsWith('domain_from_terms:')) return `filed by its terms (${f.slice(18).replace(/_/g, ' ')})`
+  if (f.startsWith('domain_from_terms:')) return `filed by its words (${f.slice(18).replace(/_/g, ' ')})`
   return f.replace(/_/g, ' ')
 }
 /** X keeps the handle in the link; other platforms give an id only. */
@@ -65,53 +69,88 @@ function authorOf(it) {
   if (it.platform === 'hackernews' && it.author_id) return it.author_id
   return it.author_id ? `id ${it.author_id}` : 'no author id'
 }
-/** A filter's value in words, for its chip. */
-function chipValue(name, v, groupNames) {
-  const labels = { type: TYPE_LABEL, kind: KIND_LABEL, platform: PLATFORM_LABEL, stage: STAGE_LABEL,
+/** The words for one filter's values. */
+function labelsFor(name, groupNames) {
+  return { type: TYPE_LABEL, kind: KIND_LABEL, platform: PLATFORM_LABEL, stage: STAGE_LABEL,
     reason: REASON_LABEL, group: groupNames }[name]
+}
+function valueLabel(name, v, groupNames) {
+  const labels = labelsFor(name, groupNames)
   if (labels) return labels[v] || v
   if (name === 'query') return queryLabel(v)
   if (name === 'flag') return flagLabel(v)
   return v
 }
-const toCounts = (rows) => Object.fromEntries((rows || []).map((r) => [r.value ?? '(none)', r.items]))
+const shorten = (s, max = 70) => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
+const toCounts = (rows) => Object.fromEntries((rows || []).filter((r) => r.value).map((r) => [r.value, r.items]))
 
-function Facet({ title, rows, labels, name, filters, setFilter, note, wide }) {
-  if (!rows?.length) return null
+/** One filter as a dropdown: every value with its count, plus "Any". */
+function FilterSelect({ name, rows, value, onChange, groupNames }) {
+  const options = (rows || []).filter((r) => r.value)
+  if (!options.length && !value) return null
   return (
-    <section className={`card iai-card${wide ? ' iai-wide' : ''}`}>
-      <h3 className="iai-sub">{title}</h3>
-      {note && <p className="dim iai-note">{note}</p>}
-      <Bars counts={toCounts(rows)} labels={labels} picked={filters[name]}
-            onPick={(v) => v !== '(none)' && setFilter(name, filters[name] === v ? '' : v)} />
-    </section>
+    <label className="iai-filter">
+      <span>{FILTER_LABEL[name]}</span>
+      <select value={value} onChange={(e) => onChange(name, e.target.value)}>
+        <option value="">Any</option>
+        {value && !options.some((o) => o.value === value) && (
+          <option value={value}>{shorten(valueLabel(name, value, groupNames))}</option>
+        )}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {shorten(valueLabel(name, o.value, groupNames))} ({n(o.items)})
+          </option>
+        ))}
+      </select>
+    </label>
   )
 }
 
-function Months({ rows, filters, setFilter }) {
+/** One collapsible breakdown. Clicking a bar filters the posts and opens them. */
+function Section({ title, note, rows, name, open, onPick, groupNames, labels }) {
+  const counts = toCounts(rows)
+  if (!Object.keys(counts).length) return null
+  const words = labels || Object.fromEntries(Object.keys(counts).map((k) => [k, valueLabel(name, k, groupNames)]))
+  return (
+    <details className="card iai-fold" open={open}>
+      <summary>
+        <span>{title}</span>
+        <span className="dim iai-note">{n(Object.keys(counts).length)} value{Object.keys(counts).length === 1 ? '' : 's'}</span>
+      </summary>
+      {note && <p className="dim iai-note">{note}</p>}
+      <Bars counts={counts} labels={words} onPick={(v) => onPick(name, v)} />
+    </details>
+  )
+}
+
+function Months({ rows, onPick }) {
   const months = (rows || []).filter((r) => r.value)
   if (months.length < 2) return null
   const max = Math.max(...months.map((m) => m.items))
   return (
-    <section className="card iai-card iai-wide">
-      <h3 className="iai-sub">By month posted</h3>
+    <details className="card iai-fold">
+      <summary>
+        <span>By month posted</span>
+        <span className="dim iai-note">{months[0].value} to {months[months.length - 1].value}</span>
+      </summary>
       <div className="iai-trend iai-trend-tall" role="img"
            aria-label={`Posts by month posted: ${months.map((m) => `${m.value} ${m.items}`).join(', ')}`}>
         {months.map((m) => (
           <button type="button" key={m.value} title={`${m.value}: ${n(m.items)}`}
-                  className={`iai-trend-col iai-pick${filters.month === m.value ? ' iai-picked' : ''}`}
-                  onClick={() => setFilter('month', filters.month === m.value ? '' : m.value)}>
+                  className="iai-trend-col iai-pick" onClick={() => onPick('month', m.value)}>
             <span className="iai-trend-bar" style={{ height: `${Math.max(4, (100 * m.items) / max)}%` }} />
           </button>
         ))}
       </div>
-      <p className="dim iai-note">{months[0].value} to {months[months.length - 1].value}. Click a month to filter.</p>
-    </section>
+      <p className="dim iai-note">Click a month to see its posts.</p>
+    </details>
   )
 }
 
-function Item({ it, terms, groupNames, domainKey }) {
+function Item({ it, groupNames, domainKey }) {
   const eng = Object.entries(it.engagement || {}).filter(([k, v]) => k !== 'upvote_ratio' && v)
+  const flags = it.flags.filter((f) => !f.startsWith('person:'))
+  const others = it.domains.filter((x) => x !== domainKey)
   return (
     <li className="card iai-item">
       <div className="iai-item-meta">
@@ -119,42 +158,44 @@ function Item({ it, terms, groupNames, domainKey }) {
         <span>{PLATFORM_LABEL[it.platform] || it.platform}</span>
         <span>{it.created_at ? fmtDayUtc(it.created_at) : 'no posting date'}</span>
         <span className="dim">{authorOf(it)}</span>
-        {it.lang && <span className="dim">lang {it.lang}</span>}
+        {it.content_type && <span className="iai-tag">{TYPE_LABEL[it.content_type] || it.content_type}</span>}
+        {it.stage && <span className="iai-tag">{STAGE_LABEL[it.stage] || it.stage}</span>}
+        {it.verdict === 'dropped' && (
+          <span className="iai-tag iai-tag-drop">{REASON_LABEL[it.drop_reason] || it.drop_reason}</span>
+        )}
       </div>
       {it.title && <h3 className="iai-item-title">{it.title}</h3>}
       {it.text_cleared_at
         ? <p className="dim iai-item-text">Text cleared by retention on {fmtDayUtc(it.text_cleared_at)}; its labels are kept.</p>
-        : it.excerpt && <p className="iai-item-text">{it.excerpt}{it.excerpt_cut && '…'}</p>}
-      {eng.length > 0 && (
-        <p className="dim iai-note tnum">{eng.map(([k, v]) => `${n(v)} ${ENGAGEMENT_LABEL[k] || k}`).join(' · ')}
-          {it.share_count > 0 && ` · ${n(it.share_count)} shares & copies`}</p>
-      )}
-      <div className="iai-tags">
-        {it.verdict === 'dropped' && (
-          <span className="iai-tag iai-tag-drop">Filtered out: {REASON_LABEL[it.drop_reason] || it.drop_reason} ({it.drop_stage})</span>
-        )}
-        {it.content_type && <span className="iai-tag">{TYPE_LABEL[it.content_type] || it.content_type}</span>}
-        {it.stage && <span className="iai-tag">stage: {STAGE_LABEL[it.stage] || it.stage}</span>}
-        {it.groups.map((g) => <span className="iai-tag" key={g}>group: {groupNames[g] || g}</span>)}
-        {(terms || []).map((t) => <span className="iai-tag iai-tag-term" key={t}>{t}</span>)}
-        {it.ai_terms.map((t) => <span className="iai-tag iai-tag-ai" key={t}>{t}</span>)}
-        {it.flags.filter((f) => !f.startsWith('person:')).map((f) => <span className="iai-tag iai-tag-flag" key={f}>{flagLabel(f)}</span>)}
-      </div>
-      {it.matched_pattern && <p className="dim iai-note">Content type decided by the pattern <code>{it.matched_pattern}</code></p>}
-      <p className="dim iai-note">Found by: {it.queries.map(queryLabel).join(' · ') || '–'}
-        {it.domain_hints.length > 1 && ` · searched for under ${it.domain_hints.length} domains`}
-        {it.first_seen_at && ` · first seen ${fmtDayUtc(it.first_seen_at)}`}</p>
-      {it.domains.length > 1 && (
-        <p className="dim iai-note">Also filed under: {it.domains.filter((x) => x !== domainKey).map((x) => x.replace(/_/g, ' ')).join(', ')}</p>
-      )}
-      {it.duplicate_of && <p className="dim iai-note">A copy of {it.duplicate_of}</p>}
-      {it.canonical_url && it.canonical_url !== it.link && (
-        <p className="dim iai-note">Article, as deduplicated: {it.canonical_url}</p>
-      )}
-      <div className="iai-item-links">
+        : it.excerpt && <p className="iai-item-text iai-clamp3">{it.excerpt}{it.excerpt_cut && '…'}</p>}
+      <div className="iai-item-foot">
         {it.url && <a href={it.url} target="_blank" rel="noopener noreferrer nofollow">Open the original →</a>}
-        {it.link && <a href={it.link} target="_blank" rel="noopener noreferrer nofollow" className="dim">Linked article</a>}
+        {eng.length > 0 && (
+          <span className="dim iai-note tnum">{eng.slice(0, 3).map(([k, v]) => `${n(v)} ${ENGAGEMENT_LABEL[k] || k}`).join(' · ')}</span>
+        )}
       </div>
+      <details className="iai-details">
+        <summary>Details</summary>
+        <dl className="iai-dl">
+          {(it.terms || []).length > 0 && <><dt>Industry words</dt><dd>{it.terms.join(' · ')}</dd></>}
+          {it.ai_terms.length > 0 && <><dt>AI terms</dt><dd>{it.ai_terms.join(' · ')}</dd></>}
+          {it.groups.length > 0 && <><dt>Group</dt><dd>{it.groups.map((g) => groupNames[g] || g).join(' · ')}</dd></>}
+          {it.matched_pattern && <><dt>Type decided by</dt><dd><code>{it.matched_pattern}</code></dd></>}
+          {it.verdict === 'dropped' && <><dt>Filtered at</dt><dd>{it.drop_stage}</dd></>}
+          {flags.length > 0 && <><dt>Flags</dt><dd>{flags.map(flagLabel).join(' · ')}</dd></>}
+          <dt>Found by</dt>
+          <dd>{it.queries.map(queryLabel).join(' · ') || '–'}
+            {it.domain_hints.length > 1 && ` (searched for under ${it.domain_hints.length} domains)`}</dd>
+          {others.length > 0 && <><dt>Also filed under</dt><dd>{others.map((x) => x.replace(/_/g, ' ')).join(', ')}</dd></>}
+          {eng.length > 3 && <><dt>Engagement</dt><dd className="tnum">{eng.map(([k, v]) => `${n(v)} ${ENGAGEMENT_LABEL[k] || k}`).join(' · ')}</dd></>}
+          {it.share_count > 0 && <><dt>Shares & copies</dt><dd>{n(it.share_count)}</dd></>}
+          {it.duplicate_of && <><dt>A copy of</dt><dd>{it.duplicate_of}</dd></>}
+          {it.link && <><dt>Linked article</dt><dd><a href={it.link} target="_blank" rel="noopener noreferrer nofollow">{shorten(it.link, 80)}</a></dd></>}
+          {it.canonical_url && it.canonical_url !== it.link && <><dt>Article, deduplicated</dt><dd>{shorten(it.canonical_url, 80)}</dd></>}
+          {it.lang && <><dt>Language</dt><dd>{it.lang}</dd></>}
+          {it.first_seen_at && <><dt>First seen</dt><dd>{fmtDayUtc(it.first_seen_at)}</dd></>}
+        </dl>
+      </details>
     </li>
   )
 }
@@ -168,6 +209,7 @@ export default function IndustryAIDomain() {
   const [text, setText] = useState(params.get('q') || '')
 
   const scope = params.get('scope') || 'kept'
+  const view = params.get('view') === 'breakdowns' ? 'breakdowns' : 'posts'
   const sort = params.get('sort') || 'newest'
   const offset = Math.max(0, Number(params.get('offset')) || 0)
   const filters = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f, params.get(f) || ''])), [params])
@@ -190,26 +232,25 @@ export default function IndustryAIDomain() {
     setParams(next)
   }
   const setFilter = (name, value) => update({ [name]: value })
+  const pickFromBreakdown = (name, value) => update({ [name]: value, view: '' })
   const active = FILTERS.filter((f) => filters[f])
   const f = data?.facets || {}
-  const termLabels = {}
   const groupNames = data?.group_names || {}
   const isBucket = key === 'general' || key === 'unconfirmed'
-  const first = offset + 1
   const last = Math.min(offset + PAGE, data?.matching || 0)
+  const flagWords = Object.fromEntries((f.flag || []).map((r) => [r.value, flagLabel(r.value)]))
+  const noStage = (f.stage || []).find((r) => !r.value)?.items
 
   return (
-    <div className="shell section-tight stack stack-4">
+    <div className="shell section-tight stack stack-3">
       <header className="stack stack-1">
         <Link to="/ai-in-industries" className="dim iai-back">← AI in industries</Link>
-        <span className="eyebrow">Industry AI{data?.kind === 'function' ? ' · function' : ''}{data?.active === false ? ' · switched off' : ''}</span>
-        <h1 className="iai-h1">{data?.name || key}</h1>
+        <div className="iai-card-title">
+          <h1 className="iai-h1">{data?.name || key}</h1>
+          {data?.kind === 'function' && <span className="iai-badge">role</span>}
+          {data?.active === false && <span className="iai-badge iai-badge-off">switched off</span>}
+        </div>
         {data?.definition && <p className="dim iai-lede">{data.definition}</p>}
-        <p className="dim iai-note">
-          Everything collected for this {isBucket ? 'bucket' : 'domain'}: the counts, every breakdown, and the posts.
-          Each post shows an excerpt (the first {data?.excerpt_chars ?? '…'} characters) and a link to the original.
-          Labels are set by code rules ({data?.rules_version || '…'}); no language model read these posts.
-        </p>
       </header>
 
       {err && <p className="iai-error">Could not load: {err}</p>}
@@ -217,45 +258,70 @@ export default function IndustryAIDomain() {
 
       {data && (
         <>
-          <nav className="iai-tabs" aria-label="Which posts">
-            {Object.entries(data.scopes).map(([s, count]) => (
-              <button type="button" key={s} className={`chip${scope === s ? ' iai-tab-on' : ''}`}
-                      aria-pressed={scope === s} onClick={() => update({ scope: s === 'kept' ? '' : s, reason: '' })}>
-                {SCOPE_LABEL[s]} <b className="tnum">{n(count)}</b>
+          <div className="iai-tabbar" role="tablist" aria-label="Which posts">
+            {Object.entries(data.scopes).filter(([s, count]) => count > 0 || s === 'kept' || s === scope).map(([s, count]) => (
+              <button type="button" role="tab" key={s} aria-selected={scope === s}
+                      className={`iai-tabbtn${scope === s ? ' iai-tabbtn-on' : ''}`}
+                      onClick={() => update({ scope: s === 'kept' ? '' : s, reason: '' })}>
+                {SCOPE_LABEL[s]} <span className="iai-tabn tnum">{n(count)}</span>
               </button>
             ))}
-            {data.found != null && <span className="dim iai-note">of {n(data.found)} found by this domain&apos;s queries</span>}
-          </nav>
+          </div>
           <p className="dim iai-note">
-            {scope === 'kept' && 'Kept, found by this domain’s own queries and confirmed by its terms: the card’s "kept".'}
-            {scope === 'from_watch' && 'Kept from the watched communities and accounts and filed here by their terms: counted apart from "kept", as on the card.'}
-            {scope === 'dropped' && 'Found by this domain’s queries and filtered out by the code rules, each with its reason. Shown so a small "kept" never reads as "nothing out there".'}
+            {SCOPE_NOTE[scope]}
+            {data.found != null && ` This domain's searches found ${n(data.found)} posts in all.`}
           </p>
 
           <div className="iai-figures">
             <div><b className="tnum">{n(data.matching)}</b><span>{active.length ? 'match the filters' : 'posts'}</span></div>
-            <div><b className="tnum">{n(data.authors)}</b><span>distinct accounts</span></div>
+            <div><b className="tnum">{n(data.authors)}</b><span>accounts</span></div>
             <div><b className="tnum">{n(data.with_link)}</b><span>link an outside article</span></div>
-            {data.undated > 0 && <div><b className="tnum">{n(data.undated)}</b><span>no posting date</span></div>}
-            {data.text_cleared > 0 && <div><b className="tnum">{n(data.text_cleared)}</b><span>text cleared by retention</span></div>}
-            {data.mapped_people_items > 0 && <div><b className="tnum">{n(data.mapped_people_items)}</b><span>by a mapped person</span></div>}
+            {data.first_posted && (
+              <div><b className="iai-range">{fmtDayUtc(data.first_posted)} – {fmtDayUtc(data.last_posted)}</b><span>posted</span></div>
+            )}
           </div>
-          {data.first_posted && (
-            <p className="dim iai-note">Posted {fmtDayUtc(data.first_posted)} to {fmtDayUtc(data.last_posted)}.</p>
-          )}
-          {Object.keys(data.engagement || {}).length > 0 && (
-            <p className="dim iai-note tnum">
-              Engagement, added up over these posts, as each platform reports it: {Object.entries(data.engagement)
-                .filter(([, v]) => v).map(([k, v]) => `${n(v)} ${ENGAGEMENT_LABEL[k] || k}`).join(' · ')}.
-              Platforms count differently, so these are not comparable across platforms.
-            </p>
-          )}
+
+          <details className="iai-more">
+            <summary>More figures</summary>
+            <ul className="iai-more-list">
+              {Object.keys(data.engagement || {}).length > 0 && (
+                <li className="tnum">Engagement added up, as each platform reports it: {Object.entries(data.engagement)
+                  .filter(([, v]) => v).map(([k, v]) => `${n(v)} ${ENGAGEMENT_LABEL[k] || k}`).join(' · ')}.
+                  Platforms count differently, so these do not compare across platforms.</li>
+              )}
+              {data.undated > 0 && <li>{n(data.undated)} posts carry no posting date.</li>}
+              {data.text_cleared > 0 && <li>{n(data.text_cleared)} posts had their text cleared by retention (their labels stay).</li>}
+              {data.mapped_people_items > 0 && <li>{n(data.mapped_people_items)} posts are by a person mapped across platforms.</li>}
+              {countedAt(data.counted_at) && (
+                <li>Counted at {countedAt(data.counted_at)} on {fmtDayUtc(data.counted_at)}; each view is recounted every few minutes.</li>
+              )}
+              <li>Each post shows its first {n(data.excerpt_chars)} characters and a link to the original. Labels are
+                set by code rules ({data.rules_version}); no language model read these posts.</li>
+              {!isBucket && data.domain_terms?.length > 0 && (
+                <li>This domain&apos;s words ({n(data.domain_terms.length)}): {data.domain_terms.join(' · ')}</li>
+              )}
+            </ul>
+          </details>
+
+          <div className="iai-tabbar iai-tabbar-sub" role="tablist" aria-label="View">
+            <button type="button" role="tab" aria-selected={view === 'posts'}
+                    className={`iai-tabbtn${view === 'posts' ? ' iai-tabbtn-on' : ''}`} onClick={() => update({ view: '' })}>
+              Posts <span className="iai-tabn tnum">{n(data.matching)}</span>
+            </button>
+            <button type="button" role="tab" aria-selected={view === 'breakdowns'}
+                    className={`iai-tabbtn${view === 'breakdowns' ? ' iai-tabbtn-on' : ''}`}
+                    onClick={() => update({ view: 'breakdowns' })}>
+              Breakdowns
+            </button>
+          </div>
 
           {active.length > 0 && (
             <div className="iai-active">
+              <span className="dim iai-note">Filtered by</span>
               {active.map((name) => (
-                <button type="button" key={name} className="chip" onClick={() => setFilter(name, '')}>
-                  {FILTER_LABEL[name]}: {chipValue(name, filters[name], groupNames)} ×
+                <button type="button" key={name} className="chip" onClick={() => setFilter(name, '')}
+                        title="Remove this filter">
+                  {FILTER_LABEL[name]}: {shorten(valueLabel(name, filters[name], groupNames), 50)} ×
                 </button>
               ))}
               <button type="button" className="btn btn-ghost"
@@ -265,66 +331,81 @@ export default function IndustryAIDomain() {
             </div>
           )}
 
-          <div className="iai-grid">
-            <Facet title="By content type" rows={(f.type || []).filter((r) => r.value)} labels={TYPE_LABEL} name="type" filters={filters} setFilter={setFilter} />
-            <Facet title="What each row is" rows={f.kind} labels={KIND_LABEL} name="kind" filters={filters} setFilter={setFilter}
-                   note="Read from each platform's own id and link. X and Bluesky replies are counted as posts: nothing stored tells them apart." />
-            <Facet title="By platform" rows={f.platform} labels={PLATFORM_LABEL} name="platform" filters={filters} setFilter={setFilter} />
-            <Facet title="Use-case stage" rows={(f.stage || []).filter((r) => r.value)} labels={STAGE_LABEL} name="stage"
-                   filters={filters} setFilter={setFilter}
-                   note={`Guessed by code from the wording. ${n((f.stage || []).find((r) => !r.value)?.items)} posts have no stage.`} />
-            <Facet title="Filtered out, by reason" rows={f.reason} labels={REASON_LABEL} name="reason" filters={filters} setFilter={setFilter} />
-            <Facet title="By group" rows={f.group} labels={groupNames} name="group" filters={filters} setFilter={setFilter} />
-            <Facet title="Industry words that matched" rows={f.term} labels={termLabels} name="term" filters={filters} setFilter={setFilter}
-                   note="The domain's own words that filed each post here. Top 30." />
-            <Facet title="AI terms that matched" rows={f.ai_term} labels={termLabels} name="ai_term" filters={filters} setFilter={setFilter}
-                   note="Top 30." />
-            <Facet title="Flags" rows={f.flag} labels={Object.fromEntries((f.flag || []).map((r) => [r.value, flagLabel(r.value)]))}
-                   name="flag" filters={filters} setFilter={setFilter} note="Flags never filter a post out." />
-            <Months rows={f.month} filters={filters} setFilter={setFilter} />
-            <Facet title="Found by (searches and watch lists)" rows={f.query}
-                   labels={Object.fromEntries((f.query || []).map((r) => [r.value, queryLabel(r.value)]))}
-                   name="query" filters={filters} setFilter={setFilter} wide note="Top 25. A post found by two searches counts under both." />
-          </div>
-
-          {!isBucket && data.domain_terms?.length > 0 && (
-            <details className="card iai-card">
-              <summary>This domain&apos;s words ({n(data.domain_terms.length)}), from the contract</summary>
-              <p className="dim iai-note">{data.domain_terms.join(' · ')}</p>
-            </details>
+          {view === 'posts' && (
+            <section className="stack stack-2" role="tabpanel">
+              <div className="iai-filterbar">
+                <form className="iai-search" onSubmit={(e) => { e.preventDefault(); setFilter('q', text.trim()) }}>
+                  <input type="search" value={text} onChange={(e) => setText(e.target.value)}
+                         placeholder="Search the text" aria-label="Search the post text" />
+                </form>
+                <FilterSelect name="type" rows={f.type} value={filters.type} onChange={setFilter} />
+                <FilterSelect name="platform" rows={f.platform} value={filters.platform} onChange={setFilter} />
+                <FilterSelect name="kind" rows={f.kind} value={filters.kind} onChange={setFilter} />
+                {scope === 'dropped' && <FilterSelect name="reason" rows={f.reason} value={filters.reason} onChange={setFilter} />}
+                <FilterSelect name="term" rows={f.term} value={filters.term} onChange={setFilter} />
+                <label className="iai-filter">
+                  <span>Order</span>
+                  <select value={sort} onChange={(e) => update({ sort: e.target.value === 'newest' ? '' : e.target.value })}>
+                    {Object.entries(SORT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </label>
+              </div>
+              <details className="iai-more">
+                <summary>More filters</summary>
+                <div className="iai-filterbar">
+                  <FilterSelect name="stage" rows={f.stage} value={filters.stage} onChange={setFilter} />
+                  <FilterSelect name="ai_term" rows={f.ai_term} value={filters.ai_term} onChange={setFilter} />
+                  <FilterSelect name="group" rows={f.group} value={filters.group} onChange={setFilter} groupNames={groupNames} />
+                  <FilterSelect name="flag" rows={f.flag} value={filters.flag} onChange={setFilter} />
+                  <FilterSelect name="month" rows={f.month} value={filters.month} onChange={setFilter} />
+                  <FilterSelect name="query" rows={f.query} value={filters.query} onChange={setFilter} />
+                </div>
+              </details>
+              {sort === 'engaged' && (
+                <p className="dim iai-note">Most engaged: ordered by the platform&apos;s own counts (views, likes, comments and so on) added together, so X posts with view counts tend to come first.</p>
+              )}
+              {data.matching === 0
+                ? <p className="dim">No posts match{active.length ? ' these filters' : ''}.</p>
+                : <p className="dim iai-note">Showing {n(offset + 1)}–{n(last)} of {n(data.matching)}{loading ? ' · loading…' : ''}</p>}
+              <ul className="iai-items">
+                {data.items.map((it) => <Item key={it.id} it={it} groupNames={groupNames} domainKey={key} />)}
+              </ul>
+              {data.matching > PAGE && (
+                <div className="iai-pager">
+                  <button type="button" className="btn btn-ghost" disabled={offset === 0}
+                          onClick={() => update({ offset: String(Math.max(0, offset - PAGE)) })}>← Previous</button>
+                  <button type="button" className="btn btn-ghost" disabled={last >= data.matching}
+                          onClick={() => update({ offset: String(offset + PAGE) })}>Next →</button>
+                </div>
+              )}
+            </section>
           )}
 
-          <section className="stack stack-2">
-            <div className="iai-listbar">
-              <h2 className="iai-sub">Posts</h2>
-              <form className="iai-search" onSubmit={(e) => { e.preventDefault(); setFilter('q', text.trim()) }}>
-                <input type="search" value={text} onChange={(e) => setText(e.target.value)}
-                       placeholder="Search the text" aria-label="Search the post text" />
-              </form>
-              <label className="dim iai-note">Order{' '}
-                <select value={sort} onChange={(e) => update({ sort: e.target.value === 'newest' ? '' : e.target.value })}>
-                  {Object.entries(SORT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </label>
-            </div>
-            {sort === 'engaged' && (
-              <p className="dim iai-note">Most engaged: ordered by the platform&apos;s own counts (views, likes, comments and so on) added together, so X posts with view counts tend to come first.</p>
-            )}
-            {data.matching === 0
-              ? <p className="dim">No posts match{active.length ? ' these filters' : ''}.</p>
-              : <p className="dim iai-note">Showing {n(first)}–{n(last)} of {n(data.matching)}{loading ? ' · loading…' : ''}</p>}
-            <ul className="iai-items">
-              {data.items.map((it) => <Item key={it.id} it={it} terms={it.terms} groupNames={groupNames} domainKey={key} />)}
-            </ul>
-            {data.matching > PAGE && (
-              <div className="iai-pager">
-                <button type="button" className="btn btn-ghost" disabled={offset === 0}
-                        onClick={() => update({ offset: String(Math.max(0, offset - PAGE)) })}>← Previous</button>
-                <button type="button" className="btn btn-ghost" disabled={last >= data.matching}
-                        onClick={() => update({ offset: String(offset + PAGE) })}>Next →</button>
+          {view === 'breakdowns' && (
+            <section className="stack stack-2" role="tabpanel">
+              <p className="dim iai-note">
+                Counts over the {active.length ? 'filtered ' : ''}posts above. Open a section; click a bar to see those posts.
+              </p>
+              <div className="iai-folds">
+                <Section title="Content type" rows={f.type} name="type" labels={TYPE_LABEL} open onPick={pickFromBreakdown} />
+                <Section title="Platform" rows={f.platform} name="platform" labels={PLATFORM_LABEL} open onPick={pickFromBreakdown} />
+                {scope === 'dropped' && (
+                  <Section title="Filtered out, by reason" rows={f.reason} name="reason" labels={REASON_LABEL} open onPick={pickFromBreakdown} />
+                )}
+                <Section title="Industry words that matched" rows={f.term} name="term" note="The domain's own words that filed each post here. Top 30." onPick={pickFromBreakdown} />
+                <Section title="What each row is" rows={f.kind} name="kind" labels={KIND_LABEL} onPick={pickFromBreakdown}
+                         note="Read from each platform's own id and link. X and Bluesky replies count as posts: nothing stored tells them apart." />
+                <Section title="Use-case stage" rows={f.stage} name="stage" labels={STAGE_LABEL} onPick={pickFromBreakdown}
+                         note={`Guessed by code from the wording.${noStage ? ` ${n(noStage)} posts have no stage.` : ''}`} />
+                <Section title="AI terms that matched" rows={f.ai_term} name="ai_term" note="Top 30." onPick={pickFromBreakdown} />
+                <Section title="Group" rows={f.group} name="group" labels={groupNames} onPick={pickFromBreakdown} />
+                <Section title="Flags" rows={f.flag} name="flag" labels={flagWords} note="Flags never filter a post out." onPick={pickFromBreakdown} />
+                <Months rows={f.month} onPick={pickFromBreakdown} />
+                <Section title="Found by (searches and watch lists)" rows={f.query} name="query"
+                         note="Top 25. A post found by two searches counts under both." onPick={pickFromBreakdown} />
               </div>
-            )}
-          </section>
+            </section>
+          )}
         </>
       )}
     </div>

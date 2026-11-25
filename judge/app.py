@@ -160,6 +160,8 @@ async def _lifespan(_app: FastAPI):
     # The public updates reads, built now so the first visitor does not wait
     # (in the background: startup is not held up, and a failure only logs).
     _warm_public_updates()
+    # The "AI in industries" pages, likewise (judge/industry_ai/cache.py).
+    _warm_industry_ai()
     yield
 
 
@@ -4110,10 +4112,31 @@ def industry_ai_page() -> dict:
     reach, and what was filtered out and why. COUNTS ONLY: no post text, link or
     author leaves this route. Signed-in only (not a public read: judge/gate.py).
     See judge/industry_ai/view.py and contract/industry_ai.yaml."""
+    from judge.industry_ai import cache
     from judge.industry_ai.view import industry_ai_view
 
-    with _conn() as conn:
-        return industry_ai_view(conn)
+    def build() -> dict:
+        with _conn() as conn:
+            return industry_ai_view(conn)
+
+    # Kept for a few minutes, never a wait on a refresh (judge/industry_ai/cache.py).
+    return cache.cached(("summary",), build)
+
+
+def _warm_industry_ai() -> None:
+    """Work out the summary and each collecting domain's first view in the
+    background at startup, so the first visitor does not wait. A failure only logs."""
+
+    def run() -> None:
+        try:
+            summary = industry_ai_page()
+            for d in summary.get("domains", []):
+                if d.get("kept"):
+                    industry_ai_domain_page(d["key"])
+        except Exception:  # noqa: BLE001 - warming is a courtesy; the page works it out on demand
+            log.exception("industry-ai: warming the page cache failed")
+
+    threading.Thread(target=run, name="industry-ai-warm", daemon=True).start()
 
 
 @app.get("/industry-ai/{key}")
@@ -4146,10 +4169,18 @@ def industry_ai_domain_page(
     filters = {"type": type, "kind": kind, "platform": platform, "stage": stage,
                "reason": reason, "flag": flag, "group": group, "term": term,
                "ai_term": ai_term, "query": query, "month": month, "q": q}
-    try:
+    from judge.industry_ai import cache
+
+    def build() -> dict:
         with _conn() as conn:
             return industry_ai_domain_view(conn, key, scope=scope, filters=filters,
                                            sort=sort, offset=offset, limit=limit)
+
+    # One kept answer per view - domain, tab, filters, order and page - for a few
+    # minutes; a bad domain or filter raises and is never kept (judge/industry_ai/cache.py).
+    view = (key, scope, sort, offset, limit, tuple(sorted((k, v) for k, v in filters.items() if v)))
+    try:
+        return cache.cached(("domain", *view), build)
     except DomainNotFound as exc:
         raise HTTPException(status_code=404, detail=f"no domain '{exc}'") from exc
     except BadFilter as exc:

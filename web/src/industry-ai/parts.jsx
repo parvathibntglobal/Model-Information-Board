@@ -34,6 +34,13 @@ export const REASON_LABEL = {
 
 export const n = (v) => (v ?? 0).toLocaleString('en-GB')
 
+/** When the API counted this answer (judge/industry_ai/cache.py keeps it ~10 minutes). */
+export function countedAt(iso) {
+  if (!iso) return null
+  const t = new Date(iso)
+  return Number.isNaN(t.getTime()) ? null : `${t.toISOString().slice(11, 16)} UTC`
+}
+
 export function Bars({ counts, labels, order, onPick, picked }) {
   const keys = (order || Object.keys(counts)).filter((k) => counts[k])
   if (!keys.length) return <p className="dim iai-none">None yet.</p>

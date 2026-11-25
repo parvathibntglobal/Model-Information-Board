@@ -350,7 +350,14 @@ In order. The first that matches drops the item:
   - kept per group;
   - distinct authors;
   - reach;
-  - kept by content type, by platform, by use-case stage, and by month posted;
+  - kept by content type (the top four, the rest named), by platform (one sorted line),
+    and by use-case stage;
+  - **in tabs, one population each:** *Collecting* (domains whose own searches run, as
+    cards, most kept first), *Watch lists only* (switched-off domains holding only
+    watch-list posts, as one-line tiles), *Not filed under a domain*, *Filtered out* (by
+    reason) and *Nothing collected*. The whole card opens the domain's page. No month
+    chart on the cards (2026-11-24): nearly every post is from the harvest window, so it
+    drew one spike; the domain's page shows the months;
   - undated items.
 - **Also:** totals collected, kept and filtered out; the domain-unconfirmed bucket;
   filtered out by reason; the last run.
@@ -358,6 +365,14 @@ In order. The first that matches drops the item:
   checks this).
 - **Empty states:** "Nothing collected yet" when there is no data, and a clear message
   if the migration has not run.
+
+- **Kept for a few minutes** (`judge/industry_ai/cache.py`, 2026-11-24): each view (the
+  summary; each domain's tab, filters, order and page) is worked out once and kept for
+  10 minutes. After that the old answer is still sent at once while ONE background
+  refresh replaces it. The summary and each collecting domain's first view are worked
+  out at API startup. Every answer carries `counted_at`, shown on the page. Measured on
+  2026-11-24 from a developer machine against the shared database: ~5 s uncached,
+  under 0.04 s kept.
 
 ### One domain's page (2026-11-24, Parvathi)
 
@@ -369,6 +384,9 @@ In order. The first that matches drops the item:
 - **Three populations, never added together:** kept by the domain's own queries
   (the card's "kept"), kept from the watch lists and filed here by their terms, and
   filtered out (found by the domain's queries), each with its count.
+- **Two view tabs:** *Posts* (a row of dropdown filters, more under "More filters", and
+  compact posts whose extra labels fold under "Details") and *Breakdowns* (collapsible
+  sections; clicking a bar filters the posts and opens them).
 - **Breakdowns, each one a filter:** content type, what the row is, platform,
   use-case stage, drop reason, group, the industry words and AI terms that matched,
   flags, month posted, and the search or watch list that found it. Plus a text search
