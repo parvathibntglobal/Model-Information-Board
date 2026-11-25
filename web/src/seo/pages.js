@@ -432,13 +432,14 @@ export function discussionsIndex() {
 /**
  * `/ai-news-headlines` (2026-10-30, Parvathi; the address names what people search): short headlines on what changed in AI
  * models - launches, price changes, retirements, benchmark results - each one
- * approved by a person on /updates. Not on contract/indexing.yaml's `always`
- * list, so noindex until that is decided.
+ * approved by a person on /updates. Since 2026-11-24 (#661) it has two tabs,
+ * General AI news first, so the title and description name both. Not on
+ * contract/indexing.yaml's `always` list, so noindex until that is decided.
  */
 export function aiUpdates() {
   return {
-    title: fullTitle('AI Updates: Launches, Price Changes & Retirements'),
-    description: 'What changed in AI models: new launches, price cuts and rises, retirements and benchmark results, in short news headlines.',
+    title: fullTitle('AI Updates: AI News, Model Launches & Price Changes'),
+    description: 'General AI news from labs, news sites and writers, and what changed in AI models: launches, price cuts and rises, retirements and benchmark results.',
     canonical: '/ai-news-headlines',
     breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'AI updates', path: '/ai-news-headlines' }],
   }

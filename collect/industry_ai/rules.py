@@ -219,18 +219,16 @@ def remove(text: str, patterns) -> str:
     return text
 
 
-_BARE_AI = re.compile(r"(?<![\w.])AI(?![\w])")  # upper-case only, not ".ai"
-
-
 def ai_terms_found(text: str, cfg: Config) -> list[str]:
-    """The AI terms an item names, after the global exclusions are removed. The
-    bare word "AI" counts in capitals only, as a whole word: lower-case "ai"
-    and ".ai" (a file type or a web domain) never do."""
+    """The AI terms an item names, after the global exclusions are removed. Every
+    term matches as a whole word in any case (`has_term`), so the bare word counts
+    only because the contract lists `ai`, which matches "AI" and "ai" alike. ".ai"
+    (a file type or a web domain) never counts: `global_exclude_phrases` removes it
+    before any term is matched. Until 2026-11-24 (#660) a capitals-only "AI" was
+    added here when nothing else matched; with `ai` in the list that could never
+    add anything, so it is gone."""
     clean = remove(text, cfg.global_exclude)
-    found = [t for t in cfg.all_ai_terms if has_term(clean, t)]
-    if not found and _BARE_AI.search(clean):
-        found.append("AI")
-    return found
+    return [t for t in cfg.all_ai_terms if has_term(clean, t)]
 
 
 def _near(words: list[str], i: int, context: tuple[str, ...], window: int) -> bool:
@@ -413,6 +411,22 @@ def _any(patterns, text: str) -> re.Pattern | None:
     return next((p for p in patterns if p.search(text)), None)
 
 
+def _any_naming_ai(patterns, text: str, cfg: Config) -> re.Pattern | None:
+    """`_any` for type patterns: a pattern with a named group `ai` counts only at a
+    match where that group's words name an AI term (contract `type_patterns`, since
+    2026-11-24) - "I use it for my journal" is not an AI use case, "I used Claude to"
+    is. Every match is tried, not only the first. A pattern without the group counts
+    as `_any` does."""
+    for p in patterns:
+        if "ai" not in p.groupindex:
+            if p.search(text):
+                return p
+            continue
+        if any(ai_terms_found(m.group("ai") or "", cfg) for m in p.finditer(text)):
+            return p
+    return None
+
+
 def filter_reason(
     item: Item, cfg: Config, *, is_bot=lambda item: False
 ) -> tuple[str | None, list[str]]:
@@ -485,7 +499,7 @@ def label(item: Item, matched: dict[str, dict], cfg: Config) -> Verdict:
 
     content_type, why = None, None
     for t in cfg.type_order:
-        hit = _any(cfg.type_patterns[t], text)
+        hit = _any_naming_ai(cfg.type_patterns[t], text, cfg)
         if hit:
             content_type, why = t, hit.pattern
             break

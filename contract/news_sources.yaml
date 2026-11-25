@@ -224,6 +224,9 @@ sources:
     #   THE WAY OUT IS ONE LINE: `as_given: {techcrunch_ai: "<reason>"}` shows
     #     its summary whole and stops its link previews; removing the source
     #     is the step after that. Either, the day TechCrunch asks us.
+    #   NOW ON A PUBLIC PAGE (Parvathi, 2026-11-24, #661): the news list is the
+    #     public "General AI news" tab of /ai-news-headlines. The risk above
+    #     now covers a page anyone can open, not only the signed-in team.
     daily: false
 
   # ── the trade press (#614, agreed by Parvathi 2026-11-09) ─────────────────

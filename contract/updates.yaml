@@ -379,7 +379,9 @@ templates:
     - id: names
       label: Names first
       headline: "{count} AI models launched in the past seven days"
-      detail: "Among them: {names}."
+      # Every model of the week since #661 (Parvathi, 2026-11-24): "Among them"
+      # promised a selection, so the line now says what it is.
+      detail: "Launched: {names}."
   roundup_price:
     - id: plain
       label: Plain

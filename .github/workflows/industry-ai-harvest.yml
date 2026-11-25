@@ -57,7 +57,11 @@ concurrency:
 jobs:
   harvest:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 90, not 45 (2026-11-24): the first real run harvested in about 10 minutes, then
+    # stored and labelled one round trip per item for over 30 and ran into the limit.
+    # The writes are batched now (collect/industry_ai/store.py); this is the margin for
+    # bigger runs as accounts and keywords grow.
+    timeout-minutes: 90
     env:
       ENVIRONMENT: staging
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}

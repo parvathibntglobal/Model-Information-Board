@@ -174,6 +174,12 @@ PUBLIC_READ_PATHS = frozenset({
     # platform name on this list endpoint. The detail (/assistants/<id>, in
     # PUBLIC_READ_PREFIXES) adds the reports under the publication rules.
     "/assistants",
+    # 2026-11-24 (Parvathi): the News page (judge/news.py news_view), public from
+    # now on - it has nothing to edit. Each story's title, the feed's own brief
+    # and picture link, its source and a link out; each source's last read. For
+    # an anonymous caller the last read's error text is removed
+    # (judge/app.py: news_page). /news/<id> is in PUBLIC_READ_PREFIXES.
+    "/news",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.
@@ -181,7 +187,9 @@ PUBLIC_READ_PATHS = frozenset({
 #: the reports behind them under the publication rules - a verified quote only
 #: for a source the contract does not withhold, Reddit / X as embed ids, no text
 #: from any withheld source (judge/assistants.py `_treatment`).
-PUBLIC_READ_PREFIXES = ("/model-catalog/", "/glossary-terms/", "/assistants/")
+#: /news/<id> (2026-11-24, Parvathi): one story - what its source gave, the models
+#: it names with the site's own counts, related stories (judge/news.py story_view).
+PUBLIC_READ_PREFIXES = ("/model-catalog/", "/glossary-terms/", "/assistants/", "/news/")
 
 #: THE ONE PUBLIC WRITE (2026-10-20, Parvathi): a reader posting to the
 #: Discussions page. POST only, rate-limited per address (rate_limit_discussion),

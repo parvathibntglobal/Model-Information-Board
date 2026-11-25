@@ -34,7 +34,8 @@ const LINKS = [
   { to: '/ai-benchmarks', label: 'Insights', items: [
     { to: '/ai-benchmarks', label: 'AI benchmarks', desc: 'Scores and leaderboard ranks, model by model' },
     // 2026-10-30: the updates a person approved on /updates (Parvathi).
-    { to: '/ai-news-headlines', label: 'AI updates', desc: 'Launches, price moves and retirements' },
+    // 2026-11-24 (Parvathi): two tabs now - General AI news, AI model updates.
+    { to: '/ai-news-headlines', label: 'AI updates', desc: 'General AI news, and launches, price moves and retirements' },
   ] },
   // MODELS, A MEGA MENU (2026-10-14): explore on the left, the seven model
   // types on the right. Every model OpenRouter lists lives at /ai-models; the
@@ -81,7 +82,7 @@ const SIGNED_IN = [
   { to: '/benchmarks', label: 'Benchmarks', nofollow: true },
   { to: '/price-changes', label: 'Price changelog', nofollow: true },
   // A line under each, so a reader knows which to open (#585 review).
-  { to: '/news', label: 'News', desc: "Outside AI headlines, from publishers' feeds", nofollow: true },
+  { to: '/news', label: 'News', desc: 'The news list, with each source’s last read and errors', nofollow: true },
   { to: '/updates', label: 'Updates', desc: 'From our own registry, prices and benchmarks', nofollow: true },
   { to: '/ai-in-industries', label: 'AI in industries', desc: 'Data collected on AI in 20 industries', nofollow: true },
   { to: '/admin', label: 'Admin', nofollow: true },

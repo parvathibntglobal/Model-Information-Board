@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { BoardUnreadable, approveAllUpdates, reviewUpdate, undoUpdate, updatesList } from '../api'
+import { BoardUnreadable, adminSchedules, approveAllUpdates, reviewUpdate, undoUpdate, updatesList } from '../api'
 import { Badge, Unreadable } from '../components/ui'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
@@ -427,6 +427,108 @@ function StyleCatalog({ catalog }) {
   )
 }
 
+// ONE TIME FORMAT, the schedule's own (judge/sections_status.py cron_words):
+// UTC, then IST in brackets - so "next" and "last" read like the schedule.
+const fmtUtc = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+const fmtIst = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+function when(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return `${fmtUtc.format(d)} UTC (${fmtIst.format(d)} IST)`
+}
+const fmtRoundupDay = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' })
+
+/** The schedule in words, "daily at A and B" rather than "daily at A and daily at B". */
+function scheduleWords(crons) {
+  const words = (crons || []).map((c) => c.words)
+  if (!words.length) return 'no schedule'
+  const head = words[0].includes(' at ') ? `${words[0].split(' at ')[0]} at ` : null
+  if (head && words.every((w) => w.startsWith(head))) {
+    return head + words.map((w) => w.slice(head.length)).join(' and ')
+  }
+  return words.join(' and ')
+}
+
+/** One job that feeds the updates: its schedule, switch, last and next run.
+ *  A run list GitHub did not give is said, never shown as "no run yet" (rule 6). */
+function FeedLine({ f, what }) {
+  if (!f) return <dd className="dim">This backend does not report that job.</dd>
+  const s = f.setup || {}
+  const gh = f.github || {}
+  const last = (gh.runs || [])[0]
+  const off = f.variable && f.switch?.state === 'off'
+  const runs = gh.unreadable ? 'Its runs can’t be read here'
+    : last ? `Last run ${when(last.started_at)}, ${(last.conclusion || last.status).replace('_', ' ')}` : 'No run yet'
+  return (
+    <dd>
+      {what} <strong>{s.unreadable ? 'on a schedule that can’t be read here' : scheduleWords(s.crons)}</strong>
+      {f.variable && (
+        <span title={`Repository variable ${f.variable}`}>
+          {' '}(on/off switch: {f.switch?.state === 'on' ? 'on' : f.switch?.state === 'off' ? <Badge tone="fail">off</Badge> : 'can’t be read here'})
+        </span>
+      )}
+      .{' '}
+      <span className="dim">
+        {runs}.{f.next_run && !off ? ` Next due ${when(f.next_run)}.` : ''}
+        {off ? ' Scheduled runs do nothing while the switch is off.' : ''}
+      </span>
+    </dd>
+  )
+}
+
+/**
+ * WHEN NEW UPDATES ARRIVE (2026-11-24, Parvathi). The updates have no job of
+ * their own: they are rebuilt from the data whenever this page or the public one
+ * is opened. What adds new ones is the jobs that refresh that data, read here
+ * from the workflow files and GitHub (GET /admin/schedules, read-only), and the
+ * next round-up day from the server (`next_roundup_on`), so no time or day on
+ * this card is written by hand (rule 11).
+ */
+function WhenUpdatesArrive({ nextRoundup }) {
+  const [state, setState] = useState({ data: null, err: null })
+  useEffect(() => {
+    let alive = true
+    adminSchedules()
+      .then((d) => alive && setState({ data: d, err: null }))
+      .catch((e) => alive && setState({ data: null, err: e.message }))
+    return () => { alive = false }
+  }, [])
+  const feed = (k) => state.data?.feeds.find((f) => f.key === k)
+  const roundupDay = nextRoundup ? fmtRoundupDay.format(new Date(`${nextRoundup}T00:00:00Z`)) : null
+  return (
+    <section className="card up-info-card">
+      <h2>When new updates arrive</h2>
+      <p>
+        Updates have no run of their own. They are rebuilt from the board&apos;s data each time this page or the
+        public AI updates page is opened, so a new update appears as soon as the data behind it does. These scheduled
+        jobs bring that data in:
+      </p>
+      {state.err && <p className="dim">The schedules could not be read: {state.err}</p>}
+      {!state.data && !state.err && <p className="dim">Reading the schedules…</p>}
+      {state.data && (
+        <dl className="up-dl">
+          <dt>Launches, prices and retirements</dt>
+          <FeedLine f={feed('registry-poll')} what="A job reads OpenRouter's model list" />
+          <dt>Benchmarks</dt>
+          <FeedLine f={feed('benchmarks')} what="A job reads the benchmark leaderboards" />
+          <dt>Round-ups</dt>
+          <dd>
+            A week&apos;s round-up is built once that week is over, from what the jobs above stored.
+            {roundupDay && <> The next ones are built on <strong>{roundupDay}</strong> (UTC).</>}
+          </dd>
+        </dl>
+      )}
+      <p>
+        Every new update arrives <strong>Not reviewed</strong> and reaches the public page only once it is approved
+        in Manage. GitHub often starts a scheduled job late, sometimes by hours, so the times are when a run is due,
+        not when it finishes. The public page keeps what it built for a short while; an approval clears it at once.
+        Admin → Scheduler shows every run.
+      </p>
+    </section>
+  )
+}
+
 /** What this page does and how to use it. Numbers come from the server. */
 function Info({ data }) {
   return (
@@ -445,6 +547,8 @@ function Info({ data }) {
           arrives, round-ups included.
         </p>
       </section>
+
+      <WhenUpdatesArrive nextRoundup={data.next_roundup_on} />
 
       <section className="card up-info-card">
         <h2>Where updates come from</h2>
