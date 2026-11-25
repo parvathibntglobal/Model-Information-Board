@@ -648,8 +648,8 @@ retention:
 #     the run log, so a source that brings nothing is flagged for pruning.
 #   * its own switch (`enabled`) and its own request caps, so watching can never
 #     starve the keyword queries. Off until its first dry run.
-# Lists are capped at 20 per platform for now, except X: 150 accounts since 2026-11-25
-# (anooj's additions; see the X list below). Checked 2026-11-20: the 13 Bluesky
+# Lists are capped at 20 per platform for now, except X (150 accounts) and Reddit (55
+# subreddits) since 2026-11-25 (anooj's additions; see each list). Checked 2026-11-20: the 13 Bluesky
 # handles resolve (public getProfile); the HN authors have posts (Algolia
 # author_<name>); X `from:` clubbing returns only the listed accounts' posts on our
 # route (1 request) - but one prolific account filled a page (swyx 16 of 20 over
@@ -665,14 +665,32 @@ watch:
   # Watch requests per platform per run, separate from run.max_requests. X is
   # clubs x x_pages, so every club can be read over the whole window: 15 clubs of the
   # 150 accounts x 10 pages = 150 (was 30 for 2 clubs, 2026-11-25). A ceiling, not a
-  # spend: paging stops at `since:`.
-  max_requests: {reddit: 25, x: 150, bluesky: 20, hackernews: 15}
+  # spend: paging stops at `since:`. Reddit is one listing page per subreddit
+  # (run.pages_per_query.reddit), so 55 subreddits = 55 (was 25 for 20, 2026-11-25).
+  max_requests: {reddit: 55, x: 150, bluesky: 20, hackernews: 15}
   # X pages per clubbed account query, and how many accounts one query clubs.
   x_pages: 10
   x_club_max: 10
   # Replies excluded in the first test runs (anooj, 2026-11-20); kept later.
   x_suffix: "-filter:replies"
-  reddit: [ChatGPTPro, AI_Agents, ArtificialInteligence, PromptEngineering, vibecoding, ClaudeAI, ClaudeCode, OpenAI, LocalLLaMA, GeminiAI, cursor, LLMDevs, aipromptprogramming, AIAssisted, ChatGPTPromptGenius, perplexity_ai, midjourney, StableDiffusion, MachineLearning, Anthropic]
+  # REDDIT: 20 from 2026-11-20; 35 added by anooj on 2026-11-25 from a subreddit table
+  # anooj sent and two published lists (usefulai.com "Best AI Subreddits", updated
+  # 2026-07-12; daily.dev "best subreddits for AI coding", 2026-09-10).
+  # EACH NEW ONE WAS CHECKED on 2026-11-25 with the watcher's own request (one
+  # newest-first listing page, getPostsBySubreddit): its posts name the subreddit
+  # asked for. That check, not the status, is the test - a made-up name also answered
+  # 200 with 25 posts, naming no subreddit. Left out: r/programming (0 of its newest
+  # 25 posts named an AI term, by rules.ai_terms_found) and r/AiForSmallBusiness (an
+  # empty page under three spellings).
+  # THE SECOND LINE IS GENERAL COMMUNITIES (security, ops, web, data, productivity):
+  # few of their posts name AI (2 to 13 of the newest 25 that day, against 14 to 23
+  # for most AI communities), and those few are people in a field using AI - this
+  # lane's subject. Their per-source yield in the first dry run decides which stay.
+  # ONE PAGE IS 25 POSTS: on 2026-11-25 that was about 3 hours of r/ChatGPT, 6 of
+  # r/aiwars and 7 of r/generativeAI, so a daily run reads only a slice of the busiest.
+  reddit: [ChatGPTPro, AI_Agents, ArtificialInteligence, PromptEngineering, vibecoding, ClaudeAI, ClaudeCode, OpenAI, LocalLLaMA, GeminiAI, cursor, LLMDevs, aipromptprogramming, AIAssisted, ChatGPTPromptGenius, perplexity_ai, midjourney, StableDiffusion, MachineLearning, Anthropic,
+           WritingWithAI, generativeAI, automation, aiArt, GithubCopilot, Rag, LangChain, LocalLLM, comfyui, nocode, learnmachinelearning, openclaw, singularity, artificial, deeplearning, mlops, ChatGPT, codex, MistralAI, ChatGPTCoding, hermesagent, ClaudeCowork, ElevenLabs, aiwars,
+           cybersecurity, sysadmin, devops, webdev, dataengineering, databricks, datascience, googlecloud, ExperiencedDevs, coding, productivity]
   # X: 20 accounts from 2026-11-20, and 130 added by anooj on 2026-11-25 from
   # gathered lists (builders and solo founders; AI researchers, lab leaders,
   # investors and developers; AI labs' and institutes' own accounts; published
