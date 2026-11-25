@@ -30,8 +30,10 @@ Two independent guards, so neither alone is load-bearing:
 
 ## Where it runs: a GitHub Action (since 2026-10-06)
 
-`.github/workflows/scheduled-fetches.yml`, nightly: it **starts when the agent fetch
-finishes**, with a backup cron at 16:00 UTC (docs/ops-nightly-guard.md; was 20:30 UTC until 2026-11-13),
+`.github/workflows/scheduled-fetches.yml`, daily: its **cron at 04:00 UTC** is the trigger
+since 2026-11-25, when the agent fetch became hand-started only; a nightly agent run's finish
+also starts it (docs/ops-nightly-guard.md; the cron was a 16:00 backup from 2026-11-13, and
+20:30 UTC before that),
 and by hand from the Actions tab (`workflow_dispatch`, with optional
 `max_models` and `sources`). #494 planned a Railway service; the repository is
 staying public and standard GitHub-hosted runners are free for public

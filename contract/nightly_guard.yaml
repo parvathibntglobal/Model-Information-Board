@@ -11,18 +11,23 @@
 # daily extraction budget, and past UTC midnight.
 #
 # THE ORDER, ALL ON GITHUB (anooj 2026-11-13: no outside timer for now).
-#   agent fetch    cron 04:00 UTC; with the delay above it lands near 10:00-11:00.
-#   model fetch    starts when the agent fetch finishes (`workflow_run`). Its own
-#                  cron, 16:00 UTC, is a BACKUP: it fires 3-10 hours late, after
-#                  the agents' latest start seen (04:00 + 10 h), and stands down
-#                  while an agent run is going (`waits_for`) or once the model
-#                  fetch did real work tonight.
+#   agent fetch    STARTED BY HAND ONLY since 2026-11-25 (anooj): no cron. A start
+#                  with `slot: nightly` is real work; one with `slot` empty is a test.
+#                  (Was cron 04:00 UTC, 2026-11-13 to 2026-11-25.)
+#   model fetch    cron 04:00 UTC since 2026-11-25 (was a 16:00 backup behind the
+#                  agents). With the delay above it lands near 07:00-14:00 and its
+#                  job stops by 355 minutes, so it ends inside the UTC day the
+#                  extraction cap counts. It stands down while a nightly agent run
+#                  is going (`waits_for`) or once it did real work that day. A
+#                  nightly agent run's finish starts it (`workflow_run`) - a second
+#                  pass if it already ran that day, since a chained start counts
+#                  from the agent run's creation (see "Hand-started runs" in
+#                  docs/ops-nightly-guard.md).
 #   evidence feed  starts when the model fetch finishes, as before.
 #   topic harvest  cron 19:00, independent; no extraction.
-# Agents (up to about 6 hours) then models (up to 355 minutes) from about 10:30
-# end near 22:30 UTC, inside the day the extraction cap counts. A night the
-# agents start at the 10-hour end still runs past midnight; nothing here can
-# prevent that without an on-time start, which needs a timer outside GitHub.
+# A hand-started nightly agent run spends from the same daily extraction cap as
+# the model fetch; the guard keeps the two from running at once, and a test start
+# (`slot` empty) is not held off - the Admin link says so.
 #
 # HOW IT IS USED: scripts/nightly_guard.py is the first job (`guard`) of each
 # workflow below. For a start listed in `guard_events` the run ends without doing
@@ -72,6 +77,8 @@ workflows:
     job: fetch
     window_opens_utc: "04:00"
     waits_for: null
+    # No cron since 2026-11-25, so no start is guarded today; `schedule` stays (the
+    # list may not be empty) so a cron put back is guarded as before.
     guard_events: [schedule]
     counts_events: [schedule, nightly_dispatch]
 

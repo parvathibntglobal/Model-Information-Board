@@ -207,3 +207,33 @@ def test_the_next_due_is_the_cadence_after_the_last_success():
     taken_by = s.first_firing_after("30 20 * * *", last + timedelta(hours=60))
     assert taken_by == "2026-10-24T20:30:00+00:00"
     assert s._next_due(None, timedelta(hours=60)) is None
+
+
+def test_the_agent_fetchs_last_runs_are_read_from_its_own_workflow(monkeypatch):
+    """#669 review: the agent fetch has no cron, so Scheduler shows when someone
+    last started it. Its runs come from agent-fetches.yml, not the model fetch's
+    file, and GitHub refusing is said rather than shown as no runs."""
+    from judge import scheduler_status as s
+
+    asked = []
+
+    def fake_gh(path):
+        asked.append(path)
+        if s.AGENT_WORKFLOW_FILE in path:
+            return 200, {"workflow_runs": [{
+                "id": 7, "run_number": 3, "event": "workflow_dispatch", "status": "completed",
+                "conclusion": "success", "run_started_at": "2026-11-20T10:00:00Z",
+                "updated_at": "2026-11-20T11:00:00Z", "html_url": "https://example.org/7"}]}
+        return 403, {"message": "forbidden"}
+
+    monkeypatch.setattr(s, "_gh", fake_gh)
+    monkeypatch.setattr(s, "repo_slug", lambda: "owner/repo")
+    monkeypatch.setattr(s, "queue", lambda conn: {})
+    out = s.overview(None)
+    assert any(s.AGENT_WORKFLOW_FILE in p for p in asked)
+    assert out["agent_runs"]["runs"][0]["started_at"] == "2026-11-20T10:00:00Z"
+    assert out["agent_runs"]["runs"][0]["minutes"] == 60.0
+    assert out["github"]["unreadable"].startswith("GitHub answered 403")
+
+    monkeypatch.setattr(s, "_gh", lambda path: (500, None))
+    assert s.overview(None)["agent_runs"] == {"runs": [], "unreadable": "GitHub answered 500"}
