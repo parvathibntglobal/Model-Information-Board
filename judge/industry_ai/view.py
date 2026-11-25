@@ -1,7 +1,9 @@
 """The "AI in industries" page: how much data the Industry AI agent holds.
 
-COUNTS ONLY, BY CONSTRUCTION. Nothing leaves this module that could identify a
-post: no title, no text, no URL, no author. Every figure is a count over
+`industry_ai_view` (the summary) is COUNTS ONLY, BY CONSTRUCTION: nothing it
+returns could identify a post - no title, no text, no URL, no author.
+`industry_ai_domain_view` (one domain's page, 2026-11-24) is the one that DOES
+list posts, as excerpts with their links; see its section below. Every figure is a count over
 `iai_item` (rule 3), computed live when the page asks (rule 11), and each comes
 with its denominator - items collected and items filtered out by reason - so
 "few kept" never reads as "nothing found" (rules 4 and 7).
@@ -79,7 +81,8 @@ def industry_ai_view(conn) -> dict[str, Any]:
     by_type = _count_by(conn, "content_type")
     by_platform = _count_by(conn, "platform")
     by_stage = _count_by(conn, "stage_guess")
-    by_month = _count_by(conn, "to_char(date_trunc('month', created_at), 'YYYY-MM')")
+    # No by-month counts here since 2026-11-24: the summary's cards dropped the month
+    # chart (one spike, the harvest window), and the domain page counts its own months.
     # AUTHORS: a person mapped in `watch.people` is ONE author on every platform -
     # their `person:<key>` flag, set by collect/industry_ai/pipeline.py, which counts
     # the same way. Anyone else is one author per (platform, account).
@@ -169,7 +172,6 @@ def industry_ai_view(conn) -> dict[str, Any]:
             "by_type": by_type.get(key, {}),
             "by_platform": by_platform.get(key, {}),
             "by_stage": by_stage.get(key, {}),
-            "by_month": dict(sorted(by_month.get(key, {}).items())),
         }
 
     domains = [
@@ -206,4 +208,331 @@ def industry_ai_view(conn) -> dict[str, Any]:
             "finished_at": last[4].isoformat() if last[4] else None,
             "requests": last[5] or {},
         },
+    }
+
+
+# ── ONE DOMAIN, IN DETAIL (2026-11-24, Parvathi) ──────────────────────────────
+#
+# The page a domain card opens (/ai-in-industries/<key>): the same counts as the
+# card, every breakdown the stored labels allow, and the posts themselves - each
+# post's text UP TO ITS FIRST `EXCERPT_CHARS` CHARACTERS, with its link, author id,
+# date, engagement and every label the rules gave it. MOST POSTS ARE SHORTER, SO
+# ARE SHOWN WHOLE (#665 review: on 2026-11-25, 5,476 of the 7,693 stored posts with
+# text were 600 characters or fewer - every Bluesky and dev.to post, most X posts).
+# SIGNED-IN ONLY, like the summary (judge/gate.py), and unlike the summary it does
+# carry post text: the summary above stays counts-only.
+#
+# WHAT A ROW IS - post, comment, issue, article - is not a stored column. It is
+# read from the platform's own id and link, exactly, where they say it:
+#   reddit      t3_ = post, t1_ = comment
+#   github      /issues/ = issue, /pull/ = pull request, /discussions/ = discussion
+#   hackernews  a title = story; no title = a comment (a watched author's),
+#               unless retention cleared the text: then "unknown" (rule 6)
+#   devto, feeds  article
+#   x, bluesky  post: a reply is NOT told apart from a post (nothing stored says)
+
+EXCERPT_CHARS = 600
+PAGE_MAX = 100
+SCOPES = ("kept", "from_watch", "dropped")
+SORTS = ("newest", "oldest", "engaged", "first_seen")
+
+#: The row kind, from the platform's own id and link (see above).
+_KIND = (
+    "CASE platform "
+    "WHEN 'reddit' THEN CASE WHEN left(external_id, 3) = 't1_' THEN 'comment' "
+    "  WHEN left(external_id, 3) = 't3_' THEN 'post' ELSE 'unknown' END "
+    "WHEN 'github' THEN CASE WHEN url LIKE '%%/pull/%%' THEN 'pull_request' "
+    "  WHEN url LIKE '%%/discussions/%%' THEN 'discussion' "
+    "  WHEN url LIKE '%%/issues/%%' THEN 'issue' ELSE 'unknown' END "
+    "WHEN 'hackernews' THEN CASE WHEN coalesce(title, '') <> '' THEN 'story' "
+    "  WHEN text_cleared_at IS NOT NULL THEN 'unknown' ELSE 'comment' END "
+    "WHEN 'devto' THEN 'article' WHEN 'feeds' THEN 'article' "
+    "WHEN 'x' THEN 'post' WHEN 'bluesky' THEN 'post' ELSE 'unknown' END"
+)
+#: Engagement summed into one number to SORT by, and never shown (rule 3, first
+#: exception): the page says in words that "most engaged" orders by the
+#: platform's own counts added together.
+_ENGAGED = (
+    "(SELECT coalesce(sum(v::numeric), 0) FROM jsonb_each_text(engagement) AS e(k, v) "
+    "WHERE k <> 'upvote_ratio' AND v ~ '^[0-9]+$')"
+)
+
+
+class DomainNotFound(LookupError):
+    pass
+
+
+class BadFilter(ValueError):
+    pass
+
+
+def _scope_where(key: str, scope: str) -> tuple[str, dict]:
+    """The rows a domain page lists, by the same rules the summary counts with."""
+    if key in (GENERAL, UNCONFIRMED):
+        if scope != "kept":
+            raise BadFilter(f"'{key}' holds kept items only")
+        neg = "" if key == GENERAL else "NOT "
+        return (
+            f"verdict = 'kept' AND cardinality(domains) = 0 AND {neg}('general_ai' = ANY(flags))",
+            {},
+        )
+    if scope == "kept":
+        return (
+            "verdict = 'kept' AND %(d)s = ANY(domains) "
+            "AND NOT ('domain_from_terms:' || %(d)s = ANY(flags))",
+            {"d": key},
+        )
+    if scope == "from_watch":
+        return (
+            "verdict = 'kept' AND %(d)s = ANY(domains) "
+            "AND 'domain_from_terms:' || %(d)s = ANY(flags)",
+            {"d": key},
+        )
+    # NOT A POST WAITING FOR ITS LABELS (#665 review, point 2): since #663 a post
+    # saved before a labelling failure is stored as verdict 'dropped', drop_stage
+    # 'pending'. It was never filtered out, so it is never counted or listed here.
+    return (
+        "verdict = 'dropped' AND drop_stage IS DISTINCT FROM 'pending' "
+        "AND %(d)s = ANY(domain_hints)",
+        {"d": key},
+    )
+
+
+def _like(text: str) -> str:
+    return "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+
+
+def industry_ai_domain_view(
+    conn,
+    key: str,
+    *,
+    scope: str = "kept",
+    filters: dict | None = None,
+    sort: str = "newest",
+    offset: int = 0,
+    limit: int = 25,
+) -> dict[str, Any]:
+    """One domain's page: its counts, every breakdown, and a page of its posts."""
+    contract = _contract()
+    domains = contract["domains"]
+    if key not in domains and key not in (GENERAL, UNCONFIRMED):
+        raise DomainNotFound(key)
+    if scope not in SCOPES:
+        raise BadFilter(f"scope must be one of {', '.join(SCOPES)}")
+    if sort not in SORTS:
+        raise BadFilter(f"sort must be one of {', '.join(SORTS)}")
+    if offset < 0 or not 1 <= limit <= PAGE_MAX:
+        raise BadFilter(f"offset must be 0 or more, and limit 1 to {PAGE_MAX}")
+    d = domains.get(key) or {}
+    f = {k: str(v) for k, v in (filters or {}).items() if v not in (None, "")}
+
+    where, params = _scope_where(key, scope)
+    params = {**params, "d": key}
+    clauses = [where]
+    for name, column in (
+        ("type", "content_type"),
+        ("platform", "platform"),
+        ("stage", "stage_guess"),
+        ("reason", "drop_reason"),
+    ):
+        if name in f:
+            clauses.append(f"{column} = %({name})s")
+            params[name] = f[name]
+    if "kind" in f:
+        clauses.append(f"({_KIND}) = %(kind)s")
+        params["kind"] = f["kind"]
+    if "flag" in f:
+        clauses.append("%(flag)s = ANY(flags)")
+        params["flag"] = f["flag"]
+    if "group" in f:
+        clauses.append("%(group)s = ANY(groups)")
+        params["group"] = f"{key}/{f['group']}"
+    if "term" in f:
+        clauses.append("matched_terms -> %(d)s -> 'terms' ? %(term)s")
+        params["term"] = f["term"]
+    if "ai_term" in f:
+        clauses.append("%(ai_term)s = ANY(ai_terms)")
+        params["ai_term"] = f["ai_term"]
+    if "query" in f:
+        clauses.append("%(query)s = ANY(query_keys)")
+        params["query"] = f["query"]
+    if "month" in f:
+        clauses.append("to_char(created_at, 'YYYY-MM') = %(month)s")
+        params["month"] = f["month"]
+    if "q" in f:
+        clauses.append("(coalesce(title, '') || ' ' || coalesce(body, '')) ILIKE %(q)s")
+        params["q"] = _like(f["q"])
+    w = " AND ".join(f"({c})" for c in clauses)
+
+    def facet(expr: str = "", *, unnest: str | None = None, top: int | None = None) -> list:
+        if unnest:
+            sql = (
+                f"SELECT v, count(*) FROM iai_item, unnest({unnest}) AS v WHERE {w} "
+                "GROUP BY 1 ORDER BY 2 DESC, 1"
+            )
+        else:
+            sql = f"SELECT {expr}, count(*) FROM iai_item WHERE {w} GROUP BY 1 ORDER BY 2 DESC, 1"
+        if top:
+            sql += f" LIMIT {int(top)}"
+        return [
+            {"value": None if v is None else str(v), "items": int(n)}
+            for v, n in conn.execute(sql, params).fetchall()
+        ]
+
+    head = conn.execute(
+        "SELECT count(*), count(DISTINCT platform || ':' || author_id) "
+        "FILTER (WHERE author_id IS NOT NULL), "
+        "count(*) FILTER (WHERE created_at IS NULL), "
+        "count(*) FILTER (WHERE link IS NOT NULL), "
+        "count(*) FILTER (WHERE text_cleared_at IS NOT NULL), "
+        f"min(created_at), max(created_at) FROM iai_item WHERE {w}",
+        params,
+    ).fetchone()
+
+    all_flags = facet(unnest="flags")
+    flags = [x for x in all_flags if not x["value"].startswith("person:")]
+    people = sum(x["items"] for x in all_flags if x["value"].startswith("person:"))
+    terms = [
+        {"value": t, "items": int(n)}
+        for t, n in conn.execute(
+            "SELECT t, count(*) FROM iai_item, jsonb_array_elements_text("
+            "coalesce(matched_terms -> %(d)s -> 'terms', '[]'::jsonb)) AS t "
+            f"WHERE {w} GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 30",
+            params,
+        ).fetchall()
+    ]
+    groups = [
+        {"value": g.partition("/")[2], "items": int(n)}
+        for g, n in conn.execute(
+            f"SELECT g, count(*) FROM iai_item, unnest(groups) AS g WHERE {w} "
+            "AND split_part(g, '/', 1) = %(d)s GROUP BY 1 ORDER BY 2 DESC",
+            params,
+        ).fetchall()
+    ]
+    engagement = {
+        k: int(n)
+        for k, n in conn.execute(
+            "SELECT k, sum(v::numeric) FROM iai_item, jsonb_each_text(engagement) AS e(k, v) "
+            f"WHERE {w} AND k <> 'upvote_ratio' AND v ~ '^[0-9]+$' GROUP BY 1 ORDER BY 2 DESC",
+            params,
+        ).fetchall()
+    }
+
+    # Every scope's size, unfiltered, so each tab carries its denominator (rule 7).
+    sizes: dict[str, int] = {}
+    for s in SCOPES:
+        try:
+            sw, sp = _scope_where(key, s)
+        except BadFilter:
+            continue
+        sizes[s] = int(
+            conn.execute(f"SELECT count(*) FROM iai_item WHERE {sw}", {**sp, "d": key}).fetchone()[
+                0
+            ]
+        )
+    found = None
+    if key in domains:
+        found = int(
+            conn.execute(
+                "SELECT count(*) FROM iai_item WHERE %(d)s = ANY(domain_hints)", {"d": key}
+            ).fetchone()[0]
+        )
+
+    order = {
+        "newest": "created_at DESC NULLS LAST, id",
+        "oldest": "created_at ASC NULLS LAST, id",
+        "engaged": f"{_ENGAGED} DESC, created_at DESC NULLS LAST, id",
+        "first_seen": "first_seen_at DESC, id",
+    }[sort]
+    rows = conn.execute(
+        f"SELECT id, platform, ({_KIND}), url, title, "
+        f"left(coalesce(body, ''), {EXCERPT_CHARS + 1}), created_at, author_id, lang, "
+        "engagement, link, canonical_url, share_count, content_type, matched_pattern, "
+        "stage_guess, flags, domains, groups, matched_terms -> %(d)s -> 'terms', "
+        "ai_terms, query_keys, domain_hints, verdict, drop_stage, drop_reason, "
+        "first_seen_at, text_cleared_at, canonical_of "
+        f"FROM iai_item WHERE {w} ORDER BY {order} OFFSET %(off)s LIMIT %(lim)s",
+        {**params, "off": offset, "lim": limit},
+    ).fetchall()
+
+    def iso(t):
+        return t.isoformat() if t else None
+
+    items = []
+    for r in rows:
+        body = r[5] or ""
+        items.append(
+            {
+                "id": r[0],
+                "platform": r[1],
+                "kind": r[2],
+                "url": r[3],
+                "title": r[4] or "",
+                "excerpt": body[:EXCERPT_CHARS],
+                "excerpt_cut": len(body) > EXCERPT_CHARS,
+                "created_at": iso(r[6]),
+                "author_id": r[7],
+                "lang": r[8],
+                "engagement": {k: v for k, v in (r[9] or {}).items() if v is not None},
+                "link": r[10],
+                "canonical_url": r[11],
+                "share_count": r[12] or 0,
+                "content_type": r[13],
+                "matched_pattern": r[14],
+                "stage": r[15],
+                "flags": list(r[16] or []),
+                "domains": list(r[17] or []),
+                "groups": [g.partition("/")[2] for g in (r[18] or []) if g.startswith(f"{key}/")],
+                "terms": list(r[19] or []),
+                "ai_terms": list(r[20] or []),
+                "queries": list(r[21] or []),
+                "domain_hints": list(r[22] or []),
+                "verdict": r[23],
+                "drop_stage": r[24],
+                "drop_reason": r[25],
+                "first_seen_at": iso(r[26]),
+                "text_cleared_at": iso(r[27]),
+                "duplicate_of": r[28],
+            }
+        )
+
+    bucket_names = {GENERAL: "General AI", UNCONFIRMED: "Domain unconfirmed"}
+    return {
+        "name": d.get("name") or bucket_names.get(key, key),
+        "definition": d.get("definition"),
+        "kind": d.get("kind"),
+        "active": d.get("active"),
+        "group_names": {gk: (g or {}).get("name", gk) for gk, g in (d.get("groups") or {}).items()},
+        "domain_terms": list(d.get("domain_terms") or []),
+        "found": found,
+        "scopes": sizes,
+        "matching": int(head[0]),
+        "authors": int(head[1]),
+        "undated": int(head[2]),
+        "with_link": int(head[3]),
+        "text_cleared": int(head[4]),
+        "first_posted": iso(head[5]),
+        "last_posted": iso(head[6]),
+        "mapped_people_items": people,
+        "engagement": engagement,
+        "facets": {
+            "type": facet("content_type"),
+            "kind": facet(_KIND),
+            "platform": facet("platform"),
+            "stage": facet("stage_guess"),
+            "reason": facet("drop_reason") if scope == "dropped" else [],
+            "month": sorted(
+                facet("to_char(created_at, 'YYYY-MM')"), key=lambda x: x["value"] or ""
+            ),
+            "flag": flags,
+            "term": terms,
+            "ai_term": facet(unnest="ai_terms", top=30),
+            "group": groups,
+            "query": facet(unnest="query_keys", top=25),
+        },
+        "excerpt_chars": EXCERPT_CHARS,
+        "items": items,
+        # The contract's pipeline_version, named apart from /coverage's unread
+        # `pipeline_version` field (contract/api_fields.yaml declares by name).
+        "rules_version": contract.get("pipeline_version"),
     }

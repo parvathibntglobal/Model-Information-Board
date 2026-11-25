@@ -43,7 +43,7 @@ driven by **keywords per domain per platform** in `contract/industry_ai.yaml`.
 
 A signed-in **AI in industries** page (`/ai-in-industries`) shows how much data has
 been collected for each domain, by content type. It shows **counts only, never post
-text.**
+text.** Each card opens that domain's own page (§4), which lists the posts as excerpts.
 
 **Code only:** no language model, no LLM-named subcategories, no polarity. An LLM is
 an optional later step (§9), added only if the sample check (§7) shows the code
@@ -350,7 +350,14 @@ In order. The first that matches drops the item:
   - kept per group;
   - distinct authors;
   - reach;
-  - kept by content type, by platform, by use-case stage, and by month posted;
+  - kept by content type (the top four, the rest named), by platform (one sorted line),
+    and by use-case stage;
+  - **in tabs, one population each:** *Collecting* (domains whose own searches run, as
+    cards, most kept first), *Watch lists only* (switched-off domains holding only
+    watch-list posts, as one-line tiles), *Not filed under a domain*, *Filtered out* (by
+    reason) and *Nothing collected*. The whole card opens the domain's page. No month
+    chart on the cards (2026-11-24): nearly every post is from the harvest window, so it
+    drew one spike; the domain's page shows the months;
   - undated items.
 - **Also:** totals collected, kept and filtered out; the domain-unconfirmed bucket;
   filtered out by reason; the last run.
@@ -358,6 +365,47 @@ In order. The first that matches drops the item:
   checks this).
 - **Empty states:** "Nothing collected yet" when there is no data, and a clear message
   if the migration has not run.
+
+- **Kept for a few minutes** (`judge/industry_ai/cache.py`, 2026-11-24): each view (the
+  summary; each domain's tab, filters, order and page) is worked out once and kept for
+  10 minutes. After that the old answer is still sent at once while ONE background
+  refresh replaces it. Refreshes happen only when someone asks, so an answer older than
+  an hour is never sent: it is recounted while the visitor waits (~5 s), and the old one
+  is sent only if that recount fails. The summary and each collecting domain's first view are worked
+  out at API startup. Every answer carries `counted_at`, shown on the page. Measured on
+  2026-11-24 from a developer machine against the shared database: ~5 s uncached,
+  under 0.04 s kept.
+
+### One domain's page (2026-11-24, Parvathi)
+
+- **Route:** `/ai-in-industries/<key>`, signed-in (`web/src/routes/IndustryAIDomain.jsx`),
+  opened from the domain's card. `general` and `unconfirmed` open the two buckets.
+- **API:** `GET /industry-ai/{key}` (`industry_ai_domain_view`), live, signed in.
+  Unlike the summary, **it carries post text**: each post's text up to its first
+  600 characters, with its link, author id, dates and engagement. **Most posts are
+  shorter, so are shown whole** (on 2026-11-25, 5,476 of 7,693 stored posts with
+  text: every Bluesky and dev.to post, 1,571 of 2,184 X posts, 647 of 1,341 Reddit
+  posts); a longer one is cut, and the link leads to the rest.
+- **Three populations, never added together:** kept by the domain's own queries
+  (the card's "kept"), kept from the watch lists and filed here by their terms, and
+  filtered out (found by the domain's queries), each with its count.
+- **Two view tabs:** *Posts* (a row of dropdown filters, more under "More filters", and
+  compact posts whose extra labels fold under "Details") and *Breakdowns* (collapsible
+  sections; clicking a bar filters the posts and opens them).
+- **Breakdowns, each one a filter:** content type, what the row is, platform,
+  use-case stage, drop reason, group, the industry words and AI terms that matched,
+  flags, month posted, and the search or watch list that found it. Plus a text search
+  and four orders (newest, oldest, most engaged, newest found). *Most engaged* adds up
+  each platform's own counts, views included, so on a mixed list it mostly means X
+  (the page says so); filter to one platform for a fair order. The filters live in
+  the address, so a filtered view can be shared.
+- **What a row is** is not stored; it is read from each platform's own id and link:
+  Reddit `t3_` post / `t1_` comment; GitHub issue, pull request or discussion by its
+  link; a Hacker News item with a title is a story, without one a comment; dev.to and
+  feeds are articles. **X and Bluesky replies are not told apart from posts**, since
+  nothing stored says which is which. On 2026-11-24, of the 7,693 stored items, all
+  1,341 Reddit items were posts, all 792 GitHub items issues, and 71 of 540 Hacker News
+  items comments.
 
 ---
 
