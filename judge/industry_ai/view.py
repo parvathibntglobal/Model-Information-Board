@@ -31,6 +31,18 @@ UNCONFIRMED = "unconfirmed"
 #: absence from UNCONFIRMED - a keyword query's own domain not confirmed - so the
 #: two are counted apart (rule 4). Flagged `general_ai` by the labeller.
 GENERAL = "general"
+#: THE TWO AGENTS' POPULATIONS (2026-11-25, Parvathi; anooj's proposal on #667).
+#: A row's `query_keys` say which agent found it: `iai:<domain>:...` is a keyword
+#: query, `watch:<platform>:<source>` a watch list. Each page counts ONE of them:
+#:   KEYWORD_ARM  /ai-in-industries - a keyword query found it (a watch list may
+#:                have found it too: it keeps the keyword agent's labels, #650);
+#:   WATCH_ARM    /ai-watch - ONLY watch lists found it (`rules.is_watch_only`),
+#:                or it is General AI, kept only because a watch list found it.
+#: The two never overlap, so no post is counted on both pages (rule 7).
+_GENERAL_FLAG = "coalesce('general_ai' = ANY(flags), false)"
+_KEYWORD_FOUND = "EXISTS (SELECT 1 FROM unnest(query_keys) AS qk WHERE left(qk, 6) <> 'watch:')"
+KEYWORD_ARM = f"({_KEYWORD_FOUND} AND NOT {_GENERAL_FLAG})"
+WATCH_ARM = (f"({_GENERAL_FLAG} OR (cardinality(query_keys) > 0 AND NOT {_KEYWORD_FOUND}))")
 #: THE BUCKET EXPRESSION is written out IN EACH QUERY below, identically, rather
 #: than held in one constant: scripts/audit_columns.py finds a column's reader by
 #: reading SQL literals that name the table and the column together (rule 9), and
@@ -46,7 +58,8 @@ def _contract() -> dict:
     return raw
 
 
-def _count_by(conn, column: str, where: str = "verdict = 'kept'") -> dict[str, dict[str, int]]:
+def _count_by(conn, column: str, where: str = f"verdict = 'kept' AND {KEYWORD_ARM}"
+              ) -> dict[str, dict[str, int]]:
     """domain -> value -> kept items, with "general" or "unconfirmed" for an empty
     `domains` (the bucket expression; see GENERAL)."""
     out: dict[str, dict[str, int]] = {}
@@ -56,8 +69,8 @@ def _count_by(conn, column: str, where: str = "verdict = 'kept'") -> dict[str, d
         "THEN ARRAY['general'] WHEN cardinality(domains) = 0 THEN ARRAY['unconfirmed'] "
         f"ELSE domains END AS ds, flags AS fl, {column} AS v FROM iai_item WHERE {where}"
         ") x, unnest(ds) AS d "
-        # A post a WATCH LIST filed under this domain by its terms is counted apart
-        # (`from_watch`), never in the domain's own figures (anooj, 2026-11-20, (a)).
+        # A post a WATCH LIST filed under this domain by its terms is never in the
+        # domain's own figures (anooj, 2026-11-20, (a)); it is on /ai-watch.
         "WHERE NOT ('domain_from_terms:' || d = ANY(fl)) GROUP BY 1, 2"
     ).fetchall():
         if value is not None:
@@ -69,7 +82,8 @@ def industry_ai_view(conn) -> dict[str, Any]:
     contract = _contract()
     try:
         total, kept = conn.execute(
-            "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept') FROM iai_item"
+            "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept') FROM iai_item "
+            f"WHERE {KEYWORD_ARM}"
         ).fetchone()
     except Exception as e:  # noqa: BLE001 - an unmigrated database is a state, not a crash
         conn.rollback()
@@ -96,23 +110,15 @@ def industry_ai_view(conn) -> dict[str, Any]:
         "THEN ARRAY['general'] WHEN cardinality(domains) = 0 THEN ARRAY['unconfirmed'] "
         "ELSE domains END AS ds, flags AS fl, platform, author_id, share_count, created_at, "
         "(SELECT min(f) FROM unnest(flags) AS f WHERE left(f, 7) = 'person:') AS person "
-        "  FROM iai_item WHERE verdict = 'kept'"
+        f"  FROM iai_item WHERE verdict = 'kept' AND {KEYWORD_ARM}"
         ") x, unnest(ds) AS d WHERE NOT ('domain_from_terms:' || d = ANY(fl)) GROUP BY 1"
     ).fetchall()
     stats = {
         d: {"kept": int(n), "authors": int(a), "reach": int(r), "undated": int(u)}
         for d, n, a, r, u in rows
     }
-    # FROM THE WATCH LISTS, COUNTED APART (anooj, 2026-11-20, option (a)): a domain's
-    # own figures count what ITS keyword queries found and confirmed; a watched post
-    # filed there by its terms (option A) is a different population, shown beside them.
-    from_watch = {
-        d: int(n)
-        for d, n in conn.execute(
-            "SELECT d, count(*) FROM iai_item, unnest(domains) AS d WHERE verdict = 'kept' "
-            "AND 'domain_from_terms:' || d = ANY(flags) GROUP BY 1"
-        ).fetchall()
-    }
+    # THE WATCH LISTS' POSTS ARE NOT COUNTED HERE (2026-11-25): a watched post filed
+    # under a domain by its words, and General AI, are on /ai-watch (`ai_watch_view`).
     found = {
         d: int(n)
         for d, n in conn.execute(
@@ -128,16 +134,19 @@ def industry_ai_view(conn) -> dict[str, Any]:
         {"stage": s, "reason": r, "items": int(n)}
         for s, r, n in conn.execute(
             "SELECT drop_stage, drop_reason, count(*) FROM iai_item WHERE verdict = 'dropped' "
-            "AND drop_stage IS DISTINCT FROM 'pending' GROUP BY 1, 2 ORDER BY 3 DESC"
+            f"AND drop_stage IS DISTINCT FROM 'pending' AND {KEYWORD_ARM} "
+            "GROUP BY 1, 2 ORDER BY 3 DESC"
         ).fetchall()
     ]
     (pending,) = conn.execute(
-        "SELECT count(*) FROM iai_item WHERE verdict = 'dropped' AND drop_stage = 'pending'"
+        "SELECT count(*) FROM iai_item WHERE verdict = 'dropped' AND drop_stage = 'pending' "
+        f"AND {KEYWORD_ARM}"
     ).fetchone()
     # KEPT ITEMS PER GROUP, "<domain>/<group>" (#644 review, point 3).
     by_group: dict[str, dict[str, int]] = {}
     for g, n in conn.execute(
         "SELECT g, count(*) FROM iai_item, unnest(groups) AS g WHERE verdict = 'kept' "
+        f"AND {KEYWORD_ARM} "
         "AND NOT ('domain_from_terms:' || split_part(g, '/', 1) = ANY(flags)) GROUP BY 1"
     ).fetchall():
         d, _, gk = g.partition("/")
@@ -175,9 +184,6 @@ def industry_ai_view(conn) -> dict[str, Any]:
             # were kept under it: the denominator beside the count (rule 7).
             "found": found.get(key),
             **s,
-            # Kept posts the watch lists filed here by their terms: NOT in `kept` or in
-            # any breakdown above, shown beside them (option (a)).
-            "from_watch": from_watch.get(key, 0),
             "by_type": by_type.get(key, {}),
             "by_platform": by_platform.get(key, {}),
             "by_stage": by_stage.get(key, {}),
@@ -199,9 +205,6 @@ def industry_ai_view(conn) -> dict[str, Any]:
         # Kept, but no finding domain's terms confirmed it: counted here, never
         # in a domain's total (rule 6).
         "unconfirmed": block(UNCONFIRMED, "Domain unconfirmed", None),
-        # Kept from a watched source, naming no industry: general AI news and
-        # opinion, counted apart from "unconfirmed" (rule 4).
-        "general": block(GENERAL, "General AI", None),
         "collected": int(total),
         "kept": int(kept),
         "dropped": dropped,
@@ -409,6 +412,19 @@ def industry_ai_admin(conn) -> dict[str, Any]:
             "count(*) FILTER (WHERE drop_stage = 'pending'), "
             "count(*) FILTER (WHERE text_cleared_at IS NOT NULL) FROM iai_item"
         ).fetchone()
+        # EACH AGENT'S OWN POSTS (2026-11-25): Admin shows AI in industries and AI Watch
+        # as two sections, each with the population its page counts (KEYWORD_ARM /
+        # WATCH_ARM); `items` above stays the table's total, both together.
+        arms = {
+            arm: {"stored": int(s), "kept": int(k), "pending": int(p)}
+            for arm, (s, k, p) in (
+                (arm, conn.execute(
+                    "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept'), "
+                    f"count(*) FILTER (WHERE drop_stage = 'pending') FROM iai_item WHERE {where}"
+                ).fetchone())
+                for arm, where in (("keyword", KEYWORD_ARM), ("watch", WATCH_ARM))
+            )
+        }
         versions = {
             v: int(n) for v, n in conn.execute(
                 "SELECT pipeline_version, count(*) FROM iai_item "
@@ -439,6 +455,7 @@ def industry_ai_admin(conn) -> dict[str, Any]:
     out.update(
         items={"stored": int(total), "kept": int(kept), "pending": int(pending),
                "text_cleared": int(cleared), "text_due": None if due is None else int(due)},
+        arms=arms,
         # Labelled rows by the rules version that labelled them; `pending` rows
         # carry none yet and are counted apart.
         versions=versions,
@@ -477,7 +494,9 @@ def industry_ai_admin(conn) -> dict[str, Any]:
 
 EXCERPT_CHARS = 600
 PAGE_MAX = 100
-SCOPES = ("kept", "from_watch", "dropped")
+#: Two tabs since 2026-11-25: the watch lists' posts filed here by their words
+#: (`from_watch`) moved to /ai-watch with the rest of the observer's posts.
+SCOPES = ("kept", "dropped")
 SORTS = ("newest", "oldest", "engaged", "first_seen")
 
 #: The row kind, from the platform's own id and link (see above).
@@ -512,25 +531,20 @@ class BadFilter(ValueError):
 
 
 def _scope_where(key: str, scope: str) -> tuple[str, dict]:
-    """The rows a domain page lists, by the same rules the summary counts with."""
-    if key in (GENERAL, UNCONFIRMED):
+    """The rows a domain page lists, by the same rules the summary counts with.
+    The keyword agent's posts only: General AI is on /ai-watch."""
+    if key == UNCONFIRMED:
         if scope != "kept":
             raise BadFilter(f"'{key}' holds kept items only")
-        neg = "" if key == GENERAL else "NOT "
         return (
-            f"verdict = 'kept' AND cardinality(domains) = 0 AND {neg}('general_ai' = ANY(flags))",
+            "verdict = 'kept' AND cardinality(domains) = 0 AND NOT ('general_ai' = ANY(flags)) "
+            f"AND {KEYWORD_ARM}",
             {},
         )
     if scope == "kept":
         return (
             "verdict = 'kept' AND %(d)s = ANY(domains) "
             "AND NOT ('domain_from_terms:' || %(d)s = ANY(flags))",
-            {"d": key},
-        )
-    if scope == "from_watch":
-        return (
-            "verdict = 'kept' AND %(d)s = ANY(domains) "
-            "AND 'domain_from_terms:' || %(d)s = ANY(flags)",
             {"d": key},
         )
     # NOT A POST WAITING FOR ITS LABELS (#665 review, point 2): since #663 a post
@@ -547,6 +561,78 @@ def _like(text: str) -> str:
     return "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
 
+#: The orders a list of posts can take (SORTS).
+_ORDER = {
+    "newest": "created_at DESC NULLS LAST, id",
+    "oldest": "created_at ASC NULLS LAST, id",
+    "engaged": f"{_ENGAGED} DESC, created_at DESC NULLS LAST, id",
+    "first_seen": "first_seen_at DESC, id",
+}
+
+
+def _items(conn, w: str, params: dict, *, sort: str, offset: int, limit: int,
+           key: str | None) -> list[dict[str, Any]]:
+    """A page of posts, each as both pages list it. `key` is the domain whose matched
+    words and groups are shown; None (the AI Watch page) shows a post's groups under
+    every domain it names and no matched words."""
+    # ONE STRING LITERAL from SELECT to FROM iai_item (adjacent pieces only, no `+`):
+    # scripts/audit_columns.py finds each column's reader by reading it whole (rule 9).
+    terms = "matched_terms -> %(d)s -> 'terms'" if key else "NULL::jsonb"
+    rows = conn.execute(
+        f"SELECT id, platform, ({_KIND}), url, title, "
+        f"left(coalesce(body, ''), {EXCERPT_CHARS + 1}), created_at, author_id, lang, "
+        "engagement, link, canonical_url, share_count, content_type, matched_pattern, "
+        f"stage_guess, flags, domains, groups, {terms}, "
+        "ai_terms, query_keys, domain_hints, verdict, drop_stage, drop_reason, "
+        "first_seen_at, text_cleared_at, canonical_of "
+        f"FROM iai_item WHERE {w} ORDER BY {_ORDER[sort]} OFFSET %(off)s LIMIT %(lim)s",
+        {**params, **({"d": key} if key else {}), "off": offset, "lim": limit},
+    ).fetchall()
+
+    def iso(t):
+        return t.isoformat() if t else None
+
+    items = []
+    for r in rows:
+        body = r[5] or ""
+        items.append(
+            {
+                "id": r[0],
+                "platform": r[1],
+                "kind": r[2],
+                "url": r[3],
+                "title": r[4] or "",
+                "excerpt": body[:EXCERPT_CHARS],
+                "excerpt_cut": len(body) > EXCERPT_CHARS,
+                "created_at": iso(r[6]),
+                "author_id": r[7],
+                "lang": r[8],
+                "engagement": {k: v for k, v in (r[9] or {}).items() if v is not None},
+                "link": r[10],
+                "canonical_url": r[11],
+                "share_count": r[12] or 0,
+                "content_type": r[13],
+                "matched_pattern": r[14],
+                "stage": r[15],
+                "flags": list(r[16] or []),
+                "domains": list(r[17] or []),
+                "groups": [g.partition("/")[2] for g in (r[18] or [])
+                           if key is None or g.startswith(f"{key}/")],
+                "terms": list(r[19] or []),
+                "ai_terms": list(r[20] or []),
+                "queries": list(r[21] or []),
+                "domain_hints": list(r[22] or []),
+                "verdict": r[23],
+                "drop_stage": r[24],
+                "drop_reason": r[25],
+                "first_seen_at": iso(r[26]),
+                "text_cleared_at": iso(r[27]),
+                "duplicate_of": r[28],
+            }
+        )
+    return items
+
+
 def industry_ai_domain_view(
     conn,
     key: str,
@@ -560,7 +646,7 @@ def industry_ai_domain_view(
     """One domain's page: its counts, every breakdown, and a page of its posts."""
     contract = _contract()
     domains = contract["domains"]
-    if key not in domains and key not in (GENERAL, UNCONFIRMED):
+    if key not in domains and key != UNCONFIRMED:
         raise DomainNotFound(key)
     if scope not in SCOPES:
         raise BadFilter(f"scope must be one of {', '.join(SCOPES)}")
@@ -683,65 +769,12 @@ def industry_ai_domain_view(
             ).fetchone()[0]
         )
 
-    order = {
-        "newest": "created_at DESC NULLS LAST, id",
-        "oldest": "created_at ASC NULLS LAST, id",
-        "engaged": f"{_ENGAGED} DESC, created_at DESC NULLS LAST, id",
-        "first_seen": "first_seen_at DESC, id",
-    }[sort]
-    rows = conn.execute(
-        f"SELECT id, platform, ({_KIND}), url, title, "
-        f"left(coalesce(body, ''), {EXCERPT_CHARS + 1}), created_at, author_id, lang, "
-        "engagement, link, canonical_url, share_count, content_type, matched_pattern, "
-        "stage_guess, flags, domains, groups, matched_terms -> %(d)s -> 'terms', "
-        "ai_terms, query_keys, domain_hints, verdict, drop_stage, drop_reason, "
-        "first_seen_at, text_cleared_at, canonical_of "
-        f"FROM iai_item WHERE {w} ORDER BY {order} OFFSET %(off)s LIMIT %(lim)s",
-        {**params, "off": offset, "lim": limit},
-    ).fetchall()
+    items = _items(conn, w, params, sort=sort, offset=offset, limit=limit, key=key)
 
     def iso(t):
         return t.isoformat() if t else None
 
-    items = []
-    for r in rows:
-        body = r[5] or ""
-        items.append(
-            {
-                "id": r[0],
-                "platform": r[1],
-                "kind": r[2],
-                "url": r[3],
-                "title": r[4] or "",
-                "excerpt": body[:EXCERPT_CHARS],
-                "excerpt_cut": len(body) > EXCERPT_CHARS,
-                "created_at": iso(r[6]),
-                "author_id": r[7],
-                "lang": r[8],
-                "engagement": {k: v for k, v in (r[9] or {}).items() if v is not None},
-                "link": r[10],
-                "canonical_url": r[11],
-                "share_count": r[12] or 0,
-                "content_type": r[13],
-                "matched_pattern": r[14],
-                "stage": r[15],
-                "flags": list(r[16] or []),
-                "domains": list(r[17] or []),
-                "groups": [g.partition("/")[2] for g in (r[18] or []) if g.startswith(f"{key}/")],
-                "terms": list(r[19] or []),
-                "ai_terms": list(r[20] or []),
-                "queries": list(r[21] or []),
-                "domain_hints": list(r[22] or []),
-                "verdict": r[23],
-                "drop_stage": r[24],
-                "drop_reason": r[25],
-                "first_seen_at": iso(r[26]),
-                "text_cleared_at": iso(r[27]),
-                "duplicate_of": r[28],
-            }
-        )
-
-    bucket_names = {GENERAL: "General AI", UNCONFIRMED: "Domain unconfirmed"}
+    bucket_names = {UNCONFIRMED: "Domain unconfirmed"}
     return {
         "name": d.get("name") or bucket_names.get(key, key),
         "definition": d.get("definition"),
@@ -779,5 +812,280 @@ def industry_ai_domain_view(
         "items": items,
         # The contract's pipeline_version, named apart from /coverage's unread
         # `pipeline_version` field (contract/api_fields.yaml declares by name).
+        "rules_version": contract.get("pipeline_version"),
+    }
+
+
+# ── AI WATCH: THE OBSERVER AGENT'S PAGE (2026-11-25, Parvathi; anooj's proposal on #667)
+#
+# /ai-watch, signed in. The posts only the watch lists found (WATCH_ARM): the newest
+# posts of the watched communities, accounts and lists, which mostly name no industry
+# (686 of 849 watch-only kept posts on 2026-11-25, two runs, anooj's count on #667).
+# /ai-in-industries counts the keyword agent's posts only, so no post is on both.
+#
+#   ai_watch_view    counts: totals, by type and platform, every watched source's
+#                    yield, mapped people, the industries watched posts name, drops
+#   ai_watch_posts   a page of posts in one of WATCH_SCOPES, with its filters
+#
+# A SOURCE'S YIELD COUNTS EVERY POST THAT SOURCE FOUND, whichever page shows it: a post
+# a keyword query also found is in its source's `found`, and `also_keyword` says how
+# many, so the figure is the source's own and is never added to the page's totals.
+# X watch queries club several accounts each, so an X account's yield is read from the
+# handle in each post's link (`/<handle>/status/`), the way `rules.handle_of` reads it.
+
+#: The AI Watch page's post lists.
+WATCH_SCOPES = ("general", "mentions", "kept", "dropped")
+_X_HANDLE_SQL = (
+    r"lower(substring(url from '^https://(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/'))"
+)
+_DOMAIN_FLAG = "domain_from_terms:"
+
+
+def _watch_scope(scope: str) -> str:
+    if scope == "general":
+        return "verdict = 'kept' AND 'general_ai' = ANY(flags)"
+    if scope == "mentions":
+        return f"verdict = 'kept' AND cardinality(domains) > 0 AND {WATCH_ARM}"
+    if scope == "kept":
+        return f"verdict = 'kept' AND {WATCH_ARM}"
+    # Not a post waiting for its labels (#663): it was never filtered out.
+    return f"verdict = 'dropped' AND drop_stage IS DISTINCT FROM 'pending' AND {WATCH_ARM}"
+
+
+def _watched_sources(watch: dict) -> list[dict[str, Any]]:
+    """Every source the contract lists today, as the query key the harvest records
+    (collect/industry_ai/config.py `watch_queries`), in the contract's order. X is
+    listed per account; its posts are matched by handle, not by key."""
+    out: list[dict[str, Any]] = []
+    for s in watch.get("reddit") or []:
+        out.append({"platform": "reddit", "source": f"r/{s}", "key": f"watch:reddit:r/{s}"})
+    for h in watch.get("x") or []:
+        out.append({"platform": "x", "source": f"@{h}", "account": str(h).lower()})
+    for h in watch.get("bluesky") or []:
+        out.append({"platform": "bluesky", "source": h, "key": f"watch:bluesky:from:{h}"})
+    hn = watch.get("hackernews") or {}
+    for t in hn.get("lists") or []:
+        out.append({"platform": "hackernews", "source": t,
+                    "key": f"watch:hackernews:hn:list:{t}"})
+    for a in hn.get("authors") or []:
+        out.append({"platform": "hackernews", "source": f"by {a}",
+                    "key": f"watch:hackernews:hn:author:{a}"})
+    for e in watch.get("instagram") or []:
+        h = e[0] if isinstance(e, (list, tuple)) else e
+        out.append({"platform": "instagram", "source": f"@{h}",
+                    "key": f"watch:instagram:ig:{h}"})
+    return out
+
+
+def ai_watch_view(conn) -> dict[str, Any]:
+    c = _contract()
+    watch = c.get("watch") or {}
+    try:
+        total, kept, filtered, pending = conn.execute(
+            "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept'), "
+            "count(*) FILTER (WHERE verdict = 'dropped' "
+            "AND drop_stage IS DISTINCT FROM 'pending'), "
+            f"count(*) FILTER (WHERE drop_stage = 'pending') FROM iai_item WHERE {WATCH_ARM}"
+        ).fetchone()
+    except Exception as e:  # noqa: BLE001 - an unmigrated database is a state, not a crash
+        conn.rollback()
+        return {"reason": f"the Industry AI tables could not be read ({type(e).__name__}) "
+                          "- run `python -m collect.cli db migrate`"}
+
+    def counts(sql: str) -> dict[str, int]:
+        return {str(k): int(n) for k, n in conn.execute(sql).fetchall() if k is not None}
+
+    kept_w = f"verdict = 'kept' AND {WATCH_ARM}"
+    # AUTHORS as the summary counts them: a mapped person (`person:<key>`) is one
+    # author on every platform; anyone else is one per (platform, account).
+    general, mentions_n, authors = conn.execute(
+        "SELECT count(*) FILTER (WHERE 'general_ai' = ANY(flags)), "
+        "count(*) FILTER (WHERE cardinality(domains) > 0), "
+        "count(DISTINCT coalesce(person, platform || ':' || author_id)) "
+        "  FILTER (WHERE person IS NOT NULL OR author_id IS NOT NULL) FROM ("
+        "  SELECT flags, domains, platform, author_id, "
+        "  (SELECT min(f) FROM unnest(flags) AS f WHERE left(f, 7) = 'person:') AS person "
+        f"  FROM iai_item WHERE {kept_w}) x"
+    ).fetchone()
+    by_type = counts(f"SELECT content_type, count(*) FROM iai_item WHERE {kept_w} GROUP BY 1")
+    by_platform = counts(f"SELECT platform, count(*) FROM iai_item WHERE {kept_w} GROUP BY 1")
+    general_by_type = counts(
+        "SELECT content_type, count(*) FROM iai_item "
+        "WHERE verdict = 'kept' AND 'general_ai' = ANY(flags) GROUP BY 1")
+    mentioned = counts(
+        f"SELECT substr(f, {len(_DOMAIN_FLAG) + 1}), count(*) FROM iai_item, unnest(flags) AS f "
+        f"WHERE {kept_w} AND left(f, {len(_DOMAIN_FLAG)}) = '{_DOMAIN_FLAG}' GROUP BY 1")
+    dropped = [
+        {"reason": r, "items": int(n)}
+        for r, n in conn.execute(
+            "SELECT drop_reason, count(*) FROM iai_item WHERE verdict = 'dropped' "
+            f"AND drop_stage IS DISTINCT FROM 'pending' AND {WATCH_ARM} "
+            "GROUP BY 1 ORDER BY 2 DESC"
+        ).fetchall()
+    ]
+
+    # EVERY SOURCE'S YIELD: what it found (kept or not), what was kept and filtered
+    # out, how many a keyword query also found, and its newest post.
+    tally = (
+        "count(*), count(*) FILTER (WHERE verdict = 'kept'), "
+        "count(*) FILTER (WHERE verdict = 'dropped' AND drop_stage IS DISTINCT FROM 'pending'), "
+        f"count(*) FILTER (WHERE {_KEYWORD_FOUND}), max(created_at)"
+    )
+    by_key = {
+        r[0]: r[1:]
+        for r in conn.execute(
+            f"SELECT qk_w, {tally} FROM iai_item, unnest(query_keys) AS qk_w "
+            "WHERE left(qk_w, 6) = 'watch:' AND left(qk_w, 8) <> 'watch:x:' GROUP BY 1"
+        ).fetchall()
+    }
+    by_account = {
+        r[0]: r[1:]
+        for r in conn.execute(
+            f"SELECT {_X_HANDLE_SQL}, {tally} FROM iai_item WHERE platform = 'x' "
+            "AND EXISTS (SELECT 1 FROM unnest(query_keys) AS k WHERE left(k, 8) = 'watch:x:') "
+            "GROUP BY 1"
+        ).fetchall()
+    }
+
+    def yield_of(row) -> dict[str, Any]:
+        if row is None:
+            return {"found": 0, "kept": 0, "filtered": 0, "also_keyword": 0, "newest": None}
+        f, k, d, a, newest = row
+        return {"found": int(f), "kept": int(k), "filtered": int(d), "also_keyword": int(a),
+                "newest": newest.isoformat() if newest else None}
+
+    sources = []
+    for s in _watched_sources(watch):
+        row = by_account.pop(s["account"], None) if "account" in s else by_key.pop(s["key"], None)
+        sources.append({**s, "listed": True, **yield_of(row)})
+    # Posts from a source the contract no longer lists: still counted, and named (rule 4).
+    for k, row in sorted(by_key.items()):
+        _, platform, q = k.split(":", 2)
+        # Named as a listed source is (`_watched_sources`): "from:a" -> "a", "ig:a" -> "@a".
+        source = (q.removeprefix("from:").removeprefix("hn:list:")
+                  .replace("hn:author:", "by ", 1).replace("ig:", "@", 1))
+        sources.append({"platform": platform, "source": source, "key": k, "listed": False,
+                        **yield_of(row)})
+    for h, row in sorted(by_account.items(), key=lambda x: x[0] or ""):
+        sources.append({"platform": "x", "source": f"@{h}" if h else "no account in the link",
+                        "account": h, "listed": False, **yield_of(row)})
+
+    # ONE PERSON, SEVERAL HANDLES (`watch.people`): their kept posts here, by platform.
+    person_rows: dict[str, dict[str, int]] = {}
+    for key, platform, n in conn.execute(
+        "SELECT substr(f, 8), platform, count(*) FROM iai_item, unnest(flags) AS f "
+        f"WHERE {kept_w} AND left(f, 7) = 'person:' GROUP BY 1, 2"
+    ).fetchall():
+        person_rows.setdefault(key, {})[platform] = int(n)
+    people = [
+        {"key": k, "handles": {p: h for p, h in (hs or {}).items() if p != "bluesky_did"},
+         "kept": sum(person_rows.get(k, {}).values()), "by_platform": person_rows.get(k, {})}
+        for k, hs in (watch.get("people") or {}).items()
+    ]
+
+    last = conn.execute(
+        "SELECT mode, status, started_at, finished_at FROM iai_run "
+        "ORDER BY started_at DESC LIMIT 1"
+    ).fetchone()
+    return {
+        "enabled": watch.get("enabled"),
+        "collected": int(total),
+        "kept": int(kept),
+        "filtered": int(filtered),
+        "pending": int(pending),
+        "general": int(general),
+        "mentions": int(mentions_n),
+        "authors": int(authors),
+        "by_type": by_type,
+        "general_by_type": general_by_type,
+        "by_platform": by_platform,
+        "dropped": dropped,
+        # The industries watched posts name, each a count of kept posts; a post naming
+        # two is counted under both, so these do not add up to `mentions`.
+        "mentioned": [
+            {"key": k, "name": (c["domains"].get(k) or {}).get("name", k), "items": n}
+            for k, n in sorted(mentioned.items(), key=lambda x: -x[1])
+        ],
+        "sources": sources,
+        "people": people,
+        "last_run": None if last is None else {
+            "mode": last[0], "status": last[1],
+            "started_at": last[2].isoformat() if last[2] else None,
+            "finished_at": last[3].isoformat() if last[3] else None,
+        },
+    }
+
+
+def ai_watch_posts(
+    conn,
+    *,
+    scope: str = "general",
+    filters: dict | None = None,
+    sort: str = "newest",
+    offset: int = 0,
+    limit: int = 25,
+) -> dict[str, Any]:
+    """A page of the observer's posts in one scope, with each filter's values."""
+    if scope not in WATCH_SCOPES:
+        raise BadFilter(f"scope must be one of {', '.join(WATCH_SCOPES)}")
+    if sort not in SORTS:
+        raise BadFilter(f"sort must be one of {', '.join(SORTS)}")
+    if offset < 0 or not 1 <= limit <= PAGE_MAX:
+        raise BadFilter(f"offset must be 0 or more, and limit 1 to {PAGE_MAX}")
+    f = {k: str(v) for k, v in (filters or {}).items() if v not in (None, "")}
+    clauses, params = [_watch_scope(scope)], {}
+    for name, column in (("type", "content_type"), ("platform", "platform"),
+                         ("reason", "drop_reason")):
+        if name in f:
+            clauses.append(f"{column} = %({name})s")
+            params[name] = f[name]
+    if "kind" in f:
+        clauses.append(f"({_KIND}) = %(kind)s")
+        params["kind"] = f["kind"]
+    if "domain" in f:
+        clauses.append("%(domain)s = ANY(flags)")
+        params["domain"] = _DOMAIN_FLAG + f["domain"]
+    if "source" in f:
+        clauses.append("%(source)s = ANY(query_keys)")
+        params["source"] = f["source"]
+    if "account" in f:
+        clauses.append(f"platform = 'x' AND {_X_HANDLE_SQL} = lower(%(account)s)")
+        params["account"] = f["account"]
+    if "person" in f:
+        clauses.append("%(person)s = ANY(flags)")
+        params["person"] = "person:" + f["person"]
+    if "q" in f:
+        clauses.append("(coalesce(title, '') || ' ' || coalesce(body, '')) ILIKE %(q)s")
+        params["q"] = _like(f["q"])
+    w = " AND ".join(f"({c})" for c in clauses)
+
+    def facet(expr: str) -> list:
+        return [{"value": None if v is None else str(v), "items": int(n)}
+                for v, n in conn.execute(
+                    f"SELECT {expr}, count(*) FROM iai_item WHERE {w} "
+                    "GROUP BY 1 ORDER BY 2 DESC, 1", params).fetchall()]
+
+    (matching,) = conn.execute(f"SELECT count(*) FROM iai_item WHERE {w}", params).fetchone()
+    # Each scope's unfiltered size is in `ai_watch_view` (the page's tab counts).
+    contract = _contract()
+    return {
+        "matching": int(matching),
+        "facets": {
+            "type": facet("content_type"),
+            "platform": facet("platform"),
+            "kind": facet(_KIND),
+            "reason": facet("drop_reason") if scope == "dropped" else [],
+            "domain": [
+                {"value": v, "items": int(n)}
+                for v, n in conn.execute(
+                    f"SELECT substr(fl, {len(_DOMAIN_FLAG) + 1}), count(*) FROM iai_item, "
+                    f"unnest(flags) AS fl WHERE {w} AND left(fl, {len(_DOMAIN_FLAG)}) = "
+                    f"'{_DOMAIN_FLAG}' GROUP BY 1 ORDER BY 2 DESC, 1", params,
+                ).fetchall()
+            ],
+        },
+        "domain_names": {k: (d or {}).get("name", k) for k, d in contract["domains"].items()},
+        "excerpt_chars": EXCERPT_CHARS,
+        "items": _items(conn, w, params, sort=sort, offset=offset, limit=limit, key=None),
         "rules_version": contract.get("pipeline_version"),
     }

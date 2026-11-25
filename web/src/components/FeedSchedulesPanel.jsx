@@ -57,7 +57,7 @@ function Result({ r }) {
 const TITLES = {
   benchmarks: 'AI benchmarks — the benchmarks run',
   'registry-poll': 'AI updates — the registry poll',
-  'industry-ai': 'AI in industries — the Industry AI harvest',
+  'industry-ai': 'AI in industries and AI Watch — the Industry AI harvest',
 }
 
 // bench_run_trigger_ck (contract/tables.sql).
@@ -149,6 +149,7 @@ function Feed({ f }) {
         {f.key === 'benchmarks' && <Link className="btn btn-ghost" to="/benchmarks">Benchmarks page →</Link>}
         {f.key === 'registry-poll' && <Link className="btn btn-ghost" to="/updates">AI updates — Manage →</Link>}
         {f.key === 'industry-ai' && <Link className="btn btn-ghost" to="/ai-in-industries">AI in industries →</Link>}
+        {f.key === 'industry-ai' && <Link className="btn btn-ghost" to="/ai-watch">AI Watch →</Link>}
       </div>
     </div>
   )
@@ -161,8 +162,8 @@ const INTROS = {
     + 'The registry poll keeps its new models and price changes current; its benchmark headlines come '
     + 'from the benchmarks run (the Benchmarks tab). Everything here is read-only.',
   'industry-ai': 'The Industry AI agent harvests data about AI across industries and roles with the '
-    + 'queries in contract/industry_ai.yaml, and its observer reads watched communities and accounts, '
-    + 'on the schedule below, behind its own switch. It shares the Reddit and X quota with '
+    + 'queries in contract/industry_ai.yaml (AI in industries), and its observer reads watched communities '
+    + 'and accounts (AI Watch), on the schedule below, behind one switch. It shares the Reddit and X quota with '
     + 'the model fetches; every platform has a request cap per run. Everything here is read-only.',
 }
 

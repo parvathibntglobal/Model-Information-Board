@@ -51,11 +51,13 @@ FEEDS: tuple[dict[str, Any], ...] = (
         "feeds": "AI updates: new models and price changes",
     },
     {
-        # The Industry AI agent (2026-11-20): its own weekly run and switch.
+        # The Industry AI agent (2026-11-20) and, in the same workflow, its observer
+        # (AI Watch, 2026-11-25): one workflow, one switch.
         "key": "industry-ai",
         "file": "industry-ai-harvest.yml",
         "variable": "INDUSTRY_AI_ENABLED",
-        "feeds": "AI in industries: data about AI across industries and roles",
+        "feeds": ("AI in industries (the keyword agent) and AI Watch (the observer agent's "
+                  "watch lists)"),
     },
 )
 
@@ -111,6 +113,26 @@ def next_firing(crons: list[str], now: datetime) -> str | None:
     return best.isoformat() if best else None
 
 
+def _guard() -> dict[str, Any]:
+    """contract/nightly_guard.yaml `workflows`, by file; {} when it cannot be read."""
+    try:
+        raw = yaml.safe_load((ss.ROOT / "contract" / "nightly_guard.yaml").read_text(
+            encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return {}
+    return raw.get("workflows") or {}
+
+
+def _workflow_name(file: str) -> str:
+    """A workflow's own `name:`, as GitHub shows it; the file name when unreadable."""
+    try:
+        wf = yaml.safe_load((ss.ROOT / ".github" / "workflows" / file).read_text(
+            encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return file
+    return str(wf.get("name") or file)
+
+
 def workflow_setup(file: str) -> dict[str, Any]:
     path = ss.ROOT / ".github" / "workflows" / file
     try:
@@ -122,7 +144,15 @@ def workflow_setup(file: str) -> dict[str, Any]:
     on = wf.get("on", wf.get(True)) or {}
     crons = [c.get("cron") for c in (on.get("schedule") or []) if c.get("cron")]
     job = next(iter((wf.get("jobs") or {}).values()), {}) or {}
+    # WHAT ELSE DECIDES WHEN IT RUNS (2026-11-25, promised on #670): another workflow's
+    # finish starting it (`on.workflow_run`), and the workflow it never runs beside
+    # (contract/nightly_guard.yaml `waits_for`). Read, never restated: a workflow with
+    # neither gets two empty answers and the page words its crons alone.
+    starts_after = [str(w) for w in ((on.get("workflow_run") or {}).get("workflows") or [])]
+    waits = (_guard().get(file) or {}).get("waits_for")
     return {
+        "starts_after": starts_after,
+        "waits_for": _workflow_name(waits) if waits else None,
         "crons": [{"expr": c, "words": cron_words(c)} for c in crons],
         "manual_run": "workflow_dispatch" in on,
         "timeout_minutes": job.get("timeout-minutes"),

@@ -16,7 +16,7 @@ const TABS = [
   ['fetches', 'Model fetches'],
   ['benchmarks', 'Benchmarks'],
   ['registry-poll', 'AI updates feeds'],
-  ['industry-ai', 'Industry AI'],
+  ['industry-ai', 'Industry AI & AI Watch'],
 ]
 
 export default function SchedulerTabs() {

@@ -45,6 +45,8 @@ observer (below) also reads **Instagram**, by watched account only (since 2026-1
 A signed-in **AI in industries** page (`/ai-in-industries`) shows how much data has
 been collected for each domain, by content type. It shows **counts only, never post
 text.** Each card opens that domain's own page (§4), which lists the posts as excerpts.
+Since 2026-11-25 it counts the **keyword agent's** posts only; the observer's are on
+the signed-in **AI Watch** page (`/ai-watch`, §4).
 
 **Code only:** no language model, no LLM-named subcategories, no polarity. An LLM is
 an optional later step (§9), added only if the sample check (§7) shows the code
@@ -363,9 +365,9 @@ In order. The first that matches drops the item:
   - kept by content type (the top four, the rest named), by platform (one sorted line),
     and by use-case stage;
   - **in tabs, one population each:** *Collecting* (domains whose own searches run, as
-    cards, most kept first), *Watch lists only* (switched-off domains holding only
-    watch-list posts, as one-line tiles), *Not filed under a domain*, *Filtered out* (by
-    reason) and *Nothing collected*. The whole card opens the domain's page. No month
+    cards, most kept first), *Not filed under a domain* (domain unconfirmed), *Filtered
+    out* (by reason) and *Nothing collected*. (*Watch lists only* and General AI moved to
+    AI Watch on 2026-11-25.) The whole card opens the domain's page. No month
     chart on the cards (2026-11-24): nearly every post is from the harvest window, so it
     drew one spike; the domain's page shows the months;
   - undated items.
@@ -390,16 +392,18 @@ In order. The first that matches drops the item:
 ### One domain's page (2026-11-24, Parvathi)
 
 - **Route:** `/ai-in-industries/<key>`, signed-in (`web/src/routes/IndustryAIDomain.jsx`),
-  opened from the domain's card. `general` and `unconfirmed` open the two buckets.
+  opened from the domain's card. `unconfirmed` opens that bucket (General AI is on AI
+  Watch since 2026-11-25).
 - **API:** `GET /industry-ai/{key}` (`industry_ai_domain_view`), live, signed in.
   Unlike the summary, **it carries post text**: each post's text up to its first
   600 characters, with its link, author id, dates and engagement. **Most posts are
   shorter, so are shown whole** (on 2026-11-25, 5,476 of 7,693 stored posts with
   text: every Bluesky and dev.to post, 1,571 of 2,184 X posts, 647 of 1,341 Reddit
   posts); a longer one is cut, and the link leads to the rest.
-- **Three populations, never added together:** kept by the domain's own queries
-  (the card's "kept"), kept from the watch lists and filed here by their terms, and
-  filtered out (found by the domain's queries), each with its count.
+- **Two populations, never added together:** kept by the domain's own queries (the
+  card's "kept") and filtered out (found by the domain's queries), each with its count.
+  Watch-list posts filed here by their terms are on AI Watch's *Mentions* tab, linked
+  from the page header (2026-11-25).
 - **Two view tabs:** *Posts* (a row of dropdown filters, more under "More filters", and
   compact posts whose extra labels fold under "Details") and *Breakdowns* (collapsible
   sections; clicking a bar filters the posts and opens them).
@@ -417,6 +421,29 @@ In order. The first that matches drops the item:
   nothing stored says which is which. On 2026-11-24, of the 7,693 stored items, all
   1,341 Reddit items were posts, all 792 GitHub items issues, and 71 of 540 Hacker News
   items comments.
+
+### AI Watch: the observer agent's page (2026-11-25, Parvathi; anooj's proposal on #667)
+
+- **Route:** `/ai-watch`, signed-in (`web/src/routes/AIWatch.jsx`), with its own Info
+  view (`?view=info`: the observer agent, its watch lists and people, from the contract).
+- **API:** `GET /ai-watch` (counts only, `ai_watch_view`) and `GET /ai-watch/posts`
+  (a page of posts as excerpts, `ai_watch_posts`), both signed in and cached like the
+  pages above.
+- **One population per page, by `query_keys`** (`view.py` `KEYWORD_ARM` / `WATCH_ARM`):
+  a post any keyword query found is on AI in industries; a post only watch lists found,
+  or General AI (kept only because a watch list found it), is on AI Watch. No post is on
+  both. On the shared database on 2026-11-25: 13,315 stored posts, 10,690 keyword and
+  2,625 watch, none on both and none on neither.
+- **Tabs:** *Feed* (General AI, or every kept post), *Sources* (each watched community,
+  account and list from the contract, per platform: found, kept, filtered out, how many
+  a keyword query also found, newest post; a source no longer listed is still shown,
+  marked), *People* (`watch.people`, one author across platforms), *Mentions an
+  industry* (posts filed under an industry by its words, each industry linking to its
+  page) and *Filtered out* (by reason, with the posts).
+- **A source's yield counts every post it found**, including posts a keyword query also
+  found ("Also by keyword"), so it is the source's own figure and is never added to the
+  page's totals. X watch queries club accounts, so an X account's yield is read from the
+  handle in each post's link.
 
 ---
 

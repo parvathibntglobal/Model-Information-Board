@@ -10,8 +10,8 @@ import { Bars, PLATFORM_LABEL, REASON_LABEL, STAGE_LABEL, TYPE_LABEL, countedAt,
 import '../styles/industry-ai.css'
 
 /**
- * AI IN INDUSTRIES (2026-11-20): how much data the Industry AI agent and its
- * observer have collected for each domain (industries and roles, from
+ * AI IN INDUSTRIES (2026-11-20): how much data the Industry AI agent has collected
+ * for each domain (industries and roles, from
  * contract/industry_ai.yaml). Signed in. The intro gives the number of domains,
  * from the data, and names none of them (Parvathi, 2026-11-24): the Info view
  * lists them and says which are active.
@@ -26,9 +26,14 @@ import '../styles/industry-ai.css'
  * apart, never added to a domain (rule 6).
  *
  * TABS (2026-11-24, Parvathi): one population per tab, never mixed - the domains
- * collecting posts of their own, the switched-off ones holding only watch-list
- * posts, posts kept but filed under no domain, what was filtered out, and the
- * domains with nothing yet. Each tab names its count; the tab is in the address.
+ * collecting posts of their own, posts kept but filed under no domain, what was
+ * filtered out, and the domains with nothing yet. Each tab names its count; the tab
+ * is in the address.
+ *
+ * THE KEYWORD AGENT ONLY, since 2026-11-25: the observer agent's posts (its watch
+ * lists) are on AI Watch (routes/AIWatch.jsx), so no post is counted on both pages. The
+ * two pages are unrelated to a reader and do not link to each other (Parvathi, 2026-11-25)
+ * (judge/industry_ai/view.py KEYWORD_ARM / WATCH_ARM).
  */
 
 /** Counts as one sorted line: "X 300 · Bluesky 104 · Reddit 67". */
@@ -38,7 +43,7 @@ function line(counts, labels) {
 }
 const sorted = (counts) => Object.fromEntries(
   Object.entries(counts || {}).filter(([, v]) => v).sort((x, y) => y[1] - x[1]))
-const hasData = (d) => d.kept > 0 || d.from_watch > 0
+const hasData = (d) => d.kept > 0
 const to = (key) => `/ai-in-industries/${encodeURIComponent(key)}`
 
 function Badges({ d, off = true }) {
@@ -93,10 +98,9 @@ function DomainCard({ d, note }) {
         <p className="iai-stages"><b>By group:</b> {groups.map((g) => `${g.name} ${n(g.kept)}`).join(' · ')}</p>
       )}
       <p className="iai-stages"><b>From:</b> {line(d.by_platform, PLATFORM_LABEL) || '–'}</p>
-      {(d.from_watch > 0 || d.reach > 0 || d.undated > 0) && (
+      {(d.reach > 0 || d.undated > 0) && (
         <p className="dim iai-note">
-          {[d.from_watch > 0 && `${n(d.from_watch)} more from watch lists, counted apart`,
-            d.reach > 0 && `${n(d.reach)} shares & copies`,
+          {[d.reach > 0 && `${n(d.reach)} shares & copies`,
             d.undated > 0 && `${n(d.undated)} with no posting date`].filter(Boolean).join(' · ')}
         </p>
       )}
@@ -154,14 +158,11 @@ export default function IndustryAI() {
   const filtered = (data?.dropped || []).reduce((s, r) => s + r.items, 0)
   const domains = data?.domains || []
   const own = domains.filter((d) => d.kept > 0).sort((a, b) => b.kept - a.kept)
-  const watchOnly = domains.filter((d) => !d.kept && d.from_watch > 0)
-    .sort((a, b) => b.from_watch - a.from_watch)
   const empty = domains.filter((d) => !hasData(d))
-  const unfiled = [data?.general, data?.unconfirmed].filter((b) => b?.kept > 0)
+  const unfiled = [data?.unconfirmed].filter((b) => b?.kept > 0)
 
   const tabs = [
     { key: 'collecting', label: 'Collecting', count: own.length },
-    { key: 'watch', label: 'Watch lists only', count: watchOnly.length },
     { key: 'unfiled', label: 'Not filed under a domain', count: unfiled.reduce((s, b) => s + b.kept, 0) },
     { key: 'filtered', label: 'Filtered out', count: filtered },
     { key: 'empty', label: 'Nothing collected', count: empty.length },
@@ -196,8 +197,8 @@ export default function IndustryAI() {
         </div>
         <p className="dim iai-lede">
           How much data we have collected about AI in {kindText || 'industries and roles'}, from Reddit, X, GitHub,
-          Hacker News, dev.to, Bluesky and blogs, by keyword searches and by watched communities and
-          accounts (Instagram too, watched accounts only). Click an industry to see its posts and every breakdown.
+          Hacker News, dev.to, Bluesky and blogs, by each industry&apos;s keyword searches. Click an industry to see
+          its posts and every breakdown.
         </p>
         {last && (
           <p className="dim iai-note">
@@ -250,30 +251,10 @@ export default function IndustryAI() {
             </section>
           )}
 
-          {tab === 'watch' && (
-            <section className="stack stack-2" role="tabpanel">
-              <p className="dim iai-note">
-                These domains&apos; own searches are switched off, but posts from the watched communities and
-                accounts were filed under them by their words. Counted apart, never as the domain&apos;s own.
-              </p>
-              <div className="iai-tiles">
-                {watchOnly.map((d) => (
-                  <DomainTile key={d.key} d={d}>
-                    {n(d.from_watch)} post{d.from_watch === 1 ? '' : 's'} from watch lists
-                  </DomainTile>
-                ))}
-              </div>
-            </section>
-          )}
-
           {tab === 'unfiled' && (
             <section className="stack stack-2" role="tabpanel">
               <p className="dim iai-note">Kept, but counted in no domain.</p>
               <div className="iai-grid">
-                {data.general?.kept > 0 && (
-                  <DomainCard d={data.general}
-                              note="From the watched communities and accounts, naming no industry or role: general AI news and opinion." />
-                )}
                 {data.unconfirmed?.kept > 0 && (
                   <DomainCard d={data.unconfirmed}
                               note="Found by a domain's searches, but that domain's own words did not confirm it." />

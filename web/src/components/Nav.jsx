@@ -85,6 +85,7 @@ const SIGNED_IN = [
   { to: '/news', label: 'News', desc: 'The news list, with each source’s last read and errors', nofollow: true },
   { to: '/updates', label: 'Updates', desc: 'From our own registry, prices and benchmarks', nofollow: true },
   { to: '/ai-in-industries', label: 'AI in industries', desc: 'Data collected on AI across industries and roles', nofollow: true },
+  { to: '/ai-watch', label: 'AI Watch', desc: 'What the people and communities we watch say about AI', nofollow: true },
   { to: '/admin', label: 'Admin', nofollow: true },
   { to: '/seo-keywords', label: 'SEO keywords', nofollow: true },
 ]

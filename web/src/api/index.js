@@ -754,6 +754,12 @@ export const industryAiDomain = (key, opts = {}) => {
   Object.entries(opts).forEach(([k, v]) => { if (v !== '' && v != null) q.set(k, String(v)) })
   return request(`/industry-ai/${encodeURIComponent(key)}?${q}`)
 }
+// AI Watch (2026-11-25): the observer agent's counts and posts (judge/industry_ai/view.py). Signed in.
+export const aiWatch = () => request('/ai-watch')
+export const aiWatchPosts = (opts = {}) => {
+  const q = new URLSearchParams(Object.entries(opts).filter(([, v]) => v !== '' && v != null))
+  return request(`/ai-watch/posts?${q}`)
+}
 // One story's page: what its source gave, the models it names, related stories.
 export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
 /** One model's pulse for its page (judge/watch.py, GET /watch): new since the last look, weekly trend. */

@@ -3,8 +3,8 @@ point 4), on the disposable test database (TEST_DATABASE_URL).
 
 The labels are written straight into `iai_item`, so these tests pin the PAGE's SQL,
 not the rules that would have chosen the labels. What they pin:
-  * the three tabs (kept, from watch lists, filtered out) never overlap, and "kept"
-    and "from watch lists" match the summary card's figures;
+  * the two tabs (kept, filtered out) never overlap, "kept" matches the summary card,
+    and a watch-list post filed here by its words is in neither (it is on AI Watch);
   * a post waiting for its labels (#663: verdict 'dropped', drop_stage 'pending') is
     in no tab, and never counted as filtered out;
   * a filter narrows both the posts and the breakdowns;
@@ -159,20 +159,15 @@ def _ids(view):
 def test_the_tabs_never_overlap_and_match_the_card(page):
     from judge.industry_ai.view import industry_ai_view
 
-    kept, watch, dropped = (_view(page, scope=s) for s in ("kept", "from_watch", "dropped"))
-    assert kept["scopes"] == {"kept": 3, "from_watch": 1, "dropped": 1}
+    kept, dropped = (_view(page, scope=s) for s in ("kept", "dropped"))
+    assert kept["scopes"] == {"kept": 3, "dropped": 1}
     assert _ids(kept) == {"reddit:t3_k1", "x:k2", "hackernews:c1"}
-    assert _ids(watch) == {"bluesky:w1"}
     assert _ids(dropped) == {"reddit:t3_d1"}
-    assert not (
-        _ids(kept) & _ids(watch) or _ids(kept) & _ids(dropped) or _ids(watch) & _ids(dropped)
-    )
+    assert not _ids(kept) & _ids(dropped)
+    assert "bluesky:w1" not in _ids(kept) | _ids(dropped), "filed by its words: on AI Watch"
 
     card = {d["key"]: d for d in industry_ai_view(page)["domains"]}[D]
-    assert (card["kept"], card["from_watch"]) == (
-        kept["scopes"]["kept"],
-        kept["scopes"]["from_watch"],
-    )
+    assert card["kept"] == kept["scopes"]["kept"]
 
 
 def test_a_post_waiting_for_its_labels_is_never_filtered_out(page):
@@ -220,4 +215,6 @@ def test_an_unknown_domain_or_a_bad_tab_is_refused(page):
     with pytest.raises(BadFilter):
         _view(page, scope="everything")
     with pytest.raises(BadFilter):
-        industry_ai_domain_view(page, "general", scope="dropped")
+        _view(page, scope="from_watch")
+    with pytest.raises(DomainNotFound):
+        industry_ai_domain_view(page, "general")  # General AI is on AI Watch (2026-11-25)

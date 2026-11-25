@@ -83,6 +83,7 @@ const Keywords = page(() => import('./routes/Keywords'))
 const PriceChanges = page(() => import('./routes/PriceChanges'))
 const IndustryAI = page(() => import('./routes/IndustryAI'))
 const IndustryAIDomain = page(() => import('./routes/IndustryAIDomain'))
+const AIWatch = page(() => import('./routes/AIWatch'))
 const News = page(() => import('./routes/News'))
 const NewsStory = page(() => import('./routes/NewsStory'))
 const Updates = page(() => import('./routes/Updates'))
@@ -213,6 +214,7 @@ export default function App() {
           <Route path="/price-changes" element={<Require session={session}><PriceChanges /></Require>} />
           <Route path="/ai-in-industries" element={<Require session={session}><IndustryAI /></Require>} />
           <Route path="/ai-in-industries/:key" element={<Require session={session}><IndustryAIDomain /></Require>} />
+          <Route path="/ai-watch" element={<Require session={session}><AIWatch /></Require>} />
           {/* 2026-11-24 (Parvathi): the news list is public as the "General AI news"
               tab of AI updates; /news stays signed in, the same list plus what is
               for the team - each source's last read and its error text. A story's
