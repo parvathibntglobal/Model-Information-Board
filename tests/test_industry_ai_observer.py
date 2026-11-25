@@ -71,9 +71,9 @@ def test_the_watch_lists_load_off_and_within_their_caps(cfg):
     assert w["enabled"] is False, "the observer stays off until its own dry run"
     for p in ("reddit", "bluesky"):
         assert 0 < len(w[p]) <= 20, p
-    # X was raised to 50 on 2026-11-25 (anooj): its accounts are clubbed, so 43
-    # accounts cost 5 queries, not 43.
-    assert 0 < len(w["x"]) <= 50
+    # X was raised to 150 on 2026-11-25 (anooj): its accounts are clubbed, so 121
+    # accounts cost 13 queries, not 121.
+    assert 0 < len(w["x"]) <= 150
     assert len(w["hackernews"]["lists"]) + len(w["hackernews"]["authors"]) <= 20
 
 
