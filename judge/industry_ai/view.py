@@ -214,11 +214,13 @@ def industry_ai_view(conn) -> dict[str, Any]:
 # ── ONE DOMAIN, IN DETAIL (2026-11-24, Parvathi) ──────────────────────────────
 #
 # The page a domain card opens (/ai-in-industries/<key>): the same counts as the
-# card, every breakdown the stored labels allow, and the posts themselves - an
-# EXCERPT of each post's text with its link, author id, date, engagement and every
-# label the rules gave it. SIGNED-IN ONLY, like the summary (judge/gate.py), and
-# unlike the summary it does carry post text: the summary above stays counts-only.
-# An excerpt, never the full text ("quote + attribution + link, never full text").
+# card, every breakdown the stored labels allow, and the posts themselves - each
+# post's text UP TO ITS FIRST `EXCERPT_CHARS` CHARACTERS, with its link, author id,
+# date, engagement and every label the rules gave it. MOST POSTS ARE SHORTER, SO
+# ARE SHOWN WHOLE (#665 review: on 2026-11-25, 5,476 of the 7,693 stored posts with
+# text were 600 characters or fewer - every Bluesky and dev.to post, most X posts).
+# SIGNED-IN ONLY, like the summary (judge/gate.py), and unlike the summary it does
+# carry post text: the summary above stays counts-only.
 #
 # WHAT A ROW IS - post, comment, issue, article - is not a stored column. It is
 # read from the platform's own id and link, exactly, where they say it:
@@ -286,7 +288,14 @@ def _scope_where(key: str, scope: str) -> tuple[str, dict]:
             "AND 'domain_from_terms:' || %(d)s = ANY(flags)",
             {"d": key},
         )
-    return "verdict = 'dropped' AND %(d)s = ANY(domain_hints)", {"d": key}
+    # NOT A POST WAITING FOR ITS LABELS (#665 review, point 2): since #663 a post
+    # saved before a labelling failure is stored as verdict 'dropped', drop_stage
+    # 'pending'. It was never filtered out, so it is never counted or listed here.
+    return (
+        "verdict = 'dropped' AND drop_stage IS DISTINCT FROM 'pending' "
+        "AND %(d)s = ANY(domain_hints)",
+        {"d": key},
+    )
 
 
 def _like(text: str) -> str:

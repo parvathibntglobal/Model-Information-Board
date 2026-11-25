@@ -37,22 +37,19 @@ def test_each_view_is_kept_apart():
     assert (a["name"], b["name"]) == ("Retail", "Personal")
 
 
+def _join_refreshes():
+    for t in threading.enumerate():
+        if t.name == "industry-ai-refresh":
+            t.join(5)
+
+
 def test_an_old_answer_is_sent_at_once_and_refreshed_in_the_background(monkeypatch):
     cache.cached(("summary",), lambda: {"v": 1})
     monkeypatch.setattr(cache, "TTL_SECONDS", 0)
-    done = threading.Event()
-
-    def build():
-        done.set()
-        return {"v": 2}
-
-    assert cache.cached(("summary",), build)["v"] == 1, "the old answer, not a wait"
-    assert done.wait(5)
-    for _ in range(50):
-        if cache.cached(("summary",), lambda: {"v": 3})["v"] != 1:
-            break
-        done.wait(0.05)
-    assert cache.cached(("summary",), lambda: {"v": 3})["v"] in (2, 3)
+    assert cache.cached(("summary",), lambda: {"v": 2})["v"] == 1, "the old answer, not a wait"
+    _join_refreshes()
+    monkeypatch.setattr(cache, "TTL_SECONDS", 600)
+    assert cache.cached(("summary",), lambda: {"v": 3})["v"] == 2, "the refresh replaced it"
 
 
 def test_a_failed_refresh_keeps_the_old_answer(monkeypatch):
@@ -63,9 +60,7 @@ def test_a_failed_refresh_keeps_the_old_answer(monkeypatch):
         raise RuntimeError("database down")
 
     assert cache.cached(("summary",), broken)["v"] == 1
-    for t in threading.enumerate():
-        if t.name == "industry-ai-refresh":
-            t.join(5)
+    _join_refreshes()
     assert cache.cached(("summary",), broken)["v"] == 1
 
 
@@ -98,3 +93,19 @@ def test_at_most_max_entries_are_kept_least_recently_read_first(monkeypatch):
     cache.cached(("c",), lambda: {"v": "c"})  # drops b
     assert cache.cached(("a",), lambda: {"v": "new"})["v"] == "a"
     assert cache.cached(("b",), lambda: {"v": "b2"})["v"] == "b2"
+
+
+def test_an_answer_older_than_max_age_is_recounted_while_the_visitor_waits(monkeypatch):
+    cache.cached(("summary",), lambda: {"v": 1})
+    monkeypatch.setattr(cache, "MAX_AGE_SECONDS", 0)
+    assert cache.cached(("summary",), lambda: {"v": 2})["v"] == 2, "not the old answer"
+
+
+def test_if_that_recount_fails_the_old_answer_is_sent(monkeypatch):
+    cache.cached(("summary",), lambda: {"v": 1})
+    monkeypatch.setattr(cache, "MAX_AGE_SECONDS", 0)
+
+    def broken():
+        raise RuntimeError("database down")
+
+    assert cache.cached(("summary",), broken)["v"] == 1

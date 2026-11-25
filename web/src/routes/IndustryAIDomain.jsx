@@ -293,9 +293,10 @@ export default function IndustryAIDomain() {
               {data.text_cleared > 0 && <li>{n(data.text_cleared)} posts had their text cleared by retention (their labels stay).</li>}
               {data.mapped_people_items > 0 && <li>{n(data.mapped_people_items)} posts are by a person mapped across platforms.</li>}
               {countedAt(data.counted_at) && (
-                <li>Counted at {countedAt(data.counted_at)} on {fmtDayUtc(data.counted_at)}; each view is recounted every few minutes.</li>
+                <li>Counted at {countedAt(data.counted_at)} on {fmtDayUtc(data.counted_at)}. Each view is recounted on a visit after 10 minutes, and never shown more than an hour old.</li>
               )}
-              <li>Each post shows its first {n(data.excerpt_chars)} characters and a link to the original. Labels are
+              <li>Each post shows its text up to its first {n(data.excerpt_chars)} characters (most posts are
+                shorter, so are shown whole), with a link to the original. Labels are
                 set by code rules ({data.rules_version}); no language model read these posts.</li>
               {!isBucket && data.domain_terms?.length > 0 && (
                 <li>This domain&apos;s words ({n(data.domain_terms.length)}): {data.domain_terms.join(' · ')}</li>

@@ -34,7 +34,7 @@ export const REASON_LABEL = {
 
 export const n = (v) => (v ?? 0).toLocaleString('en-GB')
 
-/** When the API counted this answer (judge/industry_ai/cache.py keeps it ~10 minutes). */
+/** When the API counted this answer (judge/industry_ai/cache.py: recounted after 10 minutes, never over an hour old). */
 export function countedAt(iso) {
   if (!iso) return null
   const t = new Date(iso)

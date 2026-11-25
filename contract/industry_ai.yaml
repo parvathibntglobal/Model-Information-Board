@@ -6,8 +6,9 @@
 # each kept item with its domain(s) and a content type. No language model is
 # called anywhere in this lane. The signed-in "AI in industries" page
 # (/ai-in-industries) shows the counts and no post text; each domain's own
-# page (/ai-in-industries/<key>, signed in, 2026-11-24) also lists its posts,
-# as an excerpt with a link to the original.
+# page (/ai-in-industries/<key>, signed in, 2026-11-24) also lists its posts:
+# each post's text up to its first 600 characters (most posts are shorter, so
+# are shown whole), with a link to the original.
 #
 # EVERYTHING THE TEAM TUNES IS IN THIS FILE: queries, feeds, terms, excluded
 # phrases and patterns. Change them here, never in code. After a change,

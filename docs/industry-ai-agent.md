@@ -369,7 +369,9 @@ In order. The first that matches drops the item:
 - **Kept for a few minutes** (`judge/industry_ai/cache.py`, 2026-11-24): each view (the
   summary; each domain's tab, filters, order and page) is worked out once and kept for
   10 minutes. After that the old answer is still sent at once while ONE background
-  refresh replaces it. The summary and each collecting domain's first view are worked
+  refresh replaces it. Refreshes happen only when someone asks, so an answer older than
+  an hour is never sent: it is recounted while the visitor waits (~5 s), and the old one
+  is sent only if that recount fails. The summary and each collecting domain's first view are worked
   out at API startup. Every answer carries `counted_at`, shown on the page. Measured on
   2026-11-24 from a developer machine against the shared database: ~5 s uncached,
   under 0.04 s kept.
@@ -379,8 +381,11 @@ In order. The first that matches drops the item:
 - **Route:** `/ai-in-industries/<key>`, signed-in (`web/src/routes/IndustryAIDomain.jsx`),
   opened from the domain's card. `general` and `unconfirmed` open the two buckets.
 - **API:** `GET /industry-ai/{key}` (`industry_ai_domain_view`), live, signed in.
-  Unlike the summary, **it carries post text**: an excerpt of each post (the first
-  600 characters), its link, author id, dates and engagement. Never the full text.
+  Unlike the summary, **it carries post text**: each post's text up to its first
+  600 characters, with its link, author id, dates and engagement. **Most posts are
+  shorter, so are shown whole** (on 2026-11-25, 5,476 of 7,693 stored posts with
+  text: every Bluesky and dev.to post, 1,571 of 2,184 X posts, 647 of 1,341 Reddit
+  posts); a longer one is cut, and the link leads to the rest.
 - **Three populations, never added together:** kept by the domain's own queries
   (the card's "kept"), kept from the watch lists and filed here by their terms, and
   filtered out (found by the domain's queries), each with its count.
@@ -390,7 +395,9 @@ In order. The first that matches drops the item:
 - **Breakdowns, each one a filter:** content type, what the row is, platform,
   use-case stage, drop reason, group, the industry words and AI terms that matched,
   flags, month posted, and the search or watch list that found it. Plus a text search
-  and four orders (newest, oldest, most engaged, newest found). The filters live in
+  and four orders (newest, oldest, most engaged, newest found). *Most engaged* adds up
+  each platform's own counts, views included, so on a mixed list it mostly means X
+  (the page says so); filter to one platform for a fair order. The filters live in
   the address, so a filtered view can be shared.
 - **What a row is** is not stored; it is read from each platform's own id and link:
   Reddit `t3_` post / `t1_` comment; GitHub issue, pull request or discussion by its
