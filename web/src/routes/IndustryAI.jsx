@@ -209,7 +209,17 @@ export default function IndustryAI() {
             <div><b className="tnum">{n(data.collected)}</b><span>items collected</span></div>
             <div><b className="tnum">{n(data.kept)}</b><span>kept</span></div>
             <div><b className="tnum">{n(filtered)}</b><span>filtered out</span></div>
+            {data.pending > 0 && (
+              <div><b className="tnum">{n(data.pending)}</b><span>waiting to be labelled</span></div>
+            )}
           </div>
+          {data.pending > 0 && (
+            <p className="dim iai-note">
+              {n(data.pending)} saved, waiting to be labelled: a run&apos;s labelling failed after its posts
+              were saved. The next run or a relabel labels them. They are counted in no domain and not as
+              filtered out.
+            </p>
+          )}
           {data.collected === 0 && (
             <p className="dim">Nothing collected yet: no run has stored any item.</p>
           )}
