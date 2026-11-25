@@ -667,10 +667,10 @@ watch:
   # clubs x x_pages, so every club can be read over the whole window: 15 clubs of the
   # 150 accounts x 10 pages = 150 (was 30 for 2 clubs, 2026-11-25). A ceiling, not a
   # spend: paging stops at `since:`. Reddit is one listing page per subreddit
-  # (run.pages_per_query.reddit), so 55 subreddits = 55 (was 25 for 20, 2026-11-25).
+  # (run.pages_per_query.reddit), so 43 subreddits = 43 (was 25 for 20, 2026-11-25).
   # Instagram is one feed request per account (its id is stored below), so the cap
   # is the number of accounts. Its plan is 15,000 requests a month (read 2026-11-25).
-  max_requests: {reddit: 55, x: 150, bluesky: 20, hackernews: 15, instagram: 200}
+  max_requests: {reddit: 43, x: 150, bluesky: 20, hackernews: 15, instagram: 200}
   # X pages per clubbed account query, and how many accounts one query clubs.
   x_pages: 10
   x_club_max: 10
@@ -685,15 +685,21 @@ watch:
   # 200 with 25 posts, naming no subreddit. Left out: r/programming (0 of its newest
   # 25 posts named an AI term, by rules.ai_terms_found) and r/AiForSmallBusiness (an
   # empty page under three spellings).
-  # THE SECOND LINE IS GENERAL COMMUNITIES (security, ops, web, data, productivity):
-  # few of their posts name AI (2 to 13 of the newest 25 that day, against 14 to 23
-  # for most AI communities), and those few are people in a field using AI - this
-  # lane's subject. Their per-source yield in the first dry run decides which stay.
+  # FIELD COMMUNITIES ARE NOT WATCHED (anooj, 2026-11-25, #667). A watched post has no
+  # domain of its own: it is filed under every domain its terms name and counted APART
+  # ("from watch lists"), never in a domain's own figures. A community about one field
+  # is that field's evidence, so it is a keyword LISTING of its domain instead
+  # (`domains.<key>.queries.reddit.subreddits`), counted in the domain. Moved there:
+  # webdev, coding, devops, googlecloud -> engineering/software_ai; dataengineering,
+  # databricks, datascience -> data_analytics. Already listed by their domain, so only
+  # removed here: cybersecurity, sysadmin (security_it), productivity (personal),
+  # ExperiencedDevs (engineering/software_ai), automation (operations).
+  # Measured 2026-11-24/25 over both real runs: 81% of what the watch lists kept (686
+  # of 849) named no industry - the observer is the cross-domain AI feed.
   # ONE PAGE IS 25 POSTS: on 2026-11-25 that was about 3 hours of r/ChatGPT, 6 of
   # r/aiwars and 7 of r/generativeAI, so a daily run reads only a slice of the busiest.
   reddit: [ChatGPTPro, AI_Agents, ArtificialInteligence, PromptEngineering, vibecoding, ClaudeAI, ClaudeCode, OpenAI, LocalLLaMA, GeminiAI, cursor, LLMDevs, aipromptprogramming, AIAssisted, ChatGPTPromptGenius, perplexity_ai, midjourney, StableDiffusion, MachineLearning, Anthropic,
-           WritingWithAI, generativeAI, automation, aiArt, GithubCopilot, Rag, LangChain, LocalLLM, comfyui, nocode, learnmachinelearning, openclaw, singularity, artificial, deeplearning, mlops, ChatGPT, codex, MistralAI, ChatGPTCoding, hermesagent, ClaudeCowork, ElevenLabs, aiwars,
-           cybersecurity, sysadmin, devops, webdev, dataengineering, databricks, datascience, googlecloud, ExperiencedDevs, coding, productivity]
+           WritingWithAI, generativeAI, aiArt, GithubCopilot, Rag, LangChain, LocalLLM, comfyui, nocode, learnmachinelearning, openclaw, singularity, artificial, deeplearning, mlops, ChatGPT, codex, MistralAI, ChatGPTCoding, hermesagent, ClaudeCowork, ElevenLabs, aiwars]
   # X: 20 accounts from 2026-11-20, and 130 added by anooj on 2026-11-25 from
   # gathered lists (builders and solo founders; AI researchers, lab leaders,
   # investors and developers; AI labs' and institutes' own accounts; published
@@ -736,7 +742,17 @@ watch:
       rauchg, antgrasso, paulg, minchoi, simonw, Strategy_Gal, LinusEkenstam, gregisenberg, jeremyphoward, GaryMarcus,
       DeepLearn007, Shawnife, theo, AmirMushich, dhh, garrytan, nigewillson, swyx, kdnuggets, sallyeaves,
       kloss_xyz, TamaraMcCleary, steipete, tunguz, AIHighlight, levelsio, Ronald_vanLoon, KirkDBorne, Scobleizer, AIFrontliner]
-  bluesky: [simonwillison.net, emollick.bsky.social, natolambert.bsky.social, minimaxir.bsky.social, vickiboykis.com, garymarcus.bsky.social, melaniemitchell.bsky.social, eugeneyan.com, howard.fm, swyx.io, randomwalker.bsky.social, hamel.bsky.social, karpathy.bsky.social]
+  # BLUESKY: DORMANT ACCOUNTS OUT (anooj, 2026-11-25, #667). Bluesky's public search has
+  # no working date limit (`since`, as a parameter in three forms or in the query,
+  # answered HTTP 400 on api.bsky.app, 2026-11-25), so each run reads an account's
+  # newest 100 posts, however old. Over both real runs 1,085 of the 1,773 watch drops
+  # were such old Bluesky posts. Left out: no post in the 30 days to 2026-11-25 -
+  # eugeneyan.com (newest 2025-09-17), howard.fm (2026-05-11), swyx.io (2026-01-26),
+  # hamel.bsky.social (2026-09-27), karpathy.bsky.social (2023-05-27). Jeremy Howard,
+  # swyx and Karpathy are still watched on X; Eugene Yan and Hamel Husain are not
+  # watched anywhere now. Low but alive, kept: vickiboykis.com (2 posts in 30 days),
+  # garymarcus.bsky.social (1), randomwalker.bsky.social (1), melaniemitchell (5).
+  bluesky: [simonwillison.net, emollick.bsky.social, natolambert.bsky.social, minimaxir.bsky.social, vickiboykis.com, garymarcus.bsky.social, melaniemitchell.bsky.social, randomwalker.bsky.social]
   # INSTAGRAM (anooj, 2026-11-25): WATCHED ACCOUNTS ONLY - no keyword search. Read for
   # the signed-in Industry AI page; never shown publicly or quoted
   # (contract/publication.yaml). Route and terms: collect/adapters/instagram.py, ruling
@@ -954,9 +970,9 @@ watch:
     - [zeeeljain, "53307132248"]
   hackernews:
     lists: [show_hn, ask_hn, front_page]
-    # tptacek on probation: very prolific, mostly not about AI; kept only if his
-    # first-run yield passes the sieve often.
-    authors: [simonw, minimaxir, swyx, jph00, karpathy, tptacek]
+    # tptacek LEFT OUT (2026-11-25, #667): he was on probation (prolific, mostly not
+    # about AI); over both real runs 34 of his posts were dropped for naming no AI term.
+    authors: [simonw, minimaxir, swyx, jph00, karpathy]
   # ONE PERSON, SEVERAL HANDLES (2026-11-20). Six watched people post on two or three
   # platforms. Without this map a person counts as one author PER PLATFORM, and their
   # same post on X and Bluesky stays two items. Measured 2026-11-20 over one 7-day
@@ -972,18 +988,18 @@ watch:
   # query links to its person too, and a `from:<handle>` post whose author is another
   # DID - a handle that changed hands - links to no one. Resolved by hand on
   # 2026-11-24 through com.atproto.identity.resolveHandle on api.bsky.app (the adapter's
-  # own host), all six HTTP 200. Re-resolve when a Bluesky handle here changes.
+  # own host), all six HTTP 200; three remain (2026-11-25). Re-resolve when a Bluesky
+  # handle here changes.
   people:
     simon_willison: {x: simonw, bluesky: simonwillison.net, hackernews: simonw,
                      bluesky_did: "did:plc:kft6lu4trxowqmter2b6vg6z"}
-    andrej_karpathy: {x: karpathy, bluesky: karpathy.bsky.social, hackernews: karpathy,
-                      bluesky_did: "did:plc:j7gi6r4kh6uof7rfrqpm3fej"}
-    swyx: {x: swyx, bluesky: swyx.io, hackernews: swyx,
-           bluesky_did: "did:plc:xxuso5disl5vq5xfzlr7mf52"}
+    # Karpathy, swyx and Jeremy Howard lost their Bluesky handles and DIDs with those
+    # accounts (2026-11-25, dormant there; see `bluesky` above).
+    andrej_karpathy: {x: karpathy, hackernews: karpathy}
+    swyx: {x: swyx, hackernews: swyx}
     ethan_mollick: {x: emollick, bluesky: emollick.bsky.social,
                     bluesky_did: "did:plc:flxq4uyjfotciovpw3x3fxnu"}
-    jeremy_howard: {x: jeremyphoward, bluesky: howard.fm, hackernews: jph00,
-                    bluesky_did: "did:plc:ihze7dasblwewgunyesfbm23"}
+    jeremy_howard: {x: jeremyphoward, hackernews: jph00}
     max_woolf: {bluesky: minimaxir.bsky.social, hackernews: minimaxir,
                 bluesky_did: "did:plc:oxaernim5mj2mmy3ytrvb42n"}
   # A CROSS-POST IS THE SAME POST, NOW, ON ANOTHER PLATFORM (#653 review). Dedupe pass 3
@@ -2678,6 +2694,12 @@ domains:
             - ExperiencedDevs
             - softwareengineering
             - ChatGPTCoding
+            # From the observer's watch list (2026-11-25, #667): field communities count
+            # in their domain. Checked that day: each listing's posts name the subreddit.
+            - webdev
+            - coding
+            - devops
+            - googlecloud
             search:
             - AI code review team
             - coding agent production
@@ -2938,6 +2960,11 @@ domains:
         - dataanalysis
         - BusinessIntelligence
         - analytics
+        # From the observer's watch list (2026-11-25, #667): field communities count in
+        # their domain. Checked that day: each listing's posts name the subreddit.
+        - dataengineering
+        - databricks
+        - datascience
         search:
         - text-to-SQL AI
         - data labeling AI
