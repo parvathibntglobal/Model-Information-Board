@@ -66,12 +66,24 @@ def one(cfg, it):
 # ── the contract ─────────────────────────────────────────────────────────────
 
 
-def test_the_watch_lists_load_off_and_within_twenty(cfg):
+def test_the_watch_lists_load_off_and_within_their_caps(cfg):
     w = cfg.watch
     assert w["enabled"] is False, "the observer stays off until its own dry run"
-    for p in ("reddit", "x", "bluesky"):
+    for p in ("reddit", "bluesky"):
         assert 0 < len(w[p]) <= 20, p
+    # X was raised to 50 on 2026-11-25 (anooj): its accounts are clubbed, so 43
+    # accounts cost 5 queries, not 43.
+    assert 0 < len(w["x"]) <= 50
     assert len(w["hackernews"]["lists"]) + len(w["hackernews"]["authors"]) <= 20
+
+
+def test_the_x_watch_cap_reads_every_club_over_the_window(cfg):
+    """A cap below clubs x pages leaves the LAST clubs unread, and the list's order
+    decides which accounts those are. The run log says "capped", but nothing would
+    say which accounts went unread - so the cap must cover them all."""
+    w = cfg.watch
+    clubs = -(-len(w["x"]) // w["x_club_max"])
+    assert w["max_requests"]["x"] >= clubs * w["x_pages"]
 
 
 @pytest.mark.parametrize(

@@ -648,7 +648,9 @@ retention:
 #     the run log, so a source that brings nothing is flagged for pruning.
 #   * its own switch (`enabled`) and its own request caps, so watching can never
 #     starve the keyword queries. Off until its first dry run.
-# Lists are capped at 20 per platform for now. Checked 2026-11-20: the 13 Bluesky
+# Lists are capped at 20 per platform for now, except X: 43 accounts since 2026-11-25
+# (anooj added 23 builders, founders and AI-tools accounts; see the X list below).
+# Checked 2026-11-20: the 13 Bluesky
 # handles resolve (public getProfile); the HN authors have posts (Algolia
 # author_<name>); X `from:` clubbing returns only the listed accounts' posts on our
 # route (1 request) - but one prolific account filled a page (swyx 16 of 20 over
@@ -661,15 +663,33 @@ watch:
   # How far back a watched source is read on each run (the run's window for watch
   # queries; X adds it as `since:`).
   lookback_days: 7
-  # Watch requests per platform per run, separate from run.max_requests.
-  max_requests: {reddit: 25, x: 30, bluesky: 20, hackernews: 15}
+  # Watch requests per platform per run, separate from run.max_requests. X is
+  # clubs x x_pages, so every club can be read over the whole window: 5 clubs of the
+  # 43 accounts x 10 pages = 50 (was 30 for 2 clubs, 2026-11-25). A ceiling, not a
+  # spend: paging stops at `since:`.
+  max_requests: {reddit: 25, x: 50, bluesky: 20, hackernews: 15}
   # X pages per clubbed account query, and how many accounts one query clubs.
   x_pages: 10
   x_club_max: 10
   # Replies excluded in the first test runs (anooj, 2026-11-20); kept later.
   x_suffix: "-filter:replies"
   reddit: [ChatGPTPro, AI_Agents, ArtificialInteligence, PromptEngineering, vibecoding, ClaudeAI, ClaudeCode, OpenAI, LocalLLaMA, GeminiAI, cursor, LLMDevs, aipromptprogramming, AIAssisted, ChatGPTPromptGenius, perplexity_ai, midjourney, StableDiffusion, MachineLearning, Anthropic]
-  x: [karpathy, sama, simonw, emollick, AndrewYNg, swyx, gdb, ylecun, jeremyphoward, amasad, rauchg, OfficialLoganK, goodside, alliekmiller, lennysan, danshipper, levelsio, hwchase17, alexalbert__, rowancheung]
+  # X: clubbed x_club_max at a time IN THIS ORDER, so the order matters. The first 20
+  # are the 2026-11-20 list. The next 23 were added by anooj on 2026-11-25: builders,
+  # solo founders, and accounts on AI tools, prompts, ads, images and automation.
+  # All 23 were checked that day through our route's user lookup (twitter241 /user):
+  # each exists, is public and answers to the handle written here.
+  # THE LAST CLUB HOLDS THE THREE BUSIEST ACCOUNTS, so they can fill only each
+  # other's pages (the swyx problem above). "Busiest" by lifetime post count on
+  # 2026-11-25: AIFrontliner about 2.2 million, AIHighlight about 156 thousand,
+  # steipete about 143 thousand; every other new account was under 100 thousand. A
+  # lifetime count is not a weekly rate - the first dry run's per-account counts
+  # decide whether this grouping holds. Keep them last when adding accounts.
+  x: [karpathy, sama, simonw, emollick, AndrewYNg, swyx, gdb, ylecun, jeremyphoward, amasad,
+      rauchg, OfficialLoganK, goodside, alliekmiller, lennysan, danshipper, levelsio, hwchase17, alexalbert__, rowancheung,
+      gregisenberg, rileybrown, corbin_braun, jackfriks, marclou, EXM7777, eptwts, godofprompt, AriaWestcott, vasuman,
+      AmirMushich, 0xROAS, egeberkina, MengTo, TheAIColony, rryssf, kloss_xyz, Shawnife, Hesamation, FutureStacked,
+      steipete, AIHighlight, AIFrontliner]
   bluesky: [simonwillison.net, emollick.bsky.social, natolambert.bsky.social, minimaxir.bsky.social, vickiboykis.com, garymarcus.bsky.social, melaniemitchell.bsky.social, eugeneyan.com, howard.fm, swyx.io, randomwalker.bsky.social, hamel.bsky.social, karpathy.bsky.social]
   hackernews:
     lists: [show_hn, ask_hn, front_page]
