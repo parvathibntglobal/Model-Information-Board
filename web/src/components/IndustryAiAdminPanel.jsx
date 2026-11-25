@@ -75,7 +75,7 @@ export default function IndustryAiAdminPanel() {
   const sw = feed?.switch?.state
   const items = data?.items
   const versions = Object.entries(data?.versions || {})
-  const behind = versions.filter(([v]) => v !== data?.pipeline_version).reduce((s, [, c]) => s + c, 0)
+  const behind = versions.filter(([v]) => v !== data?.rules_version).reduce((s, [, c]) => s + c, 0)
   const r = data?.retention || {}
 
   return (
@@ -113,7 +113,7 @@ export default function IndustryAiAdminPanel() {
           <>
             <div className="adm-plan-grid iai-adm-four">
               <Cell k="Posts stored" v={n(items.stored)} sub={`${n(items.kept)} kept`} />
-              <Cell k="Rules version" v={<span className="mono">{data.pipeline_version || '–'}</span>}
+              <Cell k="Rules version" v={<span className="mono">{data.rules_version || '–'}</span>}
                     sub={behind ? `${n(behind)} stored post(s) labelled with older rules` : 'every stored label is on it'} />
               <Cell k="Saved, not labelled" v={n(items.pending)}
                     sub={items.pending ? 'a labelling failed; the next run or --relabel labels them' : 'none waiting'} />
@@ -124,40 +124,43 @@ export default function IndustryAiAdminPanel() {
             {behind > 0 && (
               <Notice icon={<IconAlert />}>
                 {n(behind)} stored post(s) carry labels from older rules than the contract&apos;s{' '}
-                <span className="mono">{data.pipeline_version}</span>, so the page counts them by the old rules.
+                <span className="mono">{data.rules_version}</span>, so the page counts them by the old rules.
                 A <code>--relabel</code> run (no requests) brings them up to date.
               </Notice>
             )}
             {versions.length > 0 && (
               <span className="dim" style={{ fontSize: 11 }}>
-                Labels by rules version: {versions.map(([v, c]) => `${v} ${n(c)}`).join(' · ')}
+                Stored labels, by the rules that made them — {versions.map(([v, c]) => `${v} ${n(c)}`).join(' · ')}
               </span>
             )}
 
             <div className="stack stack-1">
               <span className="label">The last runs</span>
               <div className="tablewrap"><table>
-                <thead><tr><th>Started</th><th>Run</th><th>Result</th><th>Requests used / cap</th><th>Rules</th><th>Detail</th></tr></thead>
+                <thead><tr><th>Started</th><th>Run</th><th>Result</th><th>Keyword agent: used / cap</th><th>Observer: used / cap</th><th>Rules</th><th>Detail</th></tr></thead>
                 <tbody>
                   {data.runs.length === 0 ? (
-                    <tr><td colSpan={6} className="dim">No run recorded yet.</td></tr>
+                    <tr><td colSpan={7} className="dim">No run recorded yet.</td></tr>
                   ) : data.runs.map((run) => (
                     <tr key={run.started_at}>
                       <td>{when(run.started_at)}</td>
                       <td className="dim">{run.mode}</td>
                       <td>{run.status === 'ok' ? <span className="run-ok">✓ ok</span>
                         : <Badge tone={run.status === 'running' ? 'info' : 'fail'}>{run.status}</Badge>}</td>
-                      <td><Requests used={run.requests} caps={data.caps} /></td>
-                      <td className="mono" style={{ whiteSpace: 'nowrap' }}>{run.pipeline_version}</td>
+                      {/* EACH AGENT AGAINST ITS OWN CAP (#668 review, point 6, rule 7):
+                          the run's total per platform is split by the observer's own
+                          queries, so neither figure is set against the other's cap. */}
+                      <td><Requests used={run.requests_keyword} caps={data.caps} /></td>
+                      <td><Requests used={run.requests_watch} caps={data.watch_caps} /></td>
+                      <td className="mono" style={{ whiteSpace: 'nowrap' }}>{run.rules_version}</td>
                       <td className="dim" style={{ fontSize: 11 }}>{run.detail || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table></div>
               <span className="dim" style={{ fontSize: 11 }}>
-                The caps shown are the Industry AI agent&apos;s; the observer has its own
-                ({Object.entries(data.watch_caps || {}).map(([k, v]) => `${PLATFORM[k] || k} ${v}`).join(', ') || 'none set'}),
-                so a run with the observer added can use more. Reddit and X are metered.
+                Each agent&apos;s requests are shown against its own cap: the observer&apos;s are its own
+                queries, the keyword agent&apos;s the rest of what the run spent. Reddit and X are metered.
               </span>
             </div>
           </>

@@ -36,9 +36,17 @@ ALSO `/coverage`, which Admin's health figures read on each load (~2.5-3.7 s,
 2026-11-25). It changes only when the evidence pipeline writes.
 
 Kept per section and per query (e.g. `/admin/usage?hours=24&days=14`), at most
-`MAX_ENTRIES` answers, least recently read dropped first. Signed-in only: every
-route this wraps is an /admin route behind the gate, and its answer is the same
-for every signed-in person.
+`MAX_ENTRIES` answers, least recently read dropped first. THE KEY DOES NOT SAY WHO
+IS ASKING, so only a route whose answer is the same for everyone who may call it is
+wrapped: the /admin routes (signed in), `/coverage` (signed in, not a public read)
+and `/blog-posts` (its `include=all` is refused without a token by the gate before
+the route runs, and `include` is in the key). A route that takes the `Request` -
+`/news`, `/compare`, which answer an anonymous caller differently - is REFUSED by
+`kept()` when the module loads (#668 review, point 8).
+
+WRITES OUTSIDE THE API DO NOT CLEAR IT: an Industry AI run, the nightly fetch or a
+CLI command writes straight to the database, so what they change shows once a
+section's fresh time has passed and a visit recounts it, or on Refresh.
 """
 
 from __future__ import annotations
@@ -52,6 +60,8 @@ import time
 from collections import OrderedDict
 from collections.abc import Callable, Hashable
 from typing import Any
+
+from fastapi import Request
 
 log = logging.getLogger(__name__)
 
@@ -135,6 +145,12 @@ def kept(name: str, *, fresh: float, max_age: float):
 
     def wrap(fn):
         sig = inspect.signature(fn)
+        # THE KEY DOES NOT SAY WHO IS ASKING: a route that reads the request (an
+        # anonymous caller answered differently) must never share a kept answer.
+        for param in sig.parameters.values():
+            if param.name == "request" or param.annotation in ("Request", Request):
+                raise TypeError(f"admin_cache.kept({name!r}): {fn.__name__} takes the request, "
+                                "so its answer may depend on who asks - it cannot be kept")
 
         @functools.wraps(fn)
         def route(*args, **kwargs):

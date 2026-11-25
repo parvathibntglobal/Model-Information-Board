@@ -16,9 +16,10 @@ import '../styles/industry-ai.css'
  * from the data, and names none of them (Parvathi, 2026-11-24): the Info view
  * lists them and says which are active.
  *
- * COUNTS ONLY. The API sends no post text, link or author (judge/industry_ai/
- * view.py), so nothing here can show one. Each card opens its domain's own page
- * (routes/IndustryAIDomain.jsx, signed in), which does list the posts. Every number
+ * COUNTS ONLY ON THIS SUMMARY. Its API sends no post text, link or author
+ * (judge/industry_ai/view.py industry_ai_view). Each card opens its domain's own
+ * page (routes/IndustryAIDomain.jsx, signed in), which lists the posts, each with
+ * its text up to its first `excerpt_chars` characters and a link (#665). Every number
  * is a count of stored items, beside its denominator: what the domain's queries
  * found, and what the rules filtered out and why - so a small "kept" never reads as
  * "nothing out there" (rules 4 and 7). Items no domain's terms confirmed are counted
@@ -139,8 +140,17 @@ export default function IndustryAI() {
   const last = data?.last_run
   // THE INTRO COUNTS THE DOMAINS FROM THE PAYLOAD (2026-11-24, Parvathi): every
   // domain in contract/industry_ai.yaml, active or not, so the number follows
-  // the contract (rule 11). The Info view lists them and says which are active.
-  const domainCount = data?.domains?.length || null
+  // the contract (rule 11). INDUSTRIES AND ROLES APART (#668 review, point 5):
+  // each domain's `kind` is `industry` or `function` (a role in every industry),
+  // and calling roles industries misnamed them. The Info view lists them.
+  const kinds = (data?.domains || []).reduce((acc, d) => {
+    acc[d.kind] = (acc[d.kind] || 0) + 1
+    return acc
+  }, {})
+  const kindText = [
+    kinds.industry && `${kinds.industry} ${kinds.industry === 1 ? 'industry' : 'industries'}`,
+    kinds.function && `${kinds.function} ${kinds.function === 1 ? 'role' : 'roles'}`,
+  ].filter(Boolean).join(' and ')
   const filtered = (data?.dropped || []).reduce((s, r) => s + r.items, 0)
   const domains = data?.domains || []
   const own = domains.filter((d) => d.kept > 0).sort((a, b) => b.kept - a.kept)
@@ -185,7 +195,7 @@ export default function IndustryAI() {
           </div>
         </div>
         <p className="dim iai-lede">
-          How much data we have collected about AI in {domainCount ? `${domainCount} industries` : 'industries'}, from Reddit, X, GitHub,
+          How much data we have collected about AI in {kindText || 'industries and roles'}, from Reddit, X, GitHub,
           Hacker News, dev.to, Bluesky and blogs, by keyword searches and by watched communities and
           accounts. Click an industry to see its posts and every breakdown.
         </p>

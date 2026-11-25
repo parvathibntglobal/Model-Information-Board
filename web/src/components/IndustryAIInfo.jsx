@@ -315,8 +315,9 @@ export default function IndustryAIInfo() {
       <section className="card iai-card">
         <h2>Two agents fill this page</h2>
         <p className="iai-def">
-          Both are <b>code only</b>: no language model reads, labels or scores a post. They run in the same weekly
-          run, through the same steps, into the same counts, and a post both of them find is counted once.
+          Both are <b>code only</b>: no language model reads, labels or scores a post. They run in the same
+          harvest (see &quot;When it runs&quot;), through the same steps, into the same counts, and a post both of
+          them find is counted once.
         </p>
         <div className="iai-agents">
           <div className="iai-agent">
@@ -366,12 +367,16 @@ export default function IndustryAIInfo() {
             dropped, and counted by reason on the counts view.</li>
           <li><b>Label</b>: the industry or industries its keywords confirm, and a content type (
             {info.types.map((t) => TYPE_LABEL[t] || t).join(', ')}).</li>
-          <li><b>Store</b>: only counts reach the page; no post text, link or author is shown.</li>
+          <li><b>Store</b>: this summary shows counts only. An industry&apos;s own page lists its posts, each
+            with its text up to its first <span className="tnum">{info.excerpt_chars ?? '–'}</span> characters (most
+            posts are shorter, so are shown whole) and a link to the original.</li>
         </ol>
         <dl className="iai-settings">
           <div><dt>Shortest post kept</dt><dd className="tnum">{run.min_text_chars ?? '–'} characters</dd></div>
           <div><dt>Context distance</dt><dd className="tnum">{run.context_window_words ?? '–'} words</dd></div>
-          <div><dt>Rules version</dt><dd className="mono">{info.pipeline_version || '–'}</dd></div>
+          <div><dt>Rules version</dt><dd><span className="mono">{info.rules_version || '–'}</span>
+            {info.versions?.[info.rules_version] && (
+              <span className="dim iai-dd-note"> {info.versions[info.rules_version]}</span>)}</dd></div>
         </dl>
         {run.pages_per_query?.x_clubbed != null && run.x_clubbed_min_keywords != null && (
           <p className="dim iai-note">An X search that groups at least{' '}

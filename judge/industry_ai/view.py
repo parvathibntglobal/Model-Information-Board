@@ -272,7 +272,9 @@ def industry_ai_info() -> dict[str, Any]:
                        for gk, g in (d.get("groups") or {}).items()],
         })
     return {
-        "pipeline_version": c.get("pipeline_version"),
+        # `rules_version`, not `pipeline_version` (#668 review): the field-name audit
+        # matches names across payloads, and /coverage's own field has no reader.
+        "rules_version": c.get("pipeline_version"),
         "run": {
             "enabled": run.get("enabled"),
             "cadence": run.get("cadence"),
@@ -292,6 +294,11 @@ def industry_ai_info() -> dict[str, Any]:
             "dropped": (c.get("retention") or {}).get("dropped"),
             "kept_domains": list((c.get("retention") or {}).get("kept_domains") or []),
         },
+        # A domain's page shows each post's text up to this many characters (#665),
+        # so the Info view can say so without writing the number (#668 review, 3).
+        "excerpt_chars": EXCERPT_CHARS,
+        # What each rules version changed (contract `versions:`, #668 review Q2).
+        "versions": {str(k): str(v) for k, v in (c.get("versions") or {}).items()},
         "query_suffix": c.get("query_suffix") or {},
         "ai_terms": list(c.get("ai_terms") or []),
         "global_exclude_phrases": list(c.get("global_exclude_phrases") or []),
@@ -355,13 +362,29 @@ _RUN_ERROR = re.compile(
 )
 
 
+def _requests_by_agent(total: dict, queries: list) -> dict[str, dict[str, int]]:
+    """A run's requests per platform, split: the observer's are its queries with
+    domain "watch" (collect/industry_ai/harvest.py); the keyword agent's are the
+    rest of the run's total, so the two always add up to what the run spent."""
+    watch: dict[str, int] = {}
+    for q in queries:
+        if isinstance(q, dict) and q.get("domain") == "watch":
+            p = q.get("platform")
+            watch[p] = watch.get(p, 0) + int(q.get("requests") or 0)
+    keyword = {p: max(int(n or 0) - watch.get(p, 0), 0) for p, n in total.items()}
+    return {"requests_keyword": {p: n for p, n in keyword.items() if n},
+            "requests_watch": {p: n for p, n in watch.items() if n}}
+
+
 def industry_ai_admin(conn) -> dict[str, Any]:
     c = _contract()
     run = c.get("run") or {}
     watch = c.get("watch") or {}
     ret = c.get("retention") or {}
     out: dict[str, Any] = {
-        "pipeline_version": c.get("pipeline_version"),
+        # `rules_version`, not `pipeline_version` (#668 review): the field-name audit
+        # matches names across payloads, and this one is read here only.
+        "rules_version": c.get("pipeline_version"),
         "harvest_enabled": run.get("enabled"),
         "watch_enabled": watch.get("enabled"),
         "caps": run.get("max_requests") or {},
@@ -396,7 +419,8 @@ def industry_ai_admin(conn) -> dict[str, Any]:
                  "kept": list(ret.get("kept_domains") or [])},
             ).fetchone()
         runs = conn.execute(
-            "SELECT started_at, finished_at, mode, status, pipeline_version, requests, detail "
+            "SELECT started_at, finished_at, mode, status, pipeline_version, requests, detail, "
+            "queries "
             "FROM iai_run ORDER BY started_at DESC LIMIT %s", (ADMIN_RUNS,)
         ).fetchall()
     except Exception as e:  # noqa: BLE001 - an unmigrated database is a state, not a crash
@@ -412,8 +436,12 @@ def industry_ai_admin(conn) -> dict[str, Any]:
         versions=versions,
         runs=[
             {"started_at": r[0].isoformat(), "finished_at": r[1].isoformat() if r[1] else None,
-             "mode": r[2], "status": r[3], "pipeline_version": r[4],
-             "requests": r[5] or {}, "detail": _run_detail(r[3], r[6])}
+             "mode": r[2], "status": r[3], "rules_version": r[4],
+             # REQUESTS BY AGENT (#668 review, point 6, rule 7): `iai_run.requests` is
+             # the run's total per platform, keyword and watch together, while each
+             # agent has its own cap. Each figure is shown against its own cap.
+             **_requests_by_agent(r[5] or {}, r[7] or []),
+             "detail": _run_detail(r[3], r[6])}
             for r in runs
         ],
     )

@@ -669,7 +669,8 @@ export default function Admin() {
               instant. Any change made here clears it; Refresh works the open
               section out afresh. */}
           <div className="adm-kept">
-            <span className="dim">Sections open from a copy kept for a short while; anything changed here shows at once.</span>
+            <span className="dim">Sections open from a copy kept for a short while. Anything changed here shows at
+              once; a run or fetch shows within a few minutes, or on Refresh.</span>
             <button type="button" className="btn btn-ghost adm-kept-btn"
                     onClick={() => { recountNext(); setRecounts((n) => n + 1) }}>
               ↻ Refresh this section

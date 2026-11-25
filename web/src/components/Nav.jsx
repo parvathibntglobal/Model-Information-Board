@@ -84,7 +84,7 @@ const SIGNED_IN = [
   // A line under each, so a reader knows which to open (#585 review).
   { to: '/news', label: 'News', desc: 'The news list, with each source’s last read and errors', nofollow: true },
   { to: '/updates', label: 'Updates', desc: 'From our own registry, prices and benchmarks', nofollow: true },
-  { to: '/ai-in-industries', label: 'AI in industries', desc: 'Data collected on AI in 20 industries', nofollow: true },
+  { to: '/ai-in-industries', label: 'AI in industries', desc: 'Data collected on AI across industries and roles', nofollow: true },
   { to: '/admin', label: 'Admin', nofollow: true },
   { to: '/seo-keywords', label: 'SEO keywords', nofollow: true },
 ]

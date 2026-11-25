@@ -138,3 +138,15 @@ def test_an_answer_that_could_not_read_its_data_is_not_kept(counted, monkeypatch
     c = TestClient(app)
     assert c.get("/admin/schedules").json()["unreadable"] == "no database"
     assert c.get("/admin/schedules").json()["n"] == 2
+
+
+def test_a_route_that_reads_the_request_cannot_be_kept():
+    """The key does not say who is asking (#668 review, point 8): a route that
+    answers an anonymous caller differently must never share a kept answer."""
+    from fastapi import Request
+
+    def news(days: int = 7, request: Request = None):  # the /news shape
+        return {}
+
+    with pytest.raises(TypeError, match="takes the request"):
+        admin_cache.kept("news", fresh=60, max_age=600)(news)

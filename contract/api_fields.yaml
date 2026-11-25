@@ -540,13 +540,12 @@ fields:
     reviewed: true
     routes:
     - /coverage
-    # A NAME MATCH, NOT A READER (2026-11-25): the audit now finds
-    # `pipeline_version` read by IndustryAiAdminPanel.jsx, which reads the field
-    # of the same name in GET /admin/industry-ai (a Call route, waived here).
-    # /coverage's own field still has no page reading it - see the header's
-    # "`consumed` IS NOT PROOF". Its reader, PipelinePanel.jsx, was deleted
-    # 2026-09-25.
-    state: consumed
+    state: no_consumer
+    why: 'its only reader was `PipelinePanel.jsx`, the per-stage counts panel on the admin
+      page, deleted 2026-09-25. The panel drew seven stage rows as comparable bars when the
+      rows count different units against different denominators - E2 counts 19,834 documents,
+      E3 counts 6,629 threads - and `items_in`/`items_out`, which would have made it a funnel,
+      are null on every stage. Both endpoints still emit the field and no page asks for it'
   plan:
     reviewed: false
     routes:
@@ -959,9 +958,7 @@ fields:
     reviewed: false
     routes:
     - /faq
-    # A name match (2026-11-25): IndustryAiAdminPanel.jsx reads its own payload's
-    # `pipeline_version`; nothing reads /faq's `version`.
-    state: consumed
+    state: no_consumer
   was_running:
     reviewed: false
     routes:
