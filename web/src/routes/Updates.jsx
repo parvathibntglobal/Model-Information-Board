@@ -2,6 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BoardUnreadable, adminSchedules, approveAllUpdates, reviewUpdate, undoUpdate, updatesList } from '../api'
 import { Badge, Unreadable } from '../components/ui'
+import PageLinks, { ADMIN } from '../components/PageLinks'
+
+/** Top right (2026-11-25): the public page, its Admin section and its schedule. */
+const UPDATES_LINKS = [
+  { to: '/ai-news-headlines?tab=models', label: 'Public page', title: 'AI updates → AI model updates, the public page' },
+  { to: ADMIN.section('ai-updates'), label: 'Admin', title: 'Admin → Board & content → AI updates' },
+  { to: ADMIN.scheduler('registry-poll'), label: 'Schedule', title: 'Admin → Scheduler → AI updates feeds' },
+]
 import { scheduleWords, when } from '../scheduleWords'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
@@ -722,7 +730,10 @@ export default function Updates() {
   if (err) {
     return (
       <div className="shell section-tight stack stack-3 up-page">
-        <h1>Updates</h1>
+        <div className="page-head-row">
+          <h1>Updates</h1>
+          <PageLinks links={UPDATES_LINKS} />
+        </div>
         {err instanceof BoardUnreadable
           ? <Unreadable detail={err.message} compact />
           : <p className="pc-error">{err.message}</p>}
@@ -734,7 +745,10 @@ export default function Updates() {
   return (
     <div className="shell section-tight stack stack-3 up-page">
       <header className="stack stack-2">
-        <h1>Updates</h1>
+        <div className="page-head-row">
+          <h1>Updates</h1>
+          <PageLinks links={UPDATES_LINKS} />
+        </div>
         <p className="dim">
           What changed for AI models: launches, price cuts and rises, retirements and benchmark results. Each update
           is built from the board&apos;s own data and worded from a fixed template, and shows here as soon as it is

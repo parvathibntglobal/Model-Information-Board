@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import PageLinks, { ADMIN } from '../components/PageLinks'
 import { boardPage, freshness, BoardUnreadable } from '../api'
 import { DB, modelKeyFor, setBoardData } from '../board/db'
 import { useHead } from '../seo/head'
@@ -117,6 +118,12 @@ export default function Board() {
           </p>
         </div>
       )}
+      <div className="shell page-links-bar">
+        <PageLinks links={[
+          { to: '/reviews', label: 'Public page', title: 'AI model reviews, the public page' },
+          { to: ADMIN.section('board'), label: 'Admin', title: 'Admin → Board sections' },
+        ]} />
+      </div>
       <BoardView html={html} key={rest + '?' + (sp.get('tab') || '') + '&' + (sp.get('group') || '')} />
     </>
   )

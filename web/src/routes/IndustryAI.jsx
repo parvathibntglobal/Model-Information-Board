@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import PageLinks, { ADMIN } from '../components/PageLinks'
 import { industryAi } from '../api'
 import IndustryAIInfo from '../components/IndustryAIInfo'
 import { useHead } from '../seo/head'
@@ -171,10 +172,17 @@ export default function IndustryAI() {
             <span className="eyebrow">Industry AI</span>
             <h1 className="iai-h1">AI in industries{showInfo && <span className="dim"> · Info</span>}</h1>
           </div>
-          <button type="button" className="btn btn-ghost iai-info-btn" onClick={toggleInfo}
-                  aria-pressed={showInfo}>
-            {showInfo ? '← Counts' : 'ⓘ Info'}
-          </button>
+          <div className="page-links">
+            {/* No public page: AI in industries is signed in. */}
+            <PageLinks links={[
+              { to: ADMIN.section('ai-in-industries'), label: 'Admin', title: 'Admin → Board & content → AI in industries' },
+              { to: ADMIN.scheduler('industry-ai'), label: 'Schedule', title: 'Admin → Scheduler → Industry AI' },
+            ]} />
+            <button type="button" className="btn btn-ghost iai-info-btn" onClick={toggleInfo}
+                    aria-pressed={showInfo}>
+              {showInfo ? '← Counts' : 'ⓘ Info'}
+            </button>
+          </div>
         </div>
         <p className="dim iai-lede">
           How much data we have collected about AI in {domainCount ? `${domainCount} industries` : 'industries'}, from Reddit, X, GitHub,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { newsFeed } from '../api'
 import { Badge } from '../components/ui'
+import PageLinks from '../components/PageLinks'
 import { GROUPS, Meta, Picture, StoryLink as Link, ago, full } from '../news/parts'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
@@ -133,8 +134,16 @@ export default function News({ embedded = false }) {
       {/* Embedded, the tab's sentence under the tabs says this (AiUpdates.jsx). */}
       {!embedded && (
       <header className="stack stack-1">
-        <span className="eyebrow">News</span>
-        <h1 className="nw-h1">AI news</h1>
+        <div className="page-head-row">
+          <div className="stack stack-1">
+            <span className="eyebrow">News</span>
+            <h1 className="nw-h1">AI news</h1>
+          </div>
+          {/* No Admin section holds the news. */}
+          <PageLinks links={[
+            { to: '/ai-news-headlines', label: 'Public page', title: 'AI updates → General AI news, the public page' },
+          ]} />
+        </div>
         <p className="muted nw-intro">
           Fresh headlines from AI labs, news sites, writers and release notes, each linking to its source.
           Summaries are the sources&apos; own words, cut to a few sentences by code. Pictures are the

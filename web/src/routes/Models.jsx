@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { listModels, fetchAll, fmtTokens, modelUrl, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
+import PageLinks, { ADMIN } from '../components/PageLinks'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 import Freshness from '../components/Freshness'
 import { useHead } from '../seo/head'
@@ -259,6 +260,10 @@ export default function Models() {
             it tells the reader the feature is there and what it needs, which is
             the opposite of the usual objection to a disabled control. */}
         <div className="row" style={{ gap: 8, flexShrink: 0 }}>
+        <PageLinks links={[
+          { to: '/ai-models', label: 'Public page', title: 'All models, the public page' },
+          { to: ADMIN.section('models'), label: 'Admin', title: 'Admin → Models: sweep, add or stop tracking a model' },
+        ]} />
         {/* THE COST CALCULATOR AND THE PRICING TABLE sat here until 2026-10-21;
             both are public tools now, reached from Tools, the menu and the
             footer, so this signed-in page no longer repeats them. */}
