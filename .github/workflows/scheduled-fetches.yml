@@ -117,6 +117,19 @@ jobs:
       ENVIRONMENT: staging
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      # WHICH OPENROUTER HOST SERVES THE EXTRACTOR (judge/extract/client.py
+      # extractor_provider), set here so every night uses the same hosts. Unset, as it
+      # was until 2026-11-25, OpenRouter chose, and from 14 Nov it sent part of every
+      # night to DeepInfra, whose deepseek-v4-flash answers "no claim" to nearly
+      # everything: 14-24 Nov, 1,518 threads read by DeepInfra alone gave 125 verified
+      # quotes, against 5,453 from 2,351 threads on the other hosts (fetch_log
+      # `upstreams`). Replayed 2026-11-25, the same 14 threads pinned to each host:
+      # DeepInfra 0 quotes on all 14, Wafer 9 on 4. Before 14 Nov DeepInfra did as well
+      # as the others (13 Nov: 368 threads, 631 quotes). OpenInference was ruled out on
+      # 2026-10-01 (9 minutes a thread, truncated). The same two lines are in
+      # agent-fetches.yml, which reads threads with the same extractor.
+      EXTRACTOR_PROVIDER_SORT: throughput
+      EXTRACTOR_PROVIDER_IGNORE: DeepInfra,OpenInference
       # REDDIT AND X ARE TWO RAPIDAPI PROVIDERS WITH TWO KEYS. Measured
       # 2026-09-10: the Reddit key is refused by the X provider and vice versa
       # (collect/config.py). Each arm also needs its provider's name.
