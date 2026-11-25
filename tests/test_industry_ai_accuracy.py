@@ -105,6 +105,11 @@ def test_a_promo_code_is_an_ad_and_code_talk_is_not(cfg):
     dev = one(cfg, item("Claude writes our accounting scripts, and we use the code review step "
                         "to question every change."))
     assert dev.reason != "signup_ad"
+    # An all-caps FORMAT is not a promo code: a code carries a digit (#662 review).
+    for text in ("Our accounting scripts work with AI, use the code JSON schema the tool "
+                 "exports for invoices.",
+                 "Use code README first, then ask ChatGPT about the bookkeeping module."):
+        assert one(cfg, item(text)).reason != "signup_ad", text
 
 
 def test_register_now_is_an_ad_only_as_a_call(cfg):
@@ -148,6 +153,16 @@ def test_production_code_is_not_a_deployment(cfg):
     assert r.content_type != "use_case"
     ok = one(cfg, item("Our bank put an AI fraud detection model into production this year."))
     assert ok.content_type == "use_case" and ok.stage_guess == "deployed"
+
+
+@pytest.mark.parametrize("text", [
+    "We deployed a new fraud detection model for our bank's tax team, built on GPT-4.",
+    "We rolled out an internal assistant for accounting; it runs on Claude.",
+])
+def test_a_team_deployment_may_name_its_ai_tool_late_in_the_sentence(cfg, text):
+    """#662 review: for "we ..." the tool is often named after a description."""
+    r = one(cfg, item(text))
+    assert r.content_type == "use_case" and r.stage_guess == "deployed", text
 
 
 def test_the_ai_group_reads_every_match_not_only_the_first(cfg):

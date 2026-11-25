@@ -468,10 +468,11 @@ ad_patterns:
   - '\bsign up (now|today|free)\b'
   # Was '(use|with) (code|coupon)': 4 of its 5 hits were developers writing about
   # code (examples, a coding tool's mode, open-source projects). Now the code itself
-  # must follow, written as a promo code is: capitals and digits, case-SENSITIVE
-  # inside `(?-i:...)` - so "use code SAVE30" counts and "use the code" followed by
-  # an ordinary word (a Show HN, measured on this change's first draft) does not.
-  - '\buse (the )?(code|coupon|promo code):? (?-i:[A-Z][A-Z0-9]{3,})\b'
+  # must follow, written as a promo code is: capitals WITH A DIGIT, case-SENSITIVE
+  # inside `(?-i:...)` - so "use code SAVE30" counts, while "use the code" followed by
+  # an ordinary word (a Show HN, measured on this change's first draft) or by an
+  # all-caps format name (JSON, YAML, README: #662 review) does not.
+  - '\buse (the )?(code|coupon|promo code):? (?-i:[A-Z]+\d+[A-Z0-9]*)\b'
   # KNOWN MISFIRES, KEPT: 3 of its 10 hits were not ads (a person describing their own
   # bot applying a discount, a budgeting tip, a JSON test fixture); 7 were Black
   # Friday deals.
@@ -519,13 +520,18 @@ promo_patterns:
 type_order: [use_case, how_to, tool_or_product, research, news, discussion]
 type_patterns:
   use_case:
-    - '\bwe (deployed|rolled out|implemented|integrated|launched|use|are using|started using|switched to) (?P<ai>(\S+ ){0,3}\S+)'
+    # A TEAM'S DEPLOYMENT may name its AI tool late in the sentence ("we rolled out an
+    # internal assistant for accounting; it runs on Claude"), so for "we ..." and "our
+    # team ... uses" the `ai` group reads to the end of the sentence (#662 review). The
+    # "I used ... to/for" shapes keep a four-word bound: that bound is what keeps "I
+    # use it for my notes" out.
+    - '\bwe (deployed|rolled out|implemented|integrated|launched|use|are using|started using|switched to) (?P<ai>[^.!?\n]{1,120})'
     # Not "production code/ready/grade/line...": of 5 posts read that this typed a
     # use case, one was about turning designs into code for production and one a small
     # shop's own production; none described AI going into production.
     - '\b(in|into) production\b(?![- ](code|ready|grade|quality|line|company|house|studio))'
     - '\b(a|our|the|in) pilot\b|\bpilot (program|programme|project|study|scheme|phase)s?\b|\bpiloted\b|\bpiloting (a|an|the|our)\b'
-    - '\bour (team|firm|practice|clinic|hospital|hotel|bank|company|department|agency) (uses|is using|started using|has been using|now uses) (?P<ai>(\S+ ){0,2}\S+)'
+    - '\bour (team|firm|practice|clinic|hospital|hotel|bank|company|department|agency) (uses|is using|started using|has been using|now uses) (?P<ai>[^.!?\n]{1,120})'
     # Up to four words before "to/for": "I used <tool> <two more words> for" fits.
     - '\bI (used|use|tried|have been using|started using) (?P<ai>(\S+ ){0,3}\S+) (to|for)\b'
     - '\bI(’|'')ve been using (?P<ai>(\S+ ){0,3}\S+) (to|for)\b'
