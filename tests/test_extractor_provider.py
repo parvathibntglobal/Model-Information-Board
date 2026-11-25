@@ -20,7 +20,9 @@ import yaml
 from judge.extract import client
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXTRACTING_WORKFLOWS = ("scheduled-fetches.yml", "agent-fetches.yml")
+#: Every workflow that calls deepseek-v4-flash through OpenRouter: the two fetches
+#: (the extractor) and the evidence feed (its paraphrases and summaries, 2026-11-25).
+EXTRACTING_WORKFLOWS = ("scheduled-fetches.yml", "agent-fetches.yml", "evidence-feed.yml")
 
 
 def _env(file: str) -> dict:
@@ -37,10 +39,46 @@ def test_the_nightly_workflows_rule_out_deepinfra_and_openinference(file):
     assert {"DeepInfra", "OpenInference"} <= ignored, file
 
 
-def test_both_workflows_send_the_same_preference():
-    a, b = (_env(f) for f in EXTRACTING_WORKFLOWS)
-    for key in ("EXTRACTOR_PROVIDER_SORT", "EXTRACTOR_PROVIDER_IGNORE"):
-        assert a[key] == b[key], key
+def test_every_workflow_sends_the_same_preference():
+    first, *rest = (_env(f) for f in EXTRACTING_WORKFLOWS)
+    for other in rest:
+        for key in ("EXTRACTOR_PROVIDER_SORT", "EXTRACTOR_PROVIDER_IGNORE"):
+            assert first[key] == other[key], key
+
+
+def test_the_feeds_calls_carry_the_preference(monkeypatch):
+    """judge/feed/llm.py: the feed's paraphrases and summaries go to the same hosts.
+    Replayed 2026-11-25: DeepInfra returned nothing for 2 of 4 batches of 20."""
+    from judge.feed import llm, paraphrase
+
+    sent = []
+
+    class Resp:
+        status_code = 200
+
+        def json(self):
+            return {"model": "deepseek/deepseek-v4-flash", "usage": {"cost": 0.0},
+                    "choices": [{"message": {"tool_calls": [
+                        {"function": {"arguments": '{"paraphrases": []}'}}]}}]}
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    monkeypatch.setenv("OPENROUTER_BASE_URL", "https://openrouter.test/api/v1")
+    monkeypatch.setattr(llm.spend_ledger, "record", lambda **kw: None)
+    monkeypatch.setattr(llm.httpx, "post", lambda *a, **k: sent.append(k["json"]) or Resp())
+    kw = dict(model="deepseek/deepseek-v4-flash", system="s", user="u", tool=paraphrase.TOOL,
+              run_id="r", max_tokens=10, reasoning_effort="none")
+
+    env = _env("evidence-feed.yml")
+    monkeypatch.setenv("EXTRACTOR_PROVIDER_SORT", env["EXTRACTOR_PROVIDER_SORT"])
+    monkeypatch.setenv("EXTRACTOR_PROVIDER_IGNORE", env["EXTRACTOR_PROVIDER_IGNORE"])
+    llm.call_tool(**kw)
+    assert sent[-1]["provider"] == {"sort": "throughput", "ignore": ["DeepInfra", "OpenInference"]}
+
+    # Unset, nothing is sent and OpenRouter chooses, as before.
+    monkeypatch.delenv("EXTRACTOR_PROVIDER_SORT")
+    monkeypatch.delenv("EXTRACTOR_PROVIDER_IGNORE")
+    llm.call_tool(**kw)
+    assert "provider" not in sent[-1]
 
 
 def test_the_two_lines_become_openrouters_provider_object(monkeypatch):
