@@ -1,4 +1,5 @@
-# The Industry AI agent, weekly (2026-11-20).
+# The Industry AI agent and its observer, daily (weekly from 2026-11-20; daily since
+# 2026-11-25, anooj).
 #
 # scripts/run_industry_ai.py harvests data about AI across industries and roles
 # (the contract's active domains) with the queries in contract/industry_ai.yaml,
@@ -9,6 +10,13 @@
 # SWITCHED OFF UNTIL THE TEAM TURNS IT ON. It runs only when the repository
 # variable INDUSTRY_AI_ENABLED is '1' - set after the first dry runs and the
 # sample check (docs/industry-ai-agent.md §13). Unset, a scheduled run says so and does nothing.
+#
+# DAILY, IN TWO RUNS (2026-11-25). First the KEYWORD run: one of the contract's two
+# rotation groups of ten domains (`run.rotation`, `--group auto` = today's UTC day),
+# without the watch lists (`--no-watch`). Then the OBSERVER run (`--watch-only`), when
+# `watch.enabled` is true in the contract. Each is its own `iai_run` row and its own
+# summary on INDUSTRY_AI_ISSUE. The observer runs even when the keyword run failed:
+# they share no state, and one failure should not cost the other's day.
 #
 # SPEND: Reddit and X are metered (RapidAPI) and share their monthly quota with
 # the model fetches. Every platform has a request cap per run in the contract
@@ -22,27 +30,34 @@ name: Industry AI harvest
 
 on:
   schedule:
-    - cron: "0 9 * * 3"          # Wednesdays 09:00 UTC, clear of the Monday sweep
+    # Daily 09:00 UTC (was Wednesdays only, until 2026-11-25). GitHub starts scheduled
+    # runs 3-10 hours late here (contract/nightly_guard.yaml, measured 2026-11-13);
+    # nothing here depends on the hour, and the model fetch's extraction budget is not
+    # spent by this lane (no language model).
+    - cron: "0 9 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
         description: "Harvest and count only; write nothing"
         type: boolean
         default: true
+      group:
+        description: "Rotation group: auto (today's), a or b. Empty = use 'domains' below"
+        required: false
+        default: "auto"
       domains:
-        description: "Space-separated domains (empty = all), e.g. finance healthcare"
+        description: "Space-separated domains, when 'group' is empty (empty = every active one)"
         required: false
         default: ""
       platforms:
         description: "Space-separated platforms (empty = all), e.g. hackernews devto"
         required: false
         default: ""
-      # THE OBSERVER, BY HAND (2026-11-24): its watch lists run on a schedule only
-      # once `watch.enabled` is true in the contract. This box adds them to ONE
-      # hand-started run (`--watch`), so both agents can run together before
-      # either is switched on for good. It changes nothing for a scheduled run.
+      # THE OBSERVER, BY HAND: its own run after the keyword run, as on the schedule.
+      # Ticked, it runs even while `watch.enabled` is false (its dry runs). A
+      # scheduled run follows the contract's `watch.enabled`.
       watch:
-        description: "Also run the observer's watch lists (accounts and communities)"
+        description: "Also run the observer's watch lists, in their own run after the keyword run"
         type: boolean
         default: false
 
@@ -57,11 +72,12 @@ concurrency:
 jobs:
   harvest:
     runs-on: ubuntu-latest
-    # 90, not 45 (2026-11-24): the first real run harvested in about 10 minutes, then
-    # stored and labelled one round trip per item for over 30 and ran into the limit.
-    # The writes are batched now (collect/industry_ai/store.py); this is the margin for
-    # bigger runs as accounts and keywords grow.
-    timeout-minutes: 90
+    # 180 (2026-11-25; was 90, and 45 before 2026-11-24). Two runs now, a group of ten
+    # domains and then the observer. The 2026-11-25 run (5 domains and the 20-account
+    # watch lists, 381 requests) took 8 minutes from its first request to its stored
+    # labels; a group asks for up to about 800 and the observer up to about 450
+    # (#667's lists), so this is the margin, not the estimate.
+    timeout-minutes: 180
     env:
       ENVIRONMENT: staging
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
@@ -87,6 +103,8 @@ jobs:
       RAW_STORE_PATH: raw_store
       DRY_RUN: ${{ inputs.dry_run }}
       DOMAINS: ${{ inputs.domains }}
+      # A scheduled run has no inputs: it takes today's group.
+      GROUP: ${{ github.event_name == 'schedule' && 'auto' || inputs.group }}
       PLATFORMS: ${{ inputs.platforms }}
       WATCH: ${{ inputs.watch }}
     steps:
@@ -125,13 +143,36 @@ jobs:
       - if: steps.gate.outputs.enabled == 'true'
         run: pip install -e .
 
-      - name: Harvest, label and store
+      - name: Keyword run - today's group (or the domains given), no watch lists
         if: steps.gate.outputs.enabled == 'true'
         run: |
-          args=""
-          [ -n "$DOMAINS" ]   && args="$args --domains $DOMAINS"
+          args="--no-watch"
+          if [ -n "$GROUP" ]; then args="$args --group $GROUP"
+          elif [ -n "$DOMAINS" ]; then args="$args --domains $DOMAINS"; fi
           [ -n "$PLATFORMS" ] && args="$args --platforms $PLATFORMS"
-          if [ "$WATCH" = "true" ]; then args="$args --watch"; fi
+          if [ "$DRY_RUN" = "true" ]; then
+            python scripts/run_industry_ai.py --dry-run $args
+          else
+            python scripts/run_industry_ai.py --post-summary $args
+          fi
+
+      - name: Is the observer on?
+        id: observer
+        if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
+        run: |
+          if [ "$WATCH" = "true" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          on=$(python -c "from collect.industry_ai import config as c; print(c.load().watch['enabled'])")
+          if [ "$on" = "True" ]; then echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::watch.enabled is false in contract/industry_ai.yaml - the observer does not run."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Observer run - the watch lists
+        if: ${{ !cancelled() && steps.observer.outputs.run == 'true' }}
+        run: |
+          args="--watch-only"
+          [ -n "$PLATFORMS" ] && args="$args --platforms $PLATFORMS"
           if [ "$DRY_RUN" = "true" ]; then
             python scripts/run_industry_ai.py --dry-run $args
           else

@@ -66,19 +66,41 @@ def one(cfg, it):
 # ── the contract ─────────────────────────────────────────────────────────────
 
 
-def test_the_real_contract_loads_with_the_umbrellas_and_five_active(cfg):
+def test_the_real_contract_loads_with_the_umbrellas_and_their_rotation(cfg):
     # The 20 persona umbrellas (anooj, 2026-11-20); Parvathi's first five are among them.
     assert {"finance", "healthcare", "hospitality", "engineering", "governance"} <= set(cfg.domains)
     assert len(cfg.domains) == 20
-    # Recounted 2026-11-20 (#645 review, point 1): personal replaced leaders_founders.
-    assert set(cfg.active_domains) == {
-        "marketing",
-        "design_creative",
-        "security_it",
-        "retail",
-        "personal",
+    # 2026-11-25 (anooj): every domain on except the six whose keywords still name an
+    # AI term by themselves (test below); those follow once their keywords are fixed.
+    assert set(cfg.domains) - set(cfg.active_domains) == {
+        "governance", "engineering", "hospitality", "film", "automotive", "sales_support",
     }
+    # Two groups of ten, each domain in one, alternating by UTC day.
+    a, b = cfg.group_domains("a"), cfg.group_domains("b")
+    assert len(a) == len(b) == 10 and not set(a) & set(b) and set(a) | set(b) == set(cfg.domains)
+    assert cfg.run["cadence"] == "daily"
     assert cfg.type_order[-1] == "discussion"
+
+
+def test_the_groups_alternate_every_utc_day_across_a_year_end(cfg):
+    from datetime import date
+
+    start = date(2026, 12, 29)
+    days = [cfg.group_for(start + timedelta(days=i)) for i in range(6)]
+    assert days == ["a", "b", "a", "b", "a", "b"] or days == ["b", "a", "b", "a", "b", "a"]
+
+
+@pytest.mark.parametrize("mutate, says", [
+    (lambda g: g["a"].append(g["b"][0]), "one only"),
+    (lambda g: g["b"].pop(), "in no group"),
+    (lambda g: g["a"].append("no_such_domain"), "no domain"),
+    (lambda g: g.update(c=["finance"]), "exactly"),
+])
+def test_the_rotation_is_refused_unless_every_domain_is_in_one_group(mutate, says):
+    raw = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
+    mutate(raw["run"]["rotation"]["groups"])
+    with pytest.raises(IndustryAIConfigError, match=says):
+        iai_config.parse(copy.deepcopy(raw))
 
 
 def test_no_active_domain_term_is_an_ai_term_by_itself(cfg):
@@ -805,12 +827,23 @@ def test_the_issue_summary_names_general_ai_apart_from_unconfirmed(cfg):
         script._summary("r1", "harvest", {}, {**counts, "domains": {"mystery": row}}, [], cfg)
 
 
-def test_a_hand_run_can_include_the_watch_lists():
-    """The workflow's `watch` box adds `--watch` to a hand-started run, so both agents
-    can run together while `watch.enabled` stays false (2026-11-24)."""
+def test_the_workflow_runs_the_group_then_the_observer_apart():
+    """2026-11-25: a daily keyword run of today's group with no watch lists, then the
+    observer in its own run - when the contract has it on, or the hand-start box is
+    ticked - so each is its own `iai_run` row and summary."""
     from pathlib import Path
 
     wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows"
           / "industry-ai-harvest.yml").read_text(encoding="utf-8")
+    parsed = yaml.safe_load(wf)
+    assert parsed[True]["schedule"] == [{"cron": "0 9 * * *"}], "daily"
+    steps = parsed["jobs"]["harvest"]["steps"]
+    keyword = next(s for s in steps if (s.get("name") or "").startswith("Keyword run"))
+    observer = next(s for s in steps if (s.get("name") or "").startswith("Observer run"))
+    assert 'args="--no-watch"' in keyword["run"] and "--group $GROUP" in keyword["run"]
+    assert 'args="--watch-only"' in observer["run"]
+    assert steps.index(keyword) < steps.index(observer)
+    # A scheduled run takes today's group; the observer runs even if the keyword run failed.
+    assert "github.event_name == 'schedule' && 'auto'" in wf
+    assert observer["if"].startswith("${{ !cancelled()")
     assert "WATCH: ${{ inputs.watch }}" in wf
-    assert 'if [ "$WATCH" = "true" ]; then args="$args --watch"; fi' in wf

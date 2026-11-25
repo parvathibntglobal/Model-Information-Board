@@ -47,7 +47,24 @@ run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
   # request); --plan, --dry-run and --relabel still work. Deletes nothing.
   enabled: true
-  cadence: weekly
+  # DAILY, TWO GROUPS OF TEN (anooj, 2026-11-24/25): every domain is searched every
+  # second day, so all twenty are harvested without one run carrying twenty domains'
+  # queries. The workflow's daily schedule runs `--group auto`; a hand start may name
+  # a group or domains. Was `weekly` with five active domains until 2026-11-25.
+  cadence: daily
+  # THE GROUPS. `utc_day_parity`: group `a` on a UTC day whose proleptic ordinal is
+  # even, `b` on an odd one (collect/industry_ai/config.py `group_for`). Every domain
+  # in exactly one group, or the contract is refused.
+  #   a: the five domains active until 2026-11-25 (their next run comes soonest) and
+  #      the five functions nearest them.
+  #   b: engineering, and the industries.
+  rotation:
+    by: utc_day_parity
+    groups:
+      a: [marketing, retail, design_creative, security_it, personal,
+          sales_support, media, leaders_founders, data_analytics, education]
+      b: [engineering, finance, healthcare, legal, operations,
+          supply_chain, hospitality, automotive, film, governance]
   # Items posted earlier than this many days ago are not kept (first harvest:
   # how far back to look).
   # 365 -> 90 (2026-11-24, Parvathi's review of the AI in industries page): 300 of
@@ -60,16 +77,25 @@ run:
   # share their monthly quota with the model fetch - keep these small. A query
   # that would pass its platform's cap is not run, and the run log says so.
   max_requests:
-    # Sized for the five active domains with ~50 keywords each (2026-11-25, computed by
-    # harvest.plan on this contract): 42 X queries = 210 pages, 54 Reddit requests (15
-    # subreddit listings + 39 searches). Was 110 / 40 for ~23 keywords each (2026-11-20).
-    # Resized again when the umbrellas rotate in two groups of ten.
-    reddit: 60
-    x: 220
-    github: 10
-    hackernews: 25
-    devto: 25
-    bluesky: 25
+    # SIZED FOR ONE ROTATION GROUP OF TEN (2026-11-25, computed by harvest.plan on this
+    # contract, every domain active). Requests a group's queries ask for:
+    #                 reddit    x   github  hackernews  devto  bluesky
+    #   group a          109  415       17          36     36       39
+    #   group b          145  362       42          70     65       65
+    # Each cap covers the larger group, with a little room. Was 60 / 220 / 10 / 25 /
+    # 25 / 25 for the five domains active until 2026-11-25.
+    # AGAINST THE MONTHLY QUOTAS (rule 7), at one run a day: X at most 420 a day,
+    # about 12,600 a month of the 100,000 plan (twitter241; 97,777 left at the
+    # provider's 2026-11-25 06:15Z reading); Reddit at most 150 a day, about 4,500 of
+    # 1,000,000 (reddit34; 999,397 left, same reading). Both quotas are SHARED with
+    # the model fetch, and the observer's own caps (`watch.max_requests`) come on top.
+    # Ceilings, not spend: a query past its platform's cap is not run, and says so.
+    reddit: 150
+    x: 420
+    github: 45
+    hackernews: 75
+    devto: 70
+    bluesky: 70
     feeds: 30
   # Search result pages per query. An X query that clubs at least
   # `x_clubbed_min_keywords` quoted keywords with OR gets `x_clubbed` pages: one
@@ -667,10 +693,13 @@ retention:
 # dev.to tags, GitHub repos and newsletters are designed but not built yet, so they
 # are not listed: an unread list would be refused.
 watch:
-  enabled: false
+  # ON since 2026-11-25 (anooj): the observer runs daily, in its own run after the
+  # day's keyword group (the workflow's second step, `--watch-only`).
+  enabled: true
   # How far back a watched source is read on each run (the run's window for watch
-  # queries; X adds it as `since:`).
-  lookback_days: 7
+  # queries; X adds it as `since:`). 7 -> 2 (2026-11-25): runs are daily now, and two
+  # days of overlap miss nothing when one run fails.
+  lookback_days: 2
   # Watch requests per platform per run, separate from run.max_requests. X is
   # clubs x x_pages, so every club can be read over the whole window: 15 clubs of the
   # 150 accounts x 10 pages = 150 (was 30 for 2 clubs, 2026-11-25). A ceiling, not a
@@ -678,17 +707,15 @@ watch:
   # (run.pages_per_query.reddit), so 43 subreddits = 43 (was 25 for 20, 2026-11-25).
   # Instagram is one feed request per account (its id is stored below), so the cap
   # is the number of accounts. Its plan is 15,000 requests a month (read 2026-11-25).
-  # AGAINST THE MONTHLY QUOTAS (#667 review, rule 7). Ceilings per run, keyword +
-  # watch: X 220 + 150 = 370, Reddit 60 + 43 = 103, Instagram 200. Plans: X 100,000
-  # a month (twitter241; the provider read 97,777 left at 2026-11-25 06:15Z, after
-  # that day's run), Reddit 1,000,000 (reddit34; 999,397 left, same reading),
-  # Instagram 15,000 (instagram-looter2, Instagram's own key use only). The X and
-  # Reddit quotas are SHARED with the model fetch. At one run a WEEK (the workflow's
-  # schedule on 2026-11-25) a month is at most X ~1,600, Reddit ~450, Instagram
-  # ~870. At one run a DAY (the schedule the rotation PR proposes, anooj 2026-11-24)
-  # at most X 11,100 (11% of the plan), Reddit 3,090 (0.3%), Instagram 6,000 (40%):
-  # the model fetch keeps at least 88,900 X and 996,910 Reddit requests a month.
-  # Ceilings, not spend: X paging stops at `since:`, and a short list asks less.
+  # AGAINST THE MONTHLY QUOTAS (#667 review, rule 7; caps as of the rotation PR,
+  # 2026-11-25). Ceilings per day, the keyword group's run + the observer's run:
+  # X 420 + 150 = 570, Reddit 150 + 43 = 193, Instagram 200. Plans: X 100,000 a month
+  # (twitter241; the provider read 97,777 left at 2026-11-25 06:15Z), Reddit 1,000,000
+  # (reddit34; 999,397 left, same reading), Instagram 15,000 (instagram-looter2). The X
+  # and Reddit quotas are SHARED with the model fetch. Daily, a month is at most
+  # X 17,100 (17% of the plan), Reddit 5,790 (0.6%), Instagram 6,000 (40%): the model
+  # fetch keeps at least 82,900 X and 994,210 Reddit requests a month. Ceilings, not
+  # spend: X paging stops at `since:`, and a short list asks less.
   max_requests: {reddit: 43, x: 150, bluesky: 20, hackernews: 15, instagram: 200}
   # X pages per clubbed account query, and how many accounts one query clubs.
   x_pages: 10
@@ -1077,7 +1104,7 @@ domains:
   finance:
     name: Finance & Banking
     kind: industry
-    active: false
+    active: true
     definition: AI used in banking, accounting, insurance, lending, payments, trading and corporate finance.
     domain_terms:
     - accounting
@@ -1253,7 +1280,7 @@ domains:
   healthcare:
     name: Healthcare & Life Sciences
     kind: industry
-    active: false
+    active: true
     definition: AI used in clinical care, hospitals, diagnostics, medical records, pharma and health administration.
     domain_terms:
     - healthcare
@@ -1380,6 +1407,9 @@ domains:
   hospitality:
     name: Hospitality, Travel & Food
     kind: industry
+    # OFF until its 2 keyword(s) that are AI terms by themselves move to
+    # ambiguous_terms with a context (#645 review rule; anooj 2026-11-25:
+    # the rotation ships with the other 14 on, these six follow).
     active: false
     definition: AI used in hotels, restaurants, travel, tourism, events and guest services.
     domain_terms:
@@ -1510,7 +1540,7 @@ domains:
   legal:
     name: Legal & Compliance
     kind: industry
-    active: false
+    active: true
     definition: AI used in legal work and compliance - contract review, legal research, e-discovery, litigation and regulatory filings.
     domain_terms:
     - contract review
@@ -1616,7 +1646,7 @@ domains:
   education:
     name: Education & Research
     kind: industry
-    active: false
+    active: true
     definition: AI used in teaching, learning and academic research - lesson planning, grading, tutoring, study and research writing.
     domain_terms:
     - lesson planning
@@ -1830,7 +1860,7 @@ domains:
   supply_chain:
     name: Manufacturing, Supply Chain & Logistics
     kind: industry
-    active: false
+    active: true
     definition: AI used in manufacturing operations, supply chain and logistics - planning, forecasting, warehousing, freight and quality.
     domain_terms:
     - demand forecasting
@@ -1930,7 +1960,7 @@ domains:
   media:
     name: Media, Entertainment & Creators
     kind: industry
-    active: false
+    active: true
     definition: AI used by journalists, creators, podcasters, streamers and game studios - scripts, clips, transcription, writing and game content.
     domain_terms:
     - YouTube scripts
@@ -2032,6 +2062,9 @@ domains:
   governance:
     name: Governance & Public Sector
     kind: industry
+    # OFF until its 30 keyword(s) that are AI terms by themselves move to
+    # ambiguous_terms with a context (#645 review rule; anooj 2026-11-25:
+    # the rotation ships with the other 14 on, these six follow).
     active: false
     definition: AI used by government and the public sector, and AI policy and governance practice - regulation, compliance and internal AI policies.
     domain_terms:
@@ -2281,6 +2314,9 @@ domains:
   film:
     name: Film Industry
     kind: industry
+    # OFF until its 2 keyword(s) that are AI terms by themselves move to
+    # ambiguous_terms with a context (#645 review rule; anooj 2026-11-25:
+    # the rotation ships with the other 14 on, these six follow).
     active: false
     definition: AI used in film production - pre-production and storyboarding, visual effects and virtual sets, voice and dubbing, distribution and audience reach.
     domain_terms: []
@@ -2536,6 +2572,9 @@ domains:
   automotive:
     name: Automotive
     kind: industry
+    # OFF until its 1 keyword(s) that are AI terms by themselves move to
+    # ambiguous_terms with a context (#645 review rule; anooj 2026-11-25:
+    # the rotation ships with the other 14 on, these six follow).
     active: false
     definition: AI used in the automotive trade - diagnostics, repair, dealerships, fleets, telematics and driver-assistance work.
     domain_terms:
@@ -2636,6 +2675,9 @@ domains:
   engineering:
     name: Engineering
     kind: function
+    # OFF until its 7 keyword(s) that are AI terms by themselves move to
+    # ambiguous_terms with a context (#645 review rule; anooj 2026-11-25:
+    # the rotation ships with the other 14 on, these six follow).
     active: false
     definition: AI used in engineering work - software and AI engineering, and the physical disciplines (civil, mechanical, electrical, chemical, manufacturing, construction).
     domain_terms: []
@@ -2918,7 +2960,7 @@ domains:
   data_analytics:
     name: Data & Analytics
     kind: function
-    active: false
+    active: true
     definition: AI used in data and analytics work - SQL, cleaning, dashboards, spreadsheets, statistics and pipelines.
     domain_terms:
     - SQL queries
@@ -3136,6 +3178,9 @@ domains:
   sales_support:
     name: Sales & Customer Support
     kind: function
+    # OFF until its 1 keyword(s) that are AI terms by themselves move to
+    # ambiguous_terms with a context (#645 review rule; anooj 2026-11-25:
+    # the rotation ships with the other 14 on, these six follow).
     active: false
     definition: AI used in sales and customer support - prospecting, calls, CRM, proposals, tickets, chatbots and retention.
     domain_terms:
@@ -3360,7 +3405,7 @@ domains:
   operations:
     name: Operations, HR & Admin
     kind: function
-    active: false
+    active: true
     definition: AI used in operations, HR and admin - workflow automation, documents, meetings, scheduling, recruiting and onboarding.
     domain_terms:
     - workflow automation
@@ -3578,7 +3623,7 @@ domains:
   leaders_founders:
     name: Leaders & Founders
     kind: function
-    active: false
+    active: true
     definition: AI used by leaders and founders - planning, fundraising, strategy, AI adoption, hiring and team productivity.
     domain_terms:
     - business plan

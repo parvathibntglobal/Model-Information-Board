@@ -45,7 +45,13 @@ def raw():
 
 @pytest.fixture(scope="module")
 def cfg(raw):
-    return iai_config.parse(copy.deepcopy(raw))
+    """The real contract, with a watch window wide enough that a post's age never
+    decides these tests: they are about folding a person's posts, not about the
+    window. With the contract's own 2 days (2026-11-25) a 100-hour copy would be
+    dropped for its age, and "not a cross-post" would pass without being tested."""
+    r = copy.deepcopy(raw)
+    r["watch"]["lookback_days"] = 30
+    return iai_config.parse(r)
 
 
 def post(platform, iid, text, *, url="", author="a1", keys=(), hours=48):
@@ -169,6 +175,8 @@ def test_a_copy_outside_the_window_is_not_a_cross_post(cfg):
     b = bsky_post("emollick.bsky.social", "17", NEWS, hours=100 - hours - 1)
     results, _ = evaluate([x, b], cfg, since=SINCE, now=NOW)
     assert "cross_post" not in {results[x.id].reason, results[b.id].reason}
+    # Decided on their text and dates, not aged out of the watch window.
+    assert "outside_watch_window" not in {results[x.id].reason, results[b.id].reason}
 
 
 def test_an_undated_post_is_never_folded_as_a_cross_post(cfg):
