@@ -2522,7 +2522,9 @@ def assistants_page() -> dict:
     with _conn() as conn:
         view = assistants_view(conn)
     return {"groups": view["groups"], "unclassified": view["unclassified"],
-            "unit_note": view["unit_note"]}
+            "unit_note": view["unit_note"],
+            # When the agents were last fetched (#669 review): Assistants.jsx AgentFetchLine.
+            "agent_fetch": view["agent_fetch"]}
 
 
 @app.get("/assistants/{ident:path}")
