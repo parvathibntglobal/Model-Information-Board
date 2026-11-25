@@ -77,7 +77,7 @@ function Select({ name, rows, value, onChange, labels }) {
 }
 
 /** One list of the observer's posts, with its filters, in `scope`. */
-function Posts({ scope, params, update }) {
+function Posts({ scope, params, update, note }) {
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -138,6 +138,7 @@ function Posts({ scope, params, update }) {
           </button>
         </div>
       )}
+      {note && <p className="dim iai-note">{note}</p>}
       {sort === 'engaged' && (
         <p className="dim iai-note">Most engaged: ordered by the platform&apos;s own counts (views, likes, comments and so on) added together, so X posts with view counts tend to come first.</p>
       )}
@@ -166,6 +167,9 @@ function Posts({ scope, params, update }) {
 
 /** Every watched source on one platform, as a table folded under its heading. */
 function SourceTable({ platform, rows, onOpen }) {
+  // Saved, not yet labelled (#663): shown only when some are, so Found = Kept +
+  // Filtered out + Waiting always reads true (#673 review, point 5).
+  const waits = rows.some((r) => r.waiting > 0)
   const quiet = rows.filter((r) => r.listed && !r.found).length
   const gone = rows.filter((r) => !r.listed).length
   const kept = rows.reduce((s, r) => s + r.kept, 0)
@@ -189,6 +193,7 @@ function SourceTable({ platform, rows, onOpen }) {
               <th scope="col" className="tnum">Found</th>
               <th scope="col" className="tnum">Kept</th>
               <th scope="col" className="tnum">Filtered out</th>
+              {waits && <th scope="col" className="tnum" title="Saved, not yet labelled: the next run or a relabel labels them">Waiting</th>}
               <th scope="col" className="tnum" title="Also found by an industry's keyword search, so counted by the Industry AI agent, not here">Also by keyword</th>
               <th scope="col">Newest post</th>
             </tr>
@@ -205,6 +210,7 @@ function SourceTable({ platform, rows, onOpen }) {
                 <td className="tnum">{n(r.found)}</td>
                 <td className="tnum">{n(r.kept)}</td>
                 <td className="tnum">{n(r.filtered)}</td>
+                {waits && <td className="tnum">{n(r.waiting)}</td>}
                 <td className="tnum">{n(r.also_keyword)}</td>
                 <td>{r.newest ? fmtDayUtc(r.newest) : '–'}</td>
               </tr>
@@ -263,6 +269,14 @@ export default function AIWatch() {
     people: data?.people?.length, mentions: data?.mentions, filtered: data?.filtered,
   }
   const last = data?.last_run
+  // A SOURCE'S KEPT IS NOT ALWAYS WHAT ITS LIST SHOWS (#673 review, point 4, rule 7):
+  // a kept post a keyword search also found belongs to the Industry AI agent, so the
+  // Feed leaves it out. Say how many, beside the list a source row opened.
+  const opened = (data?.sources || []).find((s) => (params.get('source') && s.key === params.get('source'))
+    || (params.get('account') && s.account === params.get('account')?.toLowerCase()))
+  const sourceNote = opened?.kept_keyword > 0
+    ? `${n(opened.kept_keyword)} more of ${opened.source}'s ${n(opened.kept)} kept posts are not listed here: a keyword search found them too, so the Industry AI agent counts them.`
+    : null
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -311,7 +325,7 @@ export default function AIWatch() {
             <div><b className="tnum">{n(data.general)}</b><span>General AI</span></div>
             <div><b className="tnum">{n(data.mentions)}</b><span>mention an industry</span></div>
             <div><b className="tnum">{n(data.filtered)}</b><span>filtered out</span></div>
-            <div><b className="tnum">{n(data.authors)}</b><span>accounts</span></div>
+            <div><b className="tnum">{n(data.authors)}</b><span>authors</span></div>
             {data.pending > 0 && <div><b className="tnum">{n(data.pending)}</b><span>waiting to be labelled</span></div>}
           </div>
           {data.collected === 0 && <p className="dim">Nothing collected yet: no run has read the watch lists.</p>}
@@ -355,7 +369,7 @@ export default function AIWatch() {
                   </>
                 )}
               </details>
-              <Posts scope={feedScope} params={params} update={update} />
+              <Posts scope={feedScope} params={params} update={update} note={sourceNote} />
             </section>
           )}
 

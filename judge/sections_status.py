@@ -143,7 +143,14 @@ def workflow_setup(file: str) -> dict[str, Any]:
     # PyYAML reads the bare key `on:` as boolean True.
     on = wf.get("on", wf.get(True)) or {}
     crons = [c.get("cron") for c in (on.get("schedule") or []) if c.get("cron")]
-    job = next(iter((wf.get("jobs") or {}).values()), {}) or {}
+    # THE JOB THAT DOES THE WORK (#673 review, point 2): since #670 a workflow's first
+    # job can be `guard` (5 minutes), so the job is the one contract/nightly_guard.yaml
+    # names for the file, else the first job that is not `guard`.
+    jobs = wf.get("jobs") or {}
+    named = (_guard().get(file) or {}).get("job")
+    job = jobs.get(named) if named in jobs else next(
+        (j for k, j in jobs.items() if k != "guard"), {})
+    job = job or {}
     # WHAT ELSE DECIDES WHEN IT RUNS (2026-11-25, promised on #670): another workflow's
     # finish starting it (`on.workflow_run`), and the workflow it never runs beside
     # (contract/nightly_guard.yaml `waits_for`). Read, never restated: a workflow with

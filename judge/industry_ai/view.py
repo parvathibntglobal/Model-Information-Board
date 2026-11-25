@@ -387,6 +387,18 @@ def _requests_by_agent(total: dict, queries: list) -> dict[str, dict[str, int]]:
             "requests_watch": {p: n for p, n in watch.items() if n}}
 
 
+def _admin_run(r) -> dict[str, Any]:
+    return {
+        "started_at": r[0].isoformat(), "finished_at": r[1].isoformat() if r[1] else None,
+        "mode": r[2], "status": r[3], "rules_version": r[4],
+        # REQUESTS BY AGENT (#668 review, point 6, rule 7): `iai_run.requests` is the
+        # run's total per platform, keyword and watch together, while each agent has
+        # its own cap. Each figure is shown against its own cap.
+        **_requests_by_agent(r[5] or {}, r[7] or []),
+        "detail": _run_detail(r[3], r[6]),
+    }
+
+
 def industry_ai_admin(conn) -> dict[str, Any]:
     c = _contract()
     run = c.get("run") or {}
@@ -447,6 +459,12 @@ def industry_ai_admin(conn) -> dict[str, Any]:
             "queries "
             "FROM iai_run ORDER BY started_at DESC LIMIT %s", (ADMIN_RUNS,)
         ).fetchall()
+        # Admin -> AI Watch lists the observer's runs only (#673 review, point 1).
+        watch_runs = conn.execute(
+            "SELECT started_at, finished_at, mode, status, pipeline_version, requests, detail, "
+            f"queries FROM iai_run WHERE {WATCH_RUN} ORDER BY started_at DESC LIMIT %s",
+            (ADMIN_RUNS,),
+        ).fetchall()
     except Exception as e:  # noqa: BLE001 - an unmigrated database is a state, not a crash
         conn.rollback()
         out["unreadable"] = (f"the Industry AI tables could not be read ({type(e).__name__}) "
@@ -459,16 +477,8 @@ def industry_ai_admin(conn) -> dict[str, Any]:
         # Labelled rows by the rules version that labelled them; `pending` rows
         # carry none yet and are counted apart.
         versions=versions,
-        runs=[
-            {"started_at": r[0].isoformat(), "finished_at": r[1].isoformat() if r[1] else None,
-             "mode": r[2], "status": r[3], "rules_version": r[4],
-             # REQUESTS BY AGENT (#668 review, point 6, rule 7): `iai_run.requests` is
-             # the run's total per platform, keyword and watch together, while each
-             # agent has its own cap. Each figure is shown against its own cap.
-             **_requests_by_agent(r[5] or {}, r[7] or []),
-             "detail": _run_detail(r[3], r[6])}
-            for r in runs
-        ],
+        runs=[_admin_run(r) for r in runs],
+        watch_runs=[_admin_run(r) for r in watch_runs],
     )
     return out
 # ── ONE DOMAIN, IN DETAIL (2026-11-24, Parvathi) ──────────────────────────────
@@ -835,9 +845,17 @@ def industry_ai_domain_view(
 
 #: The AI Watch page's post lists.
 WATCH_SCOPES = ("general", "mentions", "kept", "dropped")
+#: `/i/status/` is X's anonymous form and names nobody (`rules.handle_of`; #673
+#: review, point 6), so it is NULL - "no account in the link" - never an account "i".
 _X_HANDLE_SQL = (
-    r"lower(substring(url from '^https://(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/'))"
+    r"nullif(lower(substring(url from "
+    r"'^https://(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status/')), 'i')"
 )
+#: A run that read at least one watch list (the observer's), from its own queries
+#: (#673 review, point 1): since #670 the keyword run, a relabel or a keyword-only
+#: run by hand is often the newest, and must not date the observer.
+WATCH_RUN = ("EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(queries, '[]'::jsonb)) "
+             "AS wq WHERE wq->>'domain' = 'watch')")
 _DOMAIN_FLAG = "domain_from_terms:"
 
 
@@ -926,10 +944,15 @@ def ai_watch_view(conn) -> dict[str, Any]:
 
     # EVERY SOURCE'S YIELD: what it found (kept or not), what was kept and filtered
     # out, how many a keyword query also found, and its newest post.
+    # `waiting` (saved, not yet labelled, #663) so found = kept + filtered + waiting
+    # (#673 review, point 5); `kept_keyword`: kept posts a keyword query also found,
+    # which the Feed does not list (they are the keyword agent's; point 4).
     tally = (
         "count(*), count(*) FILTER (WHERE verdict = 'kept'), "
         "count(*) FILTER (WHERE verdict = 'dropped' AND drop_stage IS DISTINCT FROM 'pending'), "
-        f"count(*) FILTER (WHERE {_KEYWORD_FOUND}), max(created_at)"
+        f"count(*) FILTER (WHERE {_KEYWORD_FOUND}), max(created_at), "
+        "count(*) FILTER (WHERE drop_stage = 'pending'), "
+        f"count(*) FILTER (WHERE verdict = 'kept' AND NOT ({WATCH_ARM}))"
     )
     by_key = {
         r[0]: r[1:]
@@ -949,9 +972,11 @@ def ai_watch_view(conn) -> dict[str, Any]:
 
     def yield_of(row) -> dict[str, Any]:
         if row is None:
-            return {"found": 0, "kept": 0, "filtered": 0, "also_keyword": 0, "newest": None}
-        f, k, d, a, newest = row
-        return {"found": int(f), "kept": int(k), "filtered": int(d), "also_keyword": int(a),
+            return {"found": 0, "kept": 0, "filtered": 0, "waiting": 0, "also_keyword": 0,
+                    "kept_keyword": 0, "newest": None}
+        f, k, d, a, newest, p, kk = row
+        return {"found": int(f), "kept": int(k), "filtered": int(d), "waiting": int(p),
+                "also_keyword": int(a), "kept_keyword": int(kk),
                 "newest": newest.isoformat() if newest else None}
 
     sources = []
@@ -985,7 +1010,7 @@ def ai_watch_view(conn) -> dict[str, Any]:
 
     last = conn.execute(
         "SELECT mode, status, started_at, finished_at FROM iai_run "
-        "ORDER BY started_at DESC LIMIT 1"
+        f"WHERE {WATCH_RUN} ORDER BY started_at DESC LIMIT 1"
     ).fetchone()
     return {
         "enabled": watch.get("enabled"),

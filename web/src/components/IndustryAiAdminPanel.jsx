@@ -81,6 +81,9 @@ export default function IndustryAiAdminPanel({ agent = 'industry' }) {
   const sw = feed?.switch?.state
   const items = data?.items
   const arm = data?.arms?.[isWatch ? 'watch' : 'keyword']
+  // AI Watch lists the observer's runs only: a keyword-only or relabel run read no
+  // watch list (#673 review, point 1).
+  const runs = (isWatch ? data?.watch_runs : data?.runs) || []
   const versions = Object.entries(data?.versions || {})
   const behind = versions.filter(([v]) => v !== data?.rules_version).reduce((s, [, c]) => s + c, 0)
   const r = data?.retention || {}
@@ -145,13 +148,13 @@ export default function IndustryAiAdminPanel({ agent = 'industry' }) {
             )}
 
             <div className="stack stack-1">
-              <span className="label">The last runs</span>
+              <span className="label">{isWatch ? 'The last runs that read the watch lists' : 'The last runs'}</span>
               <div className="tablewrap"><table>
                 <thead><tr><th>Started</th><th>Run</th><th>Result</th><th>{isWatch ? 'Observer' : 'Keyword agent'}: used / cap</th><th>Rules</th><th>Detail</th></tr></thead>
                 <tbody>
-                  {data.runs.length === 0 ? (
-                    <tr><td colSpan={6} className="dim">No run recorded yet.</td></tr>
-                  ) : data.runs.map((run) => (
+                  {runs.length === 0 ? (
+                    <tr><td colSpan={6} className="dim">{isWatch ? 'No run has read the watch lists yet.' : 'No run recorded yet.'}</td></tr>
+                  ) : runs.map((run) => (
                     <tr key={run.started_at}>
                       <td>{when(run.started_at)}</td>
                       <td className="dim">{run.mode}</td>

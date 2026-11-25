@@ -42,6 +42,8 @@ def test_the_real_workflow_files_are_read_for_each_feed():
         assert "unreadable" not in s, s
         assert s["crons"], f"{feed['file']} has no schedule"
         assert s["manual_run"] is True
+    # The harvest job's limit, not the 5-minute `guard` job's (#673 review, point 2).
+    assert sections_status.workflow_setup("industry-ai-harvest.yml")["timeout_minutes"] == 180
     bench = sections_status.workflow_setup("benchmarks.yml")
     assert [c["words"] for c in bench["crons"]] == ["Tue, Fri at 01:30 UTC (07:00 IST)"]
 

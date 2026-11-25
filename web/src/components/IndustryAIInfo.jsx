@@ -376,7 +376,7 @@ export default function IndustryAIInfo({ agent = 'industry' }) {
               </p>
               <p className="dim iai-note">
                 Searches <span className="tnum">{active.length}</span> of <span className="tnum">{info.domains.length}</span>{' '}
-                industries now: the active ones under &quot;Industries and keywords&quot; below.
+                industries and roles now: the active ones under &quot;Industries and keywords&quot; below.
               </p>
             </div>
           )}

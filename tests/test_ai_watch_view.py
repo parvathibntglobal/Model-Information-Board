@@ -111,9 +111,10 @@ def test_a_sources_yield_counts_what_it_found_and_names_a_gone_source(page):
 
     src = ai_watch_view(page)["sources"]
     claude = next(s for s in src if s.get("key") == REDDIT_KEY)
-    # k2 (also found by keyword), g1, m1, d1 and the waiting p1.
-    assert (claude["found"], claude["kept"], claude["filtered"], claude["also_keyword"]) == (
-        5, 3, 1, 1)
+    # k2 (also found by keyword), g1, m1, d1 and the waiting p1: found = kept + filtered
+    # + waiting, and k2 is kept but the keyword agent's (#673 review, points 4 and 5).
+    assert (claude["found"], claude["kept"], claude["filtered"], claude["waiting"]) == (5, 3, 1, 1)
+    assert (claude["also_keyword"], claude["kept_keyword"]) == (1, 1)
     assert claude["listed"] and claude["source"] == "r/ClaudeAI"
     gone = next(s for s in src if s.get("key") == GONE_KEY)
     assert not gone["listed"] and gone["found"] == 1
@@ -156,3 +157,49 @@ def test_admin_counts_each_agents_posts_as_its_page_does(page):
     arms = industry_ai_admin(page)["arms"]
     assert arms == {"keyword": {"stored": 2, "kept": 2, "pending": 0},
                     "watch": {"stored": 6, "kept": 4, "pending": 1}}
+
+
+def test_the_last_run_shown_is_the_observers(page):
+    """A newer relabel (no watch query) must not date the observer (#673 review, point 1);
+    Admin's AI Watch runs are the observer's only."""
+    from collect.industry_ai import store
+    from judge.industry_ai.view import ai_watch_view, industry_ai_admin
+
+    store.start_run(page, "iai-relabel", mode="relabel", domains=[], platforms=[],
+                    pipeline_version="test")
+    page.execute("UPDATE iai_run SET started_at = now() + interval '1 hour' "
+                 "WHERE id = 'iai-relabel'")
+    page.execute("""UPDATE iai_run SET queries = '[{"domain": "watch", "platform": "reddit",
+                 "requests": 1}]'::jsonb WHERE id = 'iai-aw'""")
+    page.commit()
+    assert ai_watch_view(page)["last_run"]["mode"] == "harvest"
+    admin = industry_ai_admin(page)
+    assert len(admin["runs"]) == 2 and len(admin["watch_runs"]) == 1
+
+
+def test_an_x_link_naming_nobody_is_no_account(page):
+    """`x.com/i/status/` is X's anonymous form (rules.handle_of): never an account "i"."""
+    from collect.industry_ai import store
+    from judge.industry_ai.view import ai_watch_view
+
+    store.upsert_items(page, [_item("x:2", ["watch:x:(from:karpathy)"],
+                                    url="https://x.com/i/status/2")], run_id="iai-aw")
+    _label(page, "x:2", flags=["general_ai"])
+    page.commit()
+    src = ai_watch_view(page)["sources"]
+    assert not any(s.get("account") == "i" for s in src)
+    nobody = next(s for s in src if s["platform"] == "x" and s.get("account") is None)
+    assert nobody["source"] == "no account in the link" and not nobody["listed"]
+
+
+def test_both_routes_stay_behind_the_token(monkeypatch):
+    """/ai-watch/posts carries post text: a public prefix must never reach it
+    (#673 review, point 3). No database needed: the gate answers first."""
+    from fastapi.testclient import TestClient
+
+    from judge.app import app
+
+    monkeypatch.setenv("API_TOKEN", "s3cret")
+    client = TestClient(app)
+    assert client.get("/ai-watch").status_code == 401
+    assert client.get("/ai-watch/posts").status_code == 401
