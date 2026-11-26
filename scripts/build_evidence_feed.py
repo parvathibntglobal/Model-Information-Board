@@ -125,6 +125,10 @@ def embeds(conn, *, apply: bool, limit: int | None, client=None, reader=None,
         "  AND be.ruling IS DISTINCT FROM 'declined'",
         (embed_only,),
     ).fetchall()
+    # Reads only, ended before the paced oEmbed loop: a run of failed requests sends no
+    # statement, and the shared database closes a transaction idle for 15 minutes
+    # (2026-11-26, #678).
+    conn.commit()
     rows = rows[:limit] if limit else rows
     report = {"pending": len(rows), "embeddable": 0, "no_post_address": 0, "unavailable": 0,
               "retry_later": {}}
@@ -225,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
             units = units[: args.limit] if args.limit else units
             calls = sum(-(-n // p_cfg["per_call"]) for n in _per_model(units).values())
             held = paraphrase.refusals(conn, p_cfg["prompt_version"])
+            # Reads only, ended before the model calls (the 15-minute idle limit, #678).
+            conn.commit()
             print(
                 f"paraphrase: {len(units)} reports pending, about {calls} calls"
                 + (f"; {not_allowed} left out by the publication terms" if not_allowed else "")
