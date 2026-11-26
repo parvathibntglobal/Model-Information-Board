@@ -234,6 +234,9 @@ def main(argv: list[str] | None = None) -> int:
             if args.apply and args.paraphrase and units:
                 report = paraphrase.run(conn, units, p_cfg, call=call, log=print)
                 print("paraphrase:", json.dumps(report, indent=2))
+                line = paraphrase.provider_line(report["by_provider"])
+                if line:
+                    print(line)
 
         if args.summaries or nothing:
             due = (
