@@ -215,7 +215,9 @@ function utcDay(iso) {
 function agoUtc(iso) {
   const then = utcDay(iso)
   if (then == null) return ''
-  const days = utcDay(new Date().toISOString()) - then
+  // At least 0: a server clock a few seconds ahead of the reader's across UTC
+  // midnight would otherwise print "(-1 day ago)" (#674 review).
+  const days = Math.max(0, utcDay(new Date().toISOString()) - then)
   return days === 0 ? ' (today)' : ` (${plural(days, 'day')} ago)`
 }
 
