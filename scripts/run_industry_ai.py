@@ -346,6 +346,16 @@ def main(argv: list[str] | None = None) -> int:
         from judge.writeguard import check as writeguard_check
 
         writeguard_check(dsn, command="run_industry_ai.py")
+        # BEFORE ANY REQUEST (#676 review): a database missing a column this
+        # writer stores refuses here, not after the harvest has spent its caps.
+        with psycopg.connect(dsn, connect_timeout=20) as conn:
+            missing = iai_store.missing_columns(conn)
+        if missing:
+            raise SystemExit(
+                f"iai_item has no column(s) {', '.join(missing)}: a migration has not been "
+                "applied to this database. Run `python -m collect.cli db migrate` first. "
+                "Nothing was requested."
+            )
     cfg = dataclasses.replace(cfg, extra_ai_terms=_registry_names(dsn))
     is_bot = _bot_check()
 

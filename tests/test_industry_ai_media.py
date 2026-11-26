@@ -251,3 +251,10 @@ def test_the_pages_count_not_readable_apart_from_filtered_out(conn):
     assert src["found"] == src["kept"] + src["filtered"] + src["waiting"] + src["unread"] == 3
     assert [i["id"] for i in ai_watch_posts(conn, scope="unread")["items"]] == ["reddit:u"]
     assert "reddit:u" not in {i["id"] for i in ai_watch_posts(conn, scope="dropped")["items"]}
+
+    # Admin counts the same bucket for each agent (#676 review, point 3).
+    from judge.industry_ai.view import industry_ai_admin
+
+    arms = industry_ai_admin(conn)["arms"]
+    assert arms["watch"]["unread"] == w["unread"] == 1
+    assert arms["keyword"]["unread"] == 0

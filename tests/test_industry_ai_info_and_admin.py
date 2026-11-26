@@ -55,7 +55,8 @@ def test_the_info_payload_carries_what_the_page_reads():
     from judge.industry_ai.view import EXCERPT_CHARS
 
     assert info["excerpt_chars"] == EXCERPT_CHARS
-    assert set(info["retention"]) == {"clear_text_after_days", "dropped", "kept_domains"}
+    assert set(info["retention"]) == {"clear_text_after_days", "dropped", "unread",
+                                      "kept_domains"}
     # A domain is an industry or a role, so the page can count them apart.
     assert {d["kind"] for d in info["domains"]} <= {"industry", "function"}
     # The Bluesky DID is for the code: never in the payload.

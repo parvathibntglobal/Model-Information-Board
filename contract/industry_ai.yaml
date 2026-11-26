@@ -680,9 +680,21 @@ stage_patterns:
 #
 # PERSONAL POSTS LOSE THEIR WORDS AFTER 30 DAYS: anything drafted from them (a post,
 # a guide) has to quote within that window.
+#
+# NOT READABLE POSTS KEEP THEIR TEXT FOR NOW (`unread: false`; anooj, 2026-11-26,
+# #676 review). A picture or video with too few words is stored as dropped, stage
+# `unread`, and `dropped: true` would clear it after 30 days with the rest. A cleared
+# row is never re-labelled, and the next steps re-judge these rows: the review of
+# `run.unread_media_max_chars` after a week of runs, and the rules that read the text
+# that comes WITH the media (Bluesky alt text, an X quoted post, a Reddit crosspost's
+# parent). That extra text reaches a row only when the post is harvested again after
+# that step lands - this lane's raw pages are not kept (see above) - so the caption
+# kept here is what any re-judging has. Their text is short (under
+# `run.unread_media_max_chars`). Set this to true once those steps have landed.
 retention:
   clear_text_after_days: 30
   dropped: true
+  unread: false
   kept_domains: [personal]
 
 # ── THE OBSERVER: watch lists (anooj, 2026-11-20) ─────────────────────────────

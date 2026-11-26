@@ -302,6 +302,8 @@ def industry_ai_info() -> dict[str, Any]:
         "retention": {
             "clear_text_after_days": (c.get("retention") or {}).get("clear_text_after_days"),
             "dropped": (c.get("retention") or {}).get("dropped"),
+            # Whether a "not readable" post (#676) is cleared with the dropped ones.
+            "unread": (c.get("retention") or {}).get("unread"),
             "kept_domains": list((c.get("retention") or {}).get("kept_domains") or []),
         },
         # A domain's page shows each post's text up to this many characters (#665),
@@ -422,6 +424,7 @@ def industry_ai_admin(conn) -> dict[str, Any]:
         "retention": {
             "clear_text_after_days": ret.get("clear_text_after_days"),
             "dropped": ret.get("dropped"),
+            "unread": ret.get("unread"),
             "kept_domains": list(ret.get("kept_domains") or []),
         },
     }
@@ -434,12 +437,15 @@ def industry_ai_admin(conn) -> dict[str, Any]:
         # EACH AGENT'S OWN POSTS (2026-11-25): Admin shows AI in industries and AI Watch
         # as two sections, each with the population its page counts (KEYWORD_ARM /
         # WATCH_ARM); `items` above stays the table's total, both together.
+        # `unread` (#676 review, point 3): posts whose content is a picture or video
+        # with too few words to judge, counted apart as the two pages count them.
         arms = {
-            arm: {"stored": int(s), "kept": int(k), "pending": int(p)}
-            for arm, (s, k, p) in (
+            arm: {"stored": int(s), "kept": int(k), "pending": int(p), "unread": int(u)}
+            for arm, (s, k, p, u) in (
                 (arm, conn.execute(
                     "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept'), "
-                    f"count(*) FILTER (WHERE drop_stage = 'pending') FROM iai_item WHERE {where}"
+                    "count(*) FILTER (WHERE drop_stage = 'pending'), "
+                    f"count(*) FILTER (WHERE drop_stage = 'unread') FROM iai_item WHERE {where}"
                 ).fetchone())
                 for arm, where in (("keyword", KEYWORD_ARM), ("watch", WATCH_ARM))
             )
@@ -452,13 +458,18 @@ def industry_ai_admin(conn) -> dict[str, Any]:
         }
         due = None
         if ret.get("clear_text_after_days") is not None:
-            # The same rows collect/industry_ai/store.py clear_text would empty now.
+            # The same rows collect/industry_ai/store.py clear_text would empty now:
+            # its RETENTION_DUE, copied because judge/ never imports collect/
+            # (tests/test_lane_boundary.py). tests/test_industry_ai_media.py holds the
+            # two to the same rows.
             (due,) = conn.execute(
                 "SELECT count(*) FROM iai_item WHERE text_cleared_at IS NULL "
                 "AND first_seen_at < now() - make_interval(days => %(d)s) "
-                "AND ((%(dropped)s AND verdict = 'dropped') "
+                "AND ((%(dropped)s AND verdict = 'dropped' "
+                "      AND (drop_stage IS DISTINCT FROM 'unread' OR %(unread)s)) "
                 "     OR (verdict = 'kept' AND domains && %(kept)s::text[]))",
                 {"d": int(ret["clear_text_after_days"]), "dropped": bool(ret.get("dropped")),
+                 "unread": bool(ret.get("unread")),
                  "kept": list(ret.get("kept_domains") or [])},
             ).fetchone()
         runs = conn.execute(

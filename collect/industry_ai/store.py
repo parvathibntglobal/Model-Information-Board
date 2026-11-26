@@ -35,6 +35,27 @@ _COLUMNS = (
 )
 
 
+def missing_columns(conn) -> list[str]:
+    """The `_COLUMNS` this writer stores that `iai_item` does not have, in order.
+
+    A RUN ASKS BEFORE IT SPENDS (#676 review, Parvathi, 2026-11-26). Since #663
+    the store comes after the harvest, so a run started against a database
+    whose migration has not been applied spent its X, Reddit and Instagram
+    requests and then failed on the missing column. The writer ships as code
+    and the migration as a file someone runs (CLAUDE.md, #260), so the gap
+    reopens with every new column; this checks all of them, not only the
+    newest. A missing table is all of them missing.
+    """
+    have = {
+        r[0]
+        for r in conn.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND table_name = 'iai_item'"
+        )
+    }
+    return [c for c in _COLUMNS if c not in have]
+
+
 def start_run(
     conn, run_id: str, *, mode: str, domains: list[str], platforms: list[str], pipeline_version: str
 ) -> None:
@@ -172,12 +193,26 @@ def load_items(conn) -> list[Item]:
     return out
 
 
+#: Which rows `retention` clears, besides age and "not cleared yet". One string,
+#: read by `clear_text` and by Admin's "due at the next run" count
+#: (judge/industry_ai/view.py industry_ai_admin), so the two cannot disagree.
+#: Parameters: %(dropped)s, %(unread)s, %(kept)s.
+RETENTION_DUE = (
+    "(%(dropped)s AND verdict = 'dropped' "
+    " AND (drop_stage IS DISTINCT FROM 'unread' OR %(unread)s)) "
+    "OR (verdict = 'kept' AND domains && %(kept)s::text[])"
+)
+
+
 def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
     """Empty the title and body of every row `retention` says is due; return how many.
 
     Due: first stored more than `clear_text_after_days` ago, text not cleared yet,
     and either dropped (when `retention.dropped`) or kept under one of
-    `retention.kept_domains`. The ROW stays - id, platform, dates, verdict, reason,
+    `retention.kept_domains`. A "not readable" row (`drop_stage = 'unread'`) is a
+    dropped row too, and is cleared only when `retention.unread` says so (#676
+    review): the media plan's next step reads its alt or quoted text again. The
+    ROW stays - id, platform, dates, verdict, reason,
     labels, flags - because the page's counts are counted from it. Run after
     labelling, so a row is cleared with the labels its text earned.
     """
@@ -190,10 +225,9 @@ def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
     due = [r[0] for r in conn.execute(
         "SELECT id FROM iai_item "
         "WHERE text_cleared_at IS NULL AND first_seen_at < %(cutoff)s "
-        "AND ((%(dropped)s AND verdict = 'dropped') "
-        "     OR (verdict = 'kept' AND domains && %(kept)s::text[]))",
+        f"AND ({RETENTION_DUE})",
         {"cutoff": cutoff, "dropped": bool(retention["dropped"]),
-         "kept": list(retention["kept_domains"])},
+         "unread": bool(retention["unread"]), "kept": list(retention["kept_domains"])},
     ).fetchall()]
     if due:
         conn.execute(

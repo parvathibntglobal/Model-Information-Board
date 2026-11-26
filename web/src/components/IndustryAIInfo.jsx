@@ -280,7 +280,10 @@ function Retention({ info }) {
   if (r.clear_text_after_days == null) return null
   const name = (k) => info.domains.find((d) => d.key === k)?.name || k
   const kept = (r.kept_domains || []).map(name)
-  const which = [r.dropped && 'every dropped post', kept.length > 0 && `every kept post in ${kept.join(', ')}`]
+  // A "not readable" post is a dropped one, kept apart (#676): said either way.
+  const dropped = r.dropped && (r.unread ? 'every dropped post, not readable ones included'
+    : 'every dropped post except the not readable ones (a picture or video with too few words), which keep theirs for now')
+  const which = [dropped, kept.length > 0 && `every kept post in ${kept.join(', ')}`]
     .filter(Boolean).join(' and ')
   return (
     <section className="card iai-card">

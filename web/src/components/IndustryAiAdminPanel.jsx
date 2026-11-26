@@ -15,6 +15,8 @@ import { PLATFORM_LABEL } from '../industry-ai/parts'
  *   rules       which rules version the stored labels carry, against the
  *               contract's - a mismatch means a `--relabel` is owed
  *   waiting     posts saved but not labelled (a labelling that failed)
+ *   unread      posts counted "not readable": a picture or video with too few
+ *               words to judge (#676), apart from kept and filtered out
  *   switches    the contract's harvest and observer switches, and the scheduled
  *               run's on/off switch (read from GitHub, as Scheduler does)
  *   runs        the last runs, with requests against each platform's cap
@@ -123,7 +125,8 @@ export default function IndustryAiAdminPanel({ agent = 'industry' }) {
         {items && (
           <>
             <div className={`adm-plan-grid${isWatch ? '' : ' iai-adm-four'}`}>
-              <Cell k="Posts stored" v={n(arm?.stored)} sub={`${n(arm?.kept)} kept`} />
+              <Cell k="Posts stored" v={n(arm?.stored)}
+                    sub={`${n(arm?.kept)} kept · ${n(arm?.unread)} not readable (picture or video)`} />
               <Cell k="Rules version" v={<span className="mono">{data.rules_version || '–'}</span>}
                     sub={behind ? `${n(behind)} stored post(s) labelled with older rules` : 'every stored label is on it'} />
               <Cell k="Saved, not labelled" v={n(arm?.pending)}

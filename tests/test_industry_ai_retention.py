@@ -41,7 +41,7 @@ def cfg(raw):
 
 
 def test_the_contract_retention_loads(cfg):
-    assert cfg.retention == {"clear_text_after_days": 30, "dropped": True,
+    assert cfg.retention == {"clear_text_after_days": 30, "dropped": True, "unread": False,
                              "kept_domains": ("personal",)}
 
 
@@ -51,6 +51,8 @@ def test_the_contract_retention_loads(cfg):
     (lambda r: r["retention"].update(keep_forever=True), "unknown key"),
     (lambda r: r["retention"].update(clear_text_after_days=0), "whole number"),
     (lambda r: r["retention"].update(dropped="yes"), "true or false"),
+    (lambda r: r["retention"].pop("unread"), "unread"),
+    (lambda r: r["retention"].update(unread="no"), "true or false"),
     # A misspelt domain would silently keep that domain's text.
     (lambda r: r["retention"].update(kept_domains=["persnal"]), "unknown domain"),
 ])
@@ -157,6 +159,30 @@ def test_exactly_the_due_rows_lose_their_text_and_keep_their_row(stored, cfg):
         assert cleared is None and body and title == f"title {iid}", iid
     assert stored.execute("SELECT count(*) FROM iai_item").fetchone()[0] == len(ROWS)
     assert store.clear_text(stored, cfg.retention, now=NOW) == 0, "cleared once"
+
+
+def test_a_not_readable_post_keeps_its_text_until_the_contract_says(stored, cfg):
+    """#676 review (anooj, 2026-11-26): "not readable" is stored as dropped, stage
+    `unread`; `retention.unread: false` keeps its text, so the threshold review and
+    the media-text rules can re-judge it. Admin's "due" count reads the same rows."""
+    from collect.industry_ai import store
+    from judge.industry_ai.view import industry_ai_admin
+
+    store.upsert_items(stored, [_item("unread_old")], run_id="iai-ret")
+    stored.execute("UPDATE iai_item SET verdict = 'dropped', drop_stage = 'unread', "
+                   "drop_reason = 'media_unread', first_seen_at = %s "
+                   "WHERE id = 'reddit:unread_old'", (OLD,))
+    # Admin counts against the database's own clock, so the ages move to it here.
+    stored.execute("UPDATE iai_item SET first_seen_at = now() - (%s - first_seen_at)", (NOW,))
+    stored.commit()
+    assert cfg.retention["unread"] is False
+    due_on_admin = industry_ai_admin(stored)["items"]["text_due"]
+    assert store.clear_text(stored, cfg.retention) == due_on_admin == 3
+    assert _row(stored, "unread_old")[2] is None, "kept its text"
+
+    assert store.clear_text(stored, {**cfg.retention, "unread": True}) == 1
+    title, body, cleared, *_ = _row(stored, "unread_old")
+    assert (title, body) == ("", "") and cleared is not None
 
 
 def test_a_cleared_row_is_not_relabelled_on_its_empty_text(stored, cfg):
