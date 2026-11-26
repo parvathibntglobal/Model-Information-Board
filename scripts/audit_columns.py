@@ -50,7 +50,12 @@ SKIP = re.compile(r"(^|[\\/])(tests|\.venv|__pycache__|node_modules)([\\/]|$)")
 SQL_VERB = re.compile(r"\b(INSERT\s+INTO|UPDATE|SELECT|DELETE\s+FROM)\b", re.I)
 STAR = re.compile(r"SELECT\s+\*", re.I)
 WRITE_VERB = re.compile(r"\b(INSERT\s+INTO|UPDATE)\b", re.I)
-TABLE_REF = re.compile(r"(?:INSERT\s+INTO|UPDATE|FROM|JOIN)\s+([a-z_]+)", re.I)
+#: The leading `\b` matters (anooj, 2026-11-26): without it a column whose name
+#: ENDS in a keyword read as one. `... media_text_from FROM iai_item` yielded the
+#: table `FROM` and no `iai_item`, so every column that SELECT read was dropped and
+#: `iai_item.external_id` reported "written, UNREAD". `\b` does not fire between `_`
+#: and a letter, so `_from`, `_join` and `_update` no longer match.
+TABLE_REF = re.compile(r"\b(?:INSERT\s+INTO|UPDATE|FROM|JOIN)\s+([a-z_]+)", re.I)
 
 #: `FROM claim c`, `JOIN claim_weight AS w` -> the alias and the table it names.
 #: Used to attribute a QUALIFIED column reference to one table instead of to
@@ -66,7 +71,7 @@ TABLE_REF = re.compile(r"(?:INSERT\s+INTO|UPDATE|FROM|JOIN)\s+([a-z_]+)", re.I)
 #: `d`, and `FROM claim WHERE ...` must yield no alias at all rather than the
 #: alias `where`.
 TABLE_ALIAS = re.compile(
-    r"(?:FROM|JOIN)\s+([a-z_]+)(?:\s+AS)?\s+([a-z][a-z0-9_]*)"
+    r"\b(?:FROM|JOIN)\s+([a-z_]+)(?:\s+AS)?\s+([a-z][a-z0-9_]*)"
     r"(?=\s|,|$)",
     re.I,
 )
@@ -75,7 +80,7 @@ _ALIAS_STOPWORDS = frozenset(
      "outer", "full", "cross", "using", "set", "values", "returning", "as",
      "and", "or", "union", "having", "offset", "for", "natural"}
 )
-INSERT_TABLE = re.compile(r"INSERT\s+INTO\s+([a-z_]+)", re.I)
+INSERT_TABLE = re.compile(r"\bINSERT\s+INTO\s+([a-z_]+)", re.I)
 
 #: A view is never written. Leaving `cell_current` in put 18 columns into
 #: "unwritten, read" and "neither" as artifacts of the method rather than

@@ -18,6 +18,7 @@ from datetime import UTC, datetime, timedelta
 
 from collect.industry_ai.config import Config
 from collect.industry_ai.rules import (
+    MEDIA_TEXT_FLAG,
     PERSON_FLAG,
     UNREAD_INSTEAD_OF,
     UNREAD_REASON,
@@ -29,6 +30,7 @@ from collect.industry_ai.rules import (
     is_article_link,
     is_watch_only,
     label,
+    needed_media_text,
     normalized_text,
     outside_window,
     person_of,
@@ -200,6 +202,9 @@ def evaluate(
         if why:
             r.verdict, r.stage, r.reason = "dropped", "sieve", why
             continue
+        if needed_media_text(it, cfg):
+            # Through on the text that came with its media, not its own words (#679).
+            r.flags = sorted(set(r.flags) | {MEDIA_TEXT_FLAG})
         matched[it.id] = terms
         passed.append(it)
 
