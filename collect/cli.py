@@ -105,7 +105,12 @@ def _cmd_db_migrate(args: argparse.Namespace) -> int:
         try:
             applied = migrate(conn)
         except MigrationError as exc:
+            # The whole run is one transaction here (the connection is not
+            # autocommit, so each migration's own block is a savepoint inside
+            # it): a refusal mid-run leaves nothing of the run applied.
+            conn.rollback()
             print(str(exc))
+            print("Nothing from this run was applied.")
             return 2
         conn.commit()
         for name in applied:
