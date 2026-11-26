@@ -55,7 +55,7 @@ from collect.assemble import prose  # noqa: E402
 from judge import fetch_console  # noqa: E402
 from judge.extract.client import extractor_model  # noqa: E402
 from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
-from judge.scheduler import extract_enabled  # noqa: E402
+from judge.scheduler import count_by_provider, extract_enabled  # noqa: E402
 
 log = logging.getLogger(__name__)
 from collect.config import settings  # noqa: E402
@@ -3998,6 +3998,13 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         sent_chars=sum(len(t.flattened_text) for t in threads),
         claims_verified=verified,
         claims_stored=stored,
+        # BY OPENROUTER PROVIDER (#671): the same threads and quotes, split by who
+        # served each thread's final call, so a provider that stops returning
+        # quotes shows in the nightly summary the night it starts. Its threads sum
+        # to `threads_read`. Read by judge/scheduler.py `_provider_line`.
+        threads_by_provider=count_by_provider(
+            (r.extraction.upstreams, len(r.extraction.verified)) for r in results
+        ) or None,
         # Board entries, the rows a model page reads, split by who they are
         # about. Only `entries_about_model` lands on this model's page.
         entries_stored=board_stored,

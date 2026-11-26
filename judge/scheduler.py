@@ -15,6 +15,7 @@ model, and posts `summarise_runs` to an issue. The runner is disabled by default
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -210,7 +211,82 @@ _SAFE_FIELDS = (
     # True / false: which window the run's thread scan used, so the unreadable
     # count can be said per window (#628 review). A flag, no host.
     "first_fetch",
+    # Threads and verified quotes by OpenRouter PROVIDER (the company serving the
+    # extractor model, not a machine); `safe_record` keeps only its counted shape.
+    "threads_by_provider",
 )
+
+
+#: A thread whose final call's stream named no provider (`Completion.provider`
+#: None): counted under this, never dropped and never given a name (rule 6).
+PROVIDER_NOT_REPORTED = "not reported"
+
+#: What a provider name in a public summary may look like. OpenRouter's names
+#: are words ("Wafer", "Google AI Studio", "Novita"); anything else is shown as
+#: `PROVIDER_UNRECOGNISED`, so a stray string cannot reach the public issue.
+_PROVIDER_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._()-]{0,39}")
+PROVIDER_UNRECOGNISED = "name not shown"
+
+
+def count_by_provider(threads) -> dict[str, dict[str, int]]:
+    """`{provider: {"threads": n, "verified": quotes}}` over `(upstreams,
+    verified)` pairs, one pair per thread read.
+
+    WHY (#671, 2026-11-25). From 14 Nov one provider, DeepInfra, answered "no
+    claim" to nearly every thread (14-24 Nov: 1,518 threads, 125 verified
+    quotes; the other providers, 2,351 threads, 5,453), and the nightly summary,
+    which gave totals only, showed nothing for 11 days.
+
+    A THREAD COUNTS UNDER ITS FINAL CALL'S PROVIDER. `upstreams` is one entry per
+    call: the first answer and at most one schema retry (judge/extract/runner.py
+    `_call_with_one_retry`). The retry's answer is the one whose quotes were
+    checked, so a thread that went to DeepInfra and was retried on Wafer is
+    Wafer's.
+    """
+    out: dict[str, dict[str, int]] = {}
+    for upstreams, verified in threads:
+        name = (list(upstreams or []) or [None])[-1] or PROVIDER_NOT_REPORTED
+        row = out.setdefault(name, {"threads": 0, "verified": 0})
+        row["threads"] += 1
+        row["verified"] += int(verified or 0)
+    return out
+
+
+#: The summary's line for `threads_by_provider`.
+PROVIDER_LINE = ("Threads read and quotes verified, by OpenRouter provider "
+                 "(each thread's final call):")
+
+
+def _provider_line(records: list[dict]) -> str | None:
+    """The night's threads and verified quotes per provider, summed over runs.
+
+    Counts only, side by side, so a provider whose threads return almost no
+    quotes stands out the night it starts (#671). No ratio is computed: the two
+    counts are the evidence. A run that read threads and did not report the
+    field (an older runner) is counted and said, never folded into a provider;
+    no run reported it, no line (rule 6).
+    """
+    totals: dict[str, dict[str, int]] = {}
+    unreported = 0
+    for r in records:
+        by = r.get("threads_by_provider")
+        if not isinstance(by, dict):
+            if (r.get("threads_read") or 0) and not r.get("extract_skipped"):
+                unreported += 1
+            continue
+        for name, row in by.items():
+            t = totals.setdefault(name, {"threads": 0, "verified": 0})
+            t["threads"] += row["threads"]
+            t["verified"] += row["verified"]
+    if not totals:
+        return None
+    parts = [f"{name} {row['threads']:,} / {row['verified']:,}"
+             for name, row in sorted(totals.items(), key=lambda kv: (-kv[1]["threads"], kv[0]))]
+    line = f"{PROVIDER_LINE} {' · '.join(parts)} (threads / quotes)."
+    if unreported:
+        line += (f" {unreported} run(s) read threads and did not report their providers,"
+                 " so they are not in these counts.")
+    return line
 
 
 #: The summary's one line for `threads_unreadable_here`; Admin -> Scheduler
@@ -321,6 +397,9 @@ def summarise_runs(records: list[dict]) -> str:
     unreadable = _unreadable_line(records)
     if unreadable:
         lines += ["", unreadable]
+    providers = _provider_line(records)
+    if providers:
+        lines += ["", providers]
     # MEDIA'S SHARE OF THE NIGHT (#602 item 8), in counts only - no spend on a
     # public issue; each run's `cost_usd` stays in its own fetch log.
     # ONLY THE KINDS THAT ARE MEDIA (#618/#620 review, Parvathi). It counted
@@ -360,7 +439,38 @@ def safe_record(end_record: dict) -> dict:
     point: `summarise_runs` reads what this returns, so a `detail` can never
     reach the issue even if a caller passes a raw record."""
     out = {k: end_record[k] for k in _SAFE_FIELDS if k in end_record}
+    if "threads_by_provider" in out:
+        out["threads_by_provider"] = _safe_by_provider(out["threads_by_provider"])
+        if out["threads_by_provider"] is None:
+            del out["threads_by_provider"]
     for key in ("model", "model_version_id", "display_name"):
         if end_record.get(key):
             out[key] = end_record[key]
+    return out
+
+
+def _safe_by_provider(by) -> dict[str, dict[str, int]] | None:
+    """`threads_by_provider` in its counted shape only, or None.
+
+    The provider names come from OpenRouter's responses, so each is checked
+    against `_PROVIDER_NAME` before it can reach the public issue; one that
+    fails is merged under `PROVIDER_UNRECOGNISED`, its counts kept. A value that
+    is not `{name: {"threads": int, "verified": int}}` is dropped whole, and the
+    summary then counts that run as one that did not report it.
+    """
+    if not isinstance(by, dict):
+        return None
+    out: dict[str, dict[str, int]] = {}
+    for name, row in by.items():
+        if not isinstance(row, dict):
+            return None
+        counts = (row.get("threads"), row.get("verified"))
+        if not all(isinstance(n, int) and not isinstance(n, bool) and n >= 0 for n in counts):
+            return None
+        ok = isinstance(name, str) and (name == PROVIDER_NOT_REPORTED
+                                        or _PROVIDER_NAME.fullmatch(name))
+        key = name if ok else PROVIDER_UNRECOGNISED
+        t = out.setdefault(key, {"threads": 0, "verified": 0})
+        t["threads"] += counts[0]
+        t["verified"] += counts[1]
     return out

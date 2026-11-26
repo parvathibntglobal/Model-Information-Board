@@ -462,6 +462,45 @@ class TestParaphrases:
         assert texts["d1"] == "Reports an agent loop where tool use never failed."
         assert texts["d3"] is None  # not asked: listed, without text (rule 4)
 
+    def test_reports_are_counted_per_provider(self, conn):
+        """#671: who served each call, with what was sent and what passed, so a
+        provider that returns nothing shows beside one that works. The stand-in
+        sets the provider the way `llm.call_tool` does from OpenRouter's response."""
+        from judge.feed import llm
+
+        units = [u for u in paraphrase.pending(conn, "p1")[0] if u["document_id"] in ("d1", "d2")]
+        served = iter(["DeepInfra", "Wafer"])
+        inner = FakeModel(
+            {"paraphrases": []},  # the first provider returns nothing for either
+            {"paraphrases": [
+                {"id": "R1", "text": "Reports an agent loop where tool use never failed."},
+                {"id": "R2", "text": "Describes broken JSON arguments on version 4.1."},
+            ]},
+        )
+
+        def model(**kw):
+            llm._last["provider"] = next(served)
+            return inner(**kw)
+
+        report = paraphrase.run(conn, units, P_SETTINGS, call=model)
+        assert report["stored"] == 2
+        assert report["by_provider"] == {
+            "DeepInfra": {"calls": 1, "asked": 2, "passed": 0, "failed_calls": 0},
+            "Wafer": {"calls": 1, "asked": 2, "passed": 2, "failed_calls": 0},
+        }
+
+    def test_a_stand_in_that_names_no_provider_is_not_reported(self, conn):
+        """`run` forgets the provider before each call, so a call that does not go
+        through `call_tool` never inherits the previous one's (rule 6)."""
+        from judge.feed import llm
+
+        llm._last["provider"] = "Wafer"
+        units = [u for u in paraphrase.pending(conn, "p1")[0] if u["document_id"] == "d1"]
+        ok = {"paraphrases": [
+            {"id": "R1", "text": "Reports an agent loop where tool use never failed."}]}
+        report = paraphrase.run(conn, units, P_SETTINGS, call=FakeModel(ok))
+        assert list(report["by_provider"]) == ["not reported"]
+
     def test_refused_twice_is_counted_and_the_report_stays(self, conn):
         units = [u for u in paraphrase.pending(conn, "p1")[0] if u["document_id"] == "d2"]
         bad = {"paraphrases": [{"id": "R1", "text": "Broken JSON in 40% of calls."}]}
