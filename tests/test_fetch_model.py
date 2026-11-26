@@ -559,14 +559,22 @@ def test_the_naming_scan_counts_what_it_could_not_read():
             self.sql.append(sql)
             return _Rows()
 
+        def commit(self):
+            self.sql.append("COMMIT")
+
+    conn = _Conn()
+
     class _Store:
         def get_text(self, ref):
+            # THE READS' TRANSACTION IS ENDED BEFORE THE FIRST PAYLOAD READ: on a runner
+            # each read is a round trip, and the shared database closes a transaction
+            # idle for 15 minutes (2026-11-26).
+            assert conn.sql[-1] == "COMMIT"
             if ref == "flattened/a":
                 return "We moved the agent to Acme Model 7 last week."
             raise FileNotFoundError(ref)
 
     counts = {}
-    conn = _Conn()
     naming, total = fetch_model.threads_naming_the_model(
         conn, _Store(), ["acme model 7"], counts=counts)
     assert total == 3
