@@ -35,6 +35,9 @@ _COLUMNS = (
     "media_text",
     "media_text_from",
 )
+#: Written by the picture-text reader, never by the upsert (#679 step 3): a re-found
+#: post must not bring a cleared picture text back. Checked by `missing_columns`.
+OCR_COLUMNS = ("ocr_text", "ocr_confidence", "ocr_status")
 
 
 def missing_columns(conn) -> list[str]:
@@ -55,7 +58,7 @@ def missing_columns(conn) -> list[str]:
             "WHERE table_schema = current_schema() AND table_name = 'iai_item'"
         )
     }
-    return [c for c in _COLUMNS if c not in have]
+    return [c for c in (*_COLUMNS, *OCR_COLUMNS) if c not in have]
 
 
 def start_run(
@@ -178,7 +181,7 @@ def load_items(conn) -> list[Item]:
     for r in conn.execute(
         "SELECT id, platform, external_id, url, title, body, created_at, author_id, lang, "
         "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at, media_kind, "
-        "media_text, media_text_from "
+        "media_text, media_text_from, ocr_text, ocr_confidence, ocr_status "
         "FROM iai_item WHERE text_cleared_at IS NULL"
     ).fetchall():
         out.append(
@@ -204,9 +207,52 @@ def load_items(conn) -> list[Item]:
                 # ...and matches terms on the same text (#679 step 1).
                 media_text=r[16] or None,
                 media_text_from=tuple(r[17] or ()),
+                # ...and sets the picture-text shadow flags from the stored read
+                # (#679 step 3), so a relabel keeps them. '' (cleared) reads as none.
+                ocr_text=r[18] or None,
+                ocr_confidence=tuple(r[19] or ()) if r[18] else (),
+                ocr_status=r[20],
             )
         )
     return out
+
+
+def ocr_status_of(conn, ids: list[str]) -> dict[str, str | None]:
+    """Each stored id's `ocr_status` (None = not tried); ids not stored are absent."""
+    return dict(conn.execute(
+        "SELECT id, ocr_status FROM iai_item WHERE id = ANY(%s)", (ids,)).fetchall())
+
+
+def write_picture_reads(conn, reads: dict, flags: dict[str, list[str]]) -> int:
+    """Store each picture read (collect/industry_ai/ocr.py PictureRead) and add its
+    shadow flags to the row's flags. `over_cap` stores the status only. Returns rows."""
+    for item_id, read in reads.items():
+        has_text = read.status == "ok"
+        conn.execute(
+            "UPDATE iai_item SET ocr_status = %s, "
+            "ocr_text = CASE WHEN %s THEN %s ELSE ocr_text END, "
+            "ocr_confidence = CASE WHEN %s THEN %s::smallint[] ELSE ocr_confidence END, "
+            "flags = ARRAY(SELECT DISTINCT unnest(flags || %s::text[]) ORDER BY 1) "
+            "WHERE id = %s",
+            (read.status, has_text, read.text, has_text, list(read.confidence),
+             flags.get(item_id, []), item_id))
+    return len(reads)
+
+
+def clear_picture_text(conn, retention: dict, *, now: datetime | None = None) -> int:
+    """Empty `ocr_text` (and its confidences) on every row first stored more than
+    `clear_text_after_days` ago, WHATEVER ITS LABEL (CLAUDE.md fourth exception,
+    condition 3; #683): picture text is somebody's words. '' where there was text,
+    so "cleared" stays distinct from "not read" (NULL, rule 6). Returns how many."""
+    now = now or datetime.now(UTC)
+    cutoff = now - timedelta(days=int(retention["clear_text_after_days"]))
+    due = [r[0] for r in conn.execute(
+        "SELECT id FROM iai_item WHERE ocr_text <> '' AND first_seen_at < %s", (cutoff,)
+    ).fetchall()]
+    if due:
+        conn.execute("UPDATE iai_item SET ocr_text = '', ocr_confidence = '{}' "
+                     "WHERE id = ANY(%s)", (due,))
+    return len(due)
 
 
 #: Which rows `retention` clears, besides age and "not cleared yet". One string,

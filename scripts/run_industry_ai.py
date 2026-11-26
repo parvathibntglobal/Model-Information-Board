@@ -212,6 +212,64 @@ def post_summary(body: str) -> None:
     subprocess.run(["gh", "issue", "comment", issue, "--body", body], cwd=ROOT, check=False)
 
 
+def read_picture_text(conn, cfg, fresh, items, results, say) -> str:
+    """STEP 6b: the text in the first picture of THIS run's "not readable" posts, in
+    shadow mode (#679 step 3; CLAUDE.md's fourth fetch exception, #683). Only this
+    run's posts carry a picture link (`Item.picture_url`, never stored). The labels are
+    committed before this is called; the connection holds no transaction while the
+    pictures are fetched. Returns one line for the run's detail."""
+    from collections import Counter
+
+    from collect.adapters.blog.robots import RobotsGate
+    from collect.http import build_client
+    from collect.industry_ai import ocr
+    from collect.industry_ai import store as iai_store
+    from collect.industry_ai.rules import (
+        PICTURE_TEXT_AI_ONLY_FLAG,
+        PICTURE_TEXT_FLAG,
+        picture_text_flags,
+    )
+
+    t0 = time.perf_counter()
+    linked = [it for it in fresh if it.picture_url]
+    stored = iai_store.ocr_status_of(conn, [it.id for it in linked]) if linked else {}
+    conn.commit()  # the status read is done; nothing is held across the downloads
+    wanted = ocr.candidates(linked, results, stored)
+    with build_client(timeout=float(cfg.ocr["timeout_seconds"])) as client:
+        gate = RobotsGate(client, user_agent=settings().user_agent)
+        reads = ocr.read_pictures(wanted, cfg.ocr, client=client, gate=gate)
+    # THE SHADOW FLAGS, computed on the stored item (its media text and labels) with the
+    # text just read - the same function `evaluate` uses on every later run.
+    by_id = {it.id: it for it in items}
+    flags = {}
+    for item_id, read in reads.items():
+        base = by_id.get(item_id)
+        if read.status == "ok" and base is not None:
+            flags[item_id] = picture_text_flags(
+                dataclasses.replace(base, ocr_text=read.text, ocr_confidence=read.confidence),
+                cfg)
+    iai_store.write_picture_reads(conn, reads, flags)
+    secs = time.perf_counter() - t0
+    status = Counter(r.status for r in reads.values())
+    by_platform = Counter(i.split(":", 1)[0] for i, r in reads.items() if r.status == "ok")
+    would = sum(PICTURE_TEXT_FLAG in f for f in flags.values())
+    ai_only = sum(PICTURE_TEXT_AI_ONLY_FLAG in f for f in flags.values())
+    # EVERY STATUS SAID, including refused and over the cap (rules 4 and 7): the shadow
+    # week's counts come from these lines.
+    say(f"\n6b Picture text (shadow mode, decides no label): {len(wanted)} not-readable "
+        f"picture post(s) of this run with a link, of {len(linked)} with one; "
+        + (", ".join(f"{k} {n}" for k, n in sorted(status.items())) or "none read")
+        + f"; read by platform: {dict(sorted(by_platform.items())) or '-'}; "
+        f"would pass {would} (of which `ai` alone {ai_only}); "
+        f"min confidence {cfg.ocr['min_confidence']}; {secs:.1f}s")
+    failed = Counter(r.detail.split(":")[0] for r in reads.values() if r.status == "failed")
+    if failed:
+        say(f"  failed, by cause: {dict(failed.most_common(8))}")
+    return (f"picture text: {len(wanted)} candidate(s), "
+            + ", ".join(f"{k} {n}" for k, n in sorted(status.items()))
+            + f", would pass {would} (ai alone {ai_only}), {secs:.0f}s")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     mode = ap.add_mutually_exclusive_group()
@@ -416,6 +474,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         conn.commit()
         saved = None  # new items COMMITTED before labelling; None until then
+        labelled = False  # labels COMMITTED before the picture text is read
         try:
             t_store = time.perf_counter()
             new = iai_store.upsert_items(conn, fresh, run_id=run_id) if fresh else 0
@@ -446,14 +505,27 @@ def main(argv: list[str] | None = None) -> int:
             # THE TIMES, so a slowdown shows in the log before it reaches the job's
             # limit (#659 review, rule 11: measured on every run, never written down).
             say(f"  labelled {len(results)} item(s) in {label_s:.1f}s")
+            # THE LABELS ARE COMMITTED BEFORE ANY PICTURE IS FETCHED: the downloads are
+            # network work, and the shared database closes a transaction left idle for
+            # 15 minutes (2026-11-26, #678); a picture failure must not cost the labels.
+            conn.commit()
+            labelled = True
+            pictures = ""
+            if cfg.ocr["enabled"] and not args.relabel:
+                pictures = read_picture_text(conn, cfg, fresh, items, results, say)
+                conn.commit()
             # TEXT RETENTION (contract `retention:`, anooj 2026-11-24): after the
             # labels, so a row is cleared with the labels its text earned.
             cleared = iai_store.clear_text(conn, cfg.retention)
+            # Picture text is cleared at the same age WHATEVER the post's label (CLAUDE.md
+            # fourth fetch exception, condition 3; #683).
+            cleared_pictures = iai_store.clear_picture_text(conn, cfg.retention)
             r = cfg.retention
             say(f"\n7 Retention: text cleared on {cleared} row(s) first stored over "
                 f"{r['clear_text_after_days']} days ago ("
                 + ("dropped, and " if r["dropped"] else "")
-                + f"kept under {', '.join(r['kept_domains']) or 'no domain'}); rows kept")
+                + f"kept under {', '.join(r['kept_domains']) or 'no domain'}); rows kept. "
+                f"Picture text cleared on {cleared_pictures} row(s), whatever their label")
             iai_store.finish_run(
                 conn,
                 run_id,
@@ -462,8 +534,9 @@ def main(argv: list[str] | None = None) -> int:
                 quota=quota,
                 queries=queries,
                 counts=counts,
-                detail=(f"{new} new item(s); text cleared on {cleared} row(s); "
-                        f"store {store_s:.1f}s, label {label_s:.1f}s"),
+                detail=(f"{new} new item(s); text cleared on {cleared} row(s), picture "
+                        f"text on {cleared_pictures}; store {store_s:.1f}s, label "
+                        f"{label_s:.1f}s" + (f"; {pictures}" if pictures else "")),
             )
             conn.commit()
         except Exception as e:
@@ -471,6 +544,9 @@ def main(argv: list[str] | None = None) -> int:
             # Rolled back: the labels and the text clearing. NOT the harvest, if it was
             # saved - so the run says which, and how to finish the job.
             kept = (
+                f"{saved} new item(s) and their labels SAVED before the error (it came "
+                "while reading picture text or clearing text). "
+                if labelled else
                 f"{saved} new item(s) SAVED before the error; labels not written (new rows "
                 "wait as 'pending' for the next run or --relabel). "
                 if saved is not None else "nothing saved. "

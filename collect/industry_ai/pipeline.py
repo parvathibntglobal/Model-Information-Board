@@ -38,6 +38,7 @@ from collect.industry_ai.rules import (
     normalized_text,
     outside_window,
     person_of,
+    picture_text_flags,
     sieve,
     too_little_to_read,
 )
@@ -292,6 +293,14 @@ def evaluate(
         if len(ids) >= floor:
             for i in ids:
                 results[i].flags = sorted(set(results[i].flags) | {"heavy_poster"})
+
+    # TEXT IN THE PICTURE, SHADOW MODE (#679 step 3): a "not readable" post keeps its
+    # label; what its stored picture text would have decided rides as flags, set here
+    # on every run so a relabel keeps them (store.write_labels rewrites `flags`).
+    for it in items:
+        r = results[it.id]
+        if r.stage == UNREAD_STAGE and it.ocr_text:
+            r.flags = sorted(set(r.flags) | set(picture_text_flags(it, cfg)))
 
     return results, counts(items, results)
 

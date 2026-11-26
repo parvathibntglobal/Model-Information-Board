@@ -59,6 +59,8 @@ TOP_KEYS = {
     "domains",
     "watch",
     "retention",
+    # Text in a "not readable" post's first picture (#679 step 3), shadow mode.
+    "ocr",
     # What each pipeline_version changed, one line each, for the Info view
     # (judge/industry_ai/view.py reads it; the rules never do). #668, 2026-11-25.
     "versions",
@@ -66,6 +68,9 @@ TOP_KEYS = {
 #: `retention:` (anooj, 2026-11-24): when a stored item's TEXT is cleared. Rows are
 #: never deleted - the page's counts need them.
 RETENTION_KEYS = {"clear_text_after_days", "dropped", "unread", "kept_domains"}
+#: `ocr:` (#679 step 3; CLAUDE.md's fourth fetch exception, #683).
+OCR_KEYS = {"enabled", "affects_labels", "max_per_run", "max_bytes", "min_confidence",
+            "timeout_seconds"}
 
 # ── THE OBSERVER (watch lists; anooj, 2026-11-20) ────────────────────────────
 #: The platforms whose watch lists the code READS today. A list for any other
@@ -220,6 +225,8 @@ class Config:
     #: `retention:`, parsed (`_retention`): clear_text_after_days, dropped, unread,
     #: kept_domains.
     retention: dict[str, Any] = field(default_factory=dict)
+    #: `ocr:`, parsed (`_ocr`).
+    ocr: dict[str, Any] = field(default_factory=dict)
     #: Registry model names, added to `ai_terms` at run time (read-only).
     extra_ai_terms: tuple[str, ...] = field(default=())
 
@@ -642,6 +649,7 @@ def parse(raw: dict) -> Config:
         domains=domains,
         watch=_watch(_need(raw, "watch", "top level"), suffix),
         retention=_retention(_need(raw, "retention", "top level"), domains),
+        ocr=_ocr(_need(raw, "ocr", "top level")),
     )
 
 
@@ -719,6 +727,34 @@ def _retention(raw: Any, domains: dict[str, Domain]) -> dict[str, Any]:
         raise IndustryAIConfigError(f"retention.kept_domains: unknown domain(s) {unknown}")
     return {"clear_text_after_days": int(raw["clear_text_after_days"]),
             "dropped": raw["dropped"], "unread": raw["unread"], "kept_domains": tuple(kept)}
+
+
+def _ocr(raw: Any) -> dict[str, Any]:
+    """`ocr:`, every key required (rule 12). `affects_labels` must be false: picture
+    text deciding a label is a separate, reviewed change after the shadow week
+    (#683), and this code has no path for it - true is refused, never half-obeyed."""
+    where = "ocr"
+    if not isinstance(raw, dict):
+        raise IndustryAIConfigError(f"{where} must be a mapping")
+    _known(raw, OCR_KEYS, where)
+    for key in sorted(OCR_KEYS):
+        _need(raw, key, where)
+    for key in ("enabled", "affects_labels"):
+        if not isinstance(raw[key], bool):
+            raise IndustryAIConfigError(f"ocr.{key} must be true or false")
+    if raw["affects_labels"]:
+        raise IndustryAIConfigError(
+            "ocr.affects_labels: true is not built - picture text decides no label until "
+            "a reviewed change after the shadow week (#683)")
+    for key in ("max_per_run", "max_bytes", "timeout_seconds"):
+        _whole(raw[key], f"ocr.{key}")
+    conf = _whole(raw["min_confidence"], "ocr.min_confidence", positive=False)
+    if conf > 100:
+        raise IndustryAIConfigError(
+            "ocr.min_confidence must be 0-100 (Tesseract's word confidence)")
+    return {"enabled": raw["enabled"], "affects_labels": False,
+            "max_per_run": int(raw["max_per_run"]), "max_bytes": int(raw["max_bytes"]),
+            "min_confidence": conf, "timeout_seconds": int(raw["timeout_seconds"])}
 
 
 def load(path: Path | None = None) -> Config:

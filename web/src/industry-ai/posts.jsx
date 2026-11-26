@@ -31,6 +31,10 @@ export const FLAG_LABEL = {
   heavy_poster: 'Heavy poster',
   for_sale: 'For sale',
   weak_ai_long_post: 'Long post, weak AI word',
+  // On a NOT READABLE picture post, shadow mode (#679 step 3; collect/industry_ai/rules.py
+  // PICTURE_TEXT_FLAG / PICTURE_TEXT_AI_ONLY_FLAG): what its picture's text would decide.
+  picture_text_would_pass: 'Its picture text would pass',
+  picture_text_only_ai: 'Picture text adds only “ai”',
 }
 /** Set by the rules when the text that came with a post's media changed its outcome
  * (collect/industry_ai/rules.py MEDIA_TEXT_FLAG; judge never imports collect). */
