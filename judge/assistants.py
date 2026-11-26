@@ -93,12 +93,22 @@ def _fetch_state(conn) -> tuple[tuple[set[str], set[str]], dict]:
     `agent_fetch` IS WHEN THE AGENTS WERE LAST FETCHED (#669 review, Parvathi,
     2026-11-25). Since #669 the agent fetch has no schedule and runs only when
     someone starts it, so a page that has stopped getting reports would read as a
-    quiet one (rule 4). It is the newest of those same LAST_SUCCESS times, over
-    every tracked agent, so it can never disagree with a card's state. Three
-    states, each said in words on the page, never shown as a date or as "never":
+    quiet one (rule 4). It comes from those same LAST_SUCCESS times, so it can
+    never disagree with a card's state. Three states, each said in words on the
+    page, never shown as a date or as "never":
         off    `run.enabled: false` - nothing is fetched
         never  switched on, and no fetch has completed for any agent
-        ran    `last_at`, the newest completed fetch (an ISO time, UTC)
+        ran    `last_at`, the newest completed fetch, and `oldest_at`, the
+               oldest LAST completed fetch among the agents that have one (ISO
+               times, UTC), over `fetched` of `tracked` agents
+
+    THE NEWEST DATE IS NOT EVERY AGENT'S DATE (#674 review, Parvathi,
+    2026-11-25). A run can cover some agents only (its "at most this many"
+    input, its caps), so the newest date alone would make an agent searched
+    weeks ago read as searched yesterday. `fetched`, `tracked` and `oldest_at`
+    travel with it so the page names the population (rule 7). `tracked`
+    counts every entry in contract/tracked_agents.yaml, a missing registry
+    row included, because `due_rows` returns those rather than dropping them.
     """
     if not agent_run_rule().enabled:
         return (set(), set()), {"state": "off"}
@@ -110,8 +120,14 @@ def _fetch_state(conn) -> tuple[tuple[set[str], set[str]], dict]:
     searched = {r["model_version_id"] for r in done}
     if not done:
         return (listed, searched), {"state": "never"}
-    last = max(r["last_success"] for r in done)
-    return (listed, searched), {"state": "ran", "last_at": last.isoformat()}
+    times = [r["last_success"] for r in done]
+    return (listed, searched), {
+        "state": "ran",
+        "last_at": max(times).isoformat(),
+        "oldest_at": min(times).isoformat(),
+        "fetched": len(done),
+        "tracked": len(rows),
+    }
 
 
 def _coverage(conn) -> tuple[set[str], set[str]]:

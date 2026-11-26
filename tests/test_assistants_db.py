@@ -255,6 +255,24 @@ def test_the_page_says_when_the_agents_were_last_fetched(conn, client, monkeypat
         "SELECT max(at) FROM fetch_log WHERE kind = 'end' AND payload->>'threads_read' = '3'"
     ).fetchone()[0]
     assert f["last_at"] == newest.isoformat()
+    assert f["oldest_at"] == f["last_at"]
+    from judge.config import tracked_agents
+    assert (f["fetched"], f["tracked"]) == (1, len(tracked_agents()))
+
+    # #674 review: a run can cover some agents only, so the newest date is not
+    # every agent's date. Two agents fetched on different days: the newest and
+    # the oldest are both sent, over how many of the tracked have a fetch.
+    _fetched(conn, "mv_muse")
+    conn.execute("UPDATE fetch_log SET at = at - interval '5 days' "
+                 "WHERE model_version_id = 'mv_muse'")
+    conn.commit()
+    f = client.get("/assistants").json()["agent_fetch"]
+    assert f["last_at"] == newest.isoformat()
+    older = conn.execute(
+        "SELECT max(at) FROM fetch_log WHERE kind = 'end' AND model_version_id = 'mv_muse'"
+    ).fetchone()[0]
+    assert f["oldest_at"] == older.isoformat() != f["last_at"]
+    assert (f["fetched"], f["tracked"]) == (2, len(tracked_agents()))
 
     monkeypatch.setattr(assistants_module, "agent_run_rule",
                         lambda: SimpleNamespace(enabled=False))

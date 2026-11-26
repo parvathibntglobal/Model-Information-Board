@@ -171,7 +171,11 @@ function GroupTabs({ groups, active, onPick }) {
  * WHEN THE AGENTS WERE LAST FETCHED (#669 review, 2026-11-25). The agent fetch is
  * started by hand, so a page that has stopped getting reports would otherwise read
  * as a quiet one (rule 4). Switched off and never run are each said in words, never
- * shown as a date. The days are counted here, from the time the API sends.
+ * shown as a date.
+ *
+ * THE NEWEST DATE IS NOT EVERY ASSISTANT'S DATE (#674 review): a run can cover some
+ * agents only, so the line names how many of the tracked have a fetch and, when
+ * they differ, the oldest of their dates beside the newest (rule 7).
  */
 function AgentFetchLine({ f }) {
   if (!f) return null
@@ -179,16 +183,40 @@ function AgentFetchLine({ f }) {
     return <p className="dim">The agent fetch is switched off, so no new reports are being collected for these assistants.</p>
   }
   if (f.state === 'never') {
-    return <p className="dim">The agent fetch hasn&apos;t completed a search yet, so these counts come from other fetches only.</p>
+    return <p className="dim">The agent fetch hasn&apos;t completed a search yet, so any reports here come from other fetches.</p>
   }
-  const t = new Date(f.last_at).getTime()
-  const days = Number.isNaN(t) ? null : Math.floor((Date.now() - t) / 86400000)
-  const ago = days == null ? '' : days === 0 ? ' (today)' : ` (${plural(days, 'day')} ago)`
+  const when = (iso) => `${fmtDayUtc(iso)}${agoUtc(iso)}`
+  const who = f.fetched === f.tracked
+    ? `all ${f.tracked} tracked assistants`
+    : `${f.fetched} of the ${f.tracked} tracked assistants`
+  const sameDay = utcDay(f.oldest_at) === utcDay(f.last_at)
   return (
     <p className="dim">
-      Reports for these assistants were last fetched {fmtDayUtc(f.last_at)}{ago}. The fetch is started by hand, so this date can fall behind.
+      {sameDay
+        ? <>The agent fetch last completed a search on {when(f.last_at)}, for {who}.</>
+        : <>The agent fetch has completed a search for {who}: most recently on {when(f.last_at)}, and longest ago on {when(f.oldest_at)}.</>}
+      {f.fetched < f.tracked && <> The others haven&apos;t been searched yet.</>}
+      {' '}The fetch is started by hand, so these dates can fall behind.
     </p>
   )
+}
+
+/** The UTC calendar day of an ISO time, as a day number; null when unreadable. */
+function utcDay(iso) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000
+}
+
+/**
+ * " (today)", " (N days ago)": UTC CALENDAR days, the same days `fmtDayUtc` prints
+ * (#674 review). Counting 24-hour spans put "(today)" beside yesterday's date.
+ */
+function agoUtc(iso) {
+  const then = utcDay(iso)
+  if (then == null) return ''
+  const days = utcDay(new Date().toISOString()) - then
+  return days === 0 ? ' (today)' : ` (${plural(days, 'day')} ago)`
 }
 
 function List() {
