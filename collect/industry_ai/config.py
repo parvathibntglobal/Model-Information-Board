@@ -63,7 +63,7 @@ TOP_KEYS = {
 }
 #: `retention:` (anooj, 2026-11-24): when a stored item's TEXT is cleared. Rows are
 #: never deleted - the page's counts need them.
-RETENTION_KEYS = {"clear_text_after_days", "dropped", "kept_domains"}
+RETENTION_KEYS = {"clear_text_after_days", "dropped", "unread", "kept_domains"}
 
 # ── THE OBSERVER (watch lists; anooj, 2026-11-20) ────────────────────────────
 #: The platforms whose watch lists the code READS today. A list for any other
@@ -104,6 +104,7 @@ RUN_KEYS = {
     "context_window_words",
     "low_engagement_max",
     "rotation",
+    "unread_media_max_chars",
 }
 #: The two rotation groups (`run.rotation.groups`), and how a scheduled run picks one.
 ROTATION_GROUPS = ("a", "b")
@@ -193,7 +194,8 @@ class Config:
     domains: dict[str, Domain]
     #: The observer's watch lists, parsed (`_watch`).
     watch: dict[str, Any] = field(default_factory=dict)
-    #: `retention:`, parsed (`_retention`): clear_text_after_days, dropped, kept_domains.
+    #: `retention:`, parsed (`_retention`): clear_text_after_days, dropped, unread,
+    #: kept_domains.
     retention: dict[str, Any] = field(default_factory=dict)
     #: Registry model names, added to `ai_terms` at run time (read-only).
     extra_ai_terms: tuple[str, ...] = field(default=())
@@ -526,7 +528,8 @@ def parse(raw: dict) -> Config:
     _known(pages, PAGE_KEYS, "run.pages_per_query")
     for k in sorted(PAGE_KEYS):
         _whole(_need(pages, k, "run.pages_per_query"), f"run.pages_per_query.{k}")
-    for key in ("window_days", "min_text_chars", "context_window_words", "x_clubbed_min_keywords"):
+    for key in ("window_days", "min_text_chars", "context_window_words", "x_clubbed_min_keywords",
+                "unread_media_max_chars"):
         _whole(run[key], f"run.{key}")
     _whole(run["low_engagement_max"], "run.low_engagement_max", positive=False)
 
@@ -649,14 +652,15 @@ def _retention(raw: Any, domains: dict[str, Domain]) -> dict[str, Any]:
     for key in sorted(RETENTION_KEYS):
         _need(raw, key, where)
     _whole(raw["clear_text_after_days"], "retention.clear_text_after_days")
-    if not isinstance(raw["dropped"], bool):
-        raise IndustryAIConfigError("retention.dropped must be true or false")
+    for key in ("dropped", "unread"):
+        if not isinstance(raw[key], bool):
+            raise IndustryAIConfigError(f"retention.{key} must be true or false")
     kept = _strings(raw["kept_domains"], "retention.kept_domains")
     unknown = sorted(set(kept) - set(domains))
     if unknown:
         raise IndustryAIConfigError(f"retention.kept_domains: unknown domain(s) {unknown}")
     return {"clear_text_after_days": int(raw["clear_text_after_days"]),
-            "dropped": raw["dropped"], "kept_domains": tuple(kept)}
+            "dropped": raw["dropped"], "unread": raw["unread"], "kept_domains": tuple(kept)}
 
 
 def load(path: Path | None = None) -> Config:

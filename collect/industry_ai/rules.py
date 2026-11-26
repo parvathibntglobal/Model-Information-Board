@@ -45,6 +45,9 @@ class Item:
     #: When this lane first stored it (`iai_item.first_seen_at`); None for an item
     #: from this run's harvest, not yet stored. The watch window is measured from it.
     first_seen_at: datetime | None = None
+    #: What media the post carries (collect/industry_ai/media.py MEDIA_KINDS), from
+    #: the provider's own fields; None = not recorded, never "none" (rule 6).
+    media_kind: str | None = None
 
     @property
     def text(self) -> str:
@@ -366,6 +369,30 @@ _MENTION_OR_TAG = re.compile(r"[@#]\w[\w.]*")
 #: 2026-11-20 measurement used. Over-merging is the worse failure (collect/CLAUDE.md
 #: rule 3), and two short posts ("thanks!") match by chance.
 CROSS_POST_MIN_CHARS = 20
+
+
+#: The drop reasons a post with media and too few words is spared from: both say
+#: "nothing here to judge", which of a picture or a video is not a finding.
+UNREAD_INSTEAD_OF = frozenset({"no_ai_term", "too_short"})
+#: The stage and reason it is stored with instead (`iai_item.drop_stage`, `drop_reason`).
+UNREAD_STAGE, UNREAD_REASON = "unread", "media_unread"
+
+
+def too_little_to_read(item: Item, cfg: Config) -> bool:
+    """A picture, gallery or video with fewer than `run.unread_media_max_chars` of words
+    once links, @handles and #tags are taken out (2026-11-25).
+
+    Its content is in the media, which this lane does not read, so its few words cannot
+    say whether it is about AI. It is counted as NOT READABLE (stage `unread`), apart
+    from what the filters dropped - never as "no AI term" (rules 4 and 6). A post with
+    no recorded media (`media_kind` None) is judged on its text as before: an unknown is
+    not taken to be a picture either."""
+    from collect.industry_ai.media import VISUAL
+
+    if item.media_kind not in VISUAL:
+        return False
+    words = _MENTION_OR_TAG.sub(" ", strip_links(item.text))
+    return len(" ".join(words.split())) < int(cfg.run["unread_media_max_chars"])
 
 
 def cross_post_text(text: str) -> str | None:

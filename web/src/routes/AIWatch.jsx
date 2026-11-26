@@ -28,10 +28,13 @@ import '../styles/industry-ai.css'
  * were counted (rule 11). No number is written here: every figure is from the API.
  */
 
-const TABS = ['feed', 'sources', 'people', 'mentions', 'filtered']
+const TABS = ['feed', 'sources', 'people', 'mentions', 'filtered', 'unread']
 const TAB_LABEL = {
   feed: 'Feed', sources: 'Sources', people: 'People', mentions: 'Mentions an industry', filtered: 'Filtered out',
+  unread: 'Not readable',
 }
+/** What a not-readable post's media was (`media_kind`, collect/industry_ai/media.py). */
+const MEDIA_LABEL = { image: 'A picture', gallery: 'Several pictures', video: 'A video' }
 const FILTERS = ['type', 'platform', 'kind', 'reason', 'domain', 'source', 'account', 'person', 'q']
 const FILTER_LABEL = {
   type: 'Content type', platform: 'Platform', kind: 'Kind', reason: 'Reason', domain: 'Industry',
@@ -170,6 +173,9 @@ function SourceTable({ platform, rows, onOpen }) {
   // Saved, not yet labelled (#663): shown only when some are, so Found = Kept +
   // Filtered out + Waiting always reads true (#673 review, point 5).
   const waits = rows.some((r) => r.waiting > 0)
+  // Not readable (iai-5): a picture or video with too few words to judge. Shown only
+  // when some are, so Found = Kept + Filtered out + Waiting + Not readable.
+  const unreads = rows.some((r) => r.unread > 0)
   const quiet = rows.filter((r) => r.listed && !r.found).length
   const gone = rows.filter((r) => !r.listed).length
   const kept = rows.reduce((s, r) => s + r.kept, 0)
@@ -194,6 +200,7 @@ function SourceTable({ platform, rows, onOpen }) {
               <th scope="col" className="tnum">Kept</th>
               <th scope="col" className="tnum">Filtered out</th>
               {waits && <th scope="col" className="tnum" title="Saved, not yet labelled: the next run or a relabel labels them">Waiting</th>}
+              {unreads && <th scope="col" className="tnum" title="A picture or video with too few words to judge: not read, so not filtered out">Not readable</th>}
               <th scope="col" className="tnum" title="Also found by an industry's keyword search, so counted by the Industry AI agent, not here">Also by keyword</th>
               <th scope="col">Newest post</th>
             </tr>
@@ -211,6 +218,7 @@ function SourceTable({ platform, rows, onOpen }) {
                 <td className="tnum">{n(r.kept)}</td>
                 <td className="tnum">{n(r.filtered)}</td>
                 {waits && <td className="tnum">{n(r.waiting)}</td>}
+                {unreads && <td className="tnum">{n(r.unread)}</td>}
                 <td className="tnum">{n(r.also_keyword)}</td>
                 <td>{r.newest ? fmtDayUtc(r.newest) : '–'}</td>
               </tr>
@@ -267,6 +275,7 @@ export default function AIWatch() {
   const counts = {
     feed: data?.general, sources: data?.sources?.filter((s) => s.listed).length,
     people: data?.people?.length, mentions: data?.mentions, filtered: data?.filtered,
+    unread: data?.unread,
   }
   const last = data?.last_run
   // A SOURCE'S KEPT IS NOT ALWAYS WHAT ITS LIST SHOWS (#673 review, point 4, rule 7):
@@ -327,6 +336,7 @@ export default function AIWatch() {
             <div><b className="tnum">{n(data.filtered)}</b><span>filtered out</span></div>
             <div><b className="tnum">{n(data.authors)}</b><span>authors</span></div>
             {data.pending > 0 && <div><b className="tnum">{n(data.pending)}</b><span>waiting to be labelled</span></div>}
+            {data.unread > 0 && <div><b className="tnum">{n(data.unread)}</b><span>not readable (picture or video)</span></div>}
           </div>
           {data.collected === 0 && <p className="dim">Nothing collected yet: no run has read the watch lists.</p>}
 
@@ -448,6 +458,23 @@ export default function AIWatch() {
                       onPick={(v) => show({ reason: v })} />
               </section>
               <Posts scope="dropped" params={params} update={update} />
+            </section>
+          )}
+
+          {tab === 'unread' && (
+            <section className="stack stack-2" role="tabpanel">
+              <section className="card iai-card">
+                <h2>Not readable: a picture or a video with too few words</h2>
+                <p className="dim iai-note">
+                  This page reads words only. These posts&apos; content is in a picture or a video, and their few words
+                  cannot say whether they are about AI, so they are not counted as filtered out: nobody read them. Open
+                  one to see it on its platform.
+                </p>
+                {Object.keys(data.unread_by_media || {}).length > 0 && (
+                  <Bars counts={sorted(data.unread_by_media)} labels={MEDIA_LABEL} />
+                )}
+              </section>
+              <Posts scope="unread" params={params} update={update} />
             </section>
           )}
         </>

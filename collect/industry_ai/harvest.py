@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from collect.industry_ai import media
 from collect.industry_ai.config import PLATFORMS, WATCH_PLATFORMS, Config
 from collect.industry_ai.rules import Item, first_link
 
@@ -167,6 +168,7 @@ def _reddit_item(post) -> Item:
         author_id=post.author_fullname,
         engagement=post.engagement,
         link=dest,
+        media_kind=media.reddit(raw),
     )
 
 
@@ -183,6 +185,7 @@ def _x_item(post) -> Item:
         lang=post.lang,
         engagement=post.engagement,
         link=first_link(post.text),
+        media_kind=media.x(getattr(post, "payload", None)),
     )
 
 
@@ -215,6 +218,7 @@ def _hn_item(h: dict) -> Item:
         author_id=h.get("author"),
         engagement={"points": h.get("points"), "comments": h.get("num_comments")},
         link=h.get("url"),
+        media_kind=media.hackernews(h),
     )
 
 
@@ -247,6 +251,7 @@ def _bluesky_item(hit) -> Item:
         lang=hit.lang,
         engagement={"likes": hit.likes, "comments": hit.replies},
         link=first_link(hit.text),
+        media_kind=media.bluesky(getattr(hit, "raw", None) or {}),
     )
 
 
@@ -272,6 +277,7 @@ def _instagram_item(node: dict) -> Item:
         author_id=str(owner["id"]) if owner.get("id") else None,
         engagement={"likes": likes, "comments": comments},
         link=first_link(text),
+        media_kind=media.instagram(node),
     )
 
 

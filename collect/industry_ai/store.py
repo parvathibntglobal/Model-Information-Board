@@ -31,7 +31,29 @@ _COLUMNS = (
     "domain_hints",
     "query_keys",
     "first_run_id",
+    "media_kind",
 )
+
+
+def missing_columns(conn) -> list[str]:
+    """The `_COLUMNS` this writer stores that `iai_item` does not have, in order.
+
+    A RUN ASKS BEFORE IT SPENDS (#676 review, Parvathi, 2026-11-26). Since #663
+    the store comes after the harvest, so a run started against a database
+    whose migration has not been applied spent its X, Reddit and Instagram
+    requests and then failed on the missing column. The writer ships as code
+    and the migration as a file someone runs (CLAUDE.md, #260), so the gap
+    reopens with every new column; this checks all of them, not only the
+    newest. A missing table is all of them missing.
+    """
+    have = {
+        r[0]
+        for r in conn.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND table_name = 'iai_item'"
+        )
+    }
+    return [c for c in _COLUMNS if c not in have]
 
 
 def start_run(
@@ -82,7 +104,10 @@ _UPSERT = (
     "  domain_hints = ARRAY(SELECT DISTINCT unnest(iai_item.domain_hints || "
     "EXCLUDED.domain_hints) ORDER BY 1), "
     "  query_keys = ARRAY(SELECT DISTINCT unnest(iai_item.query_keys || "
-    "EXCLUDED.query_keys) ORDER BY 1) "
+    "EXCLUDED.query_keys) ORDER BY 1), "
+    # A row stored before media was recorded gets it the next time the post is seen;
+    # a recorded kind is never overwritten.
+    "  media_kind = coalesce(iai_item.media_kind, EXCLUDED.media_kind) "
     "RETURNING (xmax = 0)"
 )
 
@@ -115,6 +140,7 @@ def upsert_items(conn, items: list[Item], *, run_id: str) -> int:
             "domain_hints": sorted(it.domain_hints),
             "query_keys": sorted(it.query_keys),
             "first_run_id": run_id,
+            "media_kind": it.media_kind,
         })
     if not rows:
         return 0
@@ -139,8 +165,8 @@ def load_items(conn) -> list[Item]:
     out = []
     for r in conn.execute(
         "SELECT id, platform, external_id, url, title, body, created_at, author_id, lang, "
-        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at FROM iai_item "
-        "WHERE text_cleared_at IS NULL"
+        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at, media_kind "
+        "FROM iai_item WHERE text_cleared_at IS NULL"
     ).fetchall():
         out.append(
             Item(
@@ -160,9 +186,22 @@ def load_items(conn) -> list[Item]:
                 query_keys=set(r[13] or []),
                 # The watch window is measured from first sight (pipeline.evaluate).
                 first_seen_at=r[14],
+                # A relabel judges "too little text to read" exactly as the run did.
+                media_kind=r[15],
             )
         )
     return out
+
+
+#: Which rows `retention` clears, besides age and "not cleared yet". One string,
+#: read by `clear_text` and by Admin's "due at the next run" count
+#: (judge/industry_ai/view.py industry_ai_admin), so the two cannot disagree.
+#: Parameters: %(dropped)s, %(unread)s, %(kept)s.
+RETENTION_DUE = (
+    "(%(dropped)s AND verdict = 'dropped' "
+    " AND (drop_stage IS DISTINCT FROM 'unread' OR %(unread)s)) "
+    "OR (verdict = 'kept' AND domains && %(kept)s::text[])"
+)
 
 
 def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
@@ -170,7 +209,10 @@ def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
 
     Due: first stored more than `clear_text_after_days` ago, text not cleared yet,
     and either dropped (when `retention.dropped`) or kept under one of
-    `retention.kept_domains`. The ROW stays - id, platform, dates, verdict, reason,
+    `retention.kept_domains`. A "not readable" row (`drop_stage = 'unread'`) is a
+    dropped row too, and is cleared only when `retention.unread` says so (#676
+    review): the media plan's next step reads its alt or quoted text again. The
+    ROW stays - id, platform, dates, verdict, reason,
     labels, flags - because the page's counts are counted from it. Run after
     labelling, so a row is cleared with the labels its text earned.
     """
@@ -183,10 +225,9 @@ def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
     due = [r[0] for r in conn.execute(
         "SELECT id FROM iai_item "
         "WHERE text_cleared_at IS NULL AND first_seen_at < %(cutoff)s "
-        "AND ((%(dropped)s AND verdict = 'dropped') "
-        "     OR (verdict = 'kept' AND domains && %(kept)s::text[]))",
+        f"AND ({RETENTION_DUE})",
         {"cutoff": cutoff, "dropped": bool(retention["dropped"]),
-         "kept": list(retention["kept_domains"])},
+         "unread": bool(retention["unread"]), "kept": list(retention["kept_domains"])},
     ).fetchall()]
     if due:
         conn.execute(

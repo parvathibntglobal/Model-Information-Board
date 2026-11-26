@@ -19,6 +19,9 @@ from datetime import UTC, datetime, timedelta
 from collect.industry_ai.config import Config
 from collect.industry_ai.rules import (
     PERSON_FLAG,
+    UNREAD_INSTEAD_OF,
+    UNREAD_REASON,
+    UNREAD_STAGE,
     Item,
     canonical_url,
     cross_post_text,
@@ -30,6 +33,7 @@ from collect.industry_ai.rules import (
     outside_window,
     person_of,
     sieve,
+    too_little_to_read,
 )
 
 
@@ -188,6 +192,11 @@ def evaluate(
             continue
         why, terms, ai = sieve(it, cfg)
         r.ai_terms, r.matched_terms = ai, terms
+        if why in UNREAD_INSTEAD_OF and too_little_to_read(it, cfg):
+            # NOT READABLE, NOT FILTERED OUT (2026-11-25): its content is a picture or
+            # a video and its few words cannot say what it is about (rules 4, 6).
+            r.verdict, r.stage, r.reason = "dropped", UNREAD_STAGE, UNREAD_REASON
+            continue
         if why:
             r.verdict, r.stage, r.reason = "dropped", "sieve", why
             continue
@@ -211,6 +220,9 @@ def evaluate(
             continue
         why, flags = filter_reason(it, cfg, is_bot=is_bot)
         r.flags = sorted(set(r.flags) | set(flags))
+        if why in UNREAD_INSTEAD_OF and too_little_to_read(it, cfg):
+            r.verdict, r.stage, r.reason = "dropped", UNREAD_STAGE, UNREAD_REASON
+            continue
         if why:
             r.verdict, r.stage, r.reason = "dropped", "filter", why
             continue

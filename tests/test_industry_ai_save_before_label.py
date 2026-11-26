@@ -95,6 +95,33 @@ def test_a_labelling_failure_keeps_the_harvest_and_says_so(wired, conn, monkeypa
         r["items"] for r in page["dropped"])
 
 
+def test_an_unmigrated_database_refuses_before_any_request(wired, conn, monkeypatch):
+    """#676 review: the store comes after the harvest, so a run against a database
+    missing a column spent its requests and then failed. It now refuses first, with
+    no request made and no run row written."""
+    import collect.industry_ai.harvest as harvest_mod
+    from collect.industry_ai import store
+
+    assert store.missing_columns(conn) == []
+    conn.execute("ALTER TABLE iai_item DROP COLUMN media_kind")
+    conn.commit()
+    assert store.missing_columns(conn) == ["media_kind"]
+    monkeypatch.setattr(harvest_mod, "harvest",
+                        lambda *a, **k: pytest.fail("requested before the column check"))
+    with pytest.raises(SystemExit, match=r"media_kind.*db migrate.*Nothing was requested"):
+        wired.main(["--domains", "marketing", "--platforms", "reddit"])
+    conn.rollback()
+    assert conn.execute("SELECT count(*) FROM iai_run").fetchone()[0] == 0
+
+
+def test_a_missing_table_is_every_column_missing(conn):
+    from collect.industry_ai import store
+
+    conn.execute("DROP TABLE iai_item CASCADE")
+    conn.commit()
+    assert store.missing_columns(conn) == list(store._COLUMNS)
+
+
 def test_a_clean_run_labels_and_records_its_times(wired, conn):
     assert wired.main(["--domains", "marketing", "--platforms", "reddit"]) == 0
     conn.rollback()

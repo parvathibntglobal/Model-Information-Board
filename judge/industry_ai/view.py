@@ -129,18 +129,22 @@ def industry_ai_view(conn) -> dict[str, Any]:
     # inserts every new row as verdict 'dropped', drop_stage 'pending', and labelling
     # overwrites both. A run whose labelling failed leaves its harvest in that state:
     # nothing judged those posts, so they are counted apart, never as a reason our rules
-    # dropped something (rules 4 and 6). collected = kept + dropped + pending.
+    # dropped something (rules 4 and 6). NOT READABLE IS NOT "FILTERED OUT" EITHER
+    # (2026-11-25, iai-5): a picture or video with too few words to judge (drop_stage
+    # 'unread') was not read, so it is counted apart too.
+    # collected = kept + dropped + pending + unread.
     dropped = [
         {"stage": s, "reason": r, "items": int(n)}
         for s, r, n in conn.execute(
             "SELECT drop_stage, drop_reason, count(*) FROM iai_item WHERE verdict = 'dropped' "
-            f"AND drop_stage IS DISTINCT FROM 'pending' AND {KEYWORD_ARM} "
+            f"AND drop_stage NOT IN ('pending', 'unread') AND {KEYWORD_ARM} "
             "GROUP BY 1, 2 ORDER BY 3 DESC"
         ).fetchall()
     ]
-    (pending,) = conn.execute(
-        "SELECT count(*) FROM iai_item WHERE verdict = 'dropped' AND drop_stage = 'pending' "
-        f"AND {KEYWORD_ARM}"
+    pending, unread = conn.execute(
+        "SELECT count(*) FILTER (WHERE drop_stage = 'pending'), "
+        "count(*) FILTER (WHERE drop_stage = 'unread') FROM iai_item "
+        f"WHERE verdict = 'dropped' AND {KEYWORD_ARM}"
     ).fetchone()
     # KEPT ITEMS PER GROUP, "<domain>/<group>" (#644 review, point 3).
     by_group: dict[str, dict[str, int]] = {}
@@ -211,6 +215,9 @@ def industry_ai_view(conn) -> dict[str, Any]:
         # Saved, waiting to be labelled (a run's labelling failed): read by
         # web/src/routes/IndustryAI.jsx, the totals row and its note.
         "pending": int(pending),
+        # A picture or video with too few words to judge (iai-5): read by
+        # web/src/routes/IndustryAI.jsx, the totals row.
+        "unread": int(unread),
         "types": list(contract["type_order"]),
         "pipeline_version": contract.get("pipeline_version"),
         "last_run": None
@@ -295,6 +302,8 @@ def industry_ai_info() -> dict[str, Any]:
         "retention": {
             "clear_text_after_days": (c.get("retention") or {}).get("clear_text_after_days"),
             "dropped": (c.get("retention") or {}).get("dropped"),
+            # Whether a "not readable" post (#676) is cleared with the dropped ones.
+            "unread": (c.get("retention") or {}).get("unread"),
             "kept_domains": list((c.get("retention") or {}).get("kept_domains") or []),
         },
         # A domain's page shows each post's text up to this many characters (#665),
@@ -415,6 +424,7 @@ def industry_ai_admin(conn) -> dict[str, Any]:
         "retention": {
             "clear_text_after_days": ret.get("clear_text_after_days"),
             "dropped": ret.get("dropped"),
+            "unread": ret.get("unread"),
             "kept_domains": list(ret.get("kept_domains") or []),
         },
     }
@@ -427,12 +437,15 @@ def industry_ai_admin(conn) -> dict[str, Any]:
         # EACH AGENT'S OWN POSTS (2026-11-25): Admin shows AI in industries and AI Watch
         # as two sections, each with the population its page counts (KEYWORD_ARM /
         # WATCH_ARM); `items` above stays the table's total, both together.
+        # `unread` (#676 review, point 3): posts whose content is a picture or video
+        # with too few words to judge, counted apart as the two pages count them.
         arms = {
-            arm: {"stored": int(s), "kept": int(k), "pending": int(p)}
-            for arm, (s, k, p) in (
+            arm: {"stored": int(s), "kept": int(k), "pending": int(p), "unread": int(u)}
+            for arm, (s, k, p, u) in (
                 (arm, conn.execute(
                     "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept'), "
-                    f"count(*) FILTER (WHERE drop_stage = 'pending') FROM iai_item WHERE {where}"
+                    "count(*) FILTER (WHERE drop_stage = 'pending'), "
+                    f"count(*) FILTER (WHERE drop_stage = 'unread') FROM iai_item WHERE {where}"
                 ).fetchone())
                 for arm, where in (("keyword", KEYWORD_ARM), ("watch", WATCH_ARM))
             )
@@ -445,13 +458,18 @@ def industry_ai_admin(conn) -> dict[str, Any]:
         }
         due = None
         if ret.get("clear_text_after_days") is not None:
-            # The same rows collect/industry_ai/store.py clear_text would empty now.
+            # The same rows collect/industry_ai/store.py clear_text would empty now:
+            # its RETENTION_DUE, copied because judge/ never imports collect/
+            # (tests/test_lane_boundary.py). tests/test_industry_ai_media.py holds the
+            # two to the same rows.
             (due,) = conn.execute(
                 "SELECT count(*) FROM iai_item WHERE text_cleared_at IS NULL "
                 "AND first_seen_at < now() - make_interval(days => %(d)s) "
-                "AND ((%(dropped)s AND verdict = 'dropped') "
+                "AND ((%(dropped)s AND verdict = 'dropped' "
+                "      AND (drop_stage IS DISTINCT FROM 'unread' OR %(unread)s)) "
                 "     OR (verdict = 'kept' AND domains && %(kept)s::text[]))",
                 {"d": int(ret["clear_text_after_days"]), "dropped": bool(ret.get("dropped")),
+                 "unread": bool(ret.get("unread")),
                  "kept": list(ret.get("kept_domains") or [])},
             ).fetchone()
         runs = conn.execute(
@@ -559,9 +577,10 @@ def _scope_where(key: str, scope: str) -> tuple[str, dict]:
         )
     # NOT A POST WAITING FOR ITS LABELS (#665 review, point 2): since #663 a post
     # saved before a labelling failure is stored as verdict 'dropped', drop_stage
-    # 'pending'. It was never filtered out, so it is never counted or listed here.
+    # 'pending'. It was never filtered out, so it is never counted or listed here; nor
+    # is a post not readable (drop_stage 'unread', iai-5), which was never read.
     return (
-        "verdict = 'dropped' AND drop_stage IS DISTINCT FROM 'pending' "
+        "verdict = 'dropped' AND drop_stage NOT IN ('pending', 'unread') "
         "AND %(d)s = ANY(domain_hints)",
         {"d": key},
     )
@@ -844,7 +863,7 @@ def industry_ai_domain_view(
 # handle in each post's link (`/<handle>/status/`), the way `rules.handle_of` reads it.
 
 #: The AI Watch page's post lists.
-WATCH_SCOPES = ("general", "mentions", "kept", "dropped")
+WATCH_SCOPES = ("general", "mentions", "kept", "dropped", "unread")
 #: `/i/status/` is X's anonymous form and names nobody (`rules.handle_of`; #673
 #: review, point 6), so it is NULL - "no account in the link" - never an account "i".
 _X_HANDLE_SQL = (
@@ -866,8 +885,12 @@ def _watch_scope(scope: str) -> str:
         return f"verdict = 'kept' AND cardinality(domains) > 0 AND {WATCH_ARM}"
     if scope == "kept":
         return f"verdict = 'kept' AND {WATCH_ARM}"
-    # Not a post waiting for its labels (#663): it was never filtered out.
-    return f"verdict = 'dropped' AND drop_stage IS DISTINCT FROM 'pending' AND {WATCH_ARM}"
+    if scope == "unread":
+        # A picture or video with too few words to judge (iai-5): listed with its link
+        # so a person can look at it; never among what was filtered out.
+        return f"verdict = 'dropped' AND drop_stage = 'unread' AND {WATCH_ARM}"
+    # Not a post waiting for its labels (#663), nor one not readable: neither was judged.
+    return f"verdict = 'dropped' AND drop_stage NOT IN ('pending', 'unread') AND {WATCH_ARM}"
 
 
 def _watched_sources(watch: dict) -> list[dict[str, Any]]:
@@ -899,11 +922,14 @@ def ai_watch_view(conn) -> dict[str, Any]:
     c = _contract()
     watch = c.get("watch") or {}
     try:
-        total, kept, filtered, pending = conn.execute(
+        # collected = kept + filtered + pending + unread (iai-5: a picture or video with
+        # too few words to judge is not readable, counted apart from filtered out).
+        total, kept, filtered, pending, unread = conn.execute(
             "SELECT count(*), count(*) FILTER (WHERE verdict = 'kept'), "
             "count(*) FILTER (WHERE verdict = 'dropped' "
-            "AND drop_stage IS DISTINCT FROM 'pending'), "
-            f"count(*) FILTER (WHERE drop_stage = 'pending') FROM iai_item WHERE {WATCH_ARM}"
+            "AND drop_stage NOT IN ('pending', 'unread')), "
+            "count(*) FILTER (WHERE drop_stage = 'pending'), "
+            f"count(*) FILTER (WHERE drop_stage = 'unread') FROM iai_item WHERE {WATCH_ARM}"
         ).fetchone()
     except Exception as e:  # noqa: BLE001 - an unmigrated database is a state, not a crash
         conn.rollback()
@@ -937,10 +963,15 @@ def ai_watch_view(conn) -> dict[str, Any]:
         {"reason": r, "items": int(n)}
         for r, n in conn.execute(
             "SELECT drop_reason, count(*) FROM iai_item WHERE verdict = 'dropped' "
-            f"AND drop_stage IS DISTINCT FROM 'pending' AND {WATCH_ARM} "
+            f"AND drop_stage NOT IN ('pending', 'unread') AND {WATCH_ARM} "
             "GROUP BY 1 ORDER BY 2 DESC"
         ).fetchall()
     ]
+    # NOT READABLE, by what the media was (`media_kind`): which kind of content the
+    # observer is missing most.
+    unread_by_media = counts(
+        "SELECT media_kind, count(*) FROM iai_item WHERE verdict = 'dropped' "
+        f"AND drop_stage = 'unread' AND {WATCH_ARM} GROUP BY 1")
 
     # EVERY SOURCE'S YIELD: what it found (kept or not), what was kept and filtered
     # out, how many a keyword query also found, and its newest post.
@@ -949,10 +980,12 @@ def ai_watch_view(conn) -> dict[str, Any]:
     # which the Feed does not list (they are the keyword agent's; point 4).
     tally = (
         "count(*), count(*) FILTER (WHERE verdict = 'kept'), "
-        "count(*) FILTER (WHERE verdict = 'dropped' AND drop_stage IS DISTINCT FROM 'pending'), "
+        "count(*) FILTER (WHERE verdict = 'dropped' AND drop_stage NOT IN ('pending', 'unread')), "
         f"count(*) FILTER (WHERE {_KEYWORD_FOUND}), max(created_at), "
         "count(*) FILTER (WHERE drop_stage = 'pending'), "
-        f"count(*) FILTER (WHERE verdict = 'kept' AND NOT ({WATCH_ARM}))"
+        f"count(*) FILTER (WHERE verdict = 'kept' AND NOT ({WATCH_ARM})), "
+        # Not readable (iai-5), so found = kept + filtered + waiting + unread.
+        "count(*) FILTER (WHERE drop_stage = 'unread')"
     )
     by_key = {
         r[0]: r[1:]
@@ -972,11 +1005,11 @@ def ai_watch_view(conn) -> dict[str, Any]:
 
     def yield_of(row) -> dict[str, Any]:
         if row is None:
-            return {"found": 0, "kept": 0, "filtered": 0, "waiting": 0, "also_keyword": 0,
-                    "kept_keyword": 0, "newest": None}
-        f, k, d, a, newest, p, kk = row
+            return {"found": 0, "kept": 0, "filtered": 0, "waiting": 0, "unread": 0,
+                    "also_keyword": 0, "kept_keyword": 0, "newest": None}
+        f, k, d, a, newest, p, kk, u = row
         return {"found": int(f), "kept": int(k), "filtered": int(d), "waiting": int(p),
-                "also_keyword": int(a), "kept_keyword": int(kk),
+                "unread": int(u), "also_keyword": int(a), "kept_keyword": int(kk),
                 "newest": newest.isoformat() if newest else None}
 
     sources = []
@@ -1018,6 +1051,10 @@ def ai_watch_view(conn) -> dict[str, Any]:
         "kept": int(kept),
         "filtered": int(filtered),
         "pending": int(pending),
+        # Not readable (iai-5): a picture or video with too few words to judge, and the
+        # media kinds those were. Read by web/src/routes/AIWatch.jsx.
+        "unread": int(unread),
+        "unread_by_media": unread_by_media,
         "general": int(general),
         "mentions": int(mentions_n),
         "authors": int(authors),
