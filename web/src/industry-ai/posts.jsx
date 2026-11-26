@@ -21,6 +21,17 @@ export function queryLabel(key) {
   if (lane === 'watch') return `${PLATFORM_LABEL[a] || a} watch: ${[b, ...rest].join(':')}`
   return key
 }
+/** THE REVIEW FLAGS (iai-7, the 2026-11-26 kept-post review; collect/industry_ai/config.py
+ *  FLAG_NAMES). Flags, never drops: the Info view says what each means. */
+export const FLAG_LABEL = {
+  github_tracking: 'GitHub to-do list',
+  ai_far_from_industry: 'AI far from the industry word',
+  market_chatter: 'Market chatter',
+  reply_fragment: 'Short X reply',
+  heavy_poster: 'Heavy poster',
+  for_sale: 'For sale',
+  weak_ai_long_post: 'Long post, weak AI word',
+}
 /** Set by the rules when the text that came with a post's media changed its outcome
  * (collect/industry_ai/rules.py MEDIA_TEXT_FLAG; judge never imports collect). */
 export const MEDIA_TEXT_FLAG = 'terms_from_media_text'
@@ -46,6 +57,7 @@ export function flagLabel(f) {
   if (f === MEDIA_TEXT_FLAG) return 'matched on the text that came with its media'
   if (f.startsWith('also_matches:')) return `also matches ${f.slice(13).replace(/_/g, ' ')}`
   if (f.startsWith('domain_from_terms:')) return `filed by its words (${f.slice(18).replace(/_/g, ' ')})`
+  if (FLAG_LABEL[f]) return FLAG_LABEL[f].toLowerCase()
   return f.replace(/_/g, ' ')
 }
 /** X keeps the handle in the link; other platforms give an id only. */

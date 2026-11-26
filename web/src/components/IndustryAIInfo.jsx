@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { adminSchedules, industryAiInfo } from '../api'
 // One set of platform labels for every AI in industries view (#668 review).
 import { PLATFORM_LABEL } from '../industry-ai/parts'
+import { FLAG_LABEL } from '../industry-ai/posts'
 import { scheduleWords, when } from '../scheduleWords'
 
 /**
@@ -32,6 +33,8 @@ const PATTERN_LABEL = {
   promo_patterns: 'Sponsored or affiliate', teach_patterns: 'Teaching (how-to) phrasing',
 }
 const HN_LIST_LABEL = { show_hn: 'Show HN', ask_hn: 'Ask HN', front_page: 'Front page' }
+// `run.match_strip` (contract, iai-7): what matching takes out of a post first.
+const STRIP_LABEL = { links: 'links', handles: '@handles', hashtags: 'hashtags' }
 
 const onOff = (v) => (v === true ? 'on' : v === false ? 'off' : 'not set')
 const plat = (p) => PLATFORM_LABEL[p] || p
@@ -223,6 +226,10 @@ function FilterWords({ info, isWatch }) {
       <span className="tnum">{watch.lookback_days ?? '–'}</span> days after it was posted.</>],
     ['Same article shared elsewhere', 'The same article linked from several posts: kept once, the copies counted as shares.'],
     ['Same author, same post again', 'One person posting the same thing twice.'],
+    ['Same text from another account', 'Another account on the same platform posting exactly the same words (links and @handles aside): kept once, the copies counted as shares. A text that only starts the same is kept.'],
+    ['Cross-posted on another platform', <>The same words posted on another platform within{' '}
+      <span className="tnum">{watch.cross_post_hours ?? '–'}</span> hours, by anyone (and with the same link, when both
+      carry one): kept once, the copy counted as a share.</>],
     ['Near-duplicate text', 'Almost the same words as a post already kept.'],
     ['Too short', <>Fewer than <span className="tnum">{run.min_text_chars ?? '–'}</span> characters of text.</>],
     ['Bot account', 'Posted by an account on the bot list.'],
@@ -268,6 +275,36 @@ function FilterWords({ info, isWatch }) {
             pattern that matches; none when no pattern does.</dd></div>
           <div><dt>Low engagement</dt><dd>A post with engagement at or below{' '}
             <span className="tnum">{run.low_engagement_max ?? '–'}</span> is flagged, never dropped.</dd></div>
+          <div><dt>Words that count</dt><dd>AI and industry words are matched with{' '}
+            {(run.match_strip || []).length ? (run.match_strip || []).map((s) => STRIP_LABEL[s] || s).join(' and ')
+              : 'nothing'} taken out first: a word inside a link or an @handle is not the author writing about it.
+            Hashtags count{(run.match_strip || []).includes('hashtags') ? ' only when not listed here' : ''}: they are the
+            author&apos;s own topic label.</dd></div>
+        </dl>
+      </Collapse>
+      <Collapse heading="Flags for review (never a reason to drop)">
+        <p className="dim iai-def">A flag marks a kept post that may not belong, so it can be counted and checked by
+          hand. None of these removes a post; each becomes a reason to drop only after its hits have been checked.
+          The patterns are under &quot;Filter and labelling patterns&quot; below.</p>
+        <dl className="iai-words">
+          <div><dt>{FLAG_LABEL.github_tracking}</dt><dd>A GitHub issue with a project&apos;s to-do markers: a
+            checklist, [Bug], [Feature], EPIC, P0–P3, acceptance criteria, backlog.</dd></div>
+          <div><dt>{FLAG_LABEL.ai_far_from_industry}</dt><dd>None of the industry words the post is filed by has an AI
+            term within <span className="tnum">{run.ai_near_industry_words ?? '–'}</span> words, so the two may be
+            about different things.</dd></div>
+          <div><dt>{FLAG_LABEL.market_chatter}</dt><dd>Market talk: two or more stock tickers ($ABC), or a share
+            price or market-cap phrase. Funding news for an AI start-up is not flagged.</dd></div>
+          <div><dt>{FLAG_LABEL.reply_fragment}</dt><dd>An X reply with fewer than{' '}
+            <span className="tnum">{run.reply_min_own_words ?? '–'}</span> words of its own: its context is the post
+            it answers.</dd></div>
+          <div><dt>{FLAG_LABEL.heavy_poster}</dt><dd>Every kept post of an account with at least{' '}
+            <span className="tnum">{run.heavy_poster_min_posts ?? '–'}</span> kept posts. Prolific is not the same as
+            promotional, so this is counted, not dropped. Watched accounts are never flagged.</dd></div>
+          <div><dt>{FLAG_LABEL.for_sale}</dt><dd>A domain, brand or dataset offered for sale.</dd></div>
+          <div><dt>{FLAG_LABEL.weak_ai_long_post}</dt><dd>A post of at least{' '}
+            <span className="tnum">{run.long_post_words ?? '–'}</span> words whose only AI word is{' '}
+            {(run.weak_ai_terms || []).map((t) => `“${t}”`).join(' or ') || '–'}: in a long thread that is often a
+            passing mention.</dd></div>
         </dl>
       </Collapse>
     </section>
@@ -539,6 +576,13 @@ export default function IndustryAIInfo({ agent = 'industry' }) {
         {Object.entries(info.patterns).map(([k, list]) => (
           <Collapse key={k} heading={<>{PATTERN_LABEL[k] || k} <span className="tnum">({list.length})</span></>}>
             <Chips items={list} mono />
+          </Collapse>
+        ))}
+        {Object.entries(info.flag_patterns || {}).map(([k, f]) => (
+          <Collapse key={k} heading={<>Flag: {FLAG_LABEL[k] || k}{' '}
+            <span className="dim">({f.platforms ? f.platforms.map(plat).join(', ') : 'every platform'})</span>{' '}
+            <span className="tnum">({f.patterns.length})</span></>}>
+            <Chips items={f.patterns} mono />
           </Collapse>
         ))}
         {Object.entries(info.type_patterns).map(([t, list]) => (

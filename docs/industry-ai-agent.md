@@ -285,11 +285,30 @@ items too.
   domain and group an item named. One post can count for several keywords.
 - **Ambiguous terms** (`ambiguous_terms`, e.g. bank, claims, trading, patient, guests)
   count only with one of their context words within `run.context_window_words`.
+  **An ambiguous term must be ONE word:** the check compares one word at a time
+  (`rules._found`), so a phrase listed there never matches. Found 2026-11-26; six
+  phrases in the contract have that problem today ("image generation", "image
+  upscaling", "AI transformation", "AI adoption", "AI strategy", "AI implementation")
+  and are reported, not changed here.
+- **Software senses of Supply chain (iai-7):** its `exclude_phrases` remove a software
+  supply chain ("npm supply chain", "supply chain attack") and a "root-cause
+  analysis" with a software word (outage, incident, logs, observability, SRE…) in the
+  same sentence.
+- **A hyphen in a term matches a space too** (`term_pattern`), so a hyphenated term can
+  match an everyday phrase: "put-away" matched "AI must be put away". On 2026-11-26
+  (stored iai-4 labels, read-only), 55 kept posts had it among their matched Supply
+  chain terms, none of them warehouse posts; 54 of those 55 no longer match it now
+  that the spaced form is excluded unless a warehouse word follows in the sentence.
+- **What is matched (iai-7, 2026-11-26):** the title and body with `run.match_strip`
+  taken out first: links and @handles. A word inside a link or a handle is not the
+  author writing about it. **Hashtags stay**: they are the author's own topic label.
+  Measured on the 11,549 kept posts that day: links cost 32 posts their AI word and
+  20 keyword posts their industry word; @handles, 11 and 3.
 - **Drops:** `no_ai_term`, `no_domain_term`.
 
 ### 3. Dedupe (`pipeline._dedupe`)
 
-Four passes, each over what the previous pass left:
+Five passes, each over what the previous pass left:
 
 1. **The same article on several platforms** is one item. Links are compared after
    `canonical_url`: tracking parameters, `www.` and trailing slashes are removed.
@@ -297,9 +316,22 @@ Four passes, each over what the previous pass left:
    (`share_count`).
 2. **The same author posting the same text again:** one is kept, the rest are dropped
    as `repeat_post`, and the author is flagged `repeat_author`.
-3. **One person, the same text, two platforms** (`watch.people`): one is kept, the
+2b. **Other accounts posting the same text on one platform** (iai-7): one is kept,
+   the copies are dropped as `copied_post` and counted as its reach. Compared with
+   links and @handles out (`rules.copy_text`), since each copy carries its own
+   short link. Only **identical** text, 20 characters or more: a text that merely
+   starts the same (a template opening) stays two posts. **A post a watch list found wins the fold**
+   (#685 review): the observer's own post stays on AI Watch rather than becoming a
+   keyword copy's share; otherwise the earliest is kept. On 2026-11-26, 25 texts
+   were kept 2-3 times this way: pass 2 compares one account at a time, and pass 4
+   gives no signature below 200 tokens, which is nearly every X and Bluesky post.
+3. **The same text, two platforms**: one is kept, the
    rest are dropped as `cross_post` and counted as its reach, and the kept one is
-   flagged `cross_post`. Mentions, tags and links are left out of the text
+   flagged `cross_post`. **By anyone since iai-7** (until then only `watch.people`,
+   so a keyword-found cross-post was kept twice: 10 texts on 2026-11-26); a mapped
+   person's two handles are still matched through `watch.people`. **A post a watch list found
+   is the one kept** (#685 review), as in pass 2b; the window is still measured from the
+   earliest post. Mentions, tags and links are left out of the text
    comparison, since each platform spells them differently. A copy is folded only
    when all of these hold (#653 review):
    - it is on a **different platform** from the earlier post (a same-platform repeat
@@ -329,6 +361,31 @@ In order. The first that matches drops the item:
 **Flag, never a drop:** `low_engagement`, for score, likes or points at or below
 `run.low_engagement_max`.
 
+**Review flags (iai-7, the 2026-11-26 kept-post review, agreed with the team).** Each
+marks a kept post that may not belong. **None drops** (rule 8): each is counted and its
+hits hand-checked before it could become a drop. The names are fixed in
+`config.FLAG_NAMES`, so each has its words on the pages (`posts.jsx FLAG_LABEL`) and in
+the Info view ("Flags for review").
+
+| Flag | Set by | What it marks |
+|---|---|---|
+| `github_tracking` | `flag_patterns.github_tracking`, GitHub only | a project's to-do list: checklists, [Bug], [Feature], EPIC, P0–P3, acceptance criteria, backlog (~600 of 756 kept GitHub posts read as such on 2026-11-26). The markers, not "industry word in the title", which would also drop a real report |
+| `market_chatter` | `flag_patterns.market_chatter` | two or more $TICKERs, or share-price and market-cap phrases. AI start-up funding news is not matched |
+| `for_sale` | `flag_patterns.for_sale` | domains, brands or datasets offered for sale |
+| `reply_fragment` | `run.reply_min_own_words`, X only | a reply (text starts with an @handle) with too few words of its own; its context is the post it answers |
+| `ai_far_from_industry` | `run.ai_near_industry_words`, in `rules.label` | no filed industry word has an AI term that close |
+| `heavy_poster` | `run.heavy_poster_min_posts`, in `pipeline.evaluate` | every kept post of an account with that many kept posts; watched posts are never counted or flagged |
+| `weak_ai_long_post` | `run.long_post_words` and `run.weak_ai_terms`, in `pipeline.evaluate` | a post of that many words (links and @handles out) whose only AI terms are the weak ones (the bare "ai") |
+
+**Why the far-apart posts got in (measured 2026-11-26, the 708 kept keyword posts with
+the two words over 60 apart):** every search asks only for both words *somewhere* in
+the post (an X query ANDs its keyword group with `(AI OR ChatGPT OR Claude OR LLM)`;
+GitHub matches an issue's whole body), and the sieve asks the same. 578 of the 708 were
+200+ words long (X long posts 586, GitHub issues 98; Bluesky's 300-character posts
+none), 250 were kept on the bare word "ai" alone, and 620 were filed by a single
+industry word. `ai_far_from_industry` and `weak_ai_long_post` mark exactly that; each
+can become a drop for long posts once its hits are hand-checked (rule 8).
+
 ### 5. Label (`rules.label`)
 
 - **Domain:** the hinted domains whose own terms (or their groups' terms) matched.
@@ -339,6 +396,12 @@ In order. The first that matches drops the item:
   domains counts in both, and the page says so.
 - **Type:** the first of `type_order` with a matching pattern. GitHub items are
   `tool_or_product` unless a use-case pattern matches. No match means `discussion`.
+  **Every use-case pattern names AI since iai-7.** "In production", "pilot", "since
+  <month>", "case study", "automated our/the" and "cut ... by N" carry a `sentence`
+  group: they count only when the sentence around the match (`rules.sentence_of`: to
+  the nearest . ! ? or line break, at most 120 characters each way) names an AI term.
+  On 2026-11-26 those six, then with no such condition, set 200 of the 254 kept
+  keyword posts' use-case labels, and about 10 of 15 read were not uses.
 - **Stage** (use cases only): the first of `stage_patterns`, in the contract's order.
 
 ### 6. Store (`store.py`)
