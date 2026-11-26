@@ -283,6 +283,18 @@ def test_a_watched_post_wins_the_fold_over_an_earlier_keyword_copy(cfg):
     assert (r["x:7"].reason, r["x:7"].canonical_of) == ("copied_post", "x:8")
 
 
+def test_a_watched_post_wins_the_cross_post_over_an_earlier_keyword_copy(cfg):
+    """#685 review, the pass-3 follow-up: an X keyword copy posted first, a watched
+    Bluesky post (an account not in `watch.people`) an hour later. The watched one is
+    kept; the window is still measured from the earliest post."""
+    kw = item(TEXT, platform="x", author="1", iid="x:9", hours=10)
+    watched = item(TEXT, platform="bluesky", author="did:plc:watched", iid="bluesky:10",
+                   hours=9, keys=["watch:bluesky:from:someone.bsky.social"])
+    r = run(cfg, kw, watched)
+    assert r["bluesky:10"].verdict == "kept" and "cross_post" in r["bluesky:10"].flags
+    assert (r["x:9"].reason, r["x:9"].canonical_of) == ("cross_post", "bluesky:10")
+
+
 def test_a_text_that_only_starts_the_same_is_two_posts(cfg):
     a = item(TEXT + ".", platform="x", author="1", iid="x:3")
     b = item(TEXT + ". And our auditors approved the new month-end checklist too.",

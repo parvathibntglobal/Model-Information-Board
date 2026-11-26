@@ -165,7 +165,13 @@ def _dedupe(items: list[Item], results: dict[str, Result],
             if taken:
                 copies[(key, head.id)] = [head, *taken]
             free = [m for m in rest if m not in taken]
-    fold(copies, "cross_post", flag="cross_post")
+    # A WATCHED POST WINS THIS FOLD TOO (#685 review, Anooj's follow-up to point 3): a
+    # watched account not in `watch.people` is grouped with everyone else (person None),
+    # so its post could become the share of an earlier keyword-found copy on another
+    # platform. Only which member is kept changes: the groups and the window above are
+    # still measured from the earliest post.
+    fold(copies, "cross_post", flag="cross_post",
+         order=lambda it: (not is_watched(it), *_order(it)))
 
     # 4. NEAR-DUPLICATE TEXT, by the corpus's own MinHash clustering. Below its
     #    token floor a text gets no signature and is never merged by this pass

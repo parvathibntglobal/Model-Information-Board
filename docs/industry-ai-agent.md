@@ -329,7 +329,9 @@ Five passes, each over what the previous pass left:
    rest are dropped as `cross_post` and counted as its reach, and the kept one is
    flagged `cross_post`. **By anyone since iai-7** (until then only `watch.people`,
    so a keyword-found cross-post was kept twice: 10 texts on 2026-11-26); a mapped
-   person's two handles are still matched through `watch.people`. Mentions, tags and links are left out of the text
+   person's two handles are still matched through `watch.people`. **A post a watch list found
+   is the one kept** (#685 review), as in pass 2b; the window is still measured from the
+   earliest post. Mentions, tags and links are left out of the text
    comparison, since each platform spells them differently. A copy is folded only
    when all of these hold (#653 review):
    - it is on a **different platform** from the earlier post (a same-platform repeat
