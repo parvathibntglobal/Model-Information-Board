@@ -21,7 +21,29 @@ export function queryLabel(key) {
   if (lane === 'watch') return `${PLATFORM_LABEL[a] || a} watch: ${[b, ...rest].join(':')}`
   return key
 }
+/** Set by the rules when the text that came with a post's media changed its outcome
+ * (collect/industry_ai/rules.py MEDIA_TEXT_FLAG; judge never imports collect). */
+export const MEDIA_TEXT_FLAG = 'terms_from_media_text'
+const MEDIA_TEXT_LABEL = {
+  alt_text: "the picture's alt text",
+  quoted_post: 'the post it quotes',
+  crosspost_parent: 'the original post it crossposts',
+}
+/** A kept post can be here on words that are not its author's (#680 review, point 2):
+ * say which, so a post whose own words show no AI term is not left unexplained. */
+export function MatchedInMedia({ it }) {
+  if (!it.flags.includes(MEDIA_TEXT_FLAG)) return null
+  const from = (it.media_text_from || []).map((k) => MEDIA_TEXT_LABEL[k] || k.replace(/_/g, ' '))
+  return (
+    <p className="dim iai-note">
+      Matched partly on words that are not the author's own:{' '}
+      {from.length ? from.join(' and ') : 'the text that came with its media'}.
+    </p>
+  )
+}
+
 export function flagLabel(f) {
+  if (f === MEDIA_TEXT_FLAG) return 'matched on the text that came with its media'
   if (f.startsWith('also_matches:')) return `also matches ${f.slice(13).replace(/_/g, ' ')}`
   if (f.startsWith('domain_from_terms:')) return `filed by its words (${f.slice(18).replace(/_/g, ' ')})`
   return f.replace(/_/g, ' ')
@@ -63,6 +85,7 @@ export function Item({ it, groupNames = {}, domainKey = null, domainNames = {} }
       {it.text_cleared_at
         ? <p className="dim iai-item-text">Text cleared by retention on {fmtDayUtc(it.text_cleared_at)}; its labels are kept.</p>
         : it.excerpt && <p className="iai-item-text iai-clamp3">{it.excerpt}{it.excerpt_cut && '…'}</p>}
+      <MatchedInMedia it={it} />
       <div className="iai-item-foot">
         {it.url && <a href={it.url} target="_blank" rel="noopener noreferrer nofollow">Open the original →</a>}
         {eng.length > 0 && (

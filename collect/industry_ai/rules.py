@@ -71,9 +71,15 @@ def judged_text(item: Item) -> str:
     return f"{item.text}\n{item.media_text}".strip() if item.media_text else item.text
 
 
-#: On a kept post whose AI term, or every industry term it needed, was found only
-#: in the text that came with its media - so the page and the PR can count what
-#: `media_text` changed (rule 8).
+#: On a post whose outcome the text that came with its media changed, so it can be
+#: counted and read before anyone relies on it (rule 8). Two cases, one flag:
+#:   LET THROUGH  its AI term, or every industry term it needed, was found only in
+#:                `media_text` (`needed_media_text`, set at the sieve);
+#:   FILED ELSEWHERE  it passes on its own words, but `media_text` changed its
+#:                domains or groups (`media_text_changed_filing`, set at the label;
+#:                #680 review, 2026-11-26).
+#: AI Watch shows a flagged post's `media_text_from`, so a kept post whose own words
+#: show no AI term is not left unexplained.
 MEDIA_TEXT_FLAG = "terms_from_media_text"
 
 
@@ -466,6 +472,24 @@ def needed_media_text(item: Item, cfg: Config) -> bool:
 
     own, _, _ = sieve(dataclasses.replace(item, media_text=None), cfg)
     return own is not None
+
+
+def media_text_changed_filing(item: Item, matched: dict[str, dict], cfg: Config) -> bool:
+    """True when the text that came with the media changed WHERE a kept post is filed:
+    `label` on the post's own words gives other domains or groups than on its words plus
+    `media_text` (#680 review, point 1). A post that would have passed on its own words
+    but picks up a domain only the quoted post names is filed elsewhere, not let
+    through, and `needed_media_text` cannot see it. False when it has no media text."""
+    if not item.media_text:
+        return False
+    import dataclasses
+
+    own_item = dataclasses.replace(item, media_text=None)
+    why, own_matched, _ = sieve(own_item, cfg)
+    if why is not None:
+        return True  # through only on the media text: `needed_media_text`'s case
+    mine, theirs = label(own_item, own_matched, cfg), label(item, matched, cfg)
+    return (mine.domains, mine.groups) != (theirs.domains, theirs.groups)
 
 
 def _english(item: Item) -> bool:

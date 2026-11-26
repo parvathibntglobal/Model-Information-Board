@@ -30,6 +30,7 @@ from collect.industry_ai.rules import (
     is_article_link,
     is_watch_only,
     label,
+    media_text_changed_filing,
     needed_media_text,
     normalized_text,
     outside_window,
@@ -235,6 +236,11 @@ def evaluate(
         r.domains, r.groups, r.content_type = v.domains, v.groups, v.content_type
         r.matched_pattern, r.stage_guess = v.matched_pattern, v.stage_guess
         r.flags = sorted(set(r.flags) | set(v.flags))
+        if media_text_changed_filing(it, matched[it.id], cfg):
+            # FILED ELSEWHERE on the text that came with its media (#680 review): the
+            # same flag as "let through", so one count covers every post whose outcome
+            # the media text changed (rule 8: counted before anyone relies on it).
+            r.flags = sorted(set(r.flags) | {MEDIA_TEXT_FLAG})
 
     return results, counts(items, results)
 
