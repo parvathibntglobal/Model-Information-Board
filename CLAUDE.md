@@ -132,6 +132,20 @@ These are the rules a helpful refactor will otherwise quietly violate.
    only Reddit and Bluesky video (the fetch exception below). Argument:
    `docs/proposals/iai-reel-transcription.md`.
 
+   **Picture text in the Industry AI lane, PROPOSED 2026-11-26 (anooj; for
+   Parvathi's review, not in force until the PR adding it merges; #679 step
+   3):** Tesseract OCR, whose character reader is a neural network (LSTM),
+   turns the text inside a "not readable" post's picture into characters. It
+   decides nothing: code matches the AI and industry terms in that text as it
+   does in a caption, and for its first week (shadow mode,
+   `ocr.affects_labels: false`) no label depends on it. Its known failure is
+   stray letters read from photos and art, which a short AI term such as `ai`
+   could match; words under `ocr.min_confidence` are dropped, and the shadow
+   week's hand-check reads flagged posts against their pictures before any
+   label may depend on picture text. It runs on the GitHub runner's CPU from a
+   pinned package, so it spends nothing and has no `spend_ledger` stage.
+   Argument: `docs/proposals/iai-picture-ocr.md`.
+
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 
@@ -703,6 +717,36 @@ These are the rules a helpful refactor will otherwise quietly violate.
   the 25 Nov pages, and none of Instagram's, which the sample says carry the
   most. The code is held until that changes or the team decides it is worth
   building for those two; the conditions stand either way.
+
+  **The fourth exception, PROPOSED 2026-11-26 (anooj; for Parvathi's review,
+  not in force until the PR adding it merges): a "not readable" post's picture
+  in the Industry AI lane (#679 step 3).** A picture post with too few words to
+  judge is "not readable" (#676); its content is in the picture. Its conditions
+  are not settings:
+
+  1. Only picture links the provider's own API response gave, for posts the
+     run itself labelled "not readable". Nothing is searched, crawled or
+     discovered.
+  2. No cookies, logins, API keys, browser or page fetch; a plain request with
+     the identifying User-Agent, as above.
+  3. The first picture of a post only, at most `ocr.max_bytes`. It goes to a
+     temporary folder deleted in the same run (`finally`), and never to the raw
+     store, the database or an artifact. Only the text read from it is stored,
+     cleared after `retention.clear_text_after_days` even where the post's
+     caption is kept; `''` where there was text.
+  4. At most `ocr.max_per_run` posts a run. When more qualify, they are taken in
+     turn by platform, then by account within a platform, newest first. A post
+     over the cap is recorded as `over_cap`, never silently skipped.
+  5. `robots.txt` is always asked, once a run per picture host, with the
+     identifying User-Agent, and for every host a redirect leads to as well;
+     there is no switch to turn it off. A refusal is recorded as `refused`, and
+     that post stays "not readable".
+
+  `ocr.enabled: false` in the contract switches it off as a whole. What
+  condition 5 left on 2026-11-26: X's `pbs.twimg.com` and Reddit's `i.redd.it`
+  and `preview.redd.it` allow `*`, Bluesky's `cdn.bsky.app` has no robots.txt,
+  and Instagram's CDN refuses - 252 of the 265 short-caption picture posts in
+  the 25 Nov pages.
 
   Anything else that wants to scrape needs its own recorded exception here.
 - The evidence pipeline is a **nightly batch**. The answer path reads a
