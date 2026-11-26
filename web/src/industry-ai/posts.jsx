@@ -21,7 +21,7 @@ export function queryLabel(key) {
   if (lane === 'watch') return `${PLATFORM_LABEL[a] || a} watch: ${[b, ...rest].join(':')}`
   return key
 }
-/** THE REVIEW FLAGS (iai-6, the 2026-11-26 kept-post review; collect/industry_ai/config.py
+/** THE REVIEW FLAGS (iai-7, the 2026-11-26 kept-post review; collect/industry_ai/config.py
  *  FLAG_NAMES). Flags, never drops: the Info view says what each means. */
 export const FLAG_LABEL = {
   github_tracking: 'GitHub to-do list',

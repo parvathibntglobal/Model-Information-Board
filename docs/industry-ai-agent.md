@@ -290,7 +290,7 @@ items too.
   phrases in the contract have that problem today ("image generation", "image
   upscaling", "AI transformation", "AI adoption", "AI strategy", "AI implementation")
   and are reported, not changed here.
-- **Software senses of Supply chain (iai-6):** its `exclude_phrases` remove a software
+- **Software senses of Supply chain (iai-7):** its `exclude_phrases` remove a software
   supply chain ("npm supply chain", "supply chain attack") and a "root-cause
   analysis" with a software word (outage, incident, logs, observability, SRE…) in the
   same sentence.
@@ -298,7 +298,7 @@ items too.
   match an everyday phrase: "put-away" matched "AI must be put away", filing 55 kept
   posts under Supply chain on 2026-11-26, none of them warehouse posts. Its spaced form
   is now excluded unless a warehouse word follows in the sentence.
-- **What is matched (iai-6, 2026-11-26):** the title and body with `run.match_strip`
+- **What is matched (iai-7, 2026-11-26):** the title and body with `run.match_strip`
   taken out first: links and @handles. A word inside a link or a handle is not the
   author writing about it. **Hashtags stay**: they are the author's own topic label.
   Measured on the 11,549 kept posts that day: links cost 32 posts their AI word and
@@ -315,7 +315,7 @@ Five passes, each over what the previous pass left:
    (`share_count`).
 2. **The same author posting the same text again:** one is kept, the rest are dropped
    as `repeat_post`, and the author is flagged `repeat_author`.
-2b. **Other accounts posting the same text on one platform** (iai-6): one is kept,
+2b. **Other accounts posting the same text on one platform** (iai-7): one is kept,
    the copies are dropped as `copied_post` and counted as its reach. Compared with
    links and @handles out (`rules.copy_text`), since each copy carries its own
    short link. Only **identical** text, 20 characters or more: a text that merely
@@ -324,7 +324,7 @@ Five passes, each over what the previous pass left:
    gives no signature below 200 tokens, which is nearly every X and Bluesky post.
 3. **The same text, two platforms**: one is kept, the
    rest are dropped as `cross_post` and counted as its reach, and the kept one is
-   flagged `cross_post`. **By anyone since iai-6** (until then only `watch.people`,
+   flagged `cross_post`. **By anyone since iai-7** (until then only `watch.people`,
    so a keyword-found cross-post was kept twice: 10 texts on 2026-11-26); a mapped
    person's two handles are still matched through `watch.people`. Mentions, tags and links are left out of the text
    comparison, since each platform spells them differently. A copy is folded only
@@ -356,7 +356,7 @@ In order. The first that matches drops the item:
 **Flag, never a drop:** `low_engagement`, for score, likes or points at or below
 `run.low_engagement_max`.
 
-**Review flags (iai-6, the 2026-11-26 kept-post review, agreed with the team).** Each
+**Review flags (iai-7, the 2026-11-26 kept-post review, agreed with the team).** Each
 marks a kept post that may not belong. **None drops** (rule 8): each is counted and its
 hits hand-checked before it could become a drop. The names are fixed in
 `config.FLAG_NAMES`, so each has its words on the pages (`posts.jsx FLAG_LABEL`) and in
@@ -391,7 +391,7 @@ can become a drop for long posts once its hits are hand-checked (rule 8).
   domains counts in both, and the page says so.
 - **Type:** the first of `type_order` with a matching pattern. GitHub items are
   `tool_or_product` unless a use-case pattern matches. No match means `discussion`.
-  **Every use-case pattern names AI since iai-6.** "In production", "pilot", "since
+  **Every use-case pattern names AI since iai-7.** "In production", "pilot", "since
   <month>", "case study", "automated our/the" and "cut ... by N" carry a `sentence`
   group: they count only when the sentence around the match (`rules.sentence_of`: to
   the nearest . ! ? or line break, at most 120 characters each way) names an AI term.

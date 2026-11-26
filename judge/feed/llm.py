@@ -51,6 +51,29 @@ def reset_spent() -> None:
     _spent.update(usd=0.0, calls=0, unreported=0)
 
 
+#: A call whose response named no OpenRouter provider is counted under this,
+#: never dropped and never given a name (rule 6). The extractor's summary uses
+#: the same words (judge/scheduler.py PROVIDER_NOT_REPORTED).
+PROVIDER_NOT_REPORTED = "not reported"
+
+#: The OpenRouter provider that served the LAST `call_tool` call, read by
+#: `paraphrase.run` to count reports per provider (#671). Reset at the start of
+#: every call, so a call that failed before a response says "not reported"
+#: rather than the previous call's provider. The feed's calls are serial.
+_last = {"provider": None}
+
+
+def last_provider() -> str:
+    """The provider of the last call, or `PROVIDER_NOT_REPORTED`."""
+    return _last["provider"] or PROVIDER_NOT_REPORTED
+
+
+def clear_last_provider() -> None:
+    """Forget it before a call that may not go through `call_tool` (a test's
+    stand-in, or a cap that refuses first), so it is never the one before."""
+    _last["provider"] = None
+
+
 def capped(cap_usd: float, call=None):
     """`call_tool`, refusing to START a call once `cap_usd` has been spent.
 
@@ -95,6 +118,7 @@ def call_tool(
     from judge.extract.client import extractor_provider
 
     provider = extractor_provider()
+    _last["provider"] = None
     try:
         r = httpx.post(
             f"{base}/chat/completions",
@@ -122,6 +146,10 @@ def call_tool(
     if r.status_code != 200:
         raise FeedModelUnavailable(f"OpenRouter HTTP {r.status_code}: {r.text[:300]!r}")
     body = r.json()
+    # WHO SERVED IT (#671): OpenRouter names the provider in the response body.
+    # Set before any refusal below, so a provider that answers without the tool
+    # is counted against itself.
+    _last["provider"] = body.get("provider") if isinstance(body.get("provider"), str) else None
     usage = body.get("usage") or {}
     served = body.get("model") or ""
     spend_ledger.record(

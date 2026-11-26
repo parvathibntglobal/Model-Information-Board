@@ -530,6 +530,42 @@ def test_a_mismatch_refuses_before_applying_any_pending_work(conn, tmp_path):
     assert present == 0, "the innocent second migration was not applied either"
 
 
+def test_a_migration_gives_up_on_a_held_lock_and_names_the_session(conn, tmp_path, test_dsn,
+                                                                   monkeypatch):
+    """2026-11-26: the #676 migration waited 11 minutes on a session left `idle in
+    transaction` after a read, and every new read of the table queued behind it.
+    Now it gives up after LOCK_TIMEOUT, applies nothing, writes no ledger row, and
+    names the open session (never its query text)."""
+    (tmp_path / "20260101T0000_add.sql").write_text(
+        "ALTER TABLE document ADD COLUMN IF NOT EXISTS m_locked text", encoding="utf-8")
+    _in_schema(conn, "public", M.baseline_sql())
+    M.ensure_ledger(conn)
+    conn.commit()
+    monkeypatch.setattr(M, "LOCK_TIMEOUT", "300ms")
+
+    holder = connect(test_dsn)
+    try:
+        holder.execute("SET application_name = 'idle-reader'")
+        holder.execute("SELECT count(*) FROM document").fetchone()  # left open
+        with pytest.raises(M.MigrationLockedOut) as refused:
+            M.migrate(conn, tmp_path)
+    finally:
+        holder.rollback()
+        holder.close()
+    message = str(refused.value)
+    assert "20260101T0000_add.sql waited 300ms" in message
+    assert "idle in transaction" in message and "idle-reader" in message
+    assert "SELECT" not in message, "no query text in a printed message"
+    conn.rollback()
+    assert conn.execute(
+        "SELECT count(*) FROM information_schema.columns "
+        "WHERE table_name = 'document' AND column_name = 'm_locked'").fetchone()[0] == 0
+    assert conn.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 0
+
+    # Once the session is closed, the same run applies it.
+    assert M.migrate(conn, tmp_path) == ["20260101T0000_add.sql"]
+
+
 def test_check_reports_a_mismatch_rather_than_raising(conn):
     """`check` is a report. It says the database is wrong; it does not refuse."""
     _in_schema(conn, "public", M.baseline_sql())

@@ -296,7 +296,7 @@ def industry_ai_info() -> dict[str, Any]:
             # 2026-11-25: the smaller settings that explain some drops and flags.
             "low_engagement_max": run.get("low_engagement_max"),
             "x_clubbed_min_keywords": run.get("x_clubbed_min_keywords"),
-            # iai-6 (2026-11-26 kept-post review): what matching ignores, and the
+            # iai-7 (2026-11-26 kept-post review): what matching ignores, and the
             # settings of the three flags that are not patterns.
             "match_strip": list(run.get("match_strip") or []),
             "ai_near_industry_words": run.get("ai_near_industry_words"),
@@ -305,7 +305,7 @@ def industry_ai_info() -> dict[str, Any]:
             "long_post_words": run.get("long_post_words"),
             "weak_ai_terms": list(run.get("weak_ai_terms") or []),
         },
-        # The flags set by a pattern (iai-6), each with the platforms it applies on
+        # The flags set by a pattern (iai-7), each with the platforms it applies on
         # (None: all), for the Info view's patterns list.
         "flag_patterns": {
             k: {"platforms": None if (b or {}).get("platforms") == "all"

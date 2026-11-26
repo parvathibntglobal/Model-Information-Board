@@ -48,10 +48,33 @@ class Item:
     #: What media the post carries (collect/industry_ai/media.py MEDIA_KINDS), from
     #: the provider's own fields; None = not recorded, never "none" (rule 6).
     media_kind: str | None = None
+    #: Words the provider sent WITH the post that are not the author's own - alt
+    #: text, a quoted post, a crosspost's original (media.MEDIA_TEXT_KINDS, #679
+    #: step 1) - and which kinds they are. None / () = none found or not read.
+    media_text: str | None = None
+    media_text_from: tuple[str, ...] = ()
 
     @property
     def text(self) -> str:
+        """The AUTHOR'S words only: what the filters, the type label, the duplicate
+        keys and the pages use. See `judged_text` for what the term matching reads."""
         return f"{self.title}\n{self.body}".strip()
+
+
+def judged_text(item: Item) -> str:
+    """The author's words plus the text that came with the media (#679 step 1).
+
+    Read by the AI-term and industry-term matching (`sieve`) and by
+    `too_little_to_read`, and by nothing else: a spam or promo filter judges what
+    the author wrote, and two people quoting one viral post must not look like
+    copies of each other to the duplicate check."""
+    return f"{item.text}\n{item.media_text}".strip() if item.media_text else item.text
+
+
+#: On a kept post whose AI term, or every industry term it needed, was found only
+#: in the text that came with its media - so the page and the PR can count what
+#: `media_text` changed (rule 8).
+MEDIA_TEXT_FLAG = "terms_from_media_text"
 
 
 @dataclass
@@ -222,7 +245,7 @@ def remove(text: str, patterns) -> str:
     return text
 
 
-#: What `run.match_strip` can take out before terms are matched (iai-6). An @handle
+#: What `run.match_strip` can take out before terms are matched (iai-7). An @handle
 #: needs no word character before it, so an email address ("a@b.com") is not one.
 _HANDLE = re.compile(r"(?<![\w@])@\w[\w.]*")
 _HASHTAG = re.compile(r"(?<![\w#])#\w[\w.]*")
@@ -231,7 +254,7 @@ _STRIP = {"links": _URL, "handles": _HANDLE, "hashtags": _HASHTAG}
 
 def match_text(text: str, cfg: Config) -> str:
     """The text a post's AI and industry words are matched in: its title and body with
-    `run.match_strip` taken out (iai-6, the 2026-11-26 kept-post review). A word inside
+    `run.match_strip` taken out (iai-7, the 2026-11-26 kept-post review). A word inside
     a link or an @handle is not the author writing about it; hashtags stay unless the
     contract lists them, being the author's own topic label."""
     return remove(text, [_STRIP[k] for k in cfg.run["match_strip"]])
@@ -246,7 +269,7 @@ def _any_ai_pattern(terms: tuple[str, ...]) -> re.Pattern:
 
 def ai_near_industry(text: str, terms: list[str], cfg: Config) -> bool:
     """Whether any of `terms` (a kept post's filed industry words) has an AI term within
-    `run.ai_near_industry_words` words of it (iai-6: flag `ai_far_from_industry` when
+    `run.ai_near_industry_words` words of it (iai-7: flag `ai_far_from_industry` when
     not). Read on the same text the terms were matched in. A term that cannot be found
     again in it (an ambiguous term's spelling) counts as near: no evidence of far is
     not evidence of far (rule 6), and this only ever adds a flag."""
@@ -434,12 +457,14 @@ def too_little_to_read(item: Item, cfg: Config) -> bool:
 
     if item.media_kind not in VISUAL:
         return False
-    words = _MENTION_OR_TAG.sub(" ", strip_links(item.text))
+    # The words that came WITH the media count too (#679 step 1): a picture with an
+    # alt text, or a quote of a post, has something to read.
+    words = _MENTION_OR_TAG.sub(" ", strip_links(judged_text(item)))
     return len(" ".join(words.split())) < int(cfg.run["unread_media_max_chars"])
 
 
 def copy_text(text: str) -> str | None:
-    """The text two accounts' posts on ONE platform are compared on (iai-6, dedupe pass
+    """The text two accounts' posts on ONE platform are compared on (iai-7, dedupe pass
     2b): links and @handles out (each copy carries its own t.co link and tags), then
     `normalized_text`. None below `CROSS_POST_MIN_CHARS`, as for a cross-post: two short
     posts ("great thread!") match by chance."""
@@ -472,8 +497,10 @@ def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, dict], list[st
     account or community that names no industry is general AI news or opinion, kept
     as "General AI" by `label`, not dropped as `no_domain_term`.
 
-    Matched on `match_text` (iai-6): links and @handles out, as `run.match_strip` says."""
-    text = match_text(item.text, cfg)
+    The terms are matched on `judged_text`: the post's own words and the text that
+    came with its media (#679 step 1). `needed_media_text` says whether that mattered.
+    Links and @handles are taken out first (`match_text`, iai-7: `run.match_strip`)."""
+    text = match_text(judged_text(item), cfg)
     ai = ai_terms_found(text, cfg)
     if not ai:
         return "no_ai_term", {}, []
@@ -481,6 +508,17 @@ def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, dict], list[st
     if not matched and not is_watched(item):
         return "no_domain_term", {}, ai
     return None, matched, ai
+
+
+def needed_media_text(item: Item, cfg: Config) -> bool:
+    """True when `item` passes `sieve` only because of its `media_text`: on its own
+    words alone it would have been dropped. False when it has none."""
+    if not item.media_text:
+        return False
+    import dataclasses
+
+    own, _, _ = sieve(dataclasses.replace(item, media_text=None), cfg)
+    return own is not None
 
 
 def _english(item: Item) -> bool:
@@ -499,14 +537,14 @@ def _any(patterns, text: str) -> re.Pattern | None:
     return next((p for p in patterns if p.search(text)), None)
 
 
-#: How far `sentence_of` reads either side of a match, at most (iai-6).
+#: How far `sentence_of` reads either side of a match, at most (iai-7).
 SENTENCE_CHARS = 120
 _SENTENCE_END = ".!?\n"
 
 
 def sentence_of(text: str, start: int, end: int) -> str:
     """The sentence around text[start:end]: back to the previous . ! ? or line break and
-    on to the next one, at most `SENTENCE_CHARS` either side (iai-6). Found by scanning
+    on to the next one, at most `SENTENCE_CHARS` either side (iai-7). Found by scanning
     from the match, not by a pattern that tries 120 characters at every position - that
     form cost a full relabel minutes (measured 2026-11-26, 2,000 stored posts)."""
     a = max(start - SENTENCE_CHARS, 0)
@@ -532,7 +570,7 @@ def _any_naming_ai(patterns, text: str, cfg: Config) -> re.Pattern | None:
         2026-11-24) - "I use it for my journal" is not an AI use case, "I used Claude
         to" is;
       * `sentence` counts only at a match whose SENTENCE (`sentence_of`) names an AI
-        term (iai-6) - "$120K revenue since February" is not a use case, "our AI
+        term (iai-7) - "$120K revenue since February" is not a use case, "our AI
         agent has run in production since March" is.
     Every match is tried, not only the first. A pattern with neither counts as `_any`."""
     for p in patterns:
@@ -592,7 +630,7 @@ def filter_reason(
 
 
 def review_flags(item: Item, cfg: Config) -> list[str]:
-    """THE iai-6 FLAGS A POST CAN CARRY ON ITS OWN (the 2026-11-26 kept-post review,
+    """THE iai-7 FLAGS A POST CAN CARRY ON ITS OWN (the 2026-11-26 kept-post review,
     agreed with the team). Flags, never drops (rule 8): each is counted and its hits
     hand-checked before it could become one.
       * `flag_patterns`: github_tracking, market_chatter, for_sale, each on its platforms;
@@ -637,7 +675,7 @@ def label(item: Item, matched: dict[str, dict], cfg: Config) -> Verdict:
         flags.append("general_ai")
     groups = sorted(f"{d}/{g}" for d in domains for g in matched[d]["groups"])
     text = item.text
-    # FLAG, NEVER A DROP (iai-6): no filed industry word has an AI term near it, so the
+    # FLAG, NEVER A DROP (iai-7): no filed industry word has an AI term near it, so the
     # two may be about different things in a long post.
     filed = [t for d in domains for t in
              [*matched[d]["terms"], *(x for g in matched[d]["groups"].values() for x in g)]]

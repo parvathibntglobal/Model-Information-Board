@@ -143,6 +143,29 @@ class MigrationLedgerMismatch(MigrationError):
     """The ledger and the files on disk disagree. Nothing is applied."""
 
 
+class MigrationLockedOut(MigrationError):
+    """A migration waited `LOCK_TIMEOUT` for a lock and gave up. Nothing of it
+    is applied; the message names the sessions with a transaction open."""
+
+
+#: How long ONE migration may wait for a lock before it gives up (2026-11-26).
+#:
+#: WHY A LIMIT AT ALL. An `ALTER TABLE` needs the table to itself, so it waits
+#: for every open transaction that has read the table - and while it waits, every
+#: NEW read of that table queues behind it. On 2026-11-26 the #676 migration
+#: waited 11 minutes on a session from another machine left `idle in transaction`
+#: after a read of `iai_item` (an ad-hoc query, not this repo's code), and for those
+#: minutes the Industry AI pages could not read the table either. With a limit the
+#: migration gives up, nothing is applied, the pages never stall for long, and the
+#: refusal names the open sessions, so a person decides what to close.
+#:
+#: 15 s is longer than any page read the app makes, and short enough that a page
+#: queued behind it is a slow page, not a stalled one. An operational timeout, kept
+#: here beside the runner like `CONNECT_TIMEOUT_SECONDS` in judge/store/claims.py,
+#: not a threshold the board reads (rule 5).
+LOCK_TIMEOUT = "15s"
+
+
 @dataclass(frozen=True)
 class Migration:
     filename: str
@@ -384,6 +407,25 @@ def _refuse_if_objects_exist(conn, migration: Migration) -> None:
         )
 
 
+def open_transactions(conn) -> str:
+    """The other sessions with a transaction open, oldest first, in one sentence:
+    pid, state, how long the transaction has been open and its application name.
+    NO QUERY TEXT: a query can carry values from the rows it read, and this
+    message is printed. `pg_terminate_backend(<pid>)` closes one, a person's call.
+    """
+    rows = conn.execute(
+        "SELECT pid, state, date_trunc('second', now() - xact_start), "
+        "coalesce(nullif(application_name, ''), 'no application name') "
+        "FROM pg_stat_activity WHERE xact_start IS NOT NULL "
+        "AND pid <> pg_backend_pid() AND datname = current_database() "
+        "ORDER BY xact_start LIMIT 10"
+    ).fetchall()
+    if not rows:
+        return "No other session has a transaction open now (it may have ended)."
+    listed = "; ".join(f"pid {pid} {state}, open {age}, {app}" for pid, state, age, app in rows)
+    return f"Sessions with a transaction open, oldest first: {listed}."
+
+
 def migrate(conn, directory: Path | None = None) -> list[str]:
     """Apply pending migrations in order. Returns what was applied.
 
@@ -411,12 +453,24 @@ def migrate(conn, directory: Path | None = None) -> list[str]:
         # Before any work: does this migration's output already exist? See
         # `_refuse_if_objects_exist` for why that refuses rather than records.
         _refuse_if_objects_exist(conn, migration)
-        with conn.transaction():
-            conn.execute(migration.sql)
-            conn.execute(
-                f"INSERT INTO {LEDGER} (filename, content_hash) VALUES (%s, %s)",  # noqa: S608
-                (migration.filename, migration.content_hash),
-            )
+        import psycopg
+
+        try:
+            with conn.transaction():
+                # LOCAL: ends with this transaction, so nothing else on the
+                # connection inherits it. See LOCK_TIMEOUT.
+                conn.execute(f"SET LOCAL lock_timeout = '{LOCK_TIMEOUT}'")
+                conn.execute(migration.sql)
+                conn.execute(
+                    f"INSERT INTO {LEDGER} (filename, content_hash) VALUES (%s, %s)",  # noqa: S608
+                    (migration.filename, migration.content_hash),
+                )
+        except psycopg.errors.LockNotAvailable as e:
+            raise MigrationLockedOut(
+                f"{filename} waited {LOCK_TIMEOUT} for a lock and was rolled back. "
+                f"{open_transactions(conn)} Close or wait for the session holding "
+                "the table, then run `db migrate` again."
+            ) from e
         log.info("migrate: applied %s", filename)
         applied.append(filename)
     return applied

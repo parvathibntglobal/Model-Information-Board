@@ -200,7 +200,7 @@ def test_the_cross_post_window_is_required_and_whole(raw, value):
 
 
 def test_two_people_saying_the_same_thing_are_not_a_cross_post(cfg):
-    """Not a cross-post: one platform. Since iai-6 (2026-11-26) the same text from
+    """Not a cross-post: one platform. Since iai-7 (2026-11-26) the same text from
     another account on one platform is folded as `copied_post` (pass 2b) instead."""
     a = x_post("emollick", "20", NEWS)
     b = x_post("karpathy", "21", NEWS)

@@ -51,7 +51,7 @@ TOP_KEYS = {
     "teach_patterns",
     "hiring_patterns",
     "promo_patterns",
-    # FLAGGED, NEVER DROPPED (iai-6, 2026-11-26 kept-post review): `FLAG_NAMES`.
+    # FLAGGED, NEVER DROPPED (iai-7, 2026-11-26 kept-post review): `FLAG_NAMES`.
     "flag_patterns",
     "type_order",
     "type_patterns",
@@ -107,7 +107,7 @@ RUN_KEYS = {
     "low_engagement_max",
     "rotation",
     "unread_media_max_chars",
-    # iai-6 (2026-11-26 kept-post review): what matching ignores, and three flags' settings.
+    # iai-7 (2026-11-26 kept-post review): what matching ignores, and three flags' settings.
     "match_strip",
     "ai_near_industry_words",
     "reply_min_own_words",
@@ -117,7 +117,7 @@ RUN_KEYS = {
 }
 #: What `run.match_strip` may take out of a post before its terms are matched.
 MATCH_STRIP = ("links", "handles", "hashtags")
-#: THE FLAGS A KEPT POST CAN CARRY FROM THE iai-6 REVIEW, never drops (rule 8). Fixed
+#: THE FLAGS A KEPT POST CAN CARRY FROM THE iai-7 REVIEW, never drops (rule 8). Fixed
 #: here, not open in the contract, because each needs its words on the pages
 #: (web/src/industry-ai/posts.jsx FLAG_LABEL) and in the Info view first; a name the
 #: pages cannot say would reach a reader as a raw key (rule 9).
@@ -646,7 +646,7 @@ def parse(raw: dict) -> Config:
 
 
 def _flag_patterns(raw: Any) -> dict[str, tuple[tuple[str, ...] | None, tuple[re.Pattern, ...]]]:
-    """`flag_patterns` (iai-6): EXACTLY the `PATTERN_FLAGS`, each with `platforms` (a list
+    """`flag_patterns` (iai-7): EXACTLY the `PATTERN_FLAGS`, each with `platforms` (a list
     of `PLATFORMS`, or `all`) and `patterns`. A missing flag is refused rather than read
     as "never flags" (rule 12), and an unknown one rather than ignored."""
     where = "flag_patterns"

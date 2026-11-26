@@ -234,6 +234,10 @@ def draft(
         last=len(used),
     )
     user = _user_message(model["label"], used)
+    if commit:
+        # Reads only, ended before the model calls: the shared database closes a
+        # transaction idle for 15 minutes (2026-11-26, #678).
+        conn.commit()
     reason, reasons, answered = None, [], False
     for _attempt in range(settings["attempts"]):
         message = (

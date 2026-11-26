@@ -35,11 +35,16 @@ version: 1
 # iai-4: keywords toward 50 per umbrella, 363 added (2026-11-25; 18 removed in review).
 # iai-5: a post with a picture or a video and too few words to judge is "not
 #        readable" (stage `unread`), not dropped as "no AI term" / "too short".
-# iai-6: the kept-post review (2026-11-26, agreed with the team): links and @handles
+# iai-6: the text that comes WITH a post's media is matched too - Bluesky and X alt
+#        text, the post an X or Bluesky post quotes, a Reddit crosspost's original
+#        (#679 step 1; `iai_item.media_text`). Filters and type labels still read
+#        only the author's words; a post through on that text alone is flagged
+#        `terms_from_media_text`.
+# iai-7: the kept-post review (2026-11-26, agreed with the team): links and @handles
 #        out before matching; seven flags (never drops); use-case patterns must name AI;
 #        supply chain's software senses out; copies from other accounts and every
 #        cross-post folded.
-pipeline_version: iai-6
+pipeline_version: iai-7
 # WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
 # read by the AI in industries Info view so "Rules version iai-4" means something
 # on the page. Add a line whenever `pipeline_version` is bumped.
@@ -49,7 +54,8 @@ versions:
   iai-3: "2026-11-24: accuracy fixes from the first run - 90-day window, audit and reverse engineering narrowed, filters narrowed, a use case must name an AI tool (#662)"
   iai-4: "2026-11-25: keywords toward 50 per umbrella, 363 added (#664)"
   iai-5: "2026-11-25: a picture or video post with too few words to judge is counted as not readable, not filtered out"
-  iai-6: "2026-11-26: words inside links and @handles no longer count; seven new flags (GitHub to-do list, AI far from the industry word, market chatter, short X reply, heavy poster, for sale, long post on a weak AI word); \"put away\" in everyday English no longer files a post under Supply chain; a use case must name AI in the same sentence; software senses of supply chain left out; the same text from another account, or cross-posted by anyone, counted once"
+  iai-6: "2026-11-26: the text that comes with a post's media (alt text, a quoted post, a Reddit crosspost's original) is matched for AI and industry words too"
+  iai-7: "2026-11-26: words inside links and @handles no longer count; seven new flags (GitHub to-do list, AI far from the industry word, market chatter, short X reply, heavy poster, for sale, long post on a weak AI word); \"put away\" in everyday English no longer files a post under Supply chain; a use case must name AI in the same sentence; software senses of supply chain left out; the same text from another account, or cross-posted by anyone, counted once"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -137,7 +143,7 @@ run:
   # Engagement at or below this is flagged `low_engagement` (a flag, never a drop).
   low_engagement_max: 0
   # WHAT IS TAKEN OUT OF A POST BEFORE ITS AI AND INDUSTRY WORDS ARE MATCHED
-  # (iai-6, the 2026-11-26 kept-post review, agreed with the team). Any of `links`,
+  # (iai-7, the 2026-11-26 kept-post review, agreed with the team). Any of `links`,
   # `handles`, `hashtags`. A word inside a link ("…/ai-for-retail") or an @handle
   # (@itsdazzleai) is not the author writing about it. HASHTAGS STAY: a hashtag is the
   # author's own topic label. Measured 2026-11-26, read-only, with the lane's own
@@ -145,7 +151,7 @@ run:
   # posts their AI word and 20 keyword posts their industry word; @handles, 11 and 3.
   # Those posts are dropped as "no AI term" / "no industry term" on the next relabel.
   match_strip: [links, handles]
-  # FLAG `ai_far_from_industry` (iai-6): a kept post none of whose filed industry words
+  # FLAG `ai_far_from_industry` (iai-7): a kept post none of whose filed industry words
   # has an AI term within this many words. A flag, never a drop (rule 8); counted
   # before it can become one. READ ON 2026-11-26 (read-only, the 9,019 kept keyword
   # posts whose filed industry word could be found again; nearest AI term to nearest
@@ -155,12 +161,12 @@ run:
   # six. So 60, not the 40 first proposed. Six a band is a look, not a measured error
   # rate.
   ai_near_industry_words: 60
-  # FLAG `reply_fragment` (iai-6): an X reply (its text starts with an @handle) with
+  # FLAG `reply_fragment` (iai-7): an X reply (its text starts with an @handle) with
   # fewer than this many words of its own once @handles and links are out. Its context
   # is the post it answers, which the provider's data may carry, so it can be read
   # later rather than dropped. A flag only.
   reply_min_own_words: 15
-  # FLAG `heavy_poster` (iai-6): every kept post of an account with at least this many
+  # FLAG `heavy_poster` (iai-7): every kept post of an account with at least this many
   # kept posts in the collection. On 2026-11-26, 24 accounts had 10 or more, holding
   # 621 of the 9,908 kept keyword posts; the top ones were promotions (one X account
   # 137, an ad-copy offer 51, domains and datasets for sale), but a news or company
@@ -168,7 +174,7 @@ run:
   # flagged accounts are promotions before it could ever be a drop. A post a watch
   # list found is never flagged - those accounts were chosen.
   heavy_poster_min_posts: 10
-  # FLAG `weak_ai_long_post` (iai-6, Parvathi 2026-11-26): a kept post of at least
+  # FLAG `weak_ai_long_post` (iai-7, Parvathi 2026-11-26): a kept post of at least
   # `long_post_words` words (links and @handles out) whose ONLY AI terms are in
   # `weak_ai_terms`. Why: of the 708 kept keyword posts whose AI and industry words are
   # over 60 words apart, 578 were 200+ words long and 250 were kept on the bare word
@@ -611,7 +617,7 @@ promo_patterns:
   - '\bpromo code\b'
   - '\bdiscount code\b'
 
-# FLAGGED, NEVER DROPPED (iai-6, the 2026-11-26 kept-post review, agreed with the
+# FLAGGED, NEVER DROPPED (iai-7, the 2026-11-26 kept-post review, agreed with the
 # team). A kept post matching any pattern of a flag carries that flag, on the platforms
 # listed (`all`: every platform). Rule 8: none of these is measured, so none drops;
 # each is counted and its hits hand-checked before it could become a drop. The page
@@ -674,7 +680,7 @@ type_patterns:
     # "I used ... to/for" shapes keep a four-word bound: that bound is what keeps "I
     # use it for my notes" out.
     #
-    # EVERY PATTERN NOW NAMES AI (iai-6, the 2026-11-26 kept-post review). Six had no
+    # EVERY PATTERN NOW NAMES AI (iai-7, the 2026-11-26 kept-post review). Six had no
     # `ai` group, and they set 200 of the 254 kept keyword posts' use-case labels: "in
     # production" 78, "since <month>" 55, "pilot" 33, "case study" 27, "automated
     # our/the" 4, "cut ... by N" 3. About 10 of the 15 read were not uses ("$120K
@@ -1189,7 +1195,7 @@ watch:
   # folds in a 7-day watch harvest were read by eye and all 3 were true cross-posts,
   # 0 to 4 minutes apart. 6 hours is wide of that and far from a template intro reused
   # days later for a different link; a wrong fold hides a post, a missed one adds one.
-  # FOR EVERY AUTHOR SINCE iai-6 (the 2026-11-26 kept-post review): pass 3 compared only
+  # FOR EVERY AUTHOR SINCE iai-7 (the 2026-11-26 kept-post review): pass 3 compared only
   # people in `people` below, so a keyword-found post cross-posted to X and Bluesky by
   # anyone else was kept twice (10 of the 73 repeated texts that day). It now also folds
   # same-text posts on different platforms by anyone, with the same window and link
@@ -2048,7 +2054,7 @@ domains:
     - tariff impact
     - customs classification
     ambiguous_terms: {}
-    # SOFTWARE SENSES (iai-6, the 2026-11-26 kept-post review): ~197 kept posts were
+    # SOFTWARE SENSES (iai-7, the 2026-11-26 kept-post review): ~197 kept posts were
     # filed here by "supply chain" or "root-cause analysis" in their software sense -
     # package attacks, dependency risk, debugging an outage. Both are removed before
     # matching when the software sense is plain: a software supply chain, and a

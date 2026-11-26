@@ -504,6 +504,10 @@ def revise(
     user = _user_message(model["label"], paragraphs, para_cites, by_doc, new, approved_on)
     run_id = f"feed_r_{uuid.uuid4().hex[:12]}"
     newest = max(r["posted_at"] for r in new)
+    if commit:
+        # Reads only, ended before the model calls: the shared database closes a
+        # transaction idle for 15 minutes (2026-11-26, #678).
+        conn.commit()
     reason, reasons, answered = None, [], False
     result = None
     for _ in range(rev["attempts"]):

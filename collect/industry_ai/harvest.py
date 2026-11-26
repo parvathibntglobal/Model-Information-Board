@@ -152,6 +152,12 @@ def round_robin(wanted: list[tuple[str, str]]) -> list[tuple[str, str]]:
 # ── item builders, one per platform ──────────────────────────────────────────
 
 
+def _with_media_text(found: tuple[str | None, list[str]]) -> dict:
+    """`Item` fields for the text that came with a post's media (#679 step 1)."""
+    text, kinds = found
+    return {"media_text": plain(text) if text else None, "media_text_from": tuple(kinds)}
+
+
 def _reddit_item(post) -> Item:
     raw = post.raw or {}
     permalink = raw.get("permalink")
@@ -169,6 +175,7 @@ def _reddit_item(post) -> Item:
         engagement=post.engagement,
         link=dest,
         media_kind=media.reddit(raw),
+        **_with_media_text(media.reddit_text(raw)),
     )
 
 
@@ -186,6 +193,7 @@ def _x_item(post) -> Item:
         engagement=post.engagement,
         link=first_link(post.text),
         media_kind=media.x(getattr(post, "payload", None)),
+        **_with_media_text(media.x_text(getattr(post, "payload", None))),
     )
 
 
@@ -252,6 +260,7 @@ def _bluesky_item(hit) -> Item:
         engagement={"likes": hit.likes, "comments": hit.replies},
         link=first_link(hit.text),
         media_kind=media.bluesky(getattr(hit, "raw", None) or {}),
+        **_with_media_text(media.bluesky_text(getattr(hit, "raw", None) or {})),
     )
 
 

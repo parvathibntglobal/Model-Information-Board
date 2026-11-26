@@ -33,7 +33,13 @@ from typing import Any
 from judge import publication
 from judge.feed import checks
 from judge.feed.items import excerpts_digest
-from judge.feed.llm import BudgetSpent, FeedModelUnavailable, call_tool
+from judge.feed.llm import (
+    BudgetSpent,
+    FeedModelUnavailable,
+    call_tool,
+    clear_last_provider,
+    last_provider,
+)
 
 #: The longest excerpt text sent per report. Measured 2026-10-21 over 4,122
 #: reports on the shared DB: 208 characters on average, 464 at the 90th
@@ -319,7 +325,16 @@ def run(
         "failed_calls": [],
         "stopped": None,
         "left_for_next_run": 0,
+        # BY OPENROUTER PROVIDER (#671): reports sent to each, how many passed
+        # the checks on that call, and calls that failed outright. Replayed
+        # 2026-11-25, 4 batches of 20: DeepInfra 22 of 80 passed (2 batches
+        # empty), Wafer 41 of 80 - a split the totals above cannot show.
+        "by_provider": {},
     }
+
+    def tally(provider: str) -> dict:
+        return report["by_provider"].setdefault(
+            provider, {"calls": 0, "asked": 0, "passed": 0, "failed_calls": 0})
     by_model: dict[str, list[dict]] = {}
     for u in units:
         by_model.setdefault(u["model_key"], []).append(u)
@@ -339,6 +354,7 @@ def run(
                 last = attempt == settings["attempts"]
                 try:
                     report["calls"] += 1
+                    clear_last_provider()
                     # The gist only once the full paraphrase has had its re-asks.
                     ids, got, served = _ask(todo, settings, run_id, call, reasons or None,
                                             gist=last and attempt >= 3)
@@ -348,7 +364,13 @@ def run(
                     break
                 except FeedModelUnavailable as e:
                     report["failed_calls"].append(f"{model_key}: {e}")
+                    row = tally(last_provider())
+                    row["calls"] += 1
+                    row["failed_calls"] += 1
                     break
+                row = tally(last_provider())
+                row["calls"] += 1
+                row["asked"] += len(ids)
                 retry, next_reasons = [], {}
                 for rid, unit in ids.items():
                     text = got.get(rid)
@@ -367,6 +389,7 @@ def run(
                     if problem is None:
                         _store(conn, unit, text, served, settings, run_id)
                         report["stored"] += 1
+                        row["passed"] += 1
                         done.add((unit["model_key"], unit["document_id"]))
                     elif not last:
                         retry.append(unit)
@@ -392,3 +415,20 @@ def run(
             1 for u in units if (u["model_key"], u["document_id"]) not in done
         )
     return report
+
+
+def provider_line(by_provider: dict) -> str | None:
+    """One line of `run`'s `by_provider`, for the run log: counts side by side,
+    no ratio (the two counts are the evidence). A report re-asked on a second
+    call is sent twice, so `sent` counts sendings, not reports. None when no
+    call was made."""
+    if not by_provider:
+        return None
+    parts = []
+    for name, row in sorted(by_provider.items(), key=lambda kv: (-kv[1]["asked"], kv[0])):
+        part = (f"{name}: {row['passed']:,} passed of {row['asked']:,} sent "
+                f"over {row['calls']:,} call(s)")
+        if row["failed_calls"]:
+            part += f", {row['failed_calls']:,} call(s) failed"
+        parts.append(part)
+    return "paraphrase by OpenRouter provider: " + "; ".join(parts) + "."

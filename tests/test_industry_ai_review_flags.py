@@ -1,4 +1,4 @@
-"""The kept-post review (iai-6, 2026-11-26, agreed with the team): what matching
+"""The kept-post review (iai-7, 2026-11-26, agreed with the team): what matching
 ignores, the six review flags (never drops), use-case patterns that must name AI,
 Supply chain's software senses, and the two new duplicate folds.
 

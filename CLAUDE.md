@@ -116,6 +116,22 @@ These are the rules a helpful refactor will otherwise quietly violate.
    in one place with the board's. `cw_writer_run` and its own daily budget
    stay as they are.
 
+   **Reel transcription in the Industry AI lane, PROPOSED 2026-11-26 (anooj;
+   for Parvathi's review, not in force until the PR adding it merges; #679
+   step 2):**
+   whisper.cpp, a speech-to-text model whose decoder is a language model over
+   audio, writes down what a "not readable" reel says. It decides nothing:
+   code matches the AI and industry terms in the transcript exactly as it does
+   in a caption, and for its first week (shadow mode,
+   `transcribe.affects_labels: false`) no label depends on it at all. Its
+   known failure is words on music or silence that nobody said; `no_speech` is
+   recorded, and the shadow week's hand-check reads flagged posts against
+   their audio before any label may depend on a transcript. It runs on the
+   GitHub runner's CPU with a pinned model file, so it spends nothing and has
+   no `spend_ledger` stage. Not built yet: the media hosts' robots.txt leaves
+   only Reddit and Bluesky video (the fetch exception below). Argument:
+   `docs/proposals/iai-reel-transcription.md`.
+
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 
@@ -650,6 +666,43 @@ These are the rules a helpful refactor will otherwise quietly violate.
   5. Each `<head>` read is kept in the raw store, content-hash addressed.
 
   `link_preview.enabled: false` in the contract switches it off as a whole.
+
+  **The third exception, PROPOSED 2026-11-26 (anooj; for Parvathi's review,
+  not in force until the PR adding it merges): a reel's audio in the Industry AI lane
+  (#679 step 2).** A video post with too few words to judge is "not readable"
+  (#676); its content is what is said. Its conditions are not settings:
+
+  1. Only media links the provider's own API response gave, for posts the run
+     itself labelled "not readable". Nothing is searched, crawled or
+     discovered.
+  2. No cookies, logins, API keys, browser, `yt-dlp` or page fetch; a plain
+     request with the identifying User-Agent, as above.
+  3. Audio only, the first `transcribe.max_seconds`. The video is never
+     saved; the audio goes to a temporary folder deleted in the same run
+     (`finally`), and never to the raw store, the database or an artifact.
+     Only the transcript is stored, cleared after
+     `retention.clear_text_after_days` even where the post's caption is kept
+     (a "not readable" post under `retention.unread: false`); `''` where there
+     was text.
+  4. At most `transcribe.max_per_run` posts a run. When more qualify, they are
+     taken in turn by platform, then by account within a platform, newest
+     first, so no platform or prolific account takes the cap every run. A post
+     over the cap is recorded as `over_cap`, never silently skipped.
+  5. `robots.txt` is always asked, once a run per media host, with the
+     identifying User-Agent, and for every host a redirect leads to as well;
+     there is no switch to turn it off. A refusal is recorded as `refused`,
+     and that platform's reels stay "not readable".
+
+  `transcribe.enabled: false` in the contract switches it off as a whole.
+
+  ⚠ **WHAT CONDITION 5 LEAVES, checked 2026-11-26:** Instagram's media CDN
+  (`*.fbcdn.net`, `*.cdninstagram.com`) and X's video host (`video.twimg.com`)
+  answer `User-agent: *` with `Disallow: /`; Reddit's `v.redd.it` allows, and
+  Bluesky's `video.bsky.app` has no robots.txt (404). So today this exception
+  reaches Reddit and Bluesky video only - 14 of the 90 short-caption videos in
+  the 25 Nov pages, and none of Instagram's, which the sample says carry the
+  most. The code is held until that changes or the team decides it is worth
+  building for those two; the conditions stand either way.
 
   Anything else that wants to scrape needs its own recorded exception here.
 - The evidence pipeline is a **nightly batch**. The answer path reads a

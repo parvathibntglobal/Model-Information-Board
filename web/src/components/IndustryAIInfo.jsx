@@ -33,7 +33,7 @@ const PATTERN_LABEL = {
   promo_patterns: 'Sponsored or affiliate', teach_patterns: 'Teaching (how-to) phrasing',
 }
 const HN_LIST_LABEL = { show_hn: 'Show HN', ask_hn: 'Ask HN', front_page: 'Front page' }
-// `run.match_strip` (contract, iai-6): what matching takes out of a post first.
+// `run.match_strip` (contract, iai-7): what matching takes out of a post first.
 const STRIP_LABEL = { links: 'links', handles: '@handles', hashtags: 'hashtags' }
 
 const onOff = (v) => (v === true ? 'on' : v === false ? 'off' : 'not set')

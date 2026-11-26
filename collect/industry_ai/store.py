@@ -32,6 +32,8 @@ _COLUMNS = (
     "query_keys",
     "first_run_id",
     "media_kind",
+    "media_text",
+    "media_text_from",
 )
 
 
@@ -107,7 +109,15 @@ _UPSERT = (
     "EXCLUDED.query_keys) ORDER BY 1), "
     # A row stored before media was recorded gets it the next time the post is seen;
     # a recorded kind is never overwritten.
-    "  media_kind = coalesce(iai_item.media_kind, EXCLUDED.media_kind) "
+    "  media_kind = coalesce(iai_item.media_kind, EXCLUDED.media_kind), "
+    # The text that came with the media (#679 step 1): filled the same way, and NEVER
+    # on a row whose text retention cleared - a re-found post must not bring its
+    # words back (test_industry_ai_retention.py).
+    "  media_text = CASE WHEN iai_item.text_cleared_at IS NOT NULL THEN iai_item.media_text "
+    "    ELSE coalesce(iai_item.media_text, EXCLUDED.media_text) END, "
+    "  media_text_from = CASE WHEN iai_item.text_cleared_at IS NOT NULL "
+    "    OR iai_item.media_text IS NOT NULL THEN iai_item.media_text_from "
+    "    ELSE EXCLUDED.media_text_from END "
     "RETURNING (xmax = 0)"
 )
 
@@ -141,6 +151,8 @@ def upsert_items(conn, items: list[Item], *, run_id: str) -> int:
             "query_keys": sorted(it.query_keys),
             "first_run_id": run_id,
             "media_kind": it.media_kind,
+            "media_text": it.media_text or None,
+            "media_text_from": sorted(it.media_text_from) if it.media_text else None,
         })
     if not rows:
         return 0
@@ -165,7 +177,8 @@ def load_items(conn) -> list[Item]:
     out = []
     for r in conn.execute(
         "SELECT id, platform, external_id, url, title, body, created_at, author_id, lang, "
-        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at, media_kind "
+        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at, media_kind, "
+        "media_text, media_text_from "
         "FROM iai_item WHERE text_cleared_at IS NULL"
     ).fetchall():
         out.append(
@@ -188,6 +201,9 @@ def load_items(conn) -> list[Item]:
                 first_seen_at=r[14],
                 # A relabel judges "too little text to read" exactly as the run did.
                 media_kind=r[15],
+                # ...and matches terms on the same text (#679 step 1).
+                media_text=r[16] or None,
+                media_text_from=tuple(r[17] or ()),
             )
         )
     return out
@@ -230,9 +246,13 @@ def clear_text(conn, retention: dict, *, now: datetime | None = None) -> int:
          "unread": bool(retention["unread"]), "kept": list(retention["kept_domains"])},
     ).fetchall()]
     if due:
+        # The text that came with the media is someone's words too (an alt text, a
+        # quoted post): cleared with the title and body (#679 step 1). '' where there
+        # was text, so "cleared" stays distinct from "none found" (NULL, rule 6).
         conn.execute(
-            "UPDATE iai_item SET title = '', body = '', text_cleared_at = %s "
-            "WHERE id = ANY(%s)", (now, due))
+            "UPDATE iai_item SET title = '', body = '', "
+            "media_text = CASE WHEN media_text IS NULL THEN NULL ELSE '' END, "
+            "text_cleared_at = %s WHERE id = ANY(%s)", (now, due))
     return len(due)
 
 

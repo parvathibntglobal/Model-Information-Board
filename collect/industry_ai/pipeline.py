@@ -18,6 +18,7 @@ from datetime import UTC, datetime, timedelta
 
 from collect.industry_ai.config import Config
 from collect.industry_ai.rules import (
+    MEDIA_TEXT_FLAG,
     PERSON_FLAG,
     UNREAD_INSTEAD_OF,
     UNREAD_REASON,
@@ -32,6 +33,7 @@ from collect.industry_ai.rules import (
     is_watched,
     label,
     match_text,
+    needed_media_text,
     normalized_text,
     outside_window,
     person_of,
@@ -70,9 +72,9 @@ def _dedupe(items: list[Item], results: dict[str, Result],
             persons: dict[str, str] | None = None, *, cross_post_hours: int) -> None:
     """Stage 4 over the items the sieve kept. Five passes, each over what the
     previous left canonical: a shared article link, an author repeating
-    themselves, other accounts posting the same text on one platform (iai-6), the
+    themselves, other accounts posting the same text on one platform (iai-7), the
     same text on two platforms - by a mapped person (`persons`: item id -> person,
-    from `watch.people`) or by anyone (iai-6), within `cross_post_hours`, the
+    from `watch.people`) or by anyone (iai-7), within `cross_post_hours`, the
     contract's `watch.cross_post_hours`, required - and near-duplicate text."""
     persons = persons or {}
     live = sorted(items, key=_order)
@@ -110,7 +112,7 @@ def _dedupe(items: list[Item], results: dict[str, Result],
             )
     fold(by_author, "repeat_post", flag="repeat_author")
 
-    # 2b. OTHER ACCOUNTS POSTING THE SAME TEXT ON ONE PLATFORM (iai-6, the 2026-11-26
+    # 2b. OTHER ACCOUNTS POSTING THE SAME TEXT ON ONE PLATFORM (iai-7, the 2026-11-26
     #     kept-post review): 25 texts were kept 2-3 times that day. Pass 2 compares one
     #     account at a time, and pass 4 gives no signature below 200 tokens - nearly
     #     every X and Bluesky post. Compared with links and @handles out (`copy_text`):
@@ -131,7 +133,7 @@ def _dedupe(items: list[Item], results: dict[str, Result],
     #    carry an article link - share it. Undated posts are never folded (rule 6). So a
     #    template intro reused days later for another paper stays two posts, and a
     #    same-platform repeat is left to passes 2 and 2b.
-    #    FOR EVERYONE SINCE iai-6 (2026-11-26, the team's finding): it read only people
+    #    FOR EVERYONE SINCE iai-7 (2026-11-26, the team's finding): it read only people
     #    in `watch.people`, so a keyword-found cross-post by anyone else was kept twice.
     #    A mapped person's posts are still grouped by the person; anyone else's by the
     #    text alone (key person None).
@@ -219,6 +221,9 @@ def evaluate(
         if why:
             r.verdict, r.stage, r.reason = "dropped", "sieve", why
             continue
+        if needed_media_text(it, cfg):
+            # Through on the text that came with its media, not its own words (#679).
+            r.flags = sorted(set(r.flags) | {MEDIA_TEXT_FLAG})
         matched[it.id] = terms
         passed.append(it)
 
@@ -251,13 +256,13 @@ def evaluate(
         r.domains, r.groups, r.content_type = v.domains, v.groups, v.content_type
         r.matched_pattern, r.stage_guess = v.matched_pattern, v.stage_guess
         r.flags = sorted(set(r.flags) | set(v.flags))
-        # A LONG POST KEPT ON A WEAK AI WORD ALONE (iai-6, Parvathi 2026-11-26): a flag,
+        # A LONG POST KEPT ON A WEAK AI WORD ALONE (iai-7, Parvathi 2026-11-26): a flag,
         # never a drop until its hits are hand-checked (rule 8).
         if (r.ai_terms and set(r.ai_terms) <= weak_ai
                 and len(match_text(it.text, cfg).split()) >= long_post):
             r.flags = sorted(set(r.flags) | {"weak_ai_long_post"})
 
-    # HEAVY POSTERS (iai-6, the 2026-11-26 kept-post review): every kept post of an
+    # HEAVY POSTERS (iai-7, the 2026-11-26 kept-post review): every kept post of an
     # account with at least `run.heavy_poster_min_posts` kept posts here. A flag, never
     # a drop: a news or company account is prolific without promoting, so the review
     # counts how many flagged accounts are promotions first (rule 8). A post a watch
