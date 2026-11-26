@@ -33,7 +33,9 @@ version: 1
 #        audit and reverse engineering narrowed, filter patterns tightened, a
 #        use-case pattern's `ai` group must name an AI term.
 # iai-4: keywords toward 50 per umbrella, 363 added (2026-11-25; 18 removed in review).
-pipeline_version: iai-4
+# iai-5: a post with a picture or a video and too few words to judge is "not
+#        readable" (stage `unread`), not dropped as "no AI term" / "too short".
+pipeline_version: iai-5
 # WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
 # read by the AI in industries Info view so "Rules version iai-4" means something
 # on the page. Add a line whenever `pipeline_version` is bumped.
@@ -42,6 +44,7 @@ versions:
   iai-2: "2026-11-24: the longer AI-term list; lower-case \"ai\" counts (#660)"
   iai-3: "2026-11-24: accuracy fixes from the first run - 90-day window, audit and reverse engineering narrowed, filters narrowed, a use case must name an AI tool (#662)"
   iai-4: "2026-11-25: keywords toward 50 per umbrella, 363 added (#664)"
+  iai-5: "2026-11-25: a picture or video post with too few words to judge is counted as not readable, not filtered out"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -112,6 +115,18 @@ run:
   # Below this many characters of title + body (links removed), an item is too
   # short to say anything and is dropped as `too_short`.
   min_text_chars: 40
+  # NOT READABLE, NOT FILTERED OUT (2026-11-25, anooj; iai-5). A post whose media is a
+  # picture, a gallery or a video (`iai_item.media_kind`, collect/industry_ai/media.py)
+  # and that has fewer than this many characters of words - links, @handles and #tags
+  # taken out - is stored as drop_stage `unread`, reason `media_unread`, when it would
+  # otherwise be dropped as `no_ai_term` or `too_short`. Its content is in the media,
+  # which this lane does not read, so its few words cannot say whether it is about AI.
+  # The pages count it apart from "filtered out" (rule 4) and list it with its link.
+  # 80: on 2026-11-25, 277 of the 620 watched posts dropped for "no AI term" had under
+  # 80 characters of text (watch-found rows with text still held). A starting point to
+  # look at after a week of runs, not a measured error rate: it moves a post from
+  # "filtered out" to a visible "not readable", and drops nothing new.
+  unread_media_max_chars: 80
   # How close a context word must be to an ambiguous domain term, in words.
   context_window_words: 12
   # Engagement at or below this is flagged `low_engagement` (a flag, never a drop).

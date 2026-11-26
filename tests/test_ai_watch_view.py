@@ -140,7 +140,9 @@ def test_the_post_lists_never_overlap_and_filters_narrow_them(page):
     m = ai_watch_posts(page, scope="mentions", filters={"domain": "marketing"})
     assert m["matching"] == 1 and m["facets"]["domain"] == [{"value": "marketing", "items": 1}]
     assert {s: ai_watch_posts(page, scope=s)["matching"] for s in WATCH_SCOPES} == {
-        "general": 3, "mentions": 1, "kept": 4, "dropped": 1}
+        "general": 3, "mentions": 1, "kept": 4, "dropped": 1,
+        # Not readable (iai-5): none here; test_industry_ai_media.py stores one.
+        "unread": 0}
 
 
 def test_a_bad_scope_is_refused(page):

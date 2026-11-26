@@ -223,6 +223,11 @@ export default function IndustryAI() {
             {data.pending > 0 && (
               <div><b className="tnum">{n(data.pending)}</b><span>waiting to be labelled</span></div>
             )}
+            {/* A picture or video with too few words to judge (iai-5): not read, so
+                counted apart from filtered out (rule 4). */}
+            {data.unread > 0 && (
+              <div><b className="tnum">{n(data.unread)}</b><span>not readable (picture or video)</span></div>
+            )}
           </div>
           {data.pending > 0 && (
             <p className="dim iai-note">

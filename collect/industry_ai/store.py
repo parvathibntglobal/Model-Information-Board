@@ -31,6 +31,7 @@ _COLUMNS = (
     "domain_hints",
     "query_keys",
     "first_run_id",
+    "media_kind",
 )
 
 
@@ -82,7 +83,10 @@ _UPSERT = (
     "  domain_hints = ARRAY(SELECT DISTINCT unnest(iai_item.domain_hints || "
     "EXCLUDED.domain_hints) ORDER BY 1), "
     "  query_keys = ARRAY(SELECT DISTINCT unnest(iai_item.query_keys || "
-    "EXCLUDED.query_keys) ORDER BY 1) "
+    "EXCLUDED.query_keys) ORDER BY 1), "
+    # A row stored before media was recorded gets it the next time the post is seen;
+    # a recorded kind is never overwritten.
+    "  media_kind = coalesce(iai_item.media_kind, EXCLUDED.media_kind) "
     "RETURNING (xmax = 0)"
 )
 
@@ -115,6 +119,7 @@ def upsert_items(conn, items: list[Item], *, run_id: str) -> int:
             "domain_hints": sorted(it.domain_hints),
             "query_keys": sorted(it.query_keys),
             "first_run_id": run_id,
+            "media_kind": it.media_kind,
         })
     if not rows:
         return 0
@@ -139,8 +144,8 @@ def load_items(conn) -> list[Item]:
     out = []
     for r in conn.execute(
         "SELECT id, platform, external_id, url, title, body, created_at, author_id, lang, "
-        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at FROM iai_item "
-        "WHERE text_cleared_at IS NULL"
+        "engagement, link, discovery_ref, domain_hints, query_keys, first_seen_at, media_kind "
+        "FROM iai_item WHERE text_cleared_at IS NULL"
     ).fetchall():
         out.append(
             Item(
@@ -160,6 +165,8 @@ def load_items(conn) -> list[Item]:
                 query_keys=set(r[13] or []),
                 # The watch window is measured from first sight (pipeline.evaluate).
                 first_seen_at=r[14],
+                # A relabel judges "too little text to read" exactly as the run did.
+                media_kind=r[15],
             )
         )
     return out

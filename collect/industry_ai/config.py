@@ -104,6 +104,7 @@ RUN_KEYS = {
     "context_window_words",
     "low_engagement_max",
     "rotation",
+    "unread_media_max_chars",
 }
 #: The two rotation groups (`run.rotation.groups`), and how a scheduled run picks one.
 ROTATION_GROUPS = ("a", "b")
@@ -526,7 +527,8 @@ def parse(raw: dict) -> Config:
     _known(pages, PAGE_KEYS, "run.pages_per_query")
     for k in sorted(PAGE_KEYS):
         _whole(_need(pages, k, "run.pages_per_query"), f"run.pages_per_query.{k}")
-    for key in ("window_days", "min_text_chars", "context_window_words", "x_clubbed_min_keywords"):
+    for key in ("window_days", "min_text_chars", "context_window_words", "x_clubbed_min_keywords",
+                "unread_media_max_chars"):
         _whole(run[key], f"run.{key}")
     _whole(run["low_engagement_max"], "run.low_engagement_max", positive=False)
 

@@ -4199,7 +4199,7 @@ def _warm_industry_ai() -> None:
                     industry_ai_domain_page(d["key"])
             # AI Watch (2026-11-25): its counts and the first page of each tab's posts.
             ai_watch_page()
-            for scope in ("general", "kept", "mentions", "dropped"):
+            for scope in ("general", "kept", "mentions", "dropped", "unread"):
                 ai_watch_posts_page(scope=scope)
         except Exception:  # noqa: BLE001 - warming is a courtesy; the page works it out on demand
             log.exception("industry-ai: warming the page cache failed")

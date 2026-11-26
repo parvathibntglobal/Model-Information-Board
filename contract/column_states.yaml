@@ -2159,6 +2159,11 @@ columns:
       state: read
       why: >-
         Written by collect/industry_ai/store.py upsert_items; read back by store.load_items, so --relabel re-applies the contract's rules to stored items without a request.
+    media_kind:
+      reviewed: true
+      state: read
+      why: >-
+        What media the post carries (collect/industry_ai/media.py), written by store.upsert_items and read back by store.load_items, so a relabel applies rules.too_little_to_read as the run did (a picture or video with too few words is drop_stage 'unread'). Also read by judge/industry_ai/view.py ai_watch_view: the "not readable" count by media kind (2026-11-25).
     matched_terms:
       reviewed: true
       state: read

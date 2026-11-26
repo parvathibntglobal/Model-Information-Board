@@ -2868,6 +2868,13 @@ CREATE TABLE IF NOT EXISTS iai_item (
   -- When text retention emptied title and body (contract/industry_ai.yaml
   -- `retention:`); NULL while the text is held. A cleared row is not re-labelled.
   text_cleared_at  timestamptz,
+  -- What media the post carries, from the provider's own fields
+  -- (collect/industry_ai/media.py; 20261125T1600_iai_item_media_kind.sql). NULL = not
+  -- recorded, never 'none' (rule 6). A picture or video with too few words to judge is
+  -- stored as drop_stage 'unread' (contract/industry_ai.yaml unread_media_max_chars).
+  media_kind       text,
+  CONSTRAINT iai_item_media_kind_ck
+    CHECK (media_kind IS NULL OR media_kind IN ('none', 'image', 'gallery', 'video', 'link')),
   -- 'instagram' since 2026-11-25 (20261125T1200_iai_item_instagram.sql): the
   -- observer's Instagram arm.
   CONSTRAINT iai_item_platform_ck
