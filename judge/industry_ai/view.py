@@ -296,6 +296,20 @@ def industry_ai_info() -> dict[str, Any]:
             # 2026-11-25: the smaller settings that explain some drops and flags.
             "low_engagement_max": run.get("low_engagement_max"),
             "x_clubbed_min_keywords": run.get("x_clubbed_min_keywords"),
+            # iai-6 (2026-11-26 kept-post review): what matching ignores, and the
+            # settings of the three flags that are not patterns.
+            "match_strip": list(run.get("match_strip") or []),
+            "ai_near_industry_words": run.get("ai_near_industry_words"),
+            "reply_min_own_words": run.get("reply_min_own_words"),
+            "heavy_poster_min_posts": run.get("heavy_poster_min_posts"),
+        },
+        # The flags set by a pattern (iai-6), each with the platforms it applies on
+        # (None: all), for the Info view's patterns list.
+        "flag_patterns": {
+            k: {"platforms": None if (b or {}).get("platforms") == "all"
+                else list((b or {}).get("platforms") or []),
+                "patterns": list((b or {}).get("patterns") or [])}
+            for k, b in (c.get("flag_patterns") or {}).items()
         },
         # TEXT RETENTION (contract `retention:`), shown on the Info view
         # (2026-11-25): when a post's words are emptied, and for which posts.

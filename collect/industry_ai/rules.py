@@ -222,6 +222,49 @@ def remove(text: str, patterns) -> str:
     return text
 
 
+#: What `run.match_strip` can take out before terms are matched (iai-6). An @handle
+#: needs no word character before it, so an email address ("a@b.com") is not one.
+_HANDLE = re.compile(r"(?<![\w@])@\w[\w.]*")
+_HASHTAG = re.compile(r"(?<![\w#])#\w[\w.]*")
+_STRIP = {"links": _URL, "handles": _HANDLE, "hashtags": _HASHTAG}
+
+
+def match_text(text: str, cfg: Config) -> str:
+    """The text a post's AI and industry words are matched in: its title and body with
+    `run.match_strip` taken out (iai-6, the 2026-11-26 kept-post review). A word inside
+    a link or an @handle is not the author writing about it; hashtags stay unless the
+    contract lists them, being the author's own topic label."""
+    return remove(text, [_STRIP[k] for k in cfg.run["match_strip"]])
+
+
+@lru_cache(maxsize=8)
+def _any_ai_pattern(terms: tuple[str, ...]) -> re.Pattern:
+    """Every AI term as one alternation: "names ANY of them" in one search, the same
+    answer as asking each `term_pattern` in turn."""
+    return re.compile("|".join(term_pattern(t).pattern for t in terms), re.IGNORECASE)
+
+
+def ai_near_industry(text: str, terms: list[str], cfg: Config) -> bool:
+    """Whether any of `terms` (a kept post's filed industry words) has an AI term within
+    `run.ai_near_industry_words` words of it (iai-6: flag `ai_far_from_industry` when
+    not). Read on the same text the terms were matched in. A term that cannot be found
+    again in it (an ambiguous term's spelling) counts as near: no evidence of far is
+    not evidence of far (rule 6), and this only ever adds a flag."""
+    clean = remove(match_text(text, cfg), cfg.global_exclude)
+    words = clean.split()
+    window = int(cfg.run["ai_near_industry_words"])
+    any_ai = _any_ai_pattern(cfg.all_ai_terms)
+    located = False
+    for term in terms:
+        for m in term_pattern(term).finditer(clean):
+            located = True
+            i = len(clean[: m.start()].split())
+            span = " ".join(words[max(0, i - window): i + len(term.split()) + window])
+            if any_ai.search(span):
+                return True
+    return not located
+
+
 def ai_terms_found(text: str, cfg: Config) -> list[str]:
     """The AI terms an item names, after the global exclusions are removed. Every
     term matches as a whole word in any case (`has_term`), so the bare word counts
@@ -395,6 +438,15 @@ def too_little_to_read(item: Item, cfg: Config) -> bool:
     return len(" ".join(words.split())) < int(cfg.run["unread_media_max_chars"])
 
 
+def copy_text(text: str) -> str | None:
+    """The text two accounts' posts on ONE platform are compared on (iai-6, dedupe pass
+    2b): links and @handles out (each copy carries its own t.co link and tags), then
+    `normalized_text`. None below `CROSS_POST_MIN_CHARS`, as for a cross-post: two short
+    posts ("great thread!") match by chance."""
+    key = normalized_text(remove(text, [_HANDLE]))
+    return key if len(key) >= CROSS_POST_MIN_CHARS else None
+
+
 def cross_post_text(text: str) -> str | None:
     """`normalized_text` without @mentions and #tags, which a person spells per
     platform (`@simonw` on X, `@simonwillison.net` on Bluesky); None when too short to
@@ -418,8 +470,10 @@ def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, dict], list[st
 
     A WATCHED item needs the AI term only (anooj, 2026-11-20): a post from a watched
     account or community that names no industry is general AI news or opinion, kept
-    as "General AI" by `label`, not dropped as `no_domain_term`."""
-    text = item.text
+    as "General AI" by `label`, not dropped as `no_domain_term`.
+
+    Matched on `match_text` (iai-6): links and @handles out, as `run.match_strip` says."""
+    text = match_text(item.text, cfg)
     ai = ai_terms_found(text, cfg)
     if not ai:
         return "no_ai_term", {}, []
@@ -445,18 +499,51 @@ def _any(patterns, text: str) -> re.Pattern | None:
     return next((p for p in patterns if p.search(text)), None)
 
 
+#: How far `sentence_of` reads either side of a match, at most (iai-6).
+SENTENCE_CHARS = 120
+_SENTENCE_END = ".!?\n"
+
+
+def sentence_of(text: str, start: int, end: int) -> str:
+    """The sentence around text[start:end]: back to the previous . ! ? or line break and
+    on to the next one, at most `SENTENCE_CHARS` either side (iai-6). Found by scanning
+    from the match, not by a pattern that tries 120 characters at every position - that
+    form cost a full relabel minutes (measured 2026-11-26, 2,000 stored posts)."""
+    a = max(start - SENTENCE_CHARS, 0)
+    for c in _SENTENCE_END:
+        a = max(a, text.rfind(c, a, start) + 1)
+    b = min(end + SENTENCE_CHARS, len(text))
+    for c in _SENTENCE_END:
+        i = text.find(c, end, b)
+        if i != -1:
+            b = i
+    return text[a:b]
+
+
+def names_ai(text: str, cfg: Config) -> bool:
+    """Whether `text` names any AI term: `ai_terms_found`'s answer, in one search."""
+    return _any_ai_pattern(cfg.all_ai_terms).search(remove(text, cfg.global_exclude)) is not None
+
+
 def _any_naming_ai(patterns, text: str, cfg: Config) -> re.Pattern | None:
-    """`_any` for type patterns: a pattern with a named group `ai` counts only at a
-    match where that group's words name an AI term (contract `type_patterns`, since
-    2026-11-24) - "I use it for my journal" is not an AI use case, "I used Claude to"
-    is. Every match is tried, not only the first. A pattern without the group counts
-    as `_any` does."""
+    """`_any` for type patterns, where AI must be what the phrase is about (contract
+    `type_patterns`). A pattern with a named group
+      * `ai` counts only at a match where that group's words name an AI term (since
+        2026-11-24) - "I use it for my journal" is not an AI use case, "I used Claude
+        to" is;
+      * `sentence` counts only at a match whose SENTENCE (`sentence_of`) names an AI
+        term (iai-6) - "$120K revenue since February" is not a use case, "our AI
+        agent has run in production since March" is.
+    Every match is tried, not only the first. A pattern with neither counts as `_any`."""
     for p in patterns:
-        if "ai" not in p.groupindex:
-            if p.search(text):
+        if "sentence" in p.groupindex:
+            if any(names_ai(sentence_of(text, m.start("sentence"), m.end("sentence")), cfg)
+                   for m in p.finditer(text)):
                 return p
-            continue
-        if any(ai_terms_found(m.group("ai") or "", cfg) for m in p.finditer(text)):
+        elif "ai" in p.groupindex:
+            if any(names_ai(m.group("ai") or "", cfg) for m in p.finditer(text)):
+                return p
+        elif p.search(text):
             return p
     return None
 
@@ -500,7 +587,27 @@ def filter_reason(
     ]
     if signal and max(signal) <= floor:
         flags.append("low_engagement")
+    flags.extend(review_flags(item, cfg))
     return None, flags
+
+
+def review_flags(item: Item, cfg: Config) -> list[str]:
+    """THE iai-6 FLAGS A POST CAN CARRY ON ITS OWN (the 2026-11-26 kept-post review,
+    agreed with the team). Flags, never drops (rule 8): each is counted and its hits
+    hand-checked before it could become one.
+      * `flag_patterns`: github_tracking, market_chatter, for_sale, each on its platforms;
+      * reply_fragment: an X reply (its text starts with an @handle) with fewer than
+        `run.reply_min_own_words` words once @handles and links are out.
+    `ai_far_from_industry` needs the filed industries (`label`) and `heavy_poster` the
+    whole collection (pipeline.evaluate)."""
+    text = item.text
+    out = [name for name, (plats, pats) in cfg.flag_patterns.items()
+           if (plats is None or item.platform in plats) and _any(pats, text)]
+    if item.platform == "x" and text.lstrip().startswith("@"):
+        own = remove(text, [_URL, _HANDLE]).split()
+        if len(own) < int(cfg.run["reply_min_own_words"]):
+            out.append("reply_fragment")
+    return out
 
 
 def label(item: Item, matched: dict[str, dict], cfg: Config) -> Verdict:
@@ -530,6 +637,12 @@ def label(item: Item, matched: dict[str, dict], cfg: Config) -> Verdict:
         flags.append("general_ai")
     groups = sorted(f"{d}/{g}" for d in domains for g in matched[d]["groups"])
     text = item.text
+    # FLAG, NEVER A DROP (iai-6): no filed industry word has an AI term near it, so the
+    # two may be about different things in a long post.
+    filed = [t for d in domains for t in
+             [*matched[d]["terms"], *(x for g in matched[d]["groups"].values() for x in g)]]
+    if filed and not ai_near_industry(text, filed, cfg):
+        flags.append("ai_far_from_industry")
 
     content_type, why = None, None
     for t in cfg.type_order:

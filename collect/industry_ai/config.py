@@ -51,6 +51,8 @@ TOP_KEYS = {
     "teach_patterns",
     "hiring_patterns",
     "promo_patterns",
+    # FLAGGED, NEVER DROPPED (iai-6, 2026-11-26 kept-post review): `FLAG_NAMES`.
+    "flag_patterns",
     "type_order",
     "type_patterns",
     "stage_patterns",
@@ -105,7 +107,22 @@ RUN_KEYS = {
     "low_engagement_max",
     "rotation",
     "unread_media_max_chars",
+    # iai-6 (2026-11-26 kept-post review): what matching ignores, and three flags' settings.
+    "match_strip",
+    "ai_near_industry_words",
+    "reply_min_own_words",
+    "heavy_poster_min_posts",
 }
+#: What `run.match_strip` may take out of a post before its terms are matched.
+MATCH_STRIP = ("links", "handles", "hashtags")
+#: THE FLAGS A KEPT POST CAN CARRY FROM THE iai-6 REVIEW, never drops (rule 8). Fixed
+#: here, not open in the contract, because each needs its words on the pages
+#: (web/src/industry-ai/posts.jsx FLAG_LABEL) and in the Info view first; a name the
+#: pages cannot say would reach a reader as a raw key (rule 9).
+#:   by pattern (`flag_patterns`):  github_tracking, market_chatter, for_sale
+#:   by a `run:` setting:           ai_far_from_industry, reply_fragment, heavy_poster
+PATTERN_FLAGS = ("github_tracking", "market_chatter", "for_sale")
+FLAG_NAMES = (*PATTERN_FLAGS, "ai_far_from_industry", "reply_fragment", "heavy_poster")
 #: The two rotation groups (`run.rotation.groups`), and how a scheduled run picks one.
 ROTATION_GROUPS = ("a", "b")
 ROTATION_BY = {"utc_day_parity"}
@@ -188,6 +205,8 @@ class Config:
     teach: tuple[re.Pattern, ...]
     hiring: tuple[re.Pattern, ...]
     promo: tuple[re.Pattern, ...]
+    #: flag -> (platforms it applies on, or None for all; its patterns). `PATTERN_FLAGS`.
+    flag_patterns: dict[str, tuple[tuple[str, ...] | None, tuple[re.Pattern, ...]]]
     type_order: tuple[str, ...]
     type_patterns: dict[str, tuple[re.Pattern, ...]]
     stage_patterns: dict[str, tuple[re.Pattern, ...]]
@@ -529,8 +548,12 @@ def parse(raw: dict) -> Config:
     for k in sorted(PAGE_KEYS):
         _whole(_need(pages, k, "run.pages_per_query"), f"run.pages_per_query.{k}")
     for key in ("window_days", "min_text_chars", "context_window_words", "x_clubbed_min_keywords",
-                "unread_media_max_chars"):
+                "unread_media_max_chars", "ai_near_industry_words", "reply_min_own_words",
+                "heavy_poster_min_posts"):
         _whole(run[key], f"run.{key}")
+    strip = _strings(run["match_strip"], "run.match_strip")
+    if bad := [s for s in strip if s not in MATCH_STRIP]:
+        raise IndustryAIConfigError(f"run.match_strip: {bad} not one of {list(MATCH_STRIP)}")
     _whole(run["low_engagement_max"], "run.low_engagement_max", positive=False)
 
     suffix = raw.get("query_suffix") or {}
@@ -603,6 +626,7 @@ def parse(raw: dict) -> Config:
         teach=_patterns(_need(raw, "teach_patterns", "top level"), "teach_patterns"),
         hiring=_patterns(_need(raw, "hiring_patterns", "top level"), "hiring_patterns"),
         promo=_patterns(_need(raw, "promo_patterns", "top level"), "promo_patterns"),
+        flag_patterns=_flag_patterns(_need(raw, "flag_patterns", "top level")),
         type_order=type_order,
         type_patterns={t: _patterns(tp[t], f"type_patterns.{t}") for t in CONTENT_TYPES},
         # The contract's own order: the first stage whose pattern matches wins.
@@ -611,6 +635,32 @@ def parse(raw: dict) -> Config:
         watch=_watch(_need(raw, "watch", "top level"), suffix),
         retention=_retention(_need(raw, "retention", "top level"), domains),
     )
+
+
+def _flag_patterns(raw: Any) -> dict[str, tuple[tuple[str, ...] | None, tuple[re.Pattern, ...]]]:
+    """`flag_patterns` (iai-6): EXACTLY the `PATTERN_FLAGS`, each with `platforms` (a list
+    of `PLATFORMS`, or `all`) and `patterns`. A missing flag is refused rather than read
+    as "never flags" (rule 12), and an unknown one rather than ignored."""
+    where = "flag_patterns"
+    if not isinstance(raw, dict) or set(raw) != set(PATTERN_FLAGS):
+        raise IndustryAIConfigError(f"{where} must name exactly {list(PATTERN_FLAGS)}")
+    out = {}
+    for name in PATTERN_FLAGS:
+        block = raw[name]
+        fwhere = f"{where}.{name}"
+        _known(block, {"platforms", "patterns"}, fwhere)
+        plats = _need(block, "platforms", fwhere)
+        if plats == "all":
+            plats = None
+        else:
+            plats = _strings(plats, f"{fwhere}.platforms", allow_empty=False)
+            if bad := [p for p in plats if p not in (*PLATFORMS, "instagram")]:
+                raise IndustryAIConfigError(f"{fwhere}.platforms: unknown {bad}")
+        pats = _patterns(_need(block, "patterns", fwhere), f"{fwhere}.patterns")
+        if not pats:
+            raise IndustryAIConfigError(f"{fwhere}.patterns must not be empty")
+        out[name] = (plats, pats)
+    return out
 
 
 def _rotation(raw: Any, domains: dict[str, Domain]) -> None:

@@ -24,10 +24,12 @@ from collect.industry_ai.rules import (
     UNREAD_STAGE,
     Item,
     canonical_url,
+    copy_text,
     cross_post_text,
     filter_reason,
     is_article_link,
     is_watch_only,
+    is_watched,
     label,
     normalized_text,
     outside_window,
@@ -65,11 +67,12 @@ def _order(item: Item):
 
 def _dedupe(items: list[Item], results: dict[str, Result],
             persons: dict[str, str] | None = None, *, cross_post_hours: int) -> None:
-    """Stage 4 over the items the sieve kept. Four passes, each over what the
+    """Stage 4 over the items the sieve kept. Five passes, each over what the
     previous left canonical: a shared article link, an author repeating
-    themselves, one PERSON posting the same text on two platforms (`persons`:
-    item id -> person, from `watch.people`; within `cross_post_hours`, the
-    contract's `watch.cross_post_hours`, required), and near-duplicate text."""
+    themselves, other accounts posting the same text on one platform (iai-6), the
+    same text on two platforms - by a mapped person (`persons`: item id -> person,
+    from `watch.people`) or by anyone (iai-6), within `cross_post_hours`, the
+    contract's `watch.cross_post_hours`, required - and near-duplicate text."""
     persons = persons or {}
     live = sorted(items, key=_order)
 
@@ -106,21 +109,36 @@ def _dedupe(items: list[Item], results: dict[str, Result],
             )
     fold(by_author, "repeat_post", flag="repeat_author")
 
-    # 3. ONE PERSON, THE SAME TEXT, TWO PLATFORMS (watch.people, 2026-11-20): a
-    #    cross-post is one item and the copy a share. Pass 2 cannot see it - the
-    #    two handles are two `author_id`s - and on 2026-11-20 pass 4 caught 1 of 3.
-    #    Mentions and tags are left out of the comparison, being spelt per platform.
-    #    NARROWER THAN "SAME PERSON, SAME TEXT" (#653 review): the copy must be on
-    #    ANOTHER platform, within `cross_post_hours` of the earlier post, and - when
-    #    both carry an article link - share it. Undated posts are never folded (rule
-    #    6). So a template intro reused days later for another paper stays two posts,
-    #    and a same-platform repeat is left to pass 2.
+    # 2b. OTHER ACCOUNTS POSTING THE SAME TEXT ON ONE PLATFORM (iai-6, the 2026-11-26
+    #     kept-post review): 25 texts were kept 2-3 times that day. Pass 2 compares one
+    #     account at a time, and pass 4 gives no signature below 200 tokens - nearly
+    #     every X and Bluesky post. Compared with links and @handles out (`copy_text`):
+    #     each copy carries its own t.co link. One post plus shares; a copy whose text
+    #     differs further on (a template opening) is NOT folded - only identical text.
+    by_text: dict[tuple, list[Item]] = {}
+    for it in live:
+        key = copy_text(it.text) if results[it.id].verdict == "kept" else None
+        if key:
+            by_text.setdefault((it.platform, key), []).append(it)
+    fold(by_text, "copied_post")
+
+    # 3. THE SAME TEXT ON TWO PLATFORMS: a cross-post is one item and the copy a share.
+    #    Pass 2 cannot see it - the two handles are two `author_id`s - and on 2026-11-20
+    #    pass 4 caught 1 of 3. Mentions and tags are left out of the comparison, being
+    #    spelt per platform. NARROWER THAN "SAME TEXT" (#653 review): the copy must be on
+    #    ANOTHER platform, within `cross_post_hours` of the earlier post, and - when both
+    #    carry an article link - share it. Undated posts are never folded (rule 6). So a
+    #    template intro reused days later for another paper stays two posts, and a
+    #    same-platform repeat is left to passes 2 and 2b.
+    #    FOR EVERYONE SINCE iai-6 (2026-11-26, the team's finding): it read only people
+    #    in `watch.people`, so a keyword-found cross-post by anyone else was kept twice.
+    #    A mapped person's posts are still grouped by the person; anyone else's by the
+    #    text alone (key person None).
     by_person: dict[tuple, list[Item]] = {}
     for it in live:
-        person = persons.get(it.id)
-        key = cross_post_text(it.text) if person else None
+        key = cross_post_text(it.text)
         if results[it.id].verdict == "kept" and key and it.created_at is not None:
-            by_person.setdefault((person, key), []).append(it)
+            by_person.setdefault((persons.get(it.id), key), []).append(it)
     window = timedelta(hours=cross_post_hours)
     copies: dict[tuple, list[Item]] = {}
     for key, members in by_person.items():
@@ -230,6 +248,21 @@ def evaluate(
         r.domains, r.groups, r.content_type = v.domains, v.groups, v.content_type
         r.matched_pattern, r.stage_guess = v.matched_pattern, v.stage_guess
         r.flags = sorted(set(r.flags) | set(v.flags))
+
+    # HEAVY POSTERS (iai-6, the 2026-11-26 kept-post review): every kept post of an
+    # account with at least `run.heavy_poster_min_posts` kept posts here. A flag, never
+    # a drop: a news or company account is prolific without promoting, so the review
+    # counts how many flagged accounts are promotions first (rule 8). A post a watch
+    # list found is neither counted nor flagged: those accounts were chosen.
+    floor = int(cfg.run["heavy_poster_min_posts"])
+    by_account: dict[tuple, list[str]] = {}
+    for it in passed:
+        if results[it.id].verdict == "kept" and it.author_id and not is_watched(it):
+            by_account.setdefault((it.platform, it.author_id), []).append(it.id)
+    for ids in by_account.values():
+        if len(ids) >= floor:
+            for i in ids:
+                results[i].flags = sorted(set(results[i].flags) | {"heavy_poster"})
 
     return results, counts(items, results)
 

@@ -35,7 +35,11 @@ version: 1
 # iai-4: keywords toward 50 per umbrella, 363 added (2026-11-25; 18 removed in review).
 # iai-5: a post with a picture or a video and too few words to judge is "not
 #        readable" (stage `unread`), not dropped as "no AI term" / "too short".
-pipeline_version: iai-5
+# iai-6: the kept-post review (2026-11-26, agreed with the team): links and @handles
+#        out before matching; six flags (never drops); use-case patterns must name AI;
+#        supply chain's software senses out; copies from other accounts and every
+#        cross-post folded.
+pipeline_version: iai-6
 # WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
 # read by the AI in industries Info view so "Rules version iai-4" means something
 # on the page. Add a line whenever `pipeline_version` is bumped.
@@ -45,6 +49,7 @@ versions:
   iai-3: "2026-11-24: accuracy fixes from the first run - 90-day window, audit and reverse engineering narrowed, filters narrowed, a use case must name an AI tool (#662)"
   iai-4: "2026-11-25: keywords toward 50 per umbrella, 363 added (#664)"
   iai-5: "2026-11-25: a picture or video post with too few words to judge is counted as not readable, not filtered out"
+  iai-6: "2026-11-26: words inside links and @handles no longer count; six new flags (GitHub to-do list, AI far from the industry word, market chatter, short X reply, heavy poster, for sale); a use case must name AI in the same sentence; software senses of supply chain left out; the same text from another account, or cross-posted by anyone, counted once"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -131,6 +136,38 @@ run:
   context_window_words: 12
   # Engagement at or below this is flagged `low_engagement` (a flag, never a drop).
   low_engagement_max: 0
+  # WHAT IS TAKEN OUT OF A POST BEFORE ITS AI AND INDUSTRY WORDS ARE MATCHED
+  # (iai-6, the 2026-11-26 kept-post review, agreed with the team). Any of `links`,
+  # `handles`, `hashtags`. A word inside a link ("…/ai-for-retail") or an @handle
+  # (@itsdazzleai) is not the author writing about it. HASHTAGS STAY: a hashtag is the
+  # author's own topic label. Measured 2026-11-26, read-only, with the lane's own
+  # matching over the 11,549 kept posts (iai-5 labels): taking links out loses 32
+  # posts their AI word and 20 keyword posts their industry word; @handles, 11 and 3.
+  # Those posts are dropped as "no AI term" / "no industry term" on the next relabel.
+  match_strip: [links, handles]
+  # FLAG `ai_far_from_industry` (iai-6): a kept post none of whose filed industry words
+  # has an AI term within this many words. A flag, never a drop (rule 8); counted
+  # before it can become one. READ ON 2026-11-26 (read-only, the 9,019 kept keyword
+  # posts whose filed industry word could be found again; nearest AI term to nearest
+  # industry word): flagged at 20 words 2,188, at 40 1,060, at 60 708, at 80 487, at
+  # 120 273. Six read at random per band: 41-60 words, about half were on topic (an
+  # ecommerce AI agent, a lead-magnet workflow); 61-120, one of six; over 120, one of
+  # six. So 60, not the 40 first proposed. Six a band is a look, not a measured error
+  # rate.
+  ai_near_industry_words: 60
+  # FLAG `reply_fragment` (iai-6): an X reply (its text starts with an @handle) with
+  # fewer than this many words of its own once @handles and links are out. Its context
+  # is the post it answers, which the provider's data may carry, so it can be read
+  # later rather than dropped. A flag only.
+  reply_min_own_words: 15
+  # FLAG `heavy_poster` (iai-6): every kept post of an account with at least this many
+  # kept posts in the collection. On 2026-11-26, 24 accounts had 10 or more, holding
+  # 621 of the 9,908 kept keyword posts; the top ones were promotions (one X account
+  # 137, an ad-copy offer 51, domains and datasets for sale), but a news or company
+  # account can be prolific without promoting. So a flag: the review counts how many
+  # flagged accounts are promotions before it could ever be a drop. A post a watch
+  # list found is never flagged - those accounts were chosen.
+  heavy_poster_min_posts: 10
 
 # Appended to every query on these platforms, where the platform supports it.
 # The X suffix is X's own syntax and is UNTESTED on our route (twitter241, a
@@ -566,6 +603,54 @@ promo_patterns:
   - '\bpromo code\b'
   - '\bdiscount code\b'
 
+# FLAGGED, NEVER DROPPED (iai-6, the 2026-11-26 kept-post review, agreed with the
+# team). A kept post matching any pattern of a flag carries that flag, on the platforms
+# listed (`all`: every platform). Rule 8: none of these is measured, so none drops;
+# each is counted and its hits hand-checked before it could become a drop. The page
+# shows each flag on the post, filters by it, and the Info view lists these patterns.
+# The flag names are fixed in code (collect/industry_ai/config.py FLAG_NAMES), so a
+# new one needs its words on the pages first. Run settings for the other three flags
+# (ai_far_from_industry, reply_fragment, heavy_poster) are under `run:`.
+flag_patterns:
+  # A GitHub issue used as a project's own to-do list: about 600 of the 756 kept
+  # GitHub posts on 2026-11-26 (271 matched these markers). The markers, not
+  # "industry word in the title", which would also drop a real report whose title
+  # does not name the industry (team review).
+  github_tracking:
+    platforms: [github]
+    patterns:
+    # `(?m)`: `^` at the start of any line, so a checklist anywhere in the body counts.
+    - '(?m)^\s*[-*] \[[ xX]\]'
+    - '\[(bug|feature|epic|chore|task)\]'
+    - '(?m)^(bug|feature|epic|chore|task):'
+    # Capitals only, as trackers write it: "an epic fail" is not a to-do list.
+    - '(?-i:\bEPIC\b)'
+    - '(?-i:\bP[0-3]\b)'
+    - '\bacceptance criteria\b'
+    - '\bdefinition of done\b'
+    - '\bbacklog\b'
+  # Market talk about listed AI companies, filed under an industry by a word like
+  # "accounting" or "valuation": ~181 kept posts carried two or more $TICKERs on
+  # 2026-11-26. A post comparing two listed companies' PRODUCTS also matches, so this
+  # stays a flag; funding news for an AI start-up is not matched and stays as it is.
+  # The tickers are case-SENSITIVE (`(?-i:...)`): "$5k" or "$tool" is not a ticker.
+  market_chatter:
+    platforms: all
+    patterns:
+    - '(?-i:\$[A-Z]{1,5}\b)(?s:.*?)(?-i:\$[A-Z]{1,5}\b)'
+    - '\b(stock|shares?) (price )?(rose|fell|jumped|dropped|surged|plunged|soared|tanked|rallied)\b'
+    - '\b(market cap|price target|earnings call|short interest)\b'
+  # Domains, brands or datasets offered for sale: three of the five heaviest posters on
+  # 2026-11-26. Read that day: 11 of 12 random hits were domain sales; the 12th was a
+  # news line ("your secrets are now for sale"), so a bare "is for sale" needs a
+  # domain, brand or name before it.
+  for_sale:
+    platforms: all
+    patterns:
+    - '\bdomain( name)?s? (is |are )?(for sale|available)\b'
+    - '\b(domain|brand(ing)?|name)\b.{0,80}\b(is|are) (now )?for sale\b'
+    - '\bdatasets?\b.{0,80}\b(available at scale|for sale|for purchase|licen[cs]e (them|it|our))\b'
+
 # CONTENT TYPE: the first type in `type_order` with a matching pattern wins.
 # An item that matches none is `discussion`.
 # A PATTERN WITH A NAMED GROUP `ai` counts only when the words that group caught
@@ -580,20 +665,30 @@ type_patterns:
     # team ... uses" the `ai` group reads to the end of the sentence (#662 review). The
     # "I used ... to/for" shapes keep a four-word bound: that bound is what keeps "I
     # use it for my notes" out.
+    #
+    # EVERY PATTERN NOW NAMES AI (iai-6, the 2026-11-26 kept-post review). Six had no
+    # `ai` group, and they set 200 of the 254 kept keyword posts' use-case labels: "in
+    # production" 78, "since <month>" 55, "pilot" 33, "case study" 27, "automated
+    # our/the" 4, "cut ... by N" 3. About 10 of the 15 read were not uses ("$120K
+    # revenue since February", a contributor sign-up). They now carry a `sentence`
+    # group: the match counts only when the SENTENCE around it (back and on to the
+    # nearest . ! ? or line break, at most 120 characters each way: rules.sentence_of)
+    # names an AI term. A post that no longer matches is typed by the next type in
+    # `type_order`; the label changes, the post stays.
     - '\bwe (deployed|rolled out|implemented|integrated|launched|use|are using|started using|switched to) (?P<ai>[^.!?\n]{1,120})'
     # Not "production code/ready/grade/line...": of 5 posts read that this typed a
     # use case, one was about turning designs into code for production and one a small
     # shop's own production; none described AI going into production.
-    - '\b(in|into) production\b(?![- ](code|ready|grade|quality|line|company|house|studio))'
-    - '\b(a|our|the|in) pilot\b|\bpilot (program|programme|project|study|scheme|phase)s?\b|\bpiloted\b|\bpiloting (a|an|the|our)\b'
+    - '(?P<sentence>\b(in|into) production\b(?![- ](code|ready|grade|quality|line|company|house|studio)))'
+    - '(?P<sentence>(\b(a|our|the|in) pilot\b|\bpilot (program|programme|project|study|scheme|phase)s?\b|\bpiloted\b|\bpiloting (a|an|the|our)\b))'
     - '\bour (team|firm|practice|clinic|hospital|hotel|bank|company|department|agency) (uses|is using|started using|has been using|now uses) (?P<ai>[^.!?\n]{1,120})'
     # Up to four words before "to/for": "I used <tool> <two more words> for" fits.
     - '\bI (used|use|tried|have been using|started using) (?P<ai>(\S+ ){0,3}\S+) (to|for)\b'
     - '\bI(’|'')ve been using (?P<ai>(\S+ ){0,3}\S+) (to|for)\b'
-    - '\bsince (january|february|march|april|may|june|july|august|september|october|november|december)\b'
-    - '\bautomated (our|the)\b'
-    - '\b(cut|reduced|saved|lowered) (\w+ ){0,3}by \d'
-    - '\bcase study\b'
+    - '(?P<sentence>\bsince (january|february|march|april|may|june|july|august|september|october|november|december)\b)'
+    - '(?P<sentence>\bautomated (our|the)\b)'
+    - '(?P<sentence>\b(cut|reduced|saved|lowered) (\w+ ){0,3}by \d)'
+    - '(?P<sentence>\bcase study\b)'
   how_to:
     - '\b\d+ (helpful |useful |best |great )?(prompts|tips|ways|tricks)\b'
     - '\bhow to\b'
@@ -1086,6 +1181,11 @@ watch:
   # folds in a 7-day watch harvest were read by eye and all 3 were true cross-posts,
   # 0 to 4 minutes apart. 6 hours is wide of that and far from a template intro reused
   # days later for a different link; a wrong fold hides a post, a missed one adds one.
+  # FOR EVERY AUTHOR SINCE iai-6 (the 2026-11-26 kept-post review): pass 3 compared only
+  # people in `people` below, so a keyword-found post cross-posted to X and Bluesky by
+  # anyone else was kept twice (10 of the 73 repeated texts that day). It now also folds
+  # same-text posts on different platforms by anyone, with the same window and link
+  # conditions; a person's two handles are still matched through `people`.
   cross_post_hours: 6
 
 # ── THE DOMAINS: our 20 persona umbrellas (anooj, 2026-11-20) ─────────────────
@@ -1940,7 +2040,20 @@ domains:
     - tariff impact
     - customs classification
     ambiguous_terms: {}
-    exclude_phrases: []
+    # SOFTWARE SENSES (iai-6, the 2026-11-26 kept-post review): ~197 kept posts were
+    # filed here by "supply chain" or "root-cause analysis" in their software sense -
+    # package attacks, dependency risk, debugging an outage. Both are removed before
+    # matching when the software sense is plain: a software supply chain, and a
+    # root-cause analysis with a software word in the SAME sentence. "Incident response"
+    # stays where it is, in Security & IT, its right home.
+    # NOT `ambiguous_terms`: that check compares ONE word at a time
+    # (rules._found), so a phrase there never matches at all (found 2026-11-26; six
+    # phrases elsewhere in this file have that problem and are reported, not changed).
+    exclude_phrases:
+    - \b(software|open[- ]source|npm|pypi|dependency|dependencies|package|packages|code|cyber|digital)[- ]supply[- ]chains?\b
+    - \bsupply[- ]chain (attacks?|compromises?|poisoning|security|vulnerabilit(y|ies))\b
+    - \b(outages?|incidents?|logs?|alerts?|alerting|tickets?|telemetry|observability|on-?call|SRE|devops|kubernetes|k8s|APM|ITIL|microservices?|stack ?traces?|bugs?|codebase|deploys?|deployments?)\b[^.!?\n]{0,120}\broot[- ]cause[- ]analysis\b
+    - \broot[- ]cause[- ]analysis\b[^.!?\n]{0,120}\b(outages?|incidents?|logs?|alerts?|alerting|tickets?|telemetry|observability|on-?call|SRE|devops|kubernetes|k8s|APM|ITIL|microservices?|stack ?traces?|bugs?|codebase|deploys?|deployments?)\b
     queries:
       reddit:
         subreddits:

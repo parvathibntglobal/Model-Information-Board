@@ -28,6 +28,8 @@ export const REASON_LABEL = {
   outside_watch_window: 'Watched post older than the watch window (from first sight)',
   shared_link: 'Same article shared elsewhere',
   repeat_post: 'Same author, same post again', near_duplicate: 'Near-duplicate text',
+  // iai-6 (2026-11-26): another account's identical text, and a cross-post by anyone.
+  copied_post: 'Same text from another account', cross_post: 'Cross-posted on another platform',
   too_short: 'Too short', bot: 'Bot account', non_english: 'Not English', spam: 'Spam or scam',
   promo: 'Sponsored or affiliate', hiring: 'Hiring or job ad', signup_ad: 'Sign-up ad',
 }
