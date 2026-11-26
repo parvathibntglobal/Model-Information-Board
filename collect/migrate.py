@@ -457,8 +457,11 @@ def migrate(conn, directory: Path | None = None) -> list[str]:
 
         try:
             with conn.transaction():
-                # LOCAL: ends with this transaction, so nothing else on the
-                # connection inherits it. See LOCK_TIMEOUT.
+                # LOCAL: it lasts until the OUTERMOST transaction ends. Under `db
+                # migrate` this block is a savepoint inside the CLI's run, so the
+                # limit holds for the rest of the run, not only this migration -
+                # harmless, since every migration sets the same value (#678 review).
+                # Nothing after the run inherits it. See LOCK_TIMEOUT.
                 conn.execute(f"SET LOCAL lock_timeout = '{LOCK_TIMEOUT}'")
                 conn.execute(migration.sql)
                 conn.execute(

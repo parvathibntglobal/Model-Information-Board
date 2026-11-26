@@ -33,6 +33,7 @@ from collect.industry_ai.rules import (
     is_watched,
     label,
     match_text,
+    media_text_changed_filing,
     needed_media_text,
     normalized_text,
     outside_window,
@@ -79,11 +80,11 @@ def _dedupe(items: list[Item], results: dict[str, Result],
     persons = persons or {}
     live = sorted(items, key=_order)
 
-    def fold(groups: dict, reason: str, flag: str | None = None) -> None:
+    def fold(groups: dict, reason: str, flag: str | None = None, order=_order) -> None:
         for members in groups.values():
             if len(members) < 2:
                 continue
-            head, *rest = sorted(members, key=_order)
+            head, *rest = sorted(members, key=order)
             for m in rest:
                 r = results[m.id]
                 r.verdict, r.stage, r.reason, r.canonical_of = "dropped", "dedupe", reason, head.id
@@ -123,7 +124,11 @@ def _dedupe(items: list[Item], results: dict[str, Result],
         key = copy_text(it.text) if results[it.id].verdict == "kept" else None
         if key:
             by_text.setdefault((it.platform, key), []).append(it)
-    fold(by_text, "copied_post")
+    # A WATCHED POST WINS THE FOLD (#685 review, point 3): the copy kept is one a watch
+    # list found, when there is one, so an observer's own post stays on AI Watch rather
+    # than becoming a keyword copy's share - the way `heavy_poster` leaves watched posts
+    # alone. Otherwise the earliest, as everywhere else.
+    fold(by_text, "copied_post", order=lambda it: (not is_watched(it), *_order(it)))
 
     # 3. THE SAME TEXT ON TWO PLATFORMS: a cross-post is one item and the copy a share.
     #    Pass 2 cannot see it - the two handles are two `author_id`s - and on 2026-11-20
@@ -256,6 +261,11 @@ def evaluate(
         r.domains, r.groups, r.content_type = v.domains, v.groups, v.content_type
         r.matched_pattern, r.stage_guess = v.matched_pattern, v.stage_guess
         r.flags = sorted(set(r.flags) | set(v.flags))
+        if media_text_changed_filing(it, matched[it.id], cfg):
+            # FILED ELSEWHERE on the text that came with its media (#680 review): the
+            # same flag as "let through", so one count covers every post whose outcome
+            # the media text changed (rule 8: counted before anyone relies on it).
+            r.flags = sorted(set(r.flags) | {MEDIA_TEXT_FLAG})
         # A LONG POST KEPT ON A WEAK AI WORD ALONE (iai-7, Parvathi 2026-11-26): a flag,
         # never a drop until its hits are hand-checked (rule 8).
         if (r.ai_terms and set(r.ai_terms) <= weak_ai

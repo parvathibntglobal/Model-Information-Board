@@ -149,6 +149,21 @@ def test_ai_far_from_the_industry_word_is_flagged(cfg):
     assert "ai_far_from_industry" not in run(cfg, near)[near.id].flags
 
 
+def test_an_ai_term_only_in_the_quoted_post_is_not_far(cfg):
+    """#685 review, point 1: the sieve reads the media text (#680), the distance check
+    reads the author's words. With no AI term of the author's own, the distance was not
+    measured, so no `ai_far_from_industry` - the post is flagged as matched on its
+    media text instead."""
+    it = item("Month-end close is a mess again for our accounting team this quarter.",
+              platform="x")
+    it.media_text = "ChatGPT drafts every reconciliation note now."
+    it.media_text_from = ("quoted_post",)
+    r = run(cfg, it)[it.id]
+    assert r.verdict == "kept", r.reason
+    assert "ai_far_from_industry" not in r.flags
+    assert "terms_from_media_text" in r.flags
+
+
 def test_a_heavy_poster_is_flagged_and_a_watched_account_never(cfg):
     floor = int(cfg.run["heavy_poster_min_posts"])
     # Different WORDS per post: duplicate checks ignore digits, so "case 1" and "case 2"
@@ -255,6 +270,17 @@ def test_the_same_text_from_another_account_is_one_post(cfg):
     r = run(cfg, a, b)
     assert r["x:1"].verdict == "kept" and r["x:1"].share_count == 1
     assert (r["x:2"].reason, r["x:2"].canonical_of) == ("copied_post", "x:1")
+
+
+def test_a_watched_post_wins_the_fold_over_an_earlier_keyword_copy(cfg):
+    """#685 review, point 3: the copy kept is the one a watch list found, so the
+    observer's own post stays on AI Watch; otherwise the earliest."""
+    kw = item(TEXT, platform="x", author="1", iid="x:7", hours=20)
+    watched = item(TEXT, platform="x", author="2", iid="x:8", hours=10,
+                   keys=["watch:x:from:someone"])
+    r = run(cfg, kw, watched)
+    assert r["x:8"].verdict == "kept"
+    assert (r["x:7"].reason, r["x:7"].canonical_of) == ("copied_post", "x:8")
 
 
 def test_a_text_that_only_starts_the_same_is_two_posts(cfg):

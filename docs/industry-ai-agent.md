@@ -295,9 +295,10 @@ items too.
   analysis" with a software word (outage, incident, logs, observability, SRE…) in the
   same sentence.
 - **A hyphen in a term matches a space too** (`term_pattern`), so a hyphenated term can
-  match an everyday phrase: "put-away" matched "AI must be put away", filing 55 kept
-  posts under Supply chain on 2026-11-26, none of them warehouse posts. Its spaced form
-  is now excluded unless a warehouse word follows in the sentence.
+  match an everyday phrase: "put-away" matched "AI must be put away". On 2026-11-26
+  (stored iai-4 labels, read-only), 55 kept posts had it among their matched Supply
+  chain terms, none of them warehouse posts; 54 of those 55 no longer match it now
+  that the spaced form is excluded unless a warehouse word follows in the sentence.
 - **What is matched (iai-7, 2026-11-26):** the title and body with `run.match_strip`
   taken out first: links and @handles. A word inside a link or a handle is not the
   author writing about it. **Hashtags stay**: they are the author's own topic label.
@@ -319,7 +320,9 @@ Five passes, each over what the previous pass left:
    the copies are dropped as `copied_post` and counted as its reach. Compared with
    links and @handles out (`rules.copy_text`), since each copy carries its own
    short link. Only **identical** text, 20 characters or more: a text that merely
-   starts the same (a template opening) stays two posts. On 2026-11-26, 25 texts
+   starts the same (a template opening) stays two posts. **A post a watch list found wins the fold**
+   (#685 review): the observer's own post stays on AI Watch rather than becoming a
+   keyword copy's share; otherwise the earliest is kept. On 2026-11-26, 25 texts
    were kept 2-3 times this way: pass 2 compares one account at a time, and pass 4
    gives no signature below 200 tokens, which is nearly every X and Bluesky post.
 3. **The same text, two platforms**: one is kept, the

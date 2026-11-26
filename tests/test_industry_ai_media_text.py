@@ -32,6 +32,7 @@ from collect.industry_ai.rules import (
     MEDIA_TEXT_FLAG,
     Item,
     judged_text,
+    media_text_changed_filing,
     needed_media_text,
     sieve,
     too_little_to_read,
@@ -262,3 +263,78 @@ def test_retention_clears_it_and_a_reharvest_does_not_bring_it_back(conn, cfg):
                        run_id="iai-mt")
     conn.commit()
     assert _stored(conn) == {"reddit:1": ("", ["alt_text"]), "reddit:2": (None, None)}
+
+
+# ── filed elsewhere, and what the page says (#680 review, 2026-11-26) ───────────
+
+HOSPITAL = ("I use ChatGPT to draft patient discharge summaries at our hospital every "
+            "shift now")
+BANK = ("Our bank uses it for loan underwriting and fraud detection on every credit card "
+        "application")
+
+
+def _filed(keys, hints=frozenset()):
+    return Item(id="reddit:f", platform="reddit", external_id="f",
+                url="https://www.reddit.com/f", title="", body=HOSPITAL,
+                created_at=NOW - timedelta(hours=12), author_id="t2_f",
+                engagement={"score": 50}, query_keys=set(keys), domain_hints=set(hints),
+                media_text=BANK, media_text_from=("quoted_post",))
+
+
+def test_a_watched_post_filed_under_a_domain_only_its_quote_names_is_flagged(cfg):
+    it = _filed({REDDIT_KEY})
+    why, matched, _ = sieve(it, cfg)
+    assert why is None and {"healthcare", "finance"} <= set(matched)
+    # Its own words pass, so the "let through" check cannot see it ...
+    assert not needed_media_text(it, cfg)
+    # ... but the quoted post files it under finance as well, and that is flagged.
+    assert media_text_changed_filing(it, matched, cfg)
+    results, _ = evaluate([it], cfg, since=NOW - timedelta(days=90), now=NOW)
+    r = results[it.id]
+    assert "finance" in r.domains and MEDIA_TEXT_FLAG in r.flags
+
+
+def test_a_keyword_post_whose_filing_does_not_change_is_not_flagged(cfg):
+    """A keyword post is filed under the domain its query was for, confirmed by its own
+    words; the quote's domain is only an `also_matches` note, so nothing moved."""
+    it = _filed({"iai:healthcare:reddit:discharge summaries"}, {"healthcare"})
+    _, matched, _ = sieve(it, cfg)
+    assert not media_text_changed_filing(it, matched, cfg)
+    results, _ = evaluate([it], cfg, since=NOW - timedelta(days=90), now=NOW)
+    assert results[it.id].domains == ["healthcare"]
+    assert MEDIA_TEXT_FLAG not in results[it.id].flags
+
+
+def test_no_media_text_changes_nothing(cfg):
+    it = post(WITH_AI)
+    assert not media_text_changed_filing(it, sieve(it, cfg)[1], cfg)
+
+
+def test_the_post_card_names_the_flag_and_every_kind():
+    """The page explains a flagged post in words (posts.jsx MatchedInMedia). Its copy of
+    the flag name and its labels must follow the rules' (judge never imports collect)."""
+    src = (CONTRACT.parent.parent / "web" / "src" / "industry-ai" / "posts.jsx").read_text(
+        encoding="utf-8")
+    assert f"export const MEDIA_TEXT_FLAG = '{MEDIA_TEXT_FLAG}'" in src
+    block = src[src.index("const MEDIA_TEXT_LABEL = {"):]
+    block = block[:block.index("}")]
+    assert tuple(re.findall(r"^\s*([a-z_]+):", block, re.M)) == media.MEDIA_TEXT_KINDS
+    assert "<MatchedInMedia it={it} />" in src
+
+
+def test_the_page_payload_carries_which_text_was_matched(conn):
+    from collect.industry_ai import store
+    from judge.industry_ai.view import ai_watch_posts
+
+    store.start_run(conn, "iai-mt", mode="harvest", domains=[], platforms=["reddit"],
+                    pipeline_version="test")
+    store.upsert_items(conn, [post("a", media_text="words", kinds=["quoted_post"], iid="1"),
+                              post("b", iid="2")], run_id="iai-mt")
+    kept = "verdict = 'kept', drop_stage = NULL, drop_reason = NULL"
+    conn.execute(f"UPDATE iai_item SET {kept}, flags = %s WHERE id = 'reddit:1'",
+                 ([MEDIA_TEXT_FLAG],))
+    conn.execute(f"UPDATE iai_item SET {kept}, flags = '{{}}' WHERE id = 'reddit:2'")
+    conn.commit()
+    got = {i["id"]: (i["flags"], i["media_text_from"])
+           for i in ai_watch_posts(conn, scope="kept")["items"]}
+    assert got == {"reddit:1": ([MEDIA_TEXT_FLAG], ["quoted_post"]), "reddit:2": ([], [])}

@@ -2173,7 +2173,7 @@ columns:
       reviewed: true
       state: read
       why: >-
-        Which kinds media_text holds (alt_text, quoted_post, crosspost_parent). Written by store.upsert_items, read back by store.load_items onto Item.media_text_from. No page reads it yet; it is what lets a count say which kind of text recovered a post (the step 1 PR's measurement, #679 step 4).
+        Which kinds media_text holds (alt_text, quoted_post, crosspost_parent). Written by store.upsert_items, read back by store.load_items onto Item.media_text_from. Read by judge/industry_ai/view.py _items into each post's `media_text_from`, which web/src/industry-ai/posts.jsx MatchedInMedia shows on a post flagged terms_from_media_text ("matched partly on words that are not the author's own: the post it quotes"; #680 review, 2026-11-26). Also what lets a count say which kind of text recovered a post (#679 step 4).
     matched_terms:
       reviewed: true
       state: read

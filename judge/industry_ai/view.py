@@ -629,7 +629,7 @@ def _items(conn, w: str, params: dict, *, sort: str, offset: int, limit: int,
         "engagement, link, canonical_url, share_count, content_type, matched_pattern, "
         f"stage_guess, flags, domains, groups, {terms}, "
         "ai_terms, query_keys, domain_hints, verdict, drop_stage, drop_reason, "
-        "first_seen_at, text_cleared_at, canonical_of "
+        "first_seen_at, text_cleared_at, canonical_of, media_text_from "
         f"FROM iai_item WHERE {w} ORDER BY {_ORDER[sort]} OFFSET %(off)s LIMIT %(lim)s",
         {**params, **({"d": key} if key else {}), "off": offset, "lim": limit},
     ).fetchall()
@@ -673,6 +673,11 @@ def _items(conn, w: str, params: dict, *, sort: str, offset: int, limit: int,
                 "first_seen_at": iso(r[26]),
                 "text_cleared_at": iso(r[27]),
                 "duplicate_of": r[28],
+                # WHICH TEXT THAT CAME WITH THE MEDIA was matched (#679 step 1): the
+                # post card says so on a post flagged `terms_from_media_text`, whose
+                # own words may show no AI term (#680 review, point 2). Read by
+                # web/src/industry-ai/posts.jsx `MatchedInMedia`. [] = none recorded.
+                "media_text_from": list(r[29] or []),
             }
         )
     return items
