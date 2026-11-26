@@ -98,10 +98,8 @@ jobs:
       ENVIRONMENT: staging
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      # The extractor's hosts: DeepInfra and OpenInference never. Why, with the
-      # measurements: the same two lines in scheduled-fetches.yml (2026-11-25).
-      EXTRACTOR_PROVIDER_SORT: throughput
-      EXTRACTOR_PROVIDER_IGNORE: DeepInfra,OpenInference
+      # The extractor's hosts: contract/scheduler.yaml `extractor_provider` only,
+      # since 2026-11-26 (#677 review). EXTRACTOR_PROVIDER_* are ignored, with a warning.
       RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
       X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
       REDDIT_PROVIDER: ${{ vars.REDDIT_PROVIDER }}
