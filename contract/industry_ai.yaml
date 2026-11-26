@@ -36,7 +36,7 @@ version: 1
 # iai-5: a post with a picture or a video and too few words to judge is "not
 #        readable" (stage `unread`), not dropped as "no AI term" / "too short".
 # iai-6: the kept-post review (2026-11-26, agreed with the team): links and @handles
-#        out before matching; six flags (never drops); use-case patterns must name AI;
+#        out before matching; seven flags (never drops); use-case patterns must name AI;
 #        supply chain's software senses out; copies from other accounts and every
 #        cross-post folded.
 pipeline_version: iai-6
@@ -49,7 +49,7 @@ versions:
   iai-3: "2026-11-24: accuracy fixes from the first run - 90-day window, audit and reverse engineering narrowed, filters narrowed, a use case must name an AI tool (#662)"
   iai-4: "2026-11-25: keywords toward 50 per umbrella, 363 added (#664)"
   iai-5: "2026-11-25: a picture or video post with too few words to judge is counted as not readable, not filtered out"
-  iai-6: "2026-11-26: words inside links and @handles no longer count; six new flags (GitHub to-do list, AI far from the industry word, market chatter, short X reply, heavy poster, for sale); a use case must name AI in the same sentence; software senses of supply chain left out; the same text from another account, or cross-posted by anyone, counted once"
+  iai-6: "2026-11-26: words inside links and @handles no longer count; seven new flags (GitHub to-do list, AI far from the industry word, market chatter, short X reply, heavy poster, for sale, long post on a weak AI word); \"put away\" in everyday English no longer files a post under Supply chain; a use case must name AI in the same sentence; software senses of supply chain left out; the same text from another account, or cross-posted by anyone, counted once"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -168,6 +168,14 @@ run:
   # flagged accounts are promotions before it could ever be a drop. A post a watch
   # list found is never flagged - those accounts were chosen.
   heavy_poster_min_posts: 10
+  # FLAG `weak_ai_long_post` (iai-6, Parvathi 2026-11-26): a kept post of at least
+  # `long_post_words` words (links and @handles out) whose ONLY AI terms are in
+  # `weak_ai_terms`. Why: of the 708 kept keyword posts whose AI and industry words are
+  # over 60 words apart, 578 were 200+ words long and 250 were kept on the bare word
+  # "ai" alone - a passing mention in a long thread. A flag first (rule 8); it can
+  # become a drop for long posts once its hits are hand-checked.
+  long_post_words: 200
+  weak_ai_terms: [ai]
 
 # Appended to every query on these platforms, where the platform supports it.
 # The X suffix is X's own syntax and is UNTESTED on our route (twitter241, a
@@ -2052,6 +2060,12 @@ domains:
     exclude_phrases:
     - \b(software|open[- ]source|npm|pypi|dependency|dependencies|package|packages|code|cyber|digital)[- ]supply[- ]chains?\b
     - \bsupply[- ]chain (attacks?|compromises?|poisoning|security|vulnerabilit(y|ies))\b
+    # "PUT-AWAY" IS A WAREHOUSE STEP; "PUT AWAY" IS ORDINARY ENGLISH. A term's hyphen
+    # matches a space too (rules.term_pattern), so the term matched "AI must be put away
+    # NOW": 21 kept posts were filed here by it on 2026-11-26. The spaced form is
+    # removed unless a warehouse word follows in the same sentence; the hyphenated one
+    # always counts.
+    - \bput away\b(?![^.!?\n]{0,80}\b(warehouse|inventory|pallets?|stock|SKUs?|receiving|bins?|shelf|shelves|locations?|goods)\b)
     - \b(outages?|incidents?|logs?|alerts?|alerting|tickets?|telemetry|observability|on-?call|SRE|devops|kubernetes|k8s|APM|ITIL|microservices?|stack ?traces?|bugs?|codebase|deploys?|deployments?)\b[^.!?\n]{0,120}\broot[- ]cause[- ]analysis\b
     - \broot[- ]cause[- ]analysis\b[^.!?\n]{0,120}\b(outages?|incidents?|logs?|alerts?|alerting|tickets?|telemetry|observability|on-?call|SRE|devops|kubernetes|k8s|APM|ITIL|microservices?|stack ?traces?|bugs?|codebase|deploys?|deployments?)\b
     queries:

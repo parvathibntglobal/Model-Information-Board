@@ -294,6 +294,10 @@ items too.
   supply chain ("npm supply chain", "supply chain attack") and a "root-cause
   analysis" with a software word (outage, incident, logs, observability, SRE…) in the
   same sentence.
+- **A hyphen in a term matches a space too** (`term_pattern`), so a hyphenated term can
+  match an everyday phrase: "put-away" matched "AI must be put away", filing 55 kept
+  posts under Supply chain on 2026-11-26, none of them warehouse posts. Its spaced form
+  is now excluded unless a warehouse word follows in the sentence.
 - **What is matched (iai-6, 2026-11-26):** the title and body with `run.match_strip`
   taken out first: links and @handles. A word inside a link or a handle is not the
   author writing about it. **Hashtags stay**: they are the author's own topic label.
@@ -366,6 +370,16 @@ the Info view ("Flags for review").
 | `reply_fragment` | `run.reply_min_own_words`, X only | a reply (text starts with an @handle) with too few words of its own; its context is the post it answers |
 | `ai_far_from_industry` | `run.ai_near_industry_words`, in `rules.label` | no filed industry word has an AI term that close |
 | `heavy_poster` | `run.heavy_poster_min_posts`, in `pipeline.evaluate` | every kept post of an account with that many kept posts; watched posts are never counted or flagged |
+| `weak_ai_long_post` | `run.long_post_words` and `run.weak_ai_terms`, in `pipeline.evaluate` | a post of that many words (links and @handles out) whose only AI terms are the weak ones (the bare "ai") |
+
+**Why the far-apart posts got in (measured 2026-11-26, the 708 kept keyword posts with
+the two words over 60 apart):** every search asks only for both words *somewhere* in
+the post (an X query ANDs its keyword group with `(AI OR ChatGPT OR Claude OR LLM)`;
+GitHub matches an issue's whole body), and the sieve asks the same. 578 of the 708 were
+200+ words long (X long posts 586, GitHub issues 98; Bluesky's 300-character posts
+none), 250 were kept on the bare word "ai" alone, and 620 were filed by a single
+industry word. `ai_far_from_industry` and `weak_ai_long_post` mark exactly that; each
+can become a drop for long posts once its hits are hand-checked (rule 8).
 
 ### 5. Label (`rules.label`)
 

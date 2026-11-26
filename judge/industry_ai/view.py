@@ -302,6 +302,8 @@ def industry_ai_info() -> dict[str, Any]:
             "ai_near_industry_words": run.get("ai_near_industry_words"),
             "reply_min_own_words": run.get("reply_min_own_words"),
             "heavy_poster_min_posts": run.get("heavy_poster_min_posts"),
+            "long_post_words": run.get("long_post_words"),
+            "weak_ai_terms": list(run.get("weak_ai_terms") or []),
         },
         # The flags set by a pattern (iai-6), each with the platforms it applies on
         # (None: all), for the Info view's patterns list.

@@ -169,6 +169,19 @@ def test_a_heavy_poster_is_flagged_and_a_watched_account_never(cfg):
     assert not any("heavy_poster" in r.flags for r in run(cfg, *watched).values())
 
 
+def test_a_long_post_kept_on_the_bare_word_ai_is_flagged(cfg):
+    words = int(cfg.run["long_post_words"])
+    body = "Our accounting team closed the books early this quarter. " + " ".join(
+        ["the", "cat", "sat", "on", "a", "mat"] * (words // 6 + 1))
+    weak = item(body + " Someone mentioned ai once.")
+    r = run(cfg, weak)[weak.id]
+    assert r.verdict == "kept" and "weak_ai_long_post" in r.flags
+    strong = item(body + " We use ChatGPT for the reminders.")
+    assert "weak_ai_long_post" not in run(cfg, strong)[strong.id].flags
+    short = item("Our accounting team uses ai for reminders every single week now.")
+    assert "weak_ai_long_post" not in run(cfg, short)[short.id].flags
+
+
 # ── use cases must name AI in the same sentence ──────────────────────────────
 
 
@@ -221,6 +234,15 @@ def test_root_cause_analysis_of_software_is_not_supply_chain(cfg):
     assert "supply_chain" in plant
 
 
+def test_put_away_in_ordinary_english_is_not_a_warehouse_step(cfg):
+    def sc(text):
+        return sieve(item(text, hints=("supply_chain",)), cfg)[1].get("supply_chain")
+
+    assert sc("AI must be put away now, before it ruins every classroom.") is None
+    assert sc("Our LLM plans the put-away route for every pallet.") is not None
+    assert sc("ChatGPT tells pickers where to put away stock in the warehouse.") is not None
+
+
 # ── duplicates: other accounts, and cross-posts by anyone ────────────────────
 
 
@@ -258,6 +280,8 @@ def test_a_cross_post_by_anyone_is_one_post(cfg):
     (lambda r: r["run"].pop("heavy_poster_min_posts"), "heavy_poster_min_posts"),
     (lambda r: r["run"].update(match_strip=["links", "emoji"]), "match_strip"),
     (lambda r: r["run"].update(reply_min_own_words=0), "reply_min_own_words"),
+    (lambda r: r["run"].update(weak_ai_terms=["not an ai term"]), "weak_ai_terms"),
+    (lambda r: r["run"].pop("long_post_words"), "long_post_words"),
     (lambda r: r["flag_patterns"].pop("for_sale"), "flag_patterns must name exactly"),
     (lambda r: r["flag_patterns"].update(mystery={"platforms": "all", "patterns": ["x"]}),
      "flag_patterns must name exactly"),

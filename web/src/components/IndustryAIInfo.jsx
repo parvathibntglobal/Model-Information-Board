@@ -301,6 +301,10 @@ function FilterWords({ info, isWatch }) {
             <span className="tnum">{run.heavy_poster_min_posts ?? '–'}</span> kept posts. Prolific is not the same as
             promotional, so this is counted, not dropped. Watched accounts are never flagged.</dd></div>
           <div><dt>{FLAG_LABEL.for_sale}</dt><dd>A domain, brand or dataset offered for sale.</dd></div>
+          <div><dt>{FLAG_LABEL.weak_ai_long_post}</dt><dd>A post of at least{' '}
+            <span className="tnum">{run.long_post_words ?? '–'}</span> words whose only AI word is{' '}
+            {(run.weak_ai_terms || []).map((t) => `“${t}”`).join(' or ') || '–'}: in a long thread that is often a
+            passing mention.</dd></div>
         </dl>
       </Collapse>
     </section>

@@ -112,6 +112,8 @@ RUN_KEYS = {
     "ai_near_industry_words",
     "reply_min_own_words",
     "heavy_poster_min_posts",
+    "long_post_words",
+    "weak_ai_terms",
 }
 #: What `run.match_strip` may take out of a post before its terms are matched.
 MATCH_STRIP = ("links", "handles", "hashtags")
@@ -120,9 +122,11 @@ MATCH_STRIP = ("links", "handles", "hashtags")
 #: (web/src/industry-ai/posts.jsx FLAG_LABEL) and in the Info view first; a name the
 #: pages cannot say would reach a reader as a raw key (rule 9).
 #:   by pattern (`flag_patterns`):  github_tracking, market_chatter, for_sale
-#:   by a `run:` setting:           ai_far_from_industry, reply_fragment, heavy_poster
+#:   by a `run:` setting:           ai_far_from_industry, reply_fragment, heavy_poster,
+#:                                  weak_ai_long_post
 PATTERN_FLAGS = ("github_tracking", "market_chatter", "for_sale")
-FLAG_NAMES = (*PATTERN_FLAGS, "ai_far_from_industry", "reply_fragment", "heavy_poster")
+FLAG_NAMES = (*PATTERN_FLAGS, "ai_far_from_industry", "reply_fragment", "heavy_poster",
+              "weak_ai_long_post")
 #: The two rotation groups (`run.rotation.groups`), and how a scheduled run picks one.
 ROTATION_GROUPS = ("a", "b")
 ROTATION_BY = {"utc_day_parity"}
@@ -549,8 +553,12 @@ def parse(raw: dict) -> Config:
         _whole(_need(pages, k, "run.pages_per_query"), f"run.pages_per_query.{k}")
     for key in ("window_days", "min_text_chars", "context_window_words", "x_clubbed_min_keywords",
                 "unread_media_max_chars", "ai_near_industry_words", "reply_min_own_words",
-                "heavy_poster_min_posts"):
+                "heavy_poster_min_posts", "long_post_words"):
         _whole(run[key], f"run.{key}")
+    weak = _strings(run["weak_ai_terms"], "run.weak_ai_terms", allow_empty=False)
+    known = set(_strings(_need(raw, "ai_terms", "top level"), "ai_terms"))
+    if bad := [t for t in weak if t not in known]:
+        raise IndustryAIConfigError(f"run.weak_ai_terms: {bad} are not in ai_terms")
     strip = _strings(run["match_strip"], "run.match_strip")
     if bad := [s for s in strip if s not in MATCH_STRIP]:
         raise IndustryAIConfigError(f"run.match_strip: {bad} not one of {list(MATCH_STRIP)}")

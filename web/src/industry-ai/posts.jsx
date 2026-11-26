@@ -30,6 +30,7 @@ export const FLAG_LABEL = {
   reply_fragment: 'Short X reply',
   heavy_poster: 'Heavy poster',
   for_sale: 'For sale',
+  weak_ai_long_post: 'Long post, weak AI word',
 }
 export function flagLabel(f) {
   if (f.startsWith('also_matches:')) return `also matches ${f.slice(13).replace(/_/g, ' ')}`

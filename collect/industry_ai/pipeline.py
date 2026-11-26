@@ -31,6 +31,7 @@ from collect.industry_ai.rules import (
     is_watch_only,
     is_watched,
     label,
+    match_text,
     normalized_text,
     outside_window,
     person_of,
@@ -232,6 +233,8 @@ def evaluate(
     _dedupe(passed, results, persons,
             cross_post_hours=int(cfg.watch["cross_post_hours"]))  # stage 4
 
+    weak_ai = set(cfg.run["weak_ai_terms"])
+    long_post = int(cfg.run["long_post_words"])
     for it in passed:  # stages 5-6
         r = results[it.id]
         if r.verdict != "kept":
@@ -248,6 +251,11 @@ def evaluate(
         r.domains, r.groups, r.content_type = v.domains, v.groups, v.content_type
         r.matched_pattern, r.stage_guess = v.matched_pattern, v.stage_guess
         r.flags = sorted(set(r.flags) | set(v.flags))
+        # A LONG POST KEPT ON A WEAK AI WORD ALONE (iai-6, Parvathi 2026-11-26): a flag,
+        # never a drop until its hits are hand-checked (rule 8).
+        if (r.ai_terms and set(r.ai_terms) <= weak_ai
+                and len(match_text(it.text, cfg).split()) >= long_post):
+            r.flags = sorted(set(r.flags) | {"weak_ai_long_post"})
 
     # HEAVY POSTERS (iai-6, the 2026-11-26 kept-post review): every kept post of an
     # account with at least `run.heavy_poster_min_posts` kept posts here. A flag, never
