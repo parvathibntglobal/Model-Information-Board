@@ -45,6 +45,13 @@ fields:
     routes:
     - /admin/stages
     state: no_consumer
+  agent_fetch:
+    # When the agents were last fetched (#669 review, 2026-11-25); read by
+    # web/src/routes/Assistants.jsx AgentFetchLine.
+    reviewed: true
+    routes:
+    - /assistants
+    state: consumed
   assistant:
     reviewed: false
     routes:

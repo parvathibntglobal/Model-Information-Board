@@ -236,6 +236,49 @@ def test_with_the_agent_run_switched_off_nothing_reads_as_searched(conn, client,
     assert client.get("/assistants/anthropic/claude-code").json()["state"] == "not_tracked"
 
 
+def test_the_page_says_when_the_agents_were_last_fetched(conn, client, monkeypatch):
+    """#669 review: the agent fetch runs only when started by hand, so the page
+    says when it last completed a search - from the same LAST_SUCCESS the cards'
+    states use - and says "never" and "off" in words, not as a date."""
+    from types import SimpleNamespace
+
+    assert client.get("/assistants").json()["agent_fetch"] == {"state": "never"}
+
+    # A run that could read nothing is not a fetch here either (LAST_SUCCESS).
+    _fetched(conn, "mv_code", threads_read=0, threads_unreadable_here=40)
+    assert client.get("/assistants").json()["agent_fetch"] == {"state": "never"}
+
+    _fetched(conn, "mv_code")
+    f = client.get("/assistants").json()["agent_fetch"]
+    assert f["state"] == "ran"
+    newest = conn.execute(
+        "SELECT max(at) FROM fetch_log WHERE kind = 'end' AND payload->>'threads_read' = '3'"
+    ).fetchone()[0]
+    assert f["last_at"] == newest.isoformat()
+    assert f["oldest_at"] == f["last_at"]
+    from judge.config import tracked_agents
+    assert (f["fetched"], f["tracked"]) == (1, len(tracked_agents()))
+
+    # #674 review: a run can cover some agents only, so the newest date is not
+    # every agent's date. Two agents fetched on different days: the newest and
+    # the oldest are both sent, over how many of the tracked have a fetch.
+    _fetched(conn, "mv_muse")
+    conn.execute("UPDATE fetch_log SET at = at - interval '5 days' "
+                 "WHERE model_version_id = 'mv_muse'")
+    conn.commit()
+    f = client.get("/assistants").json()["agent_fetch"]
+    assert f["last_at"] == newest.isoformat()
+    older = conn.execute(
+        "SELECT max(at) FROM fetch_log WHERE kind = 'end' AND model_version_id = 'mv_muse'"
+    ).fetchone()[0]
+    assert f["oldest_at"] == older.isoformat() != f["last_at"]
+    assert (f["fetched"], f["tracked"]) == (2, len(tracked_agents()))
+
+    monkeypatch.setattr(assistants_module, "agent_run_rule",
+                        lambda: SimpleNamespace(enabled=False))
+    assert client.get("/assistants").json()["agent_fetch"] == {"state": "off"}
+
+
 def test_a_member_missing_from_the_registry_is_counted_not_rendered(client):
     body = client.get("/assistants").json()
     ws = _group(body, "workspaces")
