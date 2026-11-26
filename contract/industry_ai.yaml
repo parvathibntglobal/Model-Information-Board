@@ -691,6 +691,10 @@ stage_patterns:
 # that step lands - this lane's raw pages are not kept (see above) - so the caption
 # kept here is what any re-judging has. Their text is short (under
 # `run.unread_media_max_chars`). Set this to true once those steps have landed.
+# REVISIT BY 2026-12-31 (#676 review): an unread row is in no domain, so
+# `kept_domains` never reaches it and `false` keeps its caption with no end date.
+# By then, either the media steps have landed and this is true, or a person
+# decides again, with the unread count, to keep it false.
 retention:
   clear_text_after_days: 30
   dropped: true
