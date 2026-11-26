@@ -2164,6 +2164,16 @@ columns:
       state: read
       why: >-
         What media the post carries (collect/industry_ai/media.py), written by store.upsert_items and read back by store.load_items, so a relabel applies rules.too_little_to_read as the run did (a picture or video with too few words is drop_stage 'unread'). Also read by judge/industry_ai/view.py ai_watch_view: the "not readable" count by media kind (2026-11-25).
+    media_text:
+      reviewed: true
+      state: read
+      why: >-
+        Words sent with the post that are not the author's own - alt text, a quoted post, a Reddit crosspost's original (collect/industry_ai/media.py, #679 step 1). Written by store.upsert_items, read back by store.load_items; read by rules.judged_text for the AI and industry term matching (rules.sieve) and rules.too_little_to_read. Cleared by store.clear_text with title and body. Not shown on any page.
+    media_text_from:
+      reviewed: true
+      state: read
+      why: >-
+        Which kinds media_text holds (alt_text, quoted_post, crosspost_parent). Written by store.upsert_items, read back by store.load_items onto Item.media_text_from. No page reads it yet; it is what lets a count say which kind of text recovered a post (the step 1 PR's measurement, #679 step 4).
     matched_terms:
       reviewed: true
       state: read

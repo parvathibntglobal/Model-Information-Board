@@ -35,7 +35,12 @@ version: 1
 # iai-4: keywords toward 50 per umbrella, 363 added (2026-11-25; 18 removed in review).
 # iai-5: a post with a picture or a video and too few words to judge is "not
 #        readable" (stage `unread`), not dropped as "no AI term" / "too short".
-pipeline_version: iai-5
+# iai-6: the text that comes WITH a post's media is matched too - Bluesky and X alt
+#        text, the post an X or Bluesky post quotes, a Reddit crosspost's original
+#        (#679 step 1; `iai_item.media_text`). Filters and type labels still read
+#        only the author's words; a post through on that text alone is flagged
+#        `terms_from_media_text`.
+pipeline_version: iai-6
 # WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
 # read by the AI in industries Info view so "Rules version iai-4" means something
 # on the page. Add a line whenever `pipeline_version` is bumped.
@@ -45,6 +50,7 @@ versions:
   iai-3: "2026-11-24: accuracy fixes from the first run - 90-day window, audit and reverse engineering narrowed, filters narrowed, a use case must name an AI tool (#662)"
   iai-4: "2026-11-25: keywords toward 50 per umbrella, 363 added (#664)"
   iai-5: "2026-11-25: a picture or video post with too few words to judge is counted as not readable, not filtered out"
+  iai-6: "2026-11-26: the text that comes with a post's media (alt text, a quoted post, a Reddit crosspost's original) is matched for AI and industry words too"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any

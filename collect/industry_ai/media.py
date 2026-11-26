@@ -132,6 +132,89 @@ def _bluesky_embed(embed: Any) -> str | None:
     return None
 
 
+# ── TEXT THAT COMES WITH THE MEDIA (#679 step 1, anooj, 2026-11-26) ──────────────
+#
+# Words the provider already sends beside a post that are NOT the author's own:
+#   alt_text          the description an author gave a picture (Bluesky, X)
+#   quoted_post       the text of the post this one quotes (X, Bluesky)
+#   crosspost_parent  a Reddit crosspost's original title and body
+# They reach the AI-term and industry-term matching and the "too little to read"
+# check (rules.judged_text), never the filters, the type label, the duplicate keys or
+# what a page shows - the post's own words stay its own.
+#
+# Measured 2026-11-26 on the 25 Nov observer dry-run pages, by field, no text read:
+#   Bluesky  alt text non-empty on 77 of 286 image entries; a quoted post's text on 67
+#            quotes, and on 9 quotes-with-media.
+#   X        `quoted_status_result` on 385 of 694 tweet entries; alt text on 1 of 259
+#            media items (#676).
+# Instagram's `accessibility_caption` is NOT read: it was null on all 112 non-video
+# posts, and when present it is Instagram's own machine description, not the author's.
+#
+# Each reader returns (text or None, sorted kinds). None means nothing was found,
+# which is not "the media says nothing" (rule 6) - it is only what this post carried.
+
+MEDIA_TEXT_KINDS = ("alt_text", "quoted_post", "crosspost_parent")
+
+
+def _joined(parts: list[tuple[str, Any]]) -> tuple[str | None, list[str]]:
+    kept = [(k, " ".join(t.split())) for k, t in parts if isinstance(t, str) and t.strip()]
+    if not kept:
+        return None, []
+    return "\n".join(t for _, t in kept), sorted({k for k, _ in kept})
+
+
+def _x_tweet(d: Any) -> dict:
+    d = d if isinstance(d, dict) else {}
+    inner = d.get("tweet")
+    return inner if isinstance(inner, dict) else d
+
+
+def _x_full_text(t: dict) -> str | None:
+    long = ((t.get("note_tweet") or {}).get("note_tweet_results") or {}).get("result") or {}
+    return long.get("text") or (t.get("legacy") or {}).get("full_text")
+
+
+def x_text(payload: str | dict | None) -> tuple[str | None, list[str]]:
+    try:
+        t = json.loads(payload) if isinstance(payload, str) else (payload or {})
+    except ValueError:
+        return None, []
+    t = _x_tweet(t)
+    legacy = t.get("legacy") if isinstance(t.get("legacy"), dict) else {}
+    media = (legacy.get("extended_entities") or {}).get("media") or []
+    parts: list[tuple[str, Any]] = [
+        ("alt_text", m.get("ext_alt_text")) for m in media if isinstance(m, dict)]
+    quoted = _x_tweet((t.get("quoted_status_result") or {}).get("result"))
+    if quoted:
+        parts.append(("quoted_post", _x_full_text(quoted)))
+    return _joined(parts)
+
+
+def bluesky_text(raw: dict) -> tuple[str | None, list[str]]:
+    embed = (raw or {}).get("embed") or {}
+    t = str(embed.get("$type") or "")
+    images = embed.get("images") or (embed.get("media") or {}).get("images") or []
+    parts: list[tuple[str, Any]] = [
+        ("alt_text", i.get("alt")) for i in images if isinstance(i, dict)]
+    if t.startswith("app.bsky.embed.recordWithMedia"):
+        rec = (embed.get("record") or {}).get("record") or {}
+    elif t.startswith("app.bsky.embed.record"):
+        rec = embed.get("record") or {}
+    else:
+        rec = {}
+    if isinstance(rec.get("value"), dict):
+        parts.append(("quoted_post", rec["value"].get("text")))
+    return _joined(parts)
+
+
+def reddit_text(raw: dict) -> tuple[str | None, list[str]]:
+    parents = (raw or {}).get("crosspost_parent_list") or []
+    if not parents or not isinstance(parents[0], dict):
+        return None, []
+    p = parents[0]
+    return _joined([("crosspost_parent", f"{p.get('title') or ''}\n{p.get('selftext') or ''}")])
+
+
 def hackernews(hit: dict) -> str | None:
     if hit.get("comment_text"):
         return "none"

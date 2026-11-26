@@ -2875,6 +2875,16 @@ CREATE TABLE IF NOT EXISTS iai_item (
   media_kind       text,
   CONSTRAINT iai_item_media_kind_ck
     CHECK (media_kind IS NULL OR media_kind IN ('none', 'image', 'gallery', 'video', 'link')),
+  -- Words the provider sent WITH the post that are not the author's own - alt text, a
+  -- quoted post, a Reddit crosspost's original - and which kinds they are
+  -- (collect/industry_ai/media.py; 20261126T0900_iai_item_media_text.sql, #679 step
+  -- 1). Matched for AI and industry terms, never shown as the author's words. NULL =
+  -- none found or not read; '' = cleared by retention with title and body.
+  media_text       text,
+  media_text_from  text[],
+  CONSTRAINT iai_item_media_text_from_ck
+    CHECK (media_text_from IS NULL
+           OR media_text_from <@ ARRAY['alt_text', 'quoted_post', 'crosspost_parent']::text[]),
   -- 'instagram' since 2026-11-25 (20261125T1200_iai_item_instagram.sql): the
   -- observer's Instagram arm.
   CONSTRAINT iai_item_platform_ck

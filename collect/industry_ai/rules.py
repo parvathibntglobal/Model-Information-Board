@@ -48,10 +48,33 @@ class Item:
     #: What media the post carries (collect/industry_ai/media.py MEDIA_KINDS), from
     #: the provider's own fields; None = not recorded, never "none" (rule 6).
     media_kind: str | None = None
+    #: Words the provider sent WITH the post that are not the author's own - alt
+    #: text, a quoted post, a crosspost's original (media.MEDIA_TEXT_KINDS, #679
+    #: step 1) - and which kinds they are. None / () = none found or not read.
+    media_text: str | None = None
+    media_text_from: tuple[str, ...] = ()
 
     @property
     def text(self) -> str:
+        """The AUTHOR'S words only: what the filters, the type label, the duplicate
+        keys and the pages use. See `judged_text` for what the term matching reads."""
         return f"{self.title}\n{self.body}".strip()
+
+
+def judged_text(item: Item) -> str:
+    """The author's words plus the text that came with the media (#679 step 1).
+
+    Read by the AI-term and industry-term matching (`sieve`) and by
+    `too_little_to_read`, and by nothing else: a spam or promo filter judges what
+    the author wrote, and two people quoting one viral post must not look like
+    copies of each other to the duplicate check."""
+    return f"{item.text}\n{item.media_text}".strip() if item.media_text else item.text
+
+
+#: On a kept post whose AI term, or every industry term it needed, was found only
+#: in the text that came with its media - so the page and the PR can count what
+#: `media_text` changed (rule 8).
+MEDIA_TEXT_FLAG = "terms_from_media_text"
 
 
 @dataclass
@@ -391,7 +414,9 @@ def too_little_to_read(item: Item, cfg: Config) -> bool:
 
     if item.media_kind not in VISUAL:
         return False
-    words = _MENTION_OR_TAG.sub(" ", strip_links(item.text))
+    # The words that came WITH the media count too (#679 step 1): a picture with an
+    # alt text, or a quote of a post, has something to read.
+    words = _MENTION_OR_TAG.sub(" ", strip_links(judged_text(item)))
     return len(" ".join(words.split())) < int(cfg.run["unread_media_max_chars"])
 
 
@@ -418,8 +443,11 @@ def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, dict], list[st
 
     A WATCHED item needs the AI term only (anooj, 2026-11-20): a post from a watched
     account or community that names no industry is general AI news or opinion, kept
-    as "General AI" by `label`, not dropped as `no_domain_term`."""
-    text = item.text
+    as "General AI" by `label`, not dropped as `no_domain_term`.
+
+    The terms are matched on `judged_text`: the post's own words and the text that
+    came with its media (#679 step 1). `needed_media_text` says whether that mattered."""
+    text = judged_text(item)
     ai = ai_terms_found(text, cfg)
     if not ai:
         return "no_ai_term", {}, []
@@ -427,6 +455,17 @@ def sieve(item: Item, cfg: Config) -> tuple[str | None, dict[str, dict], list[st
     if not matched and not is_watched(item):
         return "no_domain_term", {}, ai
     return None, matched, ai
+
+
+def needed_media_text(item: Item, cfg: Config) -> bool:
+    """True when `item` passes `sieve` only because of its `media_text`: on its own
+    words alone it would have been dropped. False when it has none."""
+    if not item.media_text:
+        return False
+    import dataclasses
+
+    own, _, _ = sieve(dataclasses.replace(item, media_text=None), cfg)
+    return own is not None
 
 
 def _english(item: Item) -> bool:
