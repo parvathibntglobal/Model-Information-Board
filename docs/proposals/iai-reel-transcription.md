@@ -1,9 +1,15 @@
 # Transcribing reels the Industry AI lane cannot read (#679 step 2)
 
-**Status: PROPOSED** by anooj on 2026-11-26, for Parvathi's review.
+**Status: PROPOSED** by anooj on 2026-11-26, for Parvathi's review. **Updated the same day after her review (#681):**
+
+- **Her changes:** a transcript is cleared after 30 days whatever the post's label, and the order posts are taken in when more than the cap qualify is stated.
+- **robots.txt:** always asked, with no switch.
+- **What that leaves:** checking robots.txt shows it leaves only Reddit and Bluesky video. **So the step 2 code is held, and step 3 (text in pictures) comes next.** See "What robots.txt leaves" below.
+
+Other points:
 
 - Nothing here is in force until this PR merges.
-- No code is written yet. The code comes in its own PR after #680 (step 1) merges and its migration has run.
+- No code is written.
 - This PR adds two PROPOSED entries to `CLAUDE.md`, written the way #558 recorded the evidence feed. Merging this PR is agreeing to them.
 
 ## The problem
@@ -62,7 +68,7 @@ After that week:
 | the audio | the runner's temporary folder | deleted right after transcription; never in the raw store, the database, Railway or an artifact |
 | the video | nowhere | only the audio track is read, never saved |
 | the media link | nowhere | used in memory during the run (Instagram's links expire anyway) |
-| the transcript text | `iai_item`, beside the title and body | the same retention as the title and body (#656): cleared after `retention.clear_text_after_days` for dropped posts and Personal kept posts; kept for "not readable" posts while `retention.unread` is `false` (revisit by 2026-12-31) |
+| the transcript text | `iai_item`, beside the title and body | cleared after `retention.clear_text_after_days` **whatever the post's label**, `''` where there was text. That includes a "not readable" post whose caption is kept while `retention.unread` is `false`: a transcript is a person's spoken words, often longer and more personal than a caption (Parvathi, #681). 30 days is more than the shadow week needs. |
 | the transcript status and model | `iai_item` | as long as the row: `ok`, `no_audio`, `no_speech`, `failed`, `over_cap`, `refused` (robots.txt), `not_tried` |
 
 **Missing stays missing (rule 6).** NULL means "not tried", which is not "no speech". `''` means "cleared by retention", as with `media_text` in #680.
@@ -81,16 +87,42 @@ The stack rule is official APIs and public feeds only. The two recorded exceptio
 
 1. **Only media links the provider's own API response gave**, for posts the run itself labelled "not readable". No search, crawl or discovery.
 2. **No cookies, logins, API keys, browser, `yt-dlp` or page fetch.** A plain request with the identifying User-Agent.
-3. **Audio only, the first `transcribe.max_seconds`** (90). The video is never saved, and the audio is deleted in the same run (`finally`).
-4. **At most `transcribe.max_per_run` posts per run** (proposed: 60). Posts over the cap are recorded as `over_cap`, never silently skipped.
-5. **`transcribe.enabled: false` turns it off as a whole.** It ships `false`, and is set `true` for the shadow week by a contract PR.
+3. **Audio only, the first `transcribe.max_seconds`** (90). The video is never saved, and the audio is deleted in the same run (`finally`). The transcript is cleared after `retention.clear_text_after_days` even where the post's caption is kept.
+4. **At most `transcribe.max_per_run` posts per run** (60, agreed). When more qualify, they are taken **in turn by platform, then by account within a platform, newest first**. This goes one level finer than `harvest.round_robin`'s by-platform turn, so one prolific watched account can't take the cap every run either. Posts over the cap are recorded as `over_cap`, never silently skipped, so the shadow week's `over_cap` count has a stated population (rule 7).
+5. **`robots.txt` is always asked** (Parvathi, #681):
+   - once a run per media host;
+   - with the identifying User-Agent;
+   - for every host a redirect leads to as well.
 
-**Open for your call: robots.txt.** The two existing exceptions ask robots.txt for every host they fetch. Media CDNs (`video.twimg.com`, `v.redd.it`, Instagram's `cdninstagram.com`, Bluesky's video host) serve files, not pages.
+   There is no switch to turn it off, as with the benchmark and link-preview exceptions. A refusal is recorded as `refused`, and that platform's reels stay "not readable".
+6. **`transcribe.enabled: false` turns it off as a whole.** It ships `false`, and is set `true` for the shadow week by a contract PR.
 
-- **My suggestion:** ask robots.txt of each media host once per run, the same way the existing exceptions do, record a refusal, and skip that host's posts as `refused`.
-- **What it would cost:** if a host refuses, that platform's reels stay "not readable".
+### What robots.txt leaves (checked 2026-11-26)
 
-(Terms research is reference only here and blocks nothing; our standing rule.)
+I fetched each media host's `robots.txt` with a generic client name, for the hosts the 25 Nov pages' media links point at:
+
+| platform | video host | its rule for `*` | picture host | its rule for `*` |
+|---|---|---|---|---|
+| Instagram | `*.fna.fbcdn.net`, `*.cdninstagram.com` (22 hosts in the pages) | **`Disallow: /`**, under a notice that automated collection needs Instagram's written permission | the same CDN | **`Disallow: /`** |
+| X | `video.twimg.com` | **`Disallow: /`** (only Googlebot and Bingbot allowed) | `pbs.twimg.com` | allowed (`Disallow:` empty) |
+| Reddit | `v.redd.it` | allowed | `i.redd.it`, `preview.redd.it` | allowed |
+| Bluesky | `video.bsky.app` | no robots.txt (404) | `cdn.bsky.app` | no robots.txt (404) |
+
+**For step 2, this leaves Reddit and Bluesky video only.** Of the 90 short-caption videos in the 25 Nov pages, that's 14 from Reddit and 0 from Bluesky. In the sample, none of the 6 Reddit clips was about AI. Instagram's reels, the case step 2 was for (4 of 6 about AI), and X's videos would all be `refused`.
+
+**So the step 2 code is held.** The two entries are still worth agreeing now, so the rules are settled if a host's robots.txt changes, or if the team decides Reddit and Bluesky alone are worth it.
+
+**Step 3 (text in pictures, OCR) comes next instead.** Its hosts are allowed for X, Reddit and Bluesky; only Instagram's are refused. In the picture sample, 6 of the 9 AI images carried their message as text inside the image. Step 3 needs its own fetch exception for pictures, which comes in its own PR with the same conditions.
+
+### About the 26 Nov samples
+
+The samples in #679 downloaded Instagram and X video, and Instagram pictures, from these same hosts, **without asking robots.txt first**. I didn't check it before running them.
+
+- It was a one-off, local hand-check: 18 clips and 28 images.
+- Nothing was kept except the private notes and counts.
+- No step of the pipeline does it.
+
+**Any later sample asks robots.txt first, as the pipeline will.** The step 2 and step 3 sample scripts (`mib-media-speech`, `mib-media-images`, private) will skip a refusing host. (Terms research stays reference only, and blocks nothing; robots.txt is the stack rule, not terms research.)
 
 ### 2. Rule 2: whisper.cpp is a model, recorded, deciding nothing
 
@@ -131,14 +163,14 @@ The stack rule is official APIs and public feeds only. The two recorded exceptio
 - **No transcript of a post that is not "not readable".** A post that reads fine on its words is never fetched.
 - **No change to the 80-character threshold.** That waits for a week of iai-5 counts (#676).
 
-## Order of work
+## Order of work (changed 2026-11-26, after the robots.txt check)
 
-1. This PR. If you agree, it merges and the two CLAUDE.md entries are in force.
-2. #680 (step 1) merges and its migration runs.
-3. The step 2 code PR:
+1. **This PR.** If agreed, it merges and the two CLAUDE.md entries are in force.
+2. **#680 (step 1):** merged, and migration `20261126T0900` applied 08:02Z.
+3. **Step 3 next:** text in pictures (OCR), for X, Reddit and Bluesky. It comes as a proposal for its own fetch exception, then a code PR shipped `false`, then a shadow week.
+4. **The step 2 code is held.** It is reopened if Instagram's or X's video host stops refusing, or if the team decides Reddit and Bluesky video alone are worth it. If it is built:
    - columns and migration;
-   - the `transcribe:` contract block, shipped `false`;
-   - workflow steps to install ffmpeg and whisper.cpp;
-   - tests.
-4. A contract PR sets `transcribe.enabled: true` for the shadow week.
-5. The shadow-week counts and hand-check are posted on #679, and a separate decision is made on `affects_labels`.
+   - the `transcribe:` block shipped `false`;
+   - workflow steps for ffmpeg and whisper.cpp;
+   - tests;
+   - then the shadow week and a separate decision on `affects_labels`.
