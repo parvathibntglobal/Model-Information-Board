@@ -2885,6 +2885,19 @@ CREATE TABLE IF NOT EXISTS iai_item (
   CONSTRAINT iai_item_media_text_from_ck
     CHECK (media_text_from IS NULL
            OR media_text_from <@ ARRAY['alt_text', 'quoted_post', 'crosspost_parent']::text[]),
+  -- TEXT READ FROM A "NOT READABLE" POST'S FIRST PICTURE, shadow mode
+  -- (collect/industry_ai/ocr.py; 20261126T1500_iai_item_picture_text.sql, #679 step 3;
+  -- CLAUDE.md's fourth fetch exception, #683). Every word Tesseract returned, space
+  -- separated, with each word's confidence (0-100) in the same order. NULL = not read;
+  -- '' = cleared after retention.clear_text_after_days whatever the label. Decides no
+  -- label: it sets the flags `picture_text_would_pass` / `picture_text_only_ai`.
+  ocr_text         text,
+  ocr_confidence   smallint[],
+  -- NULL = not tried (rule 6); never read as "no text".
+  ocr_status       text,
+  CONSTRAINT iai_item_ocr_status_ck
+    CHECK (ocr_status IS NULL
+           OR ocr_status IN ('ok', 'no_text', 'failed', 'too_large', 'over_cap', 'refused')),
   -- 'instagram' since 2026-11-25 (20261125T1200_iai_item_instagram.sql): the
   -- observer's Instagram arm.
   CONSTRAINT iai_item_platform_ck

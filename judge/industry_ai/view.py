@@ -988,6 +988,16 @@ def ai_watch_view(conn) -> dict[str, Any]:
             "GROUP BY 1 ORDER BY 2 DESC"
         ).fetchall()
     ]
+    # NOT READABLE PICTURES, by what reading their picture's text did (#679 step 3,
+    # shadow mode): `not_tried` is a NULL ocr_status said as itself, never folded into
+    # "no text" (rule 4); `would_pass` is how many carry picture_text_would_pass.
+    unread_pictures = counts(
+        "SELECT coalesce(ocr_status, 'not_tried'), count(*) FROM iai_item "
+        "WHERE verdict = 'dropped' AND drop_stage = 'unread' "
+        f"AND media_kind IN ('image', 'gallery') AND {WATCH_ARM} GROUP BY 1")
+    (picture_would_pass,) = conn.execute(
+        "SELECT count(*) FROM iai_item WHERE verdict = 'dropped' AND drop_stage = 'unread' "
+        f"AND 'picture_text_would_pass' = ANY(flags) AND {WATCH_ARM}").fetchone()
     # NOT READABLE, by what the media was (`media_kind`): which kind of content the
     # observer is missing most.
     unread_by_media = counts(
@@ -1076,6 +1086,10 @@ def ai_watch_view(conn) -> dict[str, Any]:
         # media kinds those were. Read by web/src/routes/AIWatch.jsx.
         "unread": int(unread),
         "unread_by_media": unread_by_media,
+        # The not-readable pictures by what reading their text did, and how many it
+        # would have let through (shadow mode, #679 step 3). Read by AIWatch.jsx.
+        "unread_pictures_by_read": unread_pictures,
+        "unread_pictures_would_pass": int(picture_would_pass),
         "general": int(general),
         "mentions": int(mentions_n),
         "authors": int(authors),

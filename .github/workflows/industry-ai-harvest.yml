@@ -103,7 +103,9 @@ jobs:
   harvest:
     needs: guard
     if: needs.guard.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    # A FIXED IMAGE, not -latest (#679 step 3): it pins the Tesseract package version
+    # that reads pictures, so a GitHub image change cannot swap the reader unannounced.
+    runs-on: ubuntu-24.04
     # 180 (2026-11-25; was 90, and 45 before 2026-11-24). Two runs now, a group of ten
     # domains and then the observer. The 2026-11-25 run (5 domains and the 20-account
     # watch lists, 381 requests) took 8 minutes from its first request to its stored
@@ -174,6 +176,23 @@ jobs:
 
       - if: steps.gate.outputs.enabled == 'true'
         run: pip install -e .
+
+      # PICTURE TEXT (#679 step 3, shadow mode): Tesseract from Ubuntu's own package,
+      # installed only when the contract's `ocr.enabled` is true. THE VERSION IS PINNED
+      # BY THE RUNNER IMAGE (this job runs on ubuntu-24.04, not -latest), and printed
+      # so every run's log says which reader read the pictures (CLAUDE.md rule 2's
+      # record for Tesseract, #683). With it off, nothing is installed and the run
+      # fetches no picture.
+      - name: Tesseract, when picture text is on
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          if python -c "import sys, yaml; c = yaml.safe_load(open('contract/industry_ai.yaml', encoding='utf-8')); sys.exit(0 if c['ocr']['enabled'] is True else 1)"; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q tesseract-ocr
+            tesseract --version
+          else
+            echo "ocr.enabled is not true: picture text is off, Tesseract not installed"
+          fi
 
       - name: Keyword run - today's group (or the domains given), no watch lists
         if: steps.gate.outputs.enabled == 'true'

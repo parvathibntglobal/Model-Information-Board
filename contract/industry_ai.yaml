@@ -1312,6 +1312,38 @@ retention:
   unread: false
   kept_domains: [personal]
 
+# ── TEXT IN A "NOT READABLE" POST'S PICTURE (#679 step 3; anooj, 2026-11-26) ──────
+# Under CLAUDE.md's FOURTH fetch exception (#683, in force since its merge): the
+# FIRST picture of a post this run labelled "not readable" (an image or gallery
+# with too few words), from the link the provider's own response gave; robots.txt
+# asked for every host and redirect hop; the picture deleted in the same run; only
+# its text kept, cleared after `retention.clear_text_after_days` WHATEVER the
+# post's label (collect/industry_ai/ocr.py, store.clear_picture_text).
+#
+# SHADOW MODE: the text decides no label. A post it would have let through carries
+# `picture_text_would_pass`, and `picture_text_only_ai` too when the only AI term
+# it added is `ai` (#683 review). The shadow week counts and hand-checks those
+# before anything depends on them (rule 8).
+#
+#   enabled          false ships it off; a contract PR turns it on for the week.
+#   affects_labels   must be false: true is refused until a reviewed change after
+#                    the shadow week builds that path.
+#   max_per_run      posts read per run (150, #683). Over it a post is `over_cap`;
+#                    they are taken in turn by platform, then account, newest first.
+#   max_bytes        a larger picture is not downloaded past this (`too_large`).
+#   min_confidence   Tesseract's word confidence (0-100) a word needs to count.
+#                    60 is PROVISIONAL, a starting point and not a measurement:
+#                    every word is stored with its confidence, so the shadow
+#                    week's hand-check sets this from what it reads.
+#   timeout_seconds  per download and per Tesseract read.
+ocr:
+  enabled: false
+  affects_labels: false
+  max_per_run: 150
+  max_bytes: 8000000
+  min_confidence: 60
+  timeout_seconds: 30
+
 # ── THE OBSERVER: watch lists (anooj, 2026-11-20) ─────────────────────────────
 # The Industry AI agent's twin. The queries under `domains:` find posts BY KEYWORD;
 # these lists find them BY WHO OR WHERE - the newest posts of chosen communities,
@@ -1703,6 +1735,16 @@ watch:
   # same-text posts on different platforms by anyone, with the same window and link
   # conditions; a person's two handles are still matched through `people`.
   cross_post_hours: 6
+  # A PROVIDER THAT IS DOWN STOPS COSTING THE RUN (2026-11-27). After this many watch
+  # queries IN A ROW fail on one platform, the rest of that platform's list is not
+  # asked this run: each is recorded `skipped` ("not asked: provider failing"), never
+  # read as an account that posted nothing (rule 4). An answered query resets the
+  # count. Why: on 26 Nov Instagram's provider failed for 64 accounts (49 timeouts,
+  # 15 HTTP 500s; the last 62 one after another), about 95 s each (two attempts at
+  # the 45 s client timeout), so the observer spent 2 h 7 min on Instagram and the
+  # job was cancelled at its 180-minute limit before labelling.
+  # At 5, a provider that is down costs at most about 8 minutes (5 x 95 s).
+  stop_after_failures: 5
 
 # ── THE DOMAINS: our 20 persona umbrellas (anooj, 2026-11-20) ─────────────────
 # Generated from the persona keyword work; edit freely here from now on.

@@ -34,9 +34,21 @@ def test_a_thread_counts_under_its_final_calls_provider():
         (None, 0),
     ])
     assert by == {
-        "Wafer": {"threads": 2, "verified": 6},
-        "DeepInfra": {"threads": 1, "verified": 0},
-        "not reported": {"threads": 3, "verified": 1},
+        "Wafer": {"threads": 2, "verified": 6, "retried_from": 0},
+        # Its own thread, plus the first answer it gave that was retried on Wafer
+        # (#677 review): without this it would show only as fewer threads.
+        "DeepInfra": {"threads": 1, "verified": 0, "retried_from": 1},
+        "not reported": {"threads": 3, "verified": 1, "retried_from": 0},
+    }
+
+
+def test_a_provider_that_only_failed_first_answers_has_a_row():
+    by = scheduler.count_by_provider([(["DeepInfra", "Wafer"], 3), (["Wafer", "Wafer"], 1),
+                                      ([None, "Wafer"], 0)])
+    assert by == {
+        "Wafer": {"threads": 3, "verified": 4, "retried_from": 1},
+        "DeepInfra": {"threads": 0, "verified": 0, "retried_from": 1},
+        "not reported": {"threads": 0, "verified": 0, "retried_from": 1},
     }
 
 
@@ -60,15 +72,35 @@ def _end(model, by, **more):
 
 def test_the_summary_sums_the_night_per_provider():
     body = scheduler.summarise_runs([
-        _end("A", {"Wafer": {"threads": 300, "verified": 1200},
-                   "DeepInfra": {"threads": 40, "verified": 3}}),
-        _end("B", {"Wafer": {"threads": 74, "verified": 445},
-                   "Azure": {"threads": 80, "verified": 140}}),
+        _end("A", {"Wafer": {"threads": 300, "verified": 1200, "retried_from": 2},
+                   "DeepInfra": {"threads": 40, "verified": 3, "retried_from": 31}}),
+        _end("B", {"Wafer": {"threads": 74, "verified": 445, "retried_from": 0},
+                   "Azure": {"threads": 80, "verified": 140, "retried_from": 0},
+                   "Novita": {"threads": 0, "verified": 0, "retried_from": 4}}),
     ])
     (line,) = [ln for ln in body.splitlines() if ln.startswith(scheduler.PROVIDER_LINE)]
-    # Most threads first; both counts beside each name, no ratio.
-    assert line.endswith(
-        "Wafer 374 / 1,645 · Azure 80 / 140 · DeepInfra 40 / 3 (threads / quotes).")
+    # Most threads first; both counts beside each name, no ratio. A provider with
+    # no thread of its own is not in the first sentence, only in the retries.
+    assert ("Wafer 374 / 1,645 · Azure 80 / 140 · DeepInfra 40 / 3 (threads / quotes). "
+            f"{scheduler.RETRIED_LINE} DeepInfra 31 · Novita 4 · Wafer 2.") in line
+    assert line.endswith("Wafer 2.")
+
+
+def test_no_retry_is_said_and_an_older_run_is_not_read_as_none():
+    body = scheduler.summarise_runs([
+        _end("A", {"Wafer": {"threads": 5, "verified": 9, "retried_from": 0}}),
+    ])
+    (line,) = [ln for ln in body.splitlines() if ln.startswith(scheduler.PROVIDER_LINE)]
+    assert line.endswith("(threads / quotes). No thread needed a retry.")
+    # A run from before retried_from existed: its retries are unknown, not 0 (rule 6).
+    body = scheduler.summarise_runs([
+        _end("A", {"Wafer": {"threads": 5, "verified": 9, "retried_from": 0}}),
+        _end("old", {"Wafer": {"threads": 2, "verified": 1}}),
+    ])
+    (line,) = [ln for ln in body.splitlines() if ln.startswith(scheduler.PROVIDER_LINE)]
+    assert "Wafer 7 / 10" in line
+    assert "No thread needed a retry." in line
+    assert "1 run(s) did not report retries" in line
 
 
 def test_a_run_that_did_not_report_it_is_said_not_folded_in():
@@ -106,9 +138,17 @@ def test_only_the_counted_shape_reaches_the_public_issue():
     for bad in ({"Wafer": {"threads": "3", "verified": 1}},
                 {"Wafer": {"threads": True, "verified": 1}},
                 {"Wafer": {"threads": -1, "verified": 1}},
+                {"Wafer": {"threads": 1, "verified": 1, "retried_from": "2"}},
+                {"Wafer": {"threads": 1, "verified": 1, "retried_from": -1}},
                 {"Wafer": 3},
                 ["Wafer"]):
         assert "threads_by_provider" not in scheduler.safe_record({"threads_by_provider": bad}), bad
+    # `retried_from` rides when present, and is not invented when absent (an older run).
+    kept = scheduler.safe_record({"threads_by_provider": {
+        "Wafer": {"threads": 1, "verified": 2, "retried_from": 3},
+        "Azure": {"threads": 1, "verified": 0}}})["threads_by_provider"]
+    assert kept == {"Wafer": {"threads": 1, "verified": 2, "retried_from": 3},
+                    "Azure": {"threads": 1, "verified": 0}}
 
 
 # ── the evidence feed ─────────────────────────────────────────────────────────

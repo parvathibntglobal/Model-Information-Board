@@ -69,35 +69,61 @@ DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 _PROVIDER_SORTS = {"throughput", "price", "latency"}
+#: The variables that carried the preference until 2026-11-26. Still read, ONLY to
+#: warn that they are ignored (`_warn_if_the_old_variables_are_set`).
+RETIRED_PROVIDER_VARIABLES = ("EXTRACTOR_PROVIDER_SORT", "EXTRACTOR_PROVIDER_IGNORE")
+_warned: set[str] = set()
 
 
-def extractor_provider() -> dict | None:
-    """OpenRouter provider preference for extraction, from
-    `EXTRACTOR_PROVIDER_SORT`, or None to send none (the behaviour before
-    2026-10-01).
+class ExtractorProviderError(RuntimeError):
+    """contract/scheduler.yaml `extractor_provider` is missing or carries a bad value."""
+
+
+def extractor_provider() -> dict:
+    """OpenRouter's `provider` object for extraction and the evidence feed, from
+    contract/scheduler.yaml `extractor_provider` - the ONLY source since 2026-11-26
+    (#677 review). The contract file says why each host is ruled out.
 
     It chooses WHICH HOST serves the model, never which model: the served-model
-    checks are unchanged. An unknown value is refused rather than ignored - a
-    typo that silently fell back to "no preference" would bring back the slow
-    provider this exists to avoid (rule 12).
+    checks are unchanged. Both keys are required and an unknown sort is refused,
+    never dropped: a typo that fell back to "no preference" would bring back the
+    hosts this exists to avoid (rule 12). Read on every call, so a test or a
+    changed contract is not frozen into a cache.
     """
-    raw = os.getenv("EXTRACTOR_PROVIDER_SORT", "").strip().lower()
-    # A SORT IS A PREFERENCE, NOT A BAN. Measured 2026-10-01: with
-    # sort=throughput, a thread whose first host (Azure) failed was retried by
-    # OpenRouter's fallback on OpenInference - 9.5 minutes, truncated, no claims,
-    # $0.0216 billed. EXTRACTOR_PROVIDER_IGNORE names hosts never to use.
-    ignore = [h.strip() for h in os.getenv("EXTRACTOR_PROVIDER_IGNORE", "").split(",") if h.strip()]
-    if not raw and not ignore:
-        return None
-    if raw and raw not in _PROVIDER_SORTS:
-        raise RuntimeError(
-            f"EXTRACTOR_PROVIDER_SORT={raw!r} is not one of {sorted(_PROVIDER_SORTS)}")
-    pref: dict = {}
-    if raw:
-        pref["sort"] = raw
-    if ignore:
-        pref["ignore"] = ignore
-    return pref
+    from judge.config import _read
+
+    _warn_if_the_old_variables_are_set()
+    block = (_read("scheduler.yaml") or {}).get("extractor_provider")
+    if not isinstance(block, dict) or set(block) != {"sort", "ignore"}:
+        raise ExtractorProviderError(
+            "contract/scheduler.yaml `extractor_provider` must have exactly `sort` and "
+            f"`ignore`, not {block!r}")
+    sort, ignore = block["sort"], block["ignore"]
+    if sort not in _PROVIDER_SORTS:
+        raise ExtractorProviderError(
+            f"contract/scheduler.yaml `extractor_provider.sort` {sort!r} is not one of "
+            f"{sorted(_PROVIDER_SORTS)}")
+    if not isinstance(ignore, list) or not all(isinstance(h, str) and h.strip() for h in ignore):
+        raise ExtractorProviderError(
+            "contract/scheduler.yaml `extractor_provider.ignore` must be a list of host "
+            f"names, not {ignore!r}")
+    return {"sort": sort, **({"ignore": [h.strip() for h in ignore]} if ignore else {})}
+
+
+def _warn_if_the_old_variables_are_set() -> None:
+    """LOUD, ONCE PER PROCESS AND VARIABLE: a leftover EXTRACTOR_PROVIDER_* would
+    otherwise look like it still steers the run, and it does not (#677 review)."""
+    import sys
+
+    for name in RETIRED_PROVIDER_VARIABLES:
+        if os.getenv(name) is not None and name not in _warned:
+            _warned.add(name)
+            print(
+                f"WARNING: {name} is set and IGNORED. Since 2026-11-26 the OpenRouter host "
+                "preference is contract/scheduler.yaml `extractor_provider` only; remove "
+                f"{name} from this environment (workflow, Railway or .env).",
+                file=sys.stderr, flush=True,
+            )
 
 
 def extractor_model() -> str:
@@ -546,6 +572,11 @@ class OpenRouterClient:
     max_output_tokens: int = field(
         default_factory=lambda: int(os.getenv("EXTRACT_MAX_OUTPUT_TOKENS", "16384"))
     )
+    #: WHICH OPENROUTER HOSTS MAY SERVE IT: contract/scheduler.yaml
+    #: `extractor_provider`, read when the client is built. A replay that must pin
+    #: one host passes `provider=` here explicitly (#677 review): the environment is
+    #: no longer read for it.
+    provider: dict = field(default_factory=lambda: extractor_provider())
     #: REASONING IS OFF BY DEFAULT, AND THAT IS A DECISION THE MODEL SWITCH MADE
     #: FOR US UNTIL 2026-09-24.
     #:
@@ -687,8 +718,8 @@ class OpenRouterClient:
                 # deepseek-v4-flash to OpenInference, which spent ~9 minutes per
                 # thread, hit the 16,384-token ceiling with no claims, and
                 # billed $0.0205 against a $0.0064 list-price estimate. See
-                # `extractor_provider()`.
-                **({"provider": extractor_provider()} if extractor_provider() else {}),
+                # `extractor_provider()`; always sent since 2026-11-26.
+                "provider": self.provider,
             },
         ) as response:
             # THE STATUS IS CHECKED BEFORE THE STREAM IS READ. An error response

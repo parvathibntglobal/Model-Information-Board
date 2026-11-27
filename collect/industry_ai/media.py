@@ -215,6 +215,64 @@ def reddit_text(raw: dict) -> tuple[str | None, list[str]]:
     return _joined([("crosspost_parent", f"{p.get('title') or ''}\n{p.get('selftext') or ''}")])
 
 
+# ── THE FIRST PICTURE'S LINK (#679 step 3, anooj, 2026-11-26) ───────────────────
+#
+# For the picture-text reader (collect/industry_ai/ocr.py), under CLAUDE.md's fourth
+# fetch exception: only a link the provider's own response gave, the FIRST picture of
+# the post only. Carried on the Item for this run and never stored. None = the payload
+# names no picture this reader knows, which is not "the post has none" (rule 6).
+
+
+def x_picture(payload: str | dict | None) -> str | None:
+    try:
+        t = json.loads(payload) if isinstance(payload, str) else (payload or {})
+    except ValueError:
+        return None
+    legacy = _x_tweet(t).get("legacy")
+    if not isinstance(legacy, dict):
+        return None
+    media = (legacy.get("extended_entities") or {}).get("media") or []
+    first = next((m for m in media if isinstance(m, dict)), None)
+    if first and first.get("type") == "photo":
+        return first.get("media_url_https") or None
+    return None
+
+
+def reddit_picture(raw: dict) -> str | None:
+    raw = raw or {}
+    if raw.get("is_gallery"):
+        order = [i.get("media_id") for i in ((raw.get("gallery_data") or {}).get("items") or [])
+                 if isinstance(i, dict)]
+        meta = raw.get("media_metadata") or {}
+        for mid in order or list(meta):
+            src = ((meta.get(mid) or {}).get("s") or {}).get("u")
+            if src:
+                import html
+
+                return html.unescape(src)
+        return None
+    if raw.get("post_hint") == "image":
+        return raw.get("url_overridden_by_dest") or raw.get("url") or None
+    return None
+
+
+def bluesky_picture(raw: dict) -> str | None:
+    embed = (raw or {}).get("embed") or {}
+    images = embed.get("images") or (embed.get("media") or {}).get("images") or []
+    first = next((i for i in images if isinstance(i, dict)), None)
+    return (first.get("fullsize") or first.get("thumb")) if first else None
+
+
+def instagram_picture(node: dict) -> str | None:
+    """Instagram's CDN refuses `*` in robots.txt (checked 2026-11-26), so this link is
+    asked and recorded as `refused`, never fetched - kept so the count says so."""
+    kids = ((node.get("edge_sidecar_to_children") or {}).get("edges") or [])
+    first = ((kids[0] or {}).get("node") or {}) if kids else node
+    if first.get("is_video"):
+        return None
+    return first.get("display_url") or None
+
+
 def hackernews(hit: dict) -> str | None:
     if hit.get("comment_text"):
         return "none"
