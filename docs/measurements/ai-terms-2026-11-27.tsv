@@ -1,0 +1,485 @@
+term	group	kept_posts_naming_it	no_ai_term_posts_naming_it	sources
+AIR-Bench	benchmarks_and_datasets	0	0	Stanford HAI: 2025 AI Index Report <https://hai.stanford.edu/ai-index/2025-ai-index-report>
+AlpacaEval	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+ANN-Benchmarks	benchmarks_and_datasets	0	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+AudioSet	benchmarks_and_datasets	0	0	Wikipedia: List of datasets for machine-learning research <https://en.wikipedia.org/wiki/List_of_datasets_for_machine-learning_research>
+BIG-bench	benchmarks_and_datasets	3	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+BLEURT	benchmarks_and_datasets	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+BoolQ	benchmarks_and_datasets	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+CompassRank	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+ExploitGym	benchmarks_and_datasets	0	0	Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+FineWeb	benchmarks_and_datasets	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+FrontierMath	benchmarks_and_datasets	1	0	Epoch AI: Benchmarks <https://epoch.ai/benchmarks>
+GPQA	benchmarks_and_datasets	4	0	Stanford HAI: 2025 AI Index Report <https://hai.stanford.edu/ai-index/2025-ai-index-report>
+GPQA Diamond	benchmarks_and_datasets	2	0	Epoch AI: Benchmarks <https://epoch.ai/benchmarks>
+GSM8K	benchmarks_and_datasets	1	0	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+HELM Safety	benchmarks_and_datasets	0	0	Stanford HAI: 2025 AI Index Report <https://hai.stanford.edu/ai-index/2025-ai-index-report>
+HumanEval	benchmarks_and_datasets	0	0	Stanford HAI: 2025 AI Index Report <https://hai.stanford.edu/ai-index/2025-ai-index-report>
+ImageNet	benchmarks_and_datasets	0	0	Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+InfiBench	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LawBench	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LiveBench	benchmarks_and_datasets	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LJSpeech	benchmarks_and_datasets	0	0	Wikipedia: List of datasets for machine-learning research <https://en.wikipedia.org/wiki/List_of_datasets_for_machine-learning_research>
+MBPP	benchmarks_and_datasets	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+MixEval	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+MMedBench	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+MMMU	benchmarks_and_datasets	1	0	Stanford HAI: 2025 AI Index Report <https://hai.stanford.edu/ai-index/2025-ai-index-report>
+MNIST	benchmarks_and_datasets	2	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+MovieLens	benchmarks_and_datasets	0	0	Wikipedia: List of datasets for machine-learning research <https://en.wikipedia.org/wiki/List_of_datasets_for_machine-learning_research>
+OlympicArena	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+PlanBench	benchmarks_and_datasets	0	0	Stanford HAI: 2025 AI Index Report <https://hai.stanford.edu/ai-index/2025-ai-index-report>
+RealToxicityPrompts	benchmarks_and_datasets	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+SciBench	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+SimpleQA	benchmarks_and_datasets	4	0	Epoch AI: Benchmarks <https://epoch.ai/benchmarks>
+SuperGLUE	benchmarks_and_datasets	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+SWE-Lancer	benchmarks_and_datasets	0	0	Epoch AI: Benchmarks <https://epoch.ai/benchmarks>
+TAT-QA	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+TyDi QA	benchmarks_and_datasets	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+VisualWebArena	benchmarks_and_datasets	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Winograd Schema Challenge	benchmarks_and_datasets	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+XL-Sum	benchmarks_and_datasets	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+activation function	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Actor-critic algorithm	ml_concepts	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+AdaGrad	ml_concepts	0	0	Databricks Glossary <https://www.databricks.com/glossary> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Adversarial Attack	ml_concepts	0	0	EU-U.S. Terminology and Taxonomy for AI (2nd ed.) <https://www.nist.gov/document/eu-us-terminology-and-taxonomy-artificial-intelligence-second-edition> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
+adversarial example	ml_concepts	0	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+Affective computing	ml_concepts	1	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Agent harness	ml_concepts	29	1	Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+agent orchestration	ml_concepts	39	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent>
+Agent2Agent	ml_concepts	3	0	Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent>
+Agent2Agent protocol	ml_concepts	1	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+AlexNet	ml_concepts	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Approximate nearest neighbor	ml_concepts	0	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+attention mask	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+Attention Mechanism	ml_concepts	4	1	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+Auto-Regressive Model	ml_concepts	0	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+autoencoder	ml_concepts	6	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+autoencoding models	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+autonomous car	ml_concepts	1	0	Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+autonomous vehicle	ml_concepts	4	0	NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+autoregressive models	ml_concepts	0	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/> | Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+backdoor poisoning attack	ml_concepts	0	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final>
+Backpropagation	ml_concepts	11	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | Open University OpenLearn Create AI glossary (first page) <https://www.open.edu/openlearncreate/mod/glossary/view.php?id=235037> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence> | Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+bag of words	ml_concepts	3	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+batch normalization	ml_concepts	3	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+Bellman equation	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+byte-pair encoding	ml_concepts	2	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+Catastrophic forgetting	ml_concepts	1	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
+cognitive computing	ml_concepts	4	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+concept drift	ml_concepts	3	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+connectionist temporal classification	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+Context engineering	ml_concepts	10	0	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+Contrastive Learning	ml_concepts	0	0	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions>
+convolutional filter	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+convolutional layer	ml_concepts	0	0	Databricks Glossary <https://www.databricks.com/glossary> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+convolutional operation	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+cross-entropy	ml_concepts	5	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Data augmentation	ml_concepts	1	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/> | EU-U.S. Terminology and Taxonomy for AI (2nd ed.) <https://www.nist.gov/document/eu-us-terminology-and-taxonomy-artificial-intelligence-second-edition> | Google ML Glossary <https://developers.google.com/machine-learning/glossary> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+data drift	ml_concepts	7	0	NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+data labeling	ml_concepts	60	1	AWS What is (AI/ML) <https://aws.amazon.com/what-is/>
+data poisoning	ml_concepts	9	0	EU-U.S. Terminology and Taxonomy for AI (2nd ed.) <https://www.nist.gov/document/eu-us-terminology-and-taxonomy-artificial-intelligence-second-edition> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions>
+decoder models	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+Deep Q-Network	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+DeepDream	ml_concepts	1	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art> | Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+discriminative model	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence>
+DQN	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+dropout regularization	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+embedding layer	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+embedding space	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+embedding vector	ml_concepts	2	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Embeddings	ml_concepts	87	7	AWS What is (AI/ML) <https://aws.amazon.com/what-is/> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Retrieval-augmented generation <https://en.wikipedia.org/wiki/Retrieval-augmented_generation>
+emergent abilities	ml_concepts	0	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+Emotion Recognition	ml_concepts	0	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
+ensemble learning	ml_concepts	3	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+epsilon greedy policy	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+expert system	ml_concepts	2	0	EU-U.S. Terminology and Taxonomy for AI (2nd ed.) <https://www.nist.gov/document/eu-us-terminology-and-taxonomy-artificial-intelligence-second-edition> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Expert systems	ml_concepts	2	0	Open University OpenLearn Create AI glossary (first page) <https://www.open.edu/openlearncreate/mod/glossary/view.php?id=235037> | Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+explainability	ml_concepts	9	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | Open University OpenLearn Create AI glossary (first page) <https://www.open.edu/openlearncreate/mod/glossary/view.php?id=235037> | US DOT ITS JPO AI definitions and concepts <https://its.dot.gov/research-areas/super-intelligence/focus-areas/learn-connect/definitions-concepts>
+exploding gradient problem	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+facial recognition	ml_concepts	12	2	AWS What is (AI/ML) <https://aws.amazon.com/what-is/> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Feature engineering	ml_concepts	20	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/> | Databricks Glossary <https://www.databricks.com/glossary> | EU-U.S. Terminology and Taxonomy for AI (2nd ed.) <https://www.nist.gov/document/eu-us-terminology-and-taxonomy-artificial-intelligence-second-edition> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Feature Store	ml_concepts	1	0	Databricks Glossary <https://www.databricks.com/glossary>
+federated learning	ml_concepts	5	0	EU-U.S. Terminology and Taxonomy for AI (2nd ed.) <https://www.nist.gov/document/eu-us-terminology-and-taxonomy-artificial-intelligence-second-edition> | Google ML Glossary <https://developers.google.com/machine-learning/glossary> | ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/> | NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+FlashAttention	ml_concepts	2	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+forget gate	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Foundational Models	ml_concepts	0	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
+GANs	ml_concepts	3	0	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions>
+generative adversarial network	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+generative model	ml_concepts	8	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence>
+Genetic Algorithm	ml_concepts	0	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
+Genetic algorithms	ml_concepts	0	1	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Gibberlink	ml_concepts	0	0	Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent>
+gradient accumulation	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | NVIDIA AI Enterprise glossary <https://docs.nvidia.com/ai-enterprise/release-9/latest/reference/glossary.html>
+gradient boosting	ml_concepts	8	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+Gradient Checkpointing	ml_concepts	0	0	NVIDIA AI Enterprise glossary <https://docs.nvidia.com/ai-enterprise/release-9/latest/reference/glossary.html>
+gradient clipping	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+gradient descent	ml_concepts	16	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+GraphRAG	ml_concepts	23	0	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+grokking	ml_concepts	0	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+groundedness	ml_concepts	3	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Group Relative Policy Optimization (GRPO)	ml_concepts	1	1	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+hidden Markov model	ml_concepts	0	0	NIST AI 100-2e2025 Adversarial ML glossary (extra abbreviations) <https://csrc.nist.gov/pubs/ai/100/2/e2025/final> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+human-in-the-loop	ml_concepts	55	1	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions>
+Hyperparameter	ml_concepts	11	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+hyperparameter optimization	ml_concepts	2	0	Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+hyperparameter tuning	ml_concepts	9	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/>
+hyperparameters	ml_concepts	6	1	ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+image recognition	ml_concepts	2	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+image-to-image	ml_concepts	3	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+inpainting	ml_concepts	2	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+intelligence explosion	ml_concepts	4	0	Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+Intelligent Agent	ml_concepts	9	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+intelligent automation	ml_concepts	27	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/>
+k-means	ml_concepts	9	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+k-means clustering	ml_concepts	6	0	Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence> | Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+k-nearest neighbor	ml_concepts	0	0	IBM Think: What is artificial intelligence <https://www.ibm.com/think/topics/artificial-intelligence>
+K-nearest neighbor algorithm	ml_concepts	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+k-Nearest Neighbors	ml_concepts	7	0	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions>
+k-nearest neighbors algorithm	ml_concepts	0	0	IBM Think Topics <https://www.ibm.com/think/topics>
+KNN	ml_concepts	4	0	IBM Think: What is artificial intelligence <https://www.ibm.com/think/topics/artificial-intelligence> | ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/>
+Knowledge Distillation	ml_concepts	2	0	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence>
+label flipping	ml_concepts	0	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final>
+learning rate	ml_concepts	4	1	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+least-to-most prompting	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+logits	ml_concepts	6	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Long Short-Term Memory	ml_concepts	2	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Low-Rank Adaptability	ml_concepts	0	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Machine Translation	ml_concepts	6	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/> | Google ML Glossary <https://developers.google.com/machine-learning/glossary> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+mechanistic interpretability	ml_concepts	4	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+Membership inference attack	ml_concepts	0	0	ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/>
+membership-inference attack	ml_concepts	0	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final>
+meta-learning	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+mini-batch	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+model card	ml_concepts	12	0	NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+Model Drift	ml_concepts	5	0	Harvard Belfer Center glossary of AI terms <https://www.belfercenter.org/research-analysis/glossary-ai-terms> | ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions>
+model extraction	ml_concepts	4	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+Model inversion attack	ml_concepts	0	0	ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/>
+model training	ml_concepts	64	1	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | US DOT ITS JPO AI definitions and concepts <https://its.dot.gov/research-areas/super-intelligence/focus-areas/learn-connect/definitions-concepts>
+multi-head self-attention	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+multimodal	ml_concepts	106	4	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+Multimodal Model	ml_concepts	6	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | MIT Sloan Glossary of Terms: Generative AI Basics <https://mitsloanedtech.mit.edu/ai/basics/glossary/>
+multimodal models	ml_concepts	10	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final>
+Named Entity Recognition	ml_concepts	4	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
+Named-entity recognition	ml_concepts	4	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Natural language generation	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+natural language understanding	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+Negative prompt	ml_concepts	10	2	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+Neuromorphic computing	ml_concepts	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+Next-token prediction	ml_concepts	2	0	Harvard Belfer Center glossary of AI terms <https://www.belfercenter.org/research-analysis/glossary-ai-terms>
+NLG	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+NLU	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+one-hot encoding	ml_concepts	2	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+one-shot learning	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+One-shot prompting	ml_concepts	0	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+overfitting	ml_concepts	14	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/> | Google ML Glossary <https://developers.google.com/machine-learning/glossary> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | US DOT ITS JPO AI definitions and concepts <https://its.dot.gov/research-areas/super-intelligence/focus-areas/learn-connect/definitions-concepts>
+PagedAttention	ml_concepts	2	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+Parameter-Efficient Tuning	ml_concepts	0	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+peft	ml_concepts	0	0	GitHub org: huggingface <https://github.com/huggingface>
+perceptron	ml_concepts	3	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+plan-and-solve	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Policy gradient	ml_concepts	1	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+positional encoding	ml_concepts	3	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Pre-Trained Model	ml_concepts	0	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+pretrained model	ml_concepts	1	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+prompt chaining	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent>
+prompt design	ml_concepts	3	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+prompt stuffing	ml_concepts	0	0	Wikipedia: Retrieval-augmented generation <https://en.wikipedia.org/wiki/Retrieval-augmented_generation>
+Prompt Tuning	ml_concepts	1	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+Prompt-based Learning	ml_concepts	0	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Q-learning	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+QLoRA	ml_concepts	13	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+random forest	ml_concepts	7	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | IBM Think: What is artificial intelligence <https://www.ibm.com/think/topics/artificial-intelligence> | Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+Rectified Linear Unit	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Recursive Self-Improvement	ml_concepts	9	0	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions>
+ReLU	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+representation learning	ml_concepts	2	1	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+Reward function	ml_concepts	3	0	ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
+Reward hacking	ml_concepts	8	0	Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent>
+robotaxi	ml_concepts	7	1	Stanford HAI: 2025 AI Index Report <https://hai.stanford.edu/ai-index/2025-ai-index-report>
+Role Prompting	ml_concepts	0	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Scaling Laws	ml_concepts	3	0	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+self-attention	ml_concepts	2	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+self-attention mechanism	ml_concepts	0	0	Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence>
+Self-organizing map	ml_concepts	0	0	Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+Sentiment Analysis	ml_concepts	16	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/> | Google ML Glossary <https://developers.google.com/machine-learning/glossary> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | Wikipedia: Artificial intelligence in marketing <https://en.wikipedia.org/wiki/Artificial_intelligence_in_marketing>
+seq2seq	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+sequence-to-sequence	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+skip-gram	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Soft Prompt Tuning	ml_concepts	0	0	CMU Libraries Generative AI guide glossary <https://guides.library.cmu.edu/generative-ai> | Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Soft prompting	ml_concepts	0	0	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+softmax	ml_concepts	9	2	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Speech synthesis	ml_concepts	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+stochastic gradient descent	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Support Vector Machine	ml_concepts	1	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+support vector machines	ml_concepts	6	0	IBM Think: What is artificial intelligence <https://www.ibm.com/think/topics/artificial-intelligence> | ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/> | NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+Support-vector machine	ml_concepts	1	0	Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+SVM	ml_concepts	4	0	IBM Think: What is artificial intelligence <https://www.ibm.com/think/topics/artificial-intelligence> | JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
+Swarm intelligence	ml_concepts	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Switch Transformer	ml_concepts	0	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+synthetic media	ml_concepts	5	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+t-distributed stochastic neighbor embedding	ml_concepts	0	0	Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+Technological singularity	ml_concepts	2	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+text-to-music	ml_concepts	1	0	Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence>
+textual inversion	ml_concepts	0	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+tokenizer	ml_concepts	25	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+training data extraction	ml_concepts	1	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final>
+Tree-of-thought	ml_concepts	0	0	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+tree-of-thought prompting	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Turing Test	ml_concepts	0	0	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+underfitting	ml_concepts	6	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/>
+vanishing gradient problem	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+variational autoencoder	ml_concepts	2	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+variational autoencoders	ml_concepts	2	0	IBM Think: What is artificial intelligence <https://www.ibm.com/think/topics/artificial-intelligence>
+Vision Transformer	ml_concepts	1	0	Stanford HAI Artificial Intelligence Glossary <https://hai.stanford.edu/ai-definitions> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+word embedding	ml_concepts	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Word embeddings	ml_concepts	7	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+Word2Vec	ml_concepts	4	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model> | Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+WordPiece	ml_concepts	0	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+Workslop	ml_concepts	3	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+World model	ml_concepts	11	1	Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent>
+World models	ml_concepts	12	2	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Zero Redundancy Optimizer	ml_concepts	0	0	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
+Agentforce	products_and_tools	2	0	Fin: Best AI customer support software <https://fin.ai/learn/best-ai-customer-support-software> | Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent> | ZoomInfo: Top AI sales software tools <https://pipeline.zoominfo.com/sales/top-ai-sales-software-tools>
+AgentGPT	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+AgentMail	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Aibo	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+AIOps	products_and_tools	15	0	AWS What is (AI/ML) <https://aws.amazon.com/what-is/>
+AlexaTM	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+AlphaDev	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+AlphaEvolve	products_and_tools	1	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence> | Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence>
+AlphaFold	products_and_tools	12	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence> | Wikipedia: Artificial intelligence in healthcare <https://en.wikipedia.org/wiki/Artificial_intelligence_in_healthcare> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+AlphaGeometry	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+AlphaGo	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence> | Wikipedia: Glossary of artificial intelligence <https://en.wikipedia.org/wiki/Glossary_of_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+AlphaTensor	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+AlphaZero	products_and_tools	0	1	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Amazon Nova	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+Amazon Q	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: List of chatbots <https://en.wikipedia.org/wiki/List_of_chatbots>
+Amazon Q Developer	products_and_tools	0	0	Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+AnythingLLM	products_and_tools	2	0	GitHub: ollama/ollama <https://github.com/ollama/ollama>
+Apache MXNet	products_and_tools	0	0	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+Apache SINGA	products_and_tools	0	0	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+Arize	products_and_tools	5	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Artbreeder	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+AudioCraft	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Augmedix	products_and_tools	0	0	Keragon: Best AI Medical Scribe <https://www.keragon.com/blog/best-ai-medical-scribe>
+Automatic1111	products_and_tools	0	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+AutoRAG	products_and_tools	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+AWS Bedrock	products_and_tools	6	0	Scrimba: Best AI Coding Assistants 2026 <https://scrimba.com/articles/best-ai-coding-assistants-2026/>
+babyagi	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Baichuan	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+BentoML	products_and_tools	5	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+BigCode	products_and_tools	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+bitnet.cpp	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Black Forest Labs	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+BloombergGPT	products_and_tools	0	1	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+BLOOMZ	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Botpress	products_and_tools	1	0	HubSpot: Top AI marketing tools <https://blog.hubspot.com/marketing/ai-marketing-tools> | Zapier: Best AI productivity tools <https://zapier.com/blog/best-ai-productivity-tools/>
+Cerebras	products_and_tools	8	0	Scrimba: Best AI Coding Assistants 2026 <https://scrimba.com/articles/best-ai-coding-assistants-2026/> | Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+Chainlit	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+ChatGLM	products_and_tools	0	0	Wikipedia: List of chatbots <https://en.wikipedia.org/wiki/List_of_chatbots>
+ChatPDF	products_and_tools	2	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+ChatSonic	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Civitai	products_and_tools	4	1	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Claygent	products_and_tools	0	0	ZoomInfo: Top AI sales software tools <https://pipeline.zoominfo.com/sales/top-ai-sales-software-tools>
+Cleanlab	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Cleverbot	products_and_tools	0	0	Wikipedia: List of chatbots <https://en.wikipedia.org/wiki/List_of_chatbots>
+Cline	products_and_tools	36	0	GitHub: ollama/ollama <https://github.com/ollama/ollama> | Scrimba: Best AI Coding Assistants 2026 <https://scrimba.com/articles/best-ai-coding-assistants-2026/> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+ClipDrop	products_and_tools	3	1	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+CoCounsel	products_and_tools	2	0	Emergent: Best AI Tools for Lawyers <https://emergent.sh/learn/best-ai-tools-for-lawyers> | Rework: Best AI Tools for Lawyers 2026 <https://resources.rework.com/tools/ai-tools/best-ai-tools-for-lawyers-2026>
+Codeium	products_and_tools	2	0	Scrimba: Best AI Coding Assistants 2026 <https://scrimba.com/articles/best-ai-coding-assistants-2026/>
+CodeRabbit	products_and_tools	2	0	Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+Codestral	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Cognigy	products_and_tools	0	0	Fin: Best AI customer support software <https://fin.ai/learn/best-ai-customer-support-software>
+CogVLM	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+ColBERT	products_and_tools	0	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+Colossyan	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Craiyon	products_and_tools	2	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence>
+DBRX	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+DeepL	products_and_tools	6	0	Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence>
+Deeplearning4j	products_and_tools	0	0	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+DeepScribe	products_and_tools	1	0	Doximity: Best AI Medical Scribe Tools 2026 <https://blog.doximity.com/Best-AI-Medical-Scribe-Tools-in-2026-Software-for-Clinical-Notes-and-Medical-Charting> | Keragon: Best AI Medical Scribe <https://www.keragon.com/blog/best-ai-medical-scribe>
+DeepSpeed	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+Descript	products_and_tools	27	1	Zapier: Best AI productivity tools <https://zapier.com/blog/best-ai-productivity-tools/>
+diffusers	products_and_tools	1	0	GitHub org: huggingface <https://github.com/huggingface>
+DiffusionDB	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Dify	products_and_tools	6	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Dlib	products_and_tools	0	0	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+DragGAN	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+DreamBooth	products_and_tools	0	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+DreamStudio	products_and_tools	0	0	Figma: AI design tools resource library <https://www.figma.com/resource-library/ai-design-tools/> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+Embedchain	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+ESMFold	products_and_tools	0	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+exllama	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Fastai	products_and_tools	0	0	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+FastChat	products_and_tools	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+FasterTransformer	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+FinChat	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+FlashInfer	products_and_tools	0	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+FlashMLA	products_and_tools	0	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+Flaxformer	products_and_tools	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+Fliki	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+FlowGPT	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Flux.1 Kontext	products_and_tools	0	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+FunSearch	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+Gemma	products_and_tools	36	3	GitHub: ollama/ollama <https://github.com/ollama/ollama> | GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm> | Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model> | Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+GGUF	products_and_tools	41	1	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm> | Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face> | Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+GigaChat	products_and_tools	0	0	Wikipedia: List of chatbots <https://en.wikipedia.org/wiki/List_of_chatbots>
+Giskard	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Gitingest	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Google Antigravity	products_and_tools	19	0	Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+gpt4all	products_and_tools	2	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+GPTQ	products_and_tools	3	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+Groq	products_and_tools	23	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Scrimba: Best AI Coding Assistants 2026 <https://scrimba.com/articles/best-ai-coding-assistants-2026/>
+Gumloop	products_and_tools	5	0	HubSpot: Top AI marketing tools <https://blog.hubspot.com/marketing/ai-marketing-tools>
+Harmonai	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Hermes Agent	products_and_tools	18	7	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+Higgsfield	products_and_tools	50	4	Linearity: 12 Best AI Design Tools 2026 <https://www.linearity.io/blog/best-ai-design-tools-2026/>
+HyperCLOVA	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+HyperWrite	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+IBM Watson	products_and_tools	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+IBM Watsonx	products_and_tools	1	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+InstructGPT	products_and_tools	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+InternLM	products_and_tools	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+InternVL	products_and_tools	3	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+IP-adapter	products_and_tools	3	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+Kaggle	products_and_tools	14	5	Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+Keras	products_and_tools	10	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+KerasCV	products_and_tools	0	0	TensorFlow: Libraries & extensions <https://www.tensorflow.org/resources/libraries-extensions>
+KerasNLP	products_and_tools	0	0	TensorFlow: Libraries & extensions <https://www.tensorflow.org/resources/libraries-extensions>
+Khanmigo	products_and_tools	2	0	Wikipedia: Artificial intelligence in education <https://en.wikipedia.org/wiki/Artificial_intelligence_in_education>
+Kimi Code	products_and_tools	1	0	Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+Kling	products_and_tools	35	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Kosmos-1	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+KREA	products_and_tools	13	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+LAION	products_and_tools	1	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+LanceDB	products_and_tools	5	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+langchainjs	products_and_tools	0	0	GitHub org: langchain-ai <https://github.com/langchain-ai>
+Langfuse	products_and_tools	21	1	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Langroid	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LangSmith	products_and_tools	9	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LangWatch	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LazyLLM	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+lerobot	products_and_tools	0	0	GitHub org: huggingface <https://github.com/huggingface>
+LibreChat	products_and_tools	2	1	GitHub: ollama/ollama <https://github.com/ollama/ollama> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+LiteLLM	products_and_tools	23	2	GitHub: stanfordnlp/dspy <https://github.com/stanfordnlp/dspy>
+Litgpt	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LLaVA	products_and_tools	2	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+lm-evaluation-harness	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LMDeploy	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+LMQL	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+LMSYS	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+Luma Dream Machine	products_and_tools	2	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Magentic-One	products_and_tools	0	0	GitHub: microsoft/autogen <https://github.com/microsoft/autogen>
+Magnific	products_and_tools	8	3	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Marqo	products_and_tools	0	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+Mastra	products_and_tools	5	1	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+MatterGen	products_and_tools	0	0	Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence>
+Megatron-LM	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Megatron-Turing NLG	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+MetaGPT	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Milvus	products_and_tools	9	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+MindSpore	products_and_tools	3	0	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+MiniCPM	products_and_tools	2	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+MIPROv2	products_and_tools	0	0	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+MITRE ATLAS	products_and_tools	8	0	Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent>
+MLflow	products_and_tools	26	1	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+MLlib	products_and_tools	0	0	Databricks Glossary <https://www.databricks.com/glossary>
+MLX	products_and_tools	11	2	Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+MLX LM	products_and_tools	1	0	Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+MLX-LM	products_and_tools	1	0	Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+MusicGen	products_and_tools	0	0	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+MusicLM	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+MuZero	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+MXFP4	products_and_tools	4	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+nanotron	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+NeMo Framework	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Nightcafe	products_and_tools	3	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+NightCafe Studio	products_and_tools	0	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+NLWeb	products_and_tools	1	0	Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent>
+Notebook LM	products_and_tools	2	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+NVFP4	products_and_tools	11	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+OLMo	products_and_tools	2	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+ONNX	products_and_tools	24	2	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software> | Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+ONNX Runtime	products_and_tools	5	1	Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+Open Interpreter	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Open WebUI	products_and_tools	8	0	GitHub: ollama/ollama <https://github.com/ollama/ollama> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+OpenAssistant	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+OpenBMB	products_and_tools	2	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+OpenCode	products_and_tools	64	4	GitHub: ollama/ollama <https://github.com/ollama/ollama> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+OpenCog	products_and_tools	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+OpenCV	products_and_tools	14	1	Wikipedia: Machine learning <https://en.wikipedia.org/wiki/Machine_learning>
+OpenELM	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+OpenHands	products_and_tools	12	3	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+OpenLLM	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+OpenRLHF	products_and_tools	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+OpenVINO	products_and_tools	4	0	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+Optax	products_and_tools	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+pgvector	products_and_tools	27	1	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+Phenaki	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
+Phind	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+PhotoRoom	products_and_tools	8	1	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Pictory	products_and_tools	4	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Pixtral	products_and_tools	1	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm> | Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+PlaidML	products_and_tools	0	0	Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+Plandex	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+PraisonAI	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+privateGPT	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+PromptBase	products_and_tools	2	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+promptfoo	products_and_tools	8	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+PromptHero	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+PromptPerfect	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+PromptSource	products_and_tools	0	0	Wikipedia: Prompt engineering <https://en.wikipedia.org/wiki/Prompt_engineering>
+PyRIT	products_and_tools	7	0	GitHub org: microsoft (AI repos) <https://github.com/microsoft>
+Qdrant	products_and_tools	22	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+Qodo	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+QuillBot	products_and_tools	14	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+quivr	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+RankBrain	products_and_tools	0	0	Wikipedia: Artificial intelligence in marketing <https://en.wikipedia.org/wiki/Artificial_intelligence_in_marketing>
+RapidMiner	products_and_tools	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Reflexion	products_and_tools	0	0	Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+Replit	products_and_tools	31	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: AI agent <https://en.wikipedia.org/wiki/AI_agent> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+Repomix	products_and_tools	2	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Riffusion	products_and_tools	0	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+RooCode	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+RunDiffusion	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+RWKV	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
+Rytr	products_and_tools	8	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+scikit-learn	products_and_tools	22	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+SciSpace	products_and_tools	7	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+SGLang	products_and_tools	15	1	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+ShareGPT	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+SmolLM	products_and_tools	0	0	Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+SmolVLM	products_and_tools	0	0	Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+Sourcegraph Cody	products_and_tools	0	0	Scrimba: Best AI Coding Assistants 2026 <https://scrimba.com/articles/best-ai-coding-assistants-2026/>
+SPLADE	products_and_tools	0	0	Wikipedia: Retrieval-augmented generation <https://en.wikipedia.org/wiki/Retrieval-augmented_generation>
+Stable Audio	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Stable Horde	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+StableLM	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+StarCoder	products_and_tools	1	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+SuperWhisper	products_and_tools	5	0	Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+SymbolicAI	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+tabnine	products_and_tools	4	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
+TensorBoard	products_and_tools	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+TensorRT	products_and_tools	6	0	NVIDIA AI Enterprise glossary <https://docs.nvidia.com/ai-enterprise/release-9/latest/reference/glossary.html> | Wikipedia: Comparison of deep learning software <https://en.wikipedia.org/wiki/Comparison_of_deep_learning_software>
+TensorStore	products_and_tools	0	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
+TensorZero	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+TorchAO	products_and_tools	0	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+torchtitan	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+torchtune	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+Trainium	products_and_tools	9	0	Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face>
+Uizard	products_and_tools	4	0	Figma: AI design tools resource library <https://www.figma.com/resource-library/ai-design-tools/> | Linearity: 12 Best AI Design Tools 2026 <https://www.linearity.io/blog/best-ai-design-tools-2026/>
+Unsloth	products_and_tools	10	1	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM> | GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+VideoPoet	products_and_tools	0	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+VQGAN-CLIP	products_and_tools	0	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
+WaveNet	products_and_tools	0	0	Wikipedia: Generative artificial intelligence <https://en.wikipedia.org/wiki/Generative_artificial_intelligence> | Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
+Weaviate	products_and_tools	7	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
+WebChatGPT	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+WebGPT	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
+whisper.cpp	products_and_tools	6	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+Wispr Flow	products_and_tools	11	1	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
+wordtune	products_and_tools	2	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai> | Zapier: Best AI productivity tools <https://zapier.com/blog/best-ai-productivity-tools/>
+xgrammar	products_and_tools	1	0	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm>
+XLNet	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+YandexGPT	products_and_tools	0	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
+YouChat	products_and_tools	0	0	Wikipedia: List of chatbots <https://en.wikipedia.org/wiki/List_of_chatbots>
+Zilliz	products_and_tools	0	0	Wikipedia: Vector database <https://en.wikipedia.org/wiki/Vector_database>
