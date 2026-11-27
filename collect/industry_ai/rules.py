@@ -53,6 +53,18 @@ class Item:
     #: step 1) - and which kinds they are. None / () = none found or not read.
     media_text: str | None = None
     media_text_from: tuple[str, ...] = ()
+    #: THE FIRST PICTURE'S LINK, from the provider's own response (media.*_picture,
+    #: #679 step 3). For this run's picture-text reader only; NEVER STORED.
+    picture_url: str | None = None
+    #: TEXT READ FROM THE FIRST PICTURE (collect/industry_ai/ocr.py), in SHADOW MODE:
+    #: it decides no label (`ocr.affects_labels: false`), it only sets the flags of
+    #: `picture_text_flags`. `ocr_text` is every word Tesseract returned, space
+    #: separated, and `ocr_confidence` each word's confidence (0-100) in the same
+    #: order, so `ocr.min_confidence` can be set from the shadow week's hand-check
+    #: without fetching a picture again. `ocr_status`: None = not tried (rule 6).
+    ocr_text: str | None = None
+    ocr_confidence: tuple[int, ...] = ()
+    ocr_status: str | None = None
 
     @property
     def text(self) -> str:
@@ -533,6 +545,49 @@ def needed_media_text(item: Item, cfg: Config) -> bool:
 
     own, _, _ = sieve(dataclasses.replace(item, media_text=None), cfg)
     return own is not None
+
+
+# ── TEXT IN THE PICTURE, SHADOW MODE (#679 step 3, anooj, 2026-11-26) ───────────
+#
+#: On a "not readable" post whose picture text, at `ocr.min_confidence`, would have
+#: let it through: its caption plus that text pass the sieve and are no longer too
+#: little to read. Its label is unchanged (shadow mode); this is what the shadow
+#: week counts and hand-checks before `ocr.affects_labels` may be set (rule 8).
+PICTURE_TEXT_FLAG = "picture_text_would_pass"
+#: ...and the ONLY AI term the picture text added is `ai` (Parvathi, #683 review):
+#: the case most exposed to stray letters read from a photo or art.
+PICTURE_TEXT_AI_ONLY_FLAG = "picture_text_only_ai"
+#: Statuses of one picture read (`iai_item.ocr_status`); NULL = not tried.
+OCR_STATUSES = ("ok", "no_text", "failed", "too_large", "over_cap", "refused")
+
+
+def picture_words(item: Item, min_confidence: int) -> str:
+    """The words of `ocr_text` whose confidence is at least `min_confidence`."""
+    words = (item.ocr_text or "").split()
+    if len(words) != len(item.ocr_confidence):
+        # A text and its confidences that disagree are not guessed at (rule 12).
+        raise ValueError(f"{item.id}: {len(words)} picture word(s) but "
+                         f"{len(item.ocr_confidence)} confidence(s)")
+    return " ".join(w for w, c in zip(words, item.ocr_confidence, strict=True)
+                    if c >= min_confidence)
+
+
+def picture_text_flags(item: Item, cfg: Config) -> list[str]:
+    """The shadow flags for a "not readable" post with picture text, or []."""
+    if not item.ocr_text:
+        return []
+    import dataclasses
+
+    words = picture_words(item, int(cfg.ocr["min_confidence"]))
+    if not words:
+        return []
+    seen = dataclasses.replace(
+        item, media_text="\n".join(t for t in (item.media_text, words) if t))
+    why, _, ai = sieve(seen, cfg)
+    if why is not None or too_little_to_read(seen, cfg):
+        return []
+    added = set(ai) - set(ai_terms_found(judged_text(item), cfg))
+    return [PICTURE_TEXT_FLAG] + ([PICTURE_TEXT_AI_ONLY_FLAG] if added == {"ai"} else [])
 
 
 def media_text_changed_filing(item: Item, matched: dict[str, dict], cfg: Config) -> bool:

@@ -119,7 +119,9 @@ def test_a_missing_table_is_every_column_missing(conn):
 
     conn.execute("DROP TABLE iai_item CASCADE")
     conn.commit()
-    assert store.missing_columns(conn) == list(store._COLUMNS)
+    # The picture-text columns too (#679 step 3): written by their own reader, not the
+    # upsert, and a run must still refuse before any request when they are missing.
+    assert store.missing_columns(conn) == [*store._COLUMNS, *store.OCR_COLUMNS]
 
 
 def test_a_clean_run_labels_and_records_its_times(wired, conn):

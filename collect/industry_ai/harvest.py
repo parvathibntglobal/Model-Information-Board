@@ -176,6 +176,7 @@ def _reddit_item(post) -> Item:
         link=dest,
         media_kind=media.reddit(raw),
         **_with_media_text(media.reddit_text(raw)),
+        picture_url=media.reddit_picture(raw),
     )
 
 
@@ -194,6 +195,7 @@ def _x_item(post) -> Item:
         link=first_link(post.text),
         media_kind=media.x(getattr(post, "payload", None)),
         **_with_media_text(media.x_text(getattr(post, "payload", None))),
+        picture_url=media.x_picture(getattr(post, "payload", None)),
     )
 
 
@@ -261,6 +263,7 @@ def _bluesky_item(hit) -> Item:
         link=first_link(hit.text),
         media_kind=media.bluesky(getattr(hit, "raw", None) or {}),
         **_with_media_text(media.bluesky_text(getattr(hit, "raw", None) or {})),
+        picture_url=media.bluesky_picture(getattr(hit, "raw", None) or {}),
     )
 
 
@@ -287,6 +290,7 @@ def _instagram_item(node: dict) -> Item:
         engagement={"likes": likes, "comments": comments},
         link=first_link(text),
         media_kind=media.instagram(node),
+        picture_url=media.instagram_picture(node),
     )
 
 
@@ -438,13 +442,34 @@ def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, s
                                       status="skipped", detail=reason) for q in wanted]
             continue
         before = out.requests[platform]
-        for q in wanted:
+        # A PROVIDER THAT IS DOWN STOPS COSTING THE RUN (2026-11-27): on 26 Nov
+        # Instagram's provider failed for 64 accounts (49 timeouts, 15 HTTP 500s),
+        # ~95 s each (two attempts), the last 62 one after another. The observer
+        # spent 2 h 7 min on it and was cancelled at the job's 180-minute limit
+        # before labelling. After
+        # `watch.stop_after_failures` queries IN A ROW fail on one platform, the rest
+        # of its list is not asked this run: each is `skipped`, with why, so the run
+        # log and the summary say "not asked", never "found nothing" (rule 4). One
+        # answered query resets the count, so a few scattered failures stop nothing.
+        stop_after = int(cfg.watch["stop_after_failures"])
+        failed_in_a_row = 0
+        for i, q in enumerate(wanted):
             stat = QueryStat(f"watch:{platform}:{q}", "watch", platform, q)
             out.queries.append(stat)
+            if failed_in_a_row >= stop_after:
+                stat.status = "skipped"
+                stat.detail = (f"not asked: the {stop_after} {platform} queries before it "
+                               "failed in a row (provider failing)")
+                continue
             items = _run_query(
                 runner, q, stat, budget, out, platform,
                 cap_note=f"watch {platform} request cap reached ({caps[platform]})",
             )
+            failed_in_a_row = failed_in_a_row + 1 if stat.status == "error" else 0
+            if failed_in_a_row == stop_after and i + 1 < len(wanted):
+                out.notes.append(
+                    f"watch {platform}: stopped after {stop_after} failed queries in a row; "
+                    f"{len(wanted) - i - 1} not asked this run (watch.stop_after_failures)")
             for it in items or []:
                 out.add(it, domain=None, key=stat.key)
         quota = getattr(runner, "quota", None)

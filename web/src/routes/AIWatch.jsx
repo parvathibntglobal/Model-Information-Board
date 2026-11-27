@@ -35,6 +35,12 @@ const TAB_LABEL = {
 }
 /** What a not-readable post's media was (`media_kind`, collect/industry_ai/media.py). */
 const MEDIA_LABEL = { image: 'A picture', gallery: 'Several pictures', video: 'A video' }
+/** What reading a not-readable picture's text did (`ocr_status`, #679 step 3, shadow
+ *  mode). `not_tried` is a picture nobody tried to read - not "no text" (rule 4). */
+const PICTURE_READ_LABEL = {
+  ok: 'Text read', no_text: 'No text found', failed: 'Could not be read', too_large: 'Too large',
+  over_cap: 'Over the run’s limit', refused: 'Refused by robots.txt', not_tried: 'Not tried',
+}
 const FILTERS = ['type', 'platform', 'kind', 'reason', 'domain', 'source', 'account', 'person', 'q']
 const FILTER_LABEL = {
   type: 'Content type', platform: 'Platform', kind: 'Kind', reason: 'Reason', domain: 'Industry',
@@ -481,6 +487,19 @@ export default function AIWatch() {
                 </p>
                 {Object.keys(data.unread_by_media || {}).length > 0 && (
                   <Bars counts={sorted(data.unread_by_media)} labels={MEDIA_LABEL} />
+                )}
+                {Object.keys(data.unread_pictures_by_read || {}).some((k) => k !== 'not_tried') && (
+                  <>
+                    <h3>The text in their pictures (shadow mode)</h3>
+                    <p className="dim iai-note">
+                      The first picture of a not-readable picture post is read for its text, where the picture&apos;s host
+                      allows it. That text decides nothing yet: it is counted, and checked by hand, before it can.{' '}
+                      With their picture&apos;s text,{' '}
+                      <span className="tnum">{data.unread_pictures_would_pass}</span> would have passed the AI and
+                      industry word check.
+                    </p>
+                    <Bars counts={sorted(data.unread_pictures_by_read)} labels={PICTURE_READ_LABEL} />
+                  </>
                 )}
               </section>
               <Posts scope="unread" params={params} update={update} />

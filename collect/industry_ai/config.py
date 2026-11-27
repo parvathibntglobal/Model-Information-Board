@@ -59,6 +59,8 @@ TOP_KEYS = {
     "domains",
     "watch",
     "retention",
+    # Text in a "not readable" post's first picture (#679 step 3), shadow mode.
+    "ocr",
     # What each pipeline_version changed, one line each, for the Info view
     # (judge/industry_ai/view.py reads it; the rules never do). #668, 2026-11-25.
     "versions",
@@ -66,6 +68,9 @@ TOP_KEYS = {
 #: `retention:` (anooj, 2026-11-24): when a stored item's TEXT is cleared. Rows are
 #: never deleted - the page's counts need them.
 RETENTION_KEYS = {"clear_text_after_days", "dropped", "unread", "kept_domains"}
+#: `ocr:` (#679 step 3; CLAUDE.md's fourth fetch exception, #683).
+OCR_KEYS = {"enabled", "affects_labels", "max_per_run", "max_bytes", "min_confidence",
+            "timeout_seconds"}
 
 # ── THE OBSERVER (watch lists; anooj, 2026-11-20) ────────────────────────────
 #: The platforms whose watch lists the code READS today. A list for any other
@@ -73,7 +78,7 @@ RETENTION_KEYS = {"clear_text_after_days", "dropped", "unread", "kept_domains"}
 #: until its runner exists - a refused list cannot be mistaken for a watched one.
 WATCH_PLATFORMS = ("reddit", "x", "bluesky", "hackernews", "instagram")
 WATCH_KEYS = {"enabled", "lookback_days", "max_requests", "x_pages", "x_club_max", "x_suffix",
-              "people", "cross_post_hours", *WATCH_PLATFORMS}
+              "people", "cross_post_hours", "stop_after_failures", *WATCH_PLATFORMS}
 #: The platforms whose watched ACCOUNTS a person can be mapped across (Reddit watches
 #: communities, not people).
 PEOPLE_PLATFORMS = ("x", "bluesky", "hackernews")
@@ -223,6 +228,8 @@ class Config:
     #: `retention:`, parsed (`_retention`): clear_text_after_days, dropped, unread,
     #: kept_domains.
     retention: dict[str, Any] = field(default_factory=dict)
+    #: `ocr:`, parsed (`_ocr`).
+    ocr: dict[str, Any] = field(default_factory=dict)
     #: Registry model names, added to `ai_terms` at run time (read-only).
     extra_ai_terms: tuple[str, ...] = field(default=())
 
@@ -431,7 +438,8 @@ def _watch(raw: Any, suffix: dict[str, str]) -> dict[str, Any]:
         _need(raw, key, where)
     if not isinstance(raw["enabled"], bool):
         raise IndustryAIConfigError("watch.enabled must be true or false")
-    for key in ("lookback_days", "x_pages", "x_club_max", "cross_post_hours"):
+    for key in ("lookback_days", "x_pages", "x_club_max", "cross_post_hours",
+                "stop_after_failures"):
         _whole(raw[key], f"watch.{key}")
     caps = raw["max_requests"]
     _known(caps, set(WATCH_PLATFORMS), "watch.max_requests")
@@ -459,6 +467,7 @@ def _watch(raw: Any, suffix: dict[str, str]) -> dict[str, Any]:
         "x_club_max": int(raw["x_club_max"]),
         "x_suffix": raw["x_suffix"].strip(),
         "cross_post_hours": int(raw["cross_post_hours"]),
+        "stop_after_failures": int(raw["stop_after_failures"]),
         "reddit": _handles(raw["reddit"], _REDDIT_SUB, "watch.reddit"),
         "x": _handles(raw["x"], _X_HANDLE, "watch.x"),
         "bluesky": _handles(raw["bluesky"], _BSKY_HANDLE, "watch.bluesky"),
@@ -645,6 +654,7 @@ def parse(raw: dict) -> Config:
         domains=domains,
         watch=_watch(_need(raw, "watch", "top level"), suffix),
         retention=_retention(_need(raw, "retention", "top level"), domains),
+        ocr=_ocr(_need(raw, "ocr", "top level")),
     )
 
 
@@ -734,6 +744,34 @@ def _retention(raw: Any, domains: dict[str, Domain]) -> dict[str, Any]:
         raise IndustryAIConfigError(f"retention.kept_domains: unknown domain(s) {unknown}")
     return {"clear_text_after_days": int(raw["clear_text_after_days"]),
             "dropped": raw["dropped"], "unread": raw["unread"], "kept_domains": tuple(kept)}
+
+
+def _ocr(raw: Any) -> dict[str, Any]:
+    """`ocr:`, every key required (rule 12). `affects_labels` must be false: picture
+    text deciding a label is a separate, reviewed change after the shadow week
+    (#683), and this code has no path for it - true is refused, never half-obeyed."""
+    where = "ocr"
+    if not isinstance(raw, dict):
+        raise IndustryAIConfigError(f"{where} must be a mapping")
+    _known(raw, OCR_KEYS, where)
+    for key in sorted(OCR_KEYS):
+        _need(raw, key, where)
+    for key in ("enabled", "affects_labels"):
+        if not isinstance(raw[key], bool):
+            raise IndustryAIConfigError(f"ocr.{key} must be true or false")
+    if raw["affects_labels"]:
+        raise IndustryAIConfigError(
+            "ocr.affects_labels: true is not built - picture text decides no label until "
+            "a reviewed change after the shadow week (#683)")
+    for key in ("max_per_run", "max_bytes", "timeout_seconds"):
+        _whole(raw[key], f"ocr.{key}")
+    conf = _whole(raw["min_confidence"], "ocr.min_confidence", positive=False)
+    if conf > 100:
+        raise IndustryAIConfigError(
+            "ocr.min_confidence must be 0-100 (Tesseract's word confidence)")
+    return {"enabled": raw["enabled"], "affects_labels": False,
+            "max_per_run": int(raw["max_per_run"]), "max_bytes": int(raw["max_bytes"]),
+            "min_confidence": conf, "timeout_seconds": int(raw["timeout_seconds"])}
 
 
 def load(path: Path | None = None) -> Config:

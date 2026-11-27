@@ -2174,6 +2174,21 @@ columns:
       state: read
       why: >-
         Which kinds media_text holds (alt_text, quoted_post, crosspost_parent). Written by store.upsert_items, read back by store.load_items onto Item.media_text_from. Read by judge/industry_ai/view.py _items into each post's `media_text_from`, which web/src/industry-ai/posts.jsx MatchedInMedia shows on a post flagged terms_from_media_text ("matched partly on words that are not the author's own: the post it quotes"; #680 review, 2026-11-26). Also what lets a count say which kind of text recovered a post (#679 step 4).
+    ocr_text:
+      reviewed: true
+      state: read
+      why: >-
+        Text read from a "not readable" post's first picture, shadow mode (collect/industry_ai/ocr.py, #679 step 3; CLAUDE.md's fourth fetch exception, #683). Written by store.write_picture_reads, read back by store.load_items onto Item.ocr_text; read by rules.picture_text_flags (via pipeline.evaluate) to set picture_text_would_pass / picture_text_only_ai. Decides no label. Cleared by store.clear_picture_text after retention.clear_text_after_days whatever the label. Not shown on any page.
+    ocr_confidence:
+      reviewed: true
+      state: read
+      why: >-
+        Each ocr_text word's Tesseract confidence (0-100), in the same order. Written by store.write_picture_reads, read back by store.load_items; read by rules.picture_words, which keeps only words at or above the contract's ocr.min_confidence. Kept so that threshold can be set from the shadow week's hand-check without fetching a picture again.
+    ocr_status:
+      reviewed: true
+      state: read
+      why: >-
+        The outcome of one picture read: ok, no_text, failed, too_large, over_cap, refused (robots.txt); NULL = not tried. Written by store.write_picture_reads; read by store.ocr_status_of (which posts a run may try again) and by judge/industry_ai/view.py ai_watch_view (the "not readable" pictures counted by status, so "not tried" never reads as "no text").
     matched_terms:
       reviewed: true
       state: read
