@@ -49,7 +49,9 @@ version: 1
 # iai-8: the AI Watch review (2026-11-27, agreed with the team): a flag for product
 #        support chatter on Reddit (limits, billing, bans, errors, outages), never a
 #        drop; and a flag pattern may carry `unless` patterns that keep it off.
-pipeline_version: iai-8
+# iai-9: 479 more AI terms (289 -> 768) from public glossaries, each checked by hand
+#        (2026-11-27; docs/measurements/ai-terms-2026-11-27.md).
+pipeline_version: iai-9
 # WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
 # read by the AI in industries Info view so "Rules version iai-4" means something
 # on the page. Add a line whenever `pipeline_version` is bumped.
@@ -62,6 +64,7 @@ versions:
   iai-6: "2026-11-26: the text that comes with a post's media (alt text, a quoted post, a Reddit crosspost's original) is matched for AI and industry words too; a post it let through or filed elsewhere is flagged"
   iai-7: "2026-11-26: words inside links and @handles no longer count; seven new flags (GitHub to-do list, AI far from the industry word, market chatter, short X reply, heavy poster, for sale, long post on a weak AI word); \"put away\" in everyday English no longer files a post under Supply chain; a use case must name AI in the same sentence; software senses of supply chain left out; the same text from another account, or cross-posted by anyone, counted once"
   iai-8: "2026-11-27: a new flag on Reddit posts about an AI tool's account rather than its use (usage limits, billing and refunds, bans, error messages, outages), unless the post also says what someone did with the tool"
+  iai-9: "2026-11-27: 479 more AI terms (289 to 768): AI techniques, tools, libraries, model families, benchmarks and datasets from public glossaries, each checked by hand; words with an everyday meaning (Cursor, transformer, inference) left out"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -531,6 +534,501 @@ ai_terms:
   # codexes) rescued 7, all outside Engineering, none a Warhammer codex: they name
   # OpenAI Codex, its `codex/` branches, or a list of AI products. Re-read
   # both when Healthcare or a hobby query first returns them.
+  # ── ADDED 2026-11-27 (anooj): 479 terms from reputable glossaries ──────────────
+  # Collected from 3,272 candidates in public glossaries and lists: NIST AI 100-3 and
+  # AI 100-2, the JRC human-centric AI glossary, the EU AI Act (Art. 3), the ICO,
+  # Stanford HAI, MIT, CMU, Harvard, the Google ML glossary, Hugging Face, AWS,
+  # Databricks, NVIDIA, IBM, Anthropic, Wikipedia's AI glossaries and lists, and the
+  # official sites of AI tools. Each term, with every source that named it, is in
+  # docs/measurements/ai-terms-2026-11-27.tsv; the method in
+  # docs/measurements/ai-terms-2026-11-27.md. KEPT ONLY WHEN ITS MEANING IS AI and
+  # ordinary English, a person's name or another trade does not use the same string
+  # (matched as whole words in ANY case, `.ai` removed first). Not added: 380 that
+  # contain a term above (they match nothing new), names that are words (Bolt, Cursor,
+  # Whisper, Harvey), generic words (data, model, agent, inference, GPU). 8 more were
+  # dropped after reading 40 of the posts the list would newly match (see the doc).
+  # machine-learning and LLM techniques, safety attacks, AI applications:
+  - activation function
+  - Actor-critic algorithm
+  - AdaGrad
+  - adversarial example
+  - Adversarial Attack
+  - Affective computing
+  - AlexNet
+  - Approximate nearest neighbor
+  - attention mask
+  - Attention Mechanism
+  - autoencoder
+  - autoencoding models
+  - Auto-Regressive Model
+  - autoregressive models
+  - Backpropagation
+  - bag of words
+  - batch normalization
+  - Bellman equation
+  - byte-pair encoding
+  - Catastrophic forgetting
+  - connectionist temporal classification
+  - Context engineering
+  - Contrastive Learning
+  - convolutional filter
+  - convolutional layer
+  - convolutional operation
+  - cross-entropy
+  - Data augmentation
+  - data poisoning
+  - decoder models
+  - Deep Q-Network
+  - DQN
+  - DeepDream
+  - discriminative model
+  - dropout regularization
+  - embedding layer
+  - embedding space
+  - embedding vector
+  - word embedding
+  - Word embeddings
+  - Embeddings
+  - emergent abilities
+  - ensemble learning
+  - epsilon greedy policy
+  - exploding gradient problem
+  - vanishing gradient problem
+  - explainability
+  - mechanistic interpretability
+  - Feature engineering
+  - Feature Store
+  - federated learning
+  - one-shot learning
+  - One-shot prompting
+  - FlashAttention
+  - forget gate
+  - Foundational Models
+  - GANs
+  - generative adversarial network
+  - generative model
+  - gradient descent
+  - stochastic gradient descent
+  - gradient boosting
+  - Gradient Checkpointing
+  - gradient clipping
+  - gradient accumulation
+  - GraphRAG
+  - grokking
+  - groundedness
+  - Group Relative Policy Optimization (GRPO)
+  - hidden Markov model
+  - Hyperparameter
+  - hyperparameters
+  - hyperparameter tuning
+  - hyperparameter optimization
+  - human-in-the-loop
+  - inpainting
+  - k-means
+  - k-means clustering
+  - k-nearest neighbor
+  - k-Nearest Neighbors
+  - K-nearest neighbor algorithm
+  - k-nearest neighbors algorithm
+  - KNN
+  - Knowledge Distillation
+  - learning rate
+  - logits
+  - Long Short-Term Memory
+  - Low-Rank Adaptability
+  - meta-learning
+  - mini-batch
+  - Model Drift
+  - concept drift
+  - data drift
+  - model card
+  - model training
+  - multi-head self-attention
+  - self-attention
+  - self-attention mechanism
+  - Multimodal Model
+  - multimodal models
+  - Named Entity Recognition
+  - Named-entity recognition
+  - natural language understanding
+  - Natural language generation
+  - NLU
+  - NLG
+  - Negative prompt
+  - Neuromorphic computing
+  - Next-token prediction
+  - one-hot encoding
+  - overfitting
+  - underfitting
+  - PagedAttention
+  - Parameter-Efficient Tuning
+  - peft
+  - perceptron
+  - Policy gradient
+  - positional encoding
+  - Pre-Trained Model
+  - pretrained model
+  - prompt chaining
+  - prompt design
+  - prompt stuffing
+  - Prompt Tuning
+  - Prompt-based Learning
+  - Role Prompting
+  - Soft prompting
+  - Soft Prompt Tuning
+  - least-to-most prompting
+  - plan-and-solve
+  - Tree-of-thought
+  - tree-of-thought prompting
+  - Q-learning
+  - QLoRA
+  - Rectified Linear Unit
+  - ReLU
+  - representation learning
+  - Reward hacking
+  - Reward function
+  - Recursive Self-Improvement
+  - Scaling Laws
+  - Self-organizing map
+  - Sentiment Analysis
+  - seq2seq
+  - sequence-to-sequence
+  - skip-gram
+  - softmax
+  - Speech synthesis
+  - support vector machines
+  - Support Vector Machine
+  - Support-vector machine
+  - SVM
+  - Swarm intelligence
+  - synthetic media
+  - t-distributed stochastic neighbor embedding
+  - text-to-music
+  - image-to-image
+  - textual inversion
+  - tokenizer
+  - Vision Transformer
+  - variational autoencoder
+  - variational autoencoders
+  - Word2Vec
+  - WordPiece
+  - World model
+  - World models
+  - Turing Test
+  - Technological singularity
+  - intelligence explosion
+  - Membership inference attack
+  - membership-inference attack
+  - Model inversion attack
+  - backdoor poisoning attack
+  - model extraction
+  - training data extraction
+  - label flipping
+  - Agent harness
+  - agent orchestration
+  - Agent2Agent
+  - Agent2Agent protocol
+  - Intelligent Agent
+  - intelligent automation
+  - cognitive computing
+  - expert system
+  - Expert systems
+  - Genetic Algorithm
+  - Genetic algorithms
+  - facial recognition
+  - image recognition
+  - Machine Translation
+  - Emotion Recognition
+  - autonomous vehicle
+  - autonomous car
+  - robotaxi
+  - random forest
+  - Workslop
+  - Gibberlink
+  - Switch Transformer
+  - Zero Redundancy Optimizer
+  # AI products, libraries, frameworks and model families:
+  - Agentforce
+  - AgentGPT
+  - AgentMail
+  - Aibo
+  - AIOps
+  - AlexaTM
+  - Amazon Nova
+  - Amazon Q
+  - Amazon Q Developer
+  - AnythingLLM
+  - Apache MXNet
+  - Apache SINGA
+  - Arize
+  - Artbreeder
+  - AudioCraft
+  - Augmedix
+  - Automatic1111
+  - AutoRAG
+  - AWS Bedrock
+  - babyagi
+  - Baichuan
+  - BentoML
+  - BigCode
+  - bitnet.cpp
+  - Black Forest Labs
+  - BloombergGPT
+  - BLOOMZ
+  - Botpress
+  - Cerebras
+  - Chainlit
+  - ChatGLM
+  - ChatPDF
+  - ChatSonic
+  - Civitai
+  - Claygent
+  - Cleanlab
+  - Cleverbot
+  - ClipDrop
+  - CoCounsel
+  - Codeium
+  - CodeRabbit
+  - Codestral
+  - Cognigy
+  - ColBERT
+  - Colossyan
+  - CogVLM
+  - Craiyon
+  - DBRX
+  - DeepL
+  - Deeplearning4j
+  - DeepScribe
+  - DeepSpeed
+  - Descript
+  - Dify
+  - DiffusionDB
+  - Dlib
+  - DragGAN
+  - DreamBooth
+  - DreamStudio
+  - Embedchain
+  - ESMFold
+  - exllama
+  - Fastai
+  - FastChat
+  - FasterTransformer
+  - FinChat
+  - FlashInfer
+  - FlashMLA
+  - Flaxformer
+  - Fliki
+  - FlowGPT
+  - Flux.1 Kontext
+  - FunSearch
+  - GGUF
+  - GigaChat
+  - Giskard
+  - Gitingest
+  - Google Antigravity
+  - gpt4all
+  - GPTQ
+  - Groq
+  - Gumloop
+  - Harmonai
+  - HyperCLOVA
+  - HyperWrite
+  - IBM Watson
+  - IBM Watsonx
+  - InstructGPT
+  - InternLM
+  - InternVL
+  - IP-adapter
+  - Keras
+  - KerasCV
+  - KerasNLP
+  - Khanmigo
+  - Kimi Code
+  - KREA
+  - Kosmos-1
+  - LAION
+  - LanceDB
+  - langchainjs
+  - Langfuse
+  - Langroid
+  - LangSmith
+  - LangWatch
+  - LazyLLM
+  - lerobot
+  - LibreChat
+  - LiteLLM
+  - Litgpt
+  - LLaVA
+  - lm-evaluation-harness
+  - LMDeploy
+  - LMQL
+  - LMSYS
+  - Luma Dream Machine
+  - Magentic-One
+  - Marqo
+  - Mastra
+  - MatterGen
+  - Megatron-LM
+  - Megatron-Turing NLG
+  - MetaGPT
+  - MindSpore
+  - MiniCPM
+  - MIPROv2
+  - MITRE ATLAS
+  - MLflow
+  - MLlib
+  - MLX
+  - MLX LM
+  - MLX-LM
+  - MusicGen
+  - MusicLM
+  - MuZero
+  - MXFP4
+  - NVFP4
+  - nanotron
+  - NeMo Framework
+  - Nightcafe
+  - NightCafe Studio
+  - NLWeb
+  - Notebook LM
+  - OLMo
+  - ONNX
+  - ONNX Runtime
+  - Open Interpreter
+  - Open WebUI
+  - OpenAssistant
+  - OpenBMB
+  - OpenCog
+  - OpenCV
+  - OpenELM
+  - OpenLLM
+  - OpenRLHF
+  - OpenVINO
+  - Optax
+  - OpenCode
+  - OpenHands
+  - pgvector
+  - Phenaki
+  - PhotoRoom
+  - Phind
+  - Pictory
+  - Pixtral
+  - Plandex
+  - PlaidML
+  - PraisonAI
+  - privateGPT
+  - PromptBase
+  - PromptHero
+  - PromptPerfect
+  - PromptSource
+  - promptfoo
+  - PyRIT
+  - Qdrant
+  - Qodo
+  - QuillBot
+  - quivr
+  - RankBrain
+  - RapidMiner
+  - Reflexion
+  - Replit
+  - Repomix
+  - Riffusion
+  - RooCode
+  - RunDiffusion
+  - RWKV
+  - Rytr
+  - SciSpace
+  - scikit-learn
+  - SGLang
+  - ShareGPT
+  - SmolLM
+  - SmolVLM
+  - Sourcegraph Cody
+  - SPLADE
+  - Stable Audio
+  - Stable Horde
+  - StableLM
+  - StarCoder
+  - SuperWhisper
+  - SymbolicAI
+  - tabnine
+  - TensorBoard
+  - TensorRT
+  - TensorStore
+  - TensorZero
+  - torchtune
+  - torchtitan
+  - TorchAO
+  - Trainium
+  - Uizard
+  - Unsloth
+  - VideoPoet
+  - VQGAN-CLIP
+  - WaveNet
+  - Weaviate
+  - WebChatGPT
+  - WebGPT
+  - whisper.cpp
+  - Wispr Flow
+  - wordtune
+  - XLNet
+  - xgrammar
+  - YandexGPT
+  - YouChat
+  - Zilliz
+  - Kaggle
+  - Higgsfield
+  - Magnific
+  - Hermes Agent
+  - AlphaFold
+  - AlphaGo
+  - AlphaZero
+  - AlphaDev
+  - AlphaEvolve
+  - AlphaGeometry
+  - AlphaTensor
+  - diffusers
+  - Milvus
+  # AI benchmarks and datasets:
+  - AIR-Bench
+  - AlpacaEval
+  - ANN-Benchmarks
+  - BIG-bench
+  - BLEURT
+  - BoolQ
+  - GPQA
+  - GPQA Diamond
+  - GSM8K
+  - HumanEval
+  - MMMU
+  - MBPP
+  - SuperGLUE
+  - SimpleQA
+  - FrontierMath
+  - LiveBench
+  - MixEval
+  - OlympicArena
+  - PlanBench
+  - SciBench
+  - TAT-QA
+  - TyDi QA
+  - VisualWebArena
+  - XL-Sum
+  - MMedBench
+  - LawBench
+  - InfiBench
+  - CompassRank
+  - AudioSet
+  - LJSpeech
+  - MovieLens
+  - ImageNet
+  - FineWeb
+  - RealToxicityPrompts
+  - HELM Safety
+  - ExploitGym
+  - SWE-Lancer
+  - Winograd Schema Challenge
+  - MNIST
 
 # THE BARE WORD "AI": since 2026-11-24 "ai" is in the list above, so it counts in
 # ANY case as a whole word: "AI fraud detection" and "an ai shopping assistant"
