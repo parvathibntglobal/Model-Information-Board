@@ -234,7 +234,14 @@ def read_picture_text(conn, cfg, fresh, items, results, say) -> str:
     linked = [it for it in fresh if it.picture_url]
     stored = iai_store.ocr_status_of(conn, [it.id for it in linked]) if linked else {}
     conn.commit()  # the status read is done; nothing is held across the downloads
-    wanted = ocr.candidates(linked, results, stored)
+    # A post first stored before the retention cutoff would be read and then cleared
+    # in this same run (#687 review), so it is not a candidate.
+    loaded = {it.id: it for it in items}
+    not_before = datetime.now(UTC) - timedelta(days=int(cfg.retention["clear_text_after_days"]))
+    wanted = ocr.candidates(
+        linked, results, stored, not_before=not_before,
+        first_seen={i: (loaded[i].first_seen_at if i in loaded else None)
+                    for i in (it.id for it in linked)})
     with build_client(timeout=float(cfg.ocr["timeout_seconds"])) as client:
         gate = RobotsGate(client, user_agent=settings().user_agent)
         reads = ocr.read_pictures(wanted, cfg.ocr, client=client, gate=gate)

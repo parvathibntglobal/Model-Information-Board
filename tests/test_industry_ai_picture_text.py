@@ -200,8 +200,16 @@ def test_only_this_runs_not_readable_pictures_with_a_link_and_no_final_answer(cf
     c.picture_url = None
     results, _ = evaluate([a, b, c], cfg, since=NOW - timedelta(days=90), now=NOW)
     stored = {a.id: None, b.id: "no_text", c.id: None}
-    assert [it.id for it in ocr.candidates([a, b, c], results, stored)] == [a.id]
-    assert [it.id for it in ocr.candidates([a], results, {a.id: "over_cap"})] == [a.id]
+    cutoff = NOW - timedelta(days=30)
+    kw = {"first_seen": {}, "not_before": cutoff}
+    assert [it.id for it in ocr.candidates([a, b, c], results, stored, **kw)] == [a.id]
+    assert [it.id for it in ocr.candidates([a], results, {a.id: "over_cap"}, **kw)] == [a.id]
+    # #687 review: a post first stored before the retention cutoff would be read and
+    # then cleared in the same run, so it is not a candidate; one seen since is.
+    old = {"first_seen": {a.id: cutoff - timedelta(days=1)}, "not_before": cutoff}
+    assert ocr.candidates([a], results, {a.id: "over_cap"}, **old) == []
+    young = {"first_seen": {a.id: cutoff + timedelta(days=1)}, "not_before": cutoff}
+    assert [it.id for it in ocr.candidates([a], results, {a.id: None}, **young)] == [a.id]
 
 
 def test_platforms_then_accounts_take_turns_newest_first():

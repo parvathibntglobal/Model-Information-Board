@@ -50,15 +50,22 @@ class PictureRead:
     detail: str = ""
 
 
-def candidates(items: list[Item], results: dict,
-               stored_status: dict[str, str | None]) -> list[Item]:
+def candidates(items: list[Item], results: dict, stored_status: dict[str, str | None], *,
+               first_seen: dict[str, datetime | None], not_before: datetime) -> list[Item]:
     """This run's posts labelled "not readable", with a picture link, not yet read
-    to a final answer. `stored_status` is each id's `ocr_status` in the database."""
+    to a final answer. `stored_status` is each id's `ocr_status` in the database.
+
+    NOT A POST ALREADY PAST THE RETENTION CUTOFF (#687 review): `first_seen` (each
+    id's `first_seen_at`) before `not_before` means `store.clear_picture_text` would
+    empty its text a few lines later in the same run - a fetch for nothing, and a
+    flag whose text is gone at the next relabel. A post with no stored first sight
+    is this run's own, so it is read."""
     return [
         it for it in items
         if it.picture_url and it.media_kind in PICTURE_KINDS
         and (r := results.get(it.id)) is not None and r.stage == UNREAD_STAGE
         and stored_status.get(it.id) in RETRY_STATUSES
+        and ((seen := first_seen.get(it.id)) is None or seen >= not_before)
     ]
 
 
