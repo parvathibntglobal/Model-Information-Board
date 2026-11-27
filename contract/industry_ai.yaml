@@ -812,6 +812,38 @@ retention:
   unread: false
   kept_domains: [personal]
 
+# ── TEXT IN A "NOT READABLE" POST'S PICTURE (#679 step 3; anooj, 2026-11-26) ──────
+# Under CLAUDE.md's FOURTH fetch exception (#683, in force since its merge): the
+# FIRST picture of a post this run labelled "not readable" (an image or gallery
+# with too few words), from the link the provider's own response gave; robots.txt
+# asked for every host and redirect hop; the picture deleted in the same run; only
+# its text kept, cleared after `retention.clear_text_after_days` WHATEVER the
+# post's label (collect/industry_ai/ocr.py, store.clear_picture_text).
+#
+# SHADOW MODE: the text decides no label. A post it would have let through carries
+# `picture_text_would_pass`, and `picture_text_only_ai` too when the only AI term
+# it added is `ai` (#683 review). The shadow week counts and hand-checks those
+# before anything depends on them (rule 8).
+#
+#   enabled          false ships it off; a contract PR turns it on for the week.
+#   affects_labels   must be false: true is refused until a reviewed change after
+#                    the shadow week builds that path.
+#   max_per_run      posts read per run (150, #683). Over it a post is `over_cap`;
+#                    they are taken in turn by platform, then account, newest first.
+#   max_bytes        a larger picture is not downloaded past this (`too_large`).
+#   min_confidence   Tesseract's word confidence (0-100) a word needs to count.
+#                    60 is PROVISIONAL, a starting point and not a measurement:
+#                    every word is stored with its confidence, so the shadow
+#                    week's hand-check sets this from what it reads.
+#   timeout_seconds  per download and per Tesseract read.
+ocr:
+  enabled: false
+  affects_labels: false
+  max_per_run: 150
+  max_bytes: 8000000
+  min_confidence: 60
+  timeout_seconds: 30
+
 # ── THE OBSERVER: watch lists (anooj, 2026-11-20) ─────────────────────────────
 # The Industry AI agent's twin. The queries under `domains:` find posts BY KEYWORD;
 # these lists find them BY WHO OR WHERE - the newest posts of chosen communities,

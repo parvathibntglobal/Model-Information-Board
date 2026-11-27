@@ -176,6 +176,7 @@ def _reddit_item(post) -> Item:
         link=dest,
         media_kind=media.reddit(raw),
         **_with_media_text(media.reddit_text(raw)),
+        picture_url=media.reddit_picture(raw),
     )
 
 
@@ -194,6 +195,7 @@ def _x_item(post) -> Item:
         link=first_link(post.text),
         media_kind=media.x(getattr(post, "payload", None)),
         **_with_media_text(media.x_text(getattr(post, "payload", None))),
+        picture_url=media.x_picture(getattr(post, "payload", None)),
     )
 
 
@@ -261,6 +263,7 @@ def _bluesky_item(hit) -> Item:
         link=first_link(hit.text),
         media_kind=media.bluesky(getattr(hit, "raw", None) or {}),
         **_with_media_text(media.bluesky_text(getattr(hit, "raw", None) or {})),
+        picture_url=media.bluesky_picture(getattr(hit, "raw", None) or {}),
     )
 
 
@@ -287,6 +290,7 @@ def _instagram_item(node: dict) -> Item:
         engagement={"likes": likes, "comments": comments},
         link=first_link(text),
         media_kind=media.instagram(node),
+        picture_url=media.instagram_picture(node),
     )
 
 
