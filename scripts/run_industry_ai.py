@@ -192,6 +192,10 @@ def _summary(run_id: str, mode: str, requests: dict, counts: dict, queries: list
         )
     capped = [q for q in queries if q["status"] == "capped"]
     failed = [q for q in queries if q["status"] == "error"]
+    # NOT ASKED (2026-11-27): a platform refused before it started, or a watch list
+    # stopped after `watch.stop_after_failures` failures in a row. Said here, never
+    # left to read as accounts that posted nothing (rule 4).
+    skipped = [q for q in queries if q["status"] == "skipped"]
     prune = [q for q in queries if q["status"] == "ok" and q["items"] == 0]
     if capped:
         lines += ["", f"{len(capped)} query(ies) not run: request cap reached."]
@@ -199,6 +203,10 @@ def _summary(run_id: str, mode: str, requests: dict, counts: dict, queries: list
         # A failed search is not a prune candidate, so without this line it would
         # appear nowhere in the issue (rule 4; #648 review).
         lines += ["", f"{len(failed)} query(ies) failed - see the run log."]
+    if skipped:
+        by = sorted({q.get("platform") or "?" for q in skipped})
+        lines += ["", f"{len(skipped)} query(ies) not asked ({', '.join(by)}): the platform "
+                  "was refused, or its provider failed several in a row - see the run log."]
     if prune:
         lines += ["", f"{len(prune)} query(ies) returned nothing - prune?"]
     return "\n".join(lines) + "\n"

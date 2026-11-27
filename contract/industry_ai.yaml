@@ -1203,6 +1203,15 @@ watch:
   # same-text posts on different platforms by anyone, with the same window and link
   # conditions; a person's two handles are still matched through `people`.
   cross_post_hours: 6
+  # A PROVIDER THAT IS DOWN STOPS COSTING THE RUN (2026-11-27). After this many watch
+  # queries IN A ROW fail on one platform, the rest of that platform's list is not
+  # asked this run: each is recorded `skipped` ("not asked: provider failing"), never
+  # read as an account that posted nothing (rule 4). An answered query resets the
+  # count. Why: on 26 Nov Instagram's provider timed out on 49 of 200 requests, about
+  # 95 s each (two attempts at the 45 s client timeout), so the observer spent 2 h 7 min
+  # on Instagram and the job was cancelled at its 180-minute limit before labelling.
+  # At 5, a provider that is down costs at most about 8 minutes (5 x 95 s).
+  stop_after_failures: 5
 
 # ── THE DOMAINS: our 20 persona umbrellas (anooj, 2026-11-20) ─────────────────
 # Generated from the persona keyword work; edit freely here from now on.
