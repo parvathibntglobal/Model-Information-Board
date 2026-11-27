@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from functools import lru_cache
+from functools import cache, lru_cache
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from collect.industry_ai.config import DEFAULT_TYPE, Config, Domain, Terms
@@ -245,7 +245,11 @@ def normalized_text(text: str) -> str:
 # ── term matching ────────────────────────────────────────────────────────────
 
 
-@lru_cache(maxsize=4096)
+#: UNBOUNDED (2026-11-27): the terms are a finite list from the contract and the
+#: registry. At 4,096 the AI terms (768 since the expansion), every domain's terms
+#: and the registry's names could outgrow it, and an evicted pattern is recompiled
+#: on every post - a slowdown nothing would report.
+@cache
 def term_pattern(term: str) -> re.Pattern:
     """A term as whole words; a space, hyphen or underscore inside it matches any
     of the three. Case-insensitive."""
@@ -321,9 +325,39 @@ def ai_terms_found(text: str, cfg: Config) -> list[str]:
     (a file type or a web domain) never counts: `global_exclude_phrases` removes it
     before any term is matched. Until 2026-11-24 (#660) a capitals-only "AI" was
     added here when nothing else matched; with `ai` in the list that could never
-    add anything, so it is gone."""
+    add anything, so it is gone.
+
+    ONLY TERMS WHOSE FIRST WORD IS IN THE TEXT ARE ASKED (2026-11-27): with 768 AI
+    terms, asking every one of every post took 2.7x as long (24.3 s against 9.1 s for
+    2,000 stored posts). A term can only match where its first word stands as a word,
+    so the others cannot match and are skipped. Same answer, same order - pinned
+    against the full loop by tests/test_industry_ai_ai_terms.py."""
     clean = remove(text, cfg.global_exclude)
-    return [t for t in cfg.all_ai_terms if has_term(clean, t)]
+    by_first, always = _ai_terms_by_first_word(cfg.all_ai_terms)
+    present = {w.lower() for w in _ALNUM.findall(clean)}
+    asked = set(always).union(*(by_first[w] for w in present if w in by_first))
+    return [t for t in cfg.all_ai_terms if t in asked and has_term(clean, t)]
+
+
+#: A run of letters or digits: the unit `term_pattern`'s words begin with.
+_ALNUM = re.compile(r"[^\W_]+")
+
+
+@lru_cache(maxsize=8)
+def _ai_terms_by_first_word(terms: tuple[str, ...]) -> tuple[dict[str, frozenset], tuple]:
+    """Terms keyed by their first word's first letters-and-digits run, lower case, as
+    `term_pattern` splits a term (on spaces, hyphens, underscores). A term with no such
+    run is always asked (`always`)."""
+    by: dict[str, set[str]] = {}
+    always = []
+    for t in terms:
+        first = re.split(r"[\s\-_]+", t.strip())[0]
+        m = _ALNUM.search(first)
+        if m:
+            by.setdefault(m.group(0).lower(), set()).add(t)
+        else:
+            always.append(t)
+    return {k: frozenset(v) for k, v in by.items()}, tuple(always)
 
 
 def _near(words: list[str], i: int, context: tuple[str, ...], window: int) -> bool:
@@ -720,14 +754,17 @@ def review_flags(item: Item, cfg: Config) -> list[str]:
     """THE iai-7 FLAGS A POST CAN CARRY ON ITS OWN (the 2026-11-26 kept-post review,
     agreed with the team). Flags, never drops (rule 8): each is counted and its hits
     hand-checked before it could become one.
-      * `flag_patterns`: github_tracking, market_chatter, for_sale, each on its platforms;
+      * `flag_patterns`: github_tracking, market_chatter, for_sale and (iai-8)
+        support_chatter, each on its platforms, and not on a post one of its `unless`
+        patterns matches;
       * reply_fragment: an X reply (its text starts with an @handle) with fewer than
         `run.reply_min_own_words` words once @handles and links are out.
     `ai_far_from_industry` needs the filed industries (`label`) and `heavy_poster` the
     whole collection (pipeline.evaluate)."""
     text = item.text
-    out = [name for name, (plats, pats) in cfg.flag_patterns.items()
-           if (plats is None or item.platform in plats) and _any(pats, text)]
+    out = [name for name, (plats, pats, unless) in cfg.flag_patterns.items()
+           if (plats is None or item.platform in plats) and _any(pats, text)
+           and not _any(unless, text)]
     if item.platform == "x" and text.lstrip().startswith("@"):
         own = remove(text, [_URL, _HANDLE]).split()
         if len(own) < int(cfg.run["reply_min_own_words"]):
