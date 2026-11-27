@@ -1038,7 +1038,8 @@ def ai_watch_view(conn) -> dict[str, Any]:
         # Not readable (iai-5), so found = kept + filtered + waiting + unread.
         "count(*) FILTER (WHERE drop_stage = 'unread'), "
         # KEPT POSTS CARRYING A REVIEW FLAG (2026-11-27, AI Watch review, item 8): which
-        # busy sources are also noisy. Each flag's count is in `flags_by_source` below.
+        # busy sources are also noisy. Each flag's count is in `flag_by_key` /
+        # `flag_by_account` below.
         f"count(*) FILTER (WHERE verdict = 'kept' AND flags && {review})"
     )
     by_key = {

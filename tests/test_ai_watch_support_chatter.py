@@ -87,6 +87,29 @@ def test_shadow_banned_and_a_suspended_person_are_not_support(cfg):
     assert not flagged(item("Lawyer suspended after AI fabricated court cases"), cfg)
 
 
+def test_a_ban_is_an_account_ban_not_policy_news(cfg):
+    # #689 review, point 3.
+    assert flagged(item("I got suddenly banned from ChatGPT, nothing works"), cfg)
+    assert not flagged(item("Italy banned DeepSeek from government phones"), cfg)
+    assert not flagged(item("The agency banned staff from using ChatGPT"), cfg)
+
+
+def test_down_must_end_the_question(cfg):
+    # #689 review, point 4.
+    assert flagged(item("Is Claude down right now?"), cfg)
+    assert not flagged(item("How Claude is breaking down my codebase into modules"), cfg)
+
+
+def test_an_ordinary_later_sentence_does_not_unflag_a_complaint(cfg):
+    # #689 review, point 2: `unless` reads the whole post, so it needs a doing verb.
+    assert flagged(item("Weekly limits on Claude", "These limits are killing my workflow."), cfg)
+    assert flagged(item("Refund for ChatGPT Plus?", "I wrote to support twice, no reply."), cfg)
+    assert flagged(item("Hitting usage limits on Codex", "We made the switch last month."), cfg)
+    assert flagged(item("Hitting usage limits on Codex", "I wrote a long complaint."), cfg)
+    assert not flagged(item("Hitting usage limits on Codex",
+                            "I run my workflow through two accounts now."), cfg)
+
+
 def test_reddit_only(cfg):
     assert not flagged(item("Hitting usage limits on ChatGPT again", platform="bluesky",
                             keys=("watch:bluesky:from:a.bsky.social",)), cfg)
