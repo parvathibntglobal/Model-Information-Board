@@ -1,4 +1,4 @@
-"""The AI term list (773 terms since 2026-11-27) and the matcher that reads it.
+"""The AI term list (772 terms since 2026-11-27) and the matcher that reads it.
 
 Pins:
   * every AI term matches a sentence that names it, so no term is dead on arrival

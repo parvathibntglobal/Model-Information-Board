@@ -246,7 +246,7 @@ def normalized_text(text: str) -> str:
 
 
 #: UNBOUNDED (2026-11-27): the terms are a finite list from the contract and the
-#: registry. At 4,096 the AI terms (773 since the expansion), every domain's terms
+#: registry. At 4,096 the AI terms (772 since the expansion), every domain's terms
 #: and the registry's names could outgrow it, and an evicted pattern is recompiled
 #: on every post - a slowdown nothing would report.
 @cache
@@ -327,7 +327,7 @@ def ai_terms_found(text: str, cfg: Config) -> list[str]:
     added here when nothing else matched; with `ai` in the list that could never
     add anything, so it is gone.
 
-    ONLY TERMS WHOSE FIRST WORD IS IN THE TEXT ARE ASKED (2026-11-27): with 773 AI
+    ONLY TERMS WHOSE FIRST WORD IS IN THE TEXT ARE ASKED (2026-11-27): with 772 AI
     terms, asking every one of every post took 2.7x as long (24.3 s against 9.1 s for
     2,000 stored posts). A term can only match where its first word stands as a word,
     so the others cannot match and are skipped. Same answer, same order - pinned

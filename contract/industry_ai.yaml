@@ -527,7 +527,7 @@ ai_terms:
   # codexes) rescued 7, all outside Engineering, none a Warhammer codex: they name
   # OpenAI Codex, its `codex/` branches, or a list of AI products. Re-read
   # both when Healthcare or a hobby query first returns them.
-  # ── ADDED 2026-11-27 (anooj): 484 terms from reputable glossaries ──────────────
+  # ── ADDED 2026-11-27 (anooj): 483 terms from reputable glossaries ──────────────
   # Collected from 3,272 candidates in public glossaries and lists: NIST AI 100-3 and
   # AI 100-2, the JRC human-centric AI glossary, the EU AI Act (Art. 3), the ICO,
   # Stanford HAI, MIT, CMU, Harvard, the Google ML glossary, Hugging Face, AWS,
@@ -569,7 +569,6 @@ ai_terms:
   - convolutional operation
   - cross-entropy
   - Data augmentation
-  - data labeling
   - data poisoning
   - decoder models
   - Deep Q-Network
