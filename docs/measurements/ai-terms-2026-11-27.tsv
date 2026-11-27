@@ -155,7 +155,6 @@ model extraction	ml_concepts	4	0	NIST AI 100-2e2025 Adversarial ML glossary <htt
 Model inversion attack	ml_concepts	0	0	ICO Guidance on AI and data protection: glossary <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/artificial-intelligence/guidance-on-ai-and-data-protection/glossary/>
 model training	ml_concepts	64	1	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | NIST AI 100-3 The Language of Trustworthy AI glossary <https://airc.nist.gov/glossary/> | US DOT ITS JPO AI definitions and concepts <https://its.dot.gov/research-areas/super-intelligence/focus-areas/learn-connect/definitions-concepts>
 multi-head self-attention	ml_concepts	1	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary>
-multimodal	ml_concepts	106	4	Hugging Face Transformers glossary <https://huggingface.co/docs/transformers/glossary>
 Multimodal Model	ml_concepts	6	0	Google ML Glossary <https://developers.google.com/machine-learning/glossary> | MIT Sloan Glossary of Terms: Generative AI Basics <https://mitsloanedtech.mit.edu/ai/basics/glossary/>
 multimodal models	ml_concepts	10	0	NIST AI 100-2e2025 Adversarial ML glossary <https://csrc.nist.gov/pubs/ai/100/2/e2025/final>
 Named Entity Recognition	ml_concepts	4	0	JRC Glossary of human-centric artificial intelligence (EUR 31113) <https://publications.jrc.ec.europa.eu/repository/handle/JRC129614>
@@ -282,7 +281,6 @@ Civitai	products_and_tools	4	1	GitHub: steven2358/awesome-generative-ai <https:/
 Claygent	products_and_tools	0	0	ZoomInfo: Top AI sales software tools <https://pipeline.zoominfo.com/sales/top-ai-sales-software-tools>
 Cleanlab	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
 Cleverbot	products_and_tools	0	0	Wikipedia: List of chatbots <https://en.wikipedia.org/wiki/List_of_chatbots>
-Cline	products_and_tools	36	0	GitHub: ollama/ollama <https://github.com/ollama/ollama> | Scrimba: Best AI Coding Assistants 2026 <https://scrimba.com/articles/best-ai-coding-assistants-2026/> | Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
 ClipDrop	products_and_tools	3	1	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
 CoCounsel	products_and_tools	2	0	Emergent: Best AI Tools for Lawyers <https://emergent.sh/learn/best-ai-tools-for-lawyers> | Rework: Best AI Tools for Lawyers 2026 <https://resources.rework.com/tools/ai-tools/best-ai-tools-for-lawyers-2026>
 Codeium	products_and_tools	2	0	Scrimba: Best AI Coding Assistants 2026 <https://scrimba.com/articles/best-ai-coding-assistants-2026/>
@@ -320,7 +318,6 @@ Fliki	products_and_tools	0	0	GitHub: steven2358/awesome-generative-ai <https://g
 FlowGPT	products_and_tools	1	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
 Flux.1 Kontext	products_and_tools	0	0	Wikipedia: Artificial intelligence visual art <https://en.wikipedia.org/wiki/Artificial_intelligence_visual_art>
 FunSearch	products_and_tools	0	0	Wikipedia: Applications of artificial intelligence <https://en.wikipedia.org/wiki/Applications_of_artificial_intelligence>
-Gemma	products_and_tools	36	3	GitHub: ollama/ollama <https://github.com/ollama/ollama> | GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm> | Google ML Glossary <https://developers.google.com/machine-learning/glossary> | Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model> | Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
 GGUF	products_and_tools	41	1	GitHub: vllm-project/vllm <https://github.com/vllm-project/vllm> | Wikipedia: Hugging Face <https://en.wikipedia.org/wiki/Hugging_Face> | Wikipedia: Large language model <https://en.wikipedia.org/wiki/Large_language_model>
 GigaChat	products_and_tools	0	0	Wikipedia: List of chatbots <https://en.wikipedia.org/wiki/List_of_chatbots>
 Giskard	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
@@ -347,7 +344,6 @@ KerasCV	products_and_tools	0	0	TensorFlow: Libraries & extensions <https://www.t
 KerasNLP	products_and_tools	0	0	TensorFlow: Libraries & extensions <https://www.tensorflow.org/resources/libraries-extensions>
 Khanmigo	products_and_tools	2	0	Wikipedia: Artificial intelligence in education <https://en.wikipedia.org/wiki/Artificial_intelligence_in_education>
 Kimi Code	products_and_tools	1	0	Wikipedia: Vibe coding <https://en.wikipedia.org/wiki/Vibe_coding>
-Kling	products_and_tools	35	0	Wikipedia: Outline of artificial intelligence <https://en.wikipedia.org/wiki/Outline_of_artificial_intelligence>
 Kosmos-1	products_and_tools	0	0	GitHub: Hannibal046/Awesome-LLM <https://github.com/Hannibal046/Awesome-LLM>
 KREA	products_and_tools	13	0	GitHub: steven2358/awesome-generative-ai <https://github.com/steven2358/awesome-generative-ai>
 LAION	products_and_tools	1	0	Wikipedia: List of large language models <https://en.wikipedia.org/wiki/List_of_large_language_models>
