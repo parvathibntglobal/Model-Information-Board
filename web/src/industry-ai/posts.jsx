@@ -21,8 +21,9 @@ export function queryLabel(key) {
   if (lane === 'watch') return `${PLATFORM_LABEL[a] || a} watch: ${[b, ...rest].join(':')}`
   return key
 }
-/** THE REVIEW FLAGS (iai-7, the 2026-11-26 kept-post review; collect/industry_ai/config.py
- *  FLAG_NAMES). Flags, never drops: the Info view says what each means. */
+/** THE REVIEW FLAGS (iai-7, the 2026-11-26 kept-post review; support_chatter iai-8;
+ *  collect/industry_ai/config.py FLAG_NAMES). Flags, never drops: the Info view says
+ *  what each means. */
 export const FLAG_LABEL = {
   github_tracking: 'GitHub to-do list',
   ai_far_from_industry: 'AI far from the industry word',
@@ -31,6 +32,7 @@ export const FLAG_LABEL = {
   heavy_poster: 'Heavy poster',
   for_sale: 'For sale',
   weak_ai_long_post: 'Long post, weak AI word',
+  support_chatter: 'Product support',
   // On a NOT READABLE picture post, shadow mode (#679 step 3; collect/industry_ai/rules.py
   // PICTURE_TEXT_FLAG / PICTURE_TEXT_AI_ONLY_FLAG): what its picture's text would decide.
   picture_text_would_pass: 'Its picture text would pass',

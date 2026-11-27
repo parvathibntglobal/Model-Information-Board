@@ -16,13 +16,14 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from collect.industry_ai.config import Config
+from collect.industry_ai.config import FLAG_NAMES, Config
 from collect.industry_ai.rules import (
     MEDIA_TEXT_FLAG,
     PERSON_FLAG,
     UNREAD_INSTEAD_OF,
     UNREAD_REASON,
     UNREAD_STAGE,
+    WATCH_KEY_PREFIX,
     Item,
     canonical_url,
     copy_text,
@@ -305,6 +306,27 @@ def evaluate(
     return results, counts(items, results)
 
 
+def watch_sources(kept: list[str], by_id: dict[str, Item],
+                  results: dict[str, Result]) -> dict[str, dict]:
+    """EVERY WATCH SOURCE'S KEPT POSTS AND HOW MANY CARRY A REVIEW FLAG (2026-11-27, the
+    AI Watch review, item 8): which busy sources are also noisy, so the team can cut a
+    source's pages or take it off the watch list from counts, not a guess. Keyed by the
+    watch query key ("watch:reddit:r/ClaudeAI"); a post two sources found counts for
+    both. `flagged`: kept posts with at least one of `FLAG_NAMES`; `flags`: each flag's
+    count. Ordering and budget are not changed here: this only counts."""
+    out: dict[str, dict] = {}
+    for i in kept:
+        it, r = by_id[i], results[i]
+        own = sorted(f for f in r.flags if f in FLAG_NAMES)
+        for k in sorted(k for k in it.query_keys if k.startswith(WATCH_KEY_PREFIX)):
+            c = out.setdefault(k, {"kept": 0, "flagged": 0, "flags": Counter()})
+            c["kept"] += 1
+            c["flagged"] += bool(own)
+            c["flags"].update(own)
+    return {k: {**c, "flags": dict(c["flags"])}
+            for k, c in sorted(out.items(), key=lambda x: (-x[1]["kept"], x[0]))}
+
+
 def counts(items: list[Item], results: dict[str, Result]) -> dict:
     """The run log's and the page's numbers, from the Results alone."""
     by_id = {it.id: it for it in items}
@@ -360,6 +382,7 @@ def counts(items: list[Item], results: dict[str, Result]) -> dict:
         "items": len(items),
         "kept": len(kept),
         "dropped": dict(sorted(dropped.items())),
+        "watch_sources": watch_sources(kept, by_id, results),
         "domains": {
             d: {
                 **{k: v for k, v in c.items() if k != "authors"},
