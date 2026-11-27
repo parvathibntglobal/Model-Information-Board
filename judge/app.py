@@ -4292,7 +4292,7 @@ def ai_watch_page() -> dict:
 @app.get("/ai-watch/posts")
 def ai_watch_posts_page(
     scope: str = "general",
-    sort: str = "newest",
+    sort: str = "in_turn",
     offset: int = 0,
     limit: int = 25,
     type: str | None = None,  # noqa: A002 - the page's own filter name

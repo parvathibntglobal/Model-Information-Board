@@ -509,6 +509,15 @@ can become a drop for long posts once its hits are hand-checked (rule 8).
   found ("Also by keyword"), so it is the source's own figure and is never added to the
   page's totals. X watch queries club accounts, so an X account's yield is read from the
   handle in each post's link.
+- **The feed opens on "Sources in turn"** (2026-11-27, the AI Watch review, item 8;
+  `view.py` `_in_turn`, sort `in_turn`, AI Watch only): platforms take turns; within a
+  platform, sources take turns (the source with the newest post first); each source
+  gives its newest post, then its next. It is #687's picture-cap order (`ocr.in_turn`)
+  in SQL, with the watch source in place of the account (an X post's source is the
+  account in its link, as on the Sources tab). Ordering only: every post and count is
+  unchanged, and "Newest posted" still gives strict date order. Read-only on 2026-11-27,
+  the first 25 kept posts went from 17 Reddit and 17 sources to 5 per platform and 25
+  sources.
 - **A source's flagged posts** (2026-11-27, the AI Watch review, item 8): the Sources
   tab's *Flagged* column counts its kept posts carrying any review flag, with their share
   of its kept posts and, on hover, each flag's count; the run log prints the same per
