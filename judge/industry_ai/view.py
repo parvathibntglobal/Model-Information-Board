@@ -561,6 +561,9 @@ PAGE_MAX = 100
 #: (`from_watch`) moved to /ai-watch with the rest of the observer's posts.
 SCOPES = ("kept", "dropped")
 SORTS = ("newest", "oldest", "engaged", "first_seen")
+#: AI Watch's lists add `in_turn` and open on it (2026-11-27, the AI Watch review,
+#: item 8): sources take turns, so a busy community cannot fill the first screens.
+WATCH_SORTS = ("in_turn", *SORTS)
 
 #: The row kind, from the platform's own id and link (see above).
 _KIND = (
@@ -634,6 +637,39 @@ _ORDER = {
 }
 
 
+def _in_turn(w: str) -> tuple[str, str]:
+    """SOURCES IN TURN, in SQL (`judge` cannot import collect/industry_ai/ocr.py
+    `in_turn`, whose order this is, with the watch source in place of the account):
+    platforms in turn; within a platform, sources in turn, the source with the newest
+    post first; each source's newest post first. Round i takes every source's i-th
+    newest post, so a community with 60 posts and one with 3 alternate until the
+    second runs out. Ties break on the source key and the post id, so a page boundary
+    is stable. Returns (the `WITH` prefix, the join for the main SELECT).
+
+    A post's SOURCE: an X post's account, read from its link as the Sources tab reads it
+    (X watch queries club accounts); anyone else's first watch list
+    (`watch:reddit:r/ClaudeAI`), else its author, else the post itself."""
+    source = (
+        f"CASE WHEN platform = 'x' THEN coalesce({_X_HANDLE_SQL}, author_id, id) "
+        "ELSE coalesce((SELECT min(k) FROM unnest(query_keys) AS k "
+        "WHERE left(k, 6) = 'watch:'), author_id, id) END"
+    )
+    prefix = (
+        "WITH turn_src AS ("
+        f"  SELECT id AS t_id, platform AS t_platform, ({source}) AS t_src, "
+        f"  created_at AS t_at FROM iai_item WHERE {w}), "
+        "turn_rank AS ("
+        "  SELECT t_id, t_platform, t_src, "
+        "  row_number() OVER (PARTITION BY t_platform, t_src "
+        "    ORDER BY t_at DESC NULLS LAST, t_id) AS t_i, "
+        "  max(t_at) OVER (PARTITION BY t_platform, t_src) AS t_newest FROM turn_src), "
+        "turn AS ("
+        "  SELECT t_id, t_platform, row_number() OVER (PARTITION BY t_platform "
+        "    ORDER BY t_i, t_newest DESC NULLS LAST, t_src) AS t_k FROM turn_rank) "
+    )
+    return prefix, "JOIN turn ON turn.t_id = iai_item.id"
+
+
 def _items(conn, w: str, params: dict, *, sort: str, offset: int, limit: int,
            key: str | None) -> list[dict[str, Any]]:
     """A page of posts, each as both pages list it. `key` is the domain whose matched
@@ -642,14 +678,19 @@ def _items(conn, w: str, params: dict, *, sort: str, offset: int, limit: int,
     # ONE STRING LITERAL from SELECT to FROM iai_item (adjacent pieces only, no `+`):
     # scripts/audit_columns.py finds each column's reader by reading it whole (rule 9).
     terms = "matched_terms -> %(d)s -> 'terms'" if key else "NULL::jsonb"
+    if sort == "in_turn":
+        prefix, join = _in_turn(w)
+        order = "turn.t_k, turn.t_platform"
+    else:
+        prefix, join, order = "", "", _ORDER[sort]
     rows = conn.execute(
-        f"SELECT id, platform, ({_KIND}), url, title, "
+        f"{prefix}SELECT id, platform, ({_KIND}), url, title, "
         f"left(coalesce(body, ''), {EXCERPT_CHARS + 1}), created_at, author_id, lang, "
         "engagement, link, canonical_url, share_count, content_type, matched_pattern, "
         f"stage_guess, flags, domains, groups, {terms}, "
         "ai_terms, query_keys, domain_hints, verdict, drop_stage, drop_reason, "
         "first_seen_at, text_cleared_at, canonical_of, media_text_from "
-        f"FROM iai_item WHERE {w} ORDER BY {_ORDER[sort]} OFFSET %(off)s LIMIT %(lim)s",
+        f"FROM iai_item {join} WHERE {w} ORDER BY {order} OFFSET %(off)s LIMIT %(lim)s",
         {**params, **({"d": key} if key else {}), "off": offset, "lim": limit},
     ).fetchall()
 
@@ -1165,15 +1206,16 @@ def ai_watch_posts(
     *,
     scope: str = "general",
     filters: dict | None = None,
-    sort: str = "newest",
+    sort: str = "in_turn",
     offset: int = 0,
     limit: int = 25,
 ) -> dict[str, Any]:
-    """A page of the observer's posts in one scope, with each filter's values."""
+    """A page of the observer's posts in one scope, with each filter's values. Opens
+    on `in_turn` (sources take turns); the other sorts are the domain pages'."""
     if scope not in WATCH_SCOPES:
         raise BadFilter(f"scope must be one of {', '.join(WATCH_SCOPES)}")
-    if sort not in SORTS:
-        raise BadFilter(f"sort must be one of {', '.join(SORTS)}")
+    if sort not in WATCH_SORTS:
+        raise BadFilter(f"sort must be one of {', '.join(WATCH_SORTS)}")
     if offset < 0 or not 1 <= limit <= PAGE_MAX:
         raise BadFilter(f"offset must be 0 or more, and limit 1 to {PAGE_MAX}")
     f = {k: str(v) for k, v in (filters or {}).items() if v not in (None, "")}

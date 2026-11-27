@@ -124,6 +124,66 @@ def test_a_sources_yield_counts_what_it_found_and_names_a_gone_source(page):
     assert simonw["found"] == 0 and simonw["newest"] is None
 
 
+def test_the_feed_takes_sources_in_turn(conn):
+    # 2026-11-27, the AI Watch review, item 8: a busy community cannot fill the first
+    # screens. Platforms in turn; within one, sources in turn (newest source first);
+    # each source's newest post first. Every post is still listed.
+    from collect.industry_ai import store
+    from judge.industry_ai.view import BadFilter, ai_watch_posts
+
+    busy, quiet = "watch:reddit:r/ClaudeAI", "watch:reddit:r/LocalLLaMA"
+
+    def post(iid, key, hours, url=None):
+        it = _item(iid, [key], url=url)
+        it.created_at = NOW - timedelta(hours=hours)
+        return it
+
+    store.start_run(conn, "iai-turn", mode="harvest", domains=["marketing"],
+                    platforms=["reddit", "x"], pipeline_version="test")
+    store.upsert_items(conn, [
+        post("reddit:t3_b1", busy, 1), post("reddit:t3_b2", busy, 2),
+        post("reddit:t3_b3", busy, 3), post("reddit:t3_b4", busy, 4),
+        post("reddit:t3_q1", quiet, 5), post("reddit:t3_q2", quiet, 6),
+        # Two X accounts from ONE clubbed query: each account is its own source.
+        post("x:1", "watch:x:(from:karpathy OR from:simonw)", 7,
+             url="https://x.com/karpathy/status/1"),
+        post("x:2", "watch:x:(from:karpathy OR from:simonw)", 8,
+             url="https://x.com/karpathy/status/2"),
+        post("x:3", "watch:x:(from:karpathy OR from:simonw)", 9,
+             url="https://x.com/simonw/status/3"),
+    ], run_id="iai-turn")
+    for iid in ("reddit:t3_b1", "reddit:t3_b2", "reddit:t3_b3", "reddit:t3_b4",
+                "reddit:t3_q1", "reddit:t3_q2", "x:1", "x:2", "x:3"):
+        _label(conn, iid, flags=["general_ai"])
+    conn.commit()
+
+    def ids(**kw):
+        return [i["id"] for i in ai_watch_posts(conn, limit=100, **kw)["items"]]
+
+    # Reddit's queue: b1 q1 b2 q2 b3 b4 (busy has the newest post, so it goes first).
+    # X's: x:1 x:3 x:2 (karpathy, simonw, karpathy). The platforms alternate, reddit
+    # first (alphabetical), until X runs out.
+    assert ids() == ["reddit:t3_b1", "x:1", "reddit:t3_q1", "x:3", "reddit:t3_b2", "x:2",
+                     "reddit:t3_q2", "reddit:t3_b3", "reddit:t3_b4"]
+    assert ids(sort="newest")[:3] == ["reddit:t3_b1", "reddit:t3_b2", "reddit:t3_b3"]
+    # Pages join up: the same order, cut at any offset.
+    first = ai_watch_posts(conn, limit=4)["items"]
+    rest = ai_watch_posts(conn, offset=4, limit=100)["items"]
+    assert [i["id"] for i in first + rest] == ids()
+    # A filter narrows the turn to what it keeps.
+    assert ids(filters={"platform": "reddit"}) == [
+        "reddit:t3_b1", "reddit:t3_q1", "reddit:t3_b2", "reddit:t3_q2",
+        "reddit:t3_b3", "reddit:t3_b4"]
+    with pytest.raises(BadFilter):
+        ai_watch_posts(conn, sort="random")
+
+
+def test_the_domain_pages_do_not_offer_in_turn():
+    from judge.industry_ai.view import SORTS, WATCH_SORTS
+
+    assert "in_turn" not in SORTS and WATCH_SORTS[0] == "in_turn"
+
+
 def test_a_sources_flagged_posts_are_counted_flag_by_flag(page):
     # 2026-11-27, the AI Watch review, item 8: kept posts carrying a review flag, per
     # source and per X account. Other flags (general_ai, person:...) are not review flags.

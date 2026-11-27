@@ -47,6 +47,9 @@ const FILTER_LABEL = {
   source: 'Source', account: 'X account', person: 'Person', q: 'Text contains',
 }
 const PAGE = 25
+/** AI Watch's orders (judge/industry_ai/view.py WATCH_SORTS): the domain pages' four,
+ * plus `in_turn`, the default (2026-11-27, the AI Watch review, item 8). */
+const WATCH_SORT_LABEL = { in_turn: 'Sources in turn', ...SORT_LABEL }
 // The post list every click that changes it scrolls to (jumpTo).
 const POSTS_ID = 'aiw-posts'
 const PLATFORM_ORDER = ['x', 'reddit', 'bluesky', 'hackernews', 'instagram']
@@ -91,7 +94,7 @@ function Posts({ scope, params, update, note }) {
   const [err, setErr] = useState(null)
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState(params.get('q') || '')
-  const sort = params.get('sort') || 'newest'
+  const sort = params.get('sort') || 'in_turn'
   const offset = Math.max(0, Number(params.get('offset')) || 0)
   const filters = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f, params.get(f) || ''])), [params])
 
@@ -128,8 +131,8 @@ function Posts({ scope, params, update, note }) {
         {scope !== 'general' && <Select name="domain" rows={f.domain} value={filters.domain} onChange={update} labels={names} />}
         <label className="iai-filter">
           <span>Order</span>
-          <select value={sort} onChange={(e) => update({ sort: e.target.value === 'newest' ? '' : e.target.value })}>
-            {Object.entries(SORT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <select value={sort} onChange={(e) => update({ sort: e.target.value === 'in_turn' ? '' : e.target.value })}>
+            {Object.entries(WATCH_SORT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </label>
       </div>
@@ -148,6 +151,11 @@ function Posts({ scope, params, update, note }) {
         </div>
       )}
       {note && <p className="dim iai-note">{note}</p>}
+      {sort === 'in_turn' && (
+        <p className="dim iai-note">Sources in turn: platforms take turns, and within a platform each community, account
+          or list gives its newest post, then its next newest, and so on, so a busy source cannot fill the first pages.
+          Every post is still listed; choose &quot;Newest posted&quot; for strict date order.</p>
+      )}
       {sort === 'engaged' && (
         <p className="dim iai-note">Most engaged: ordered by the platform&apos;s own counts (views, likes, comments and so on) added together, so X posts with view counts tend to come first.</p>
       )}
