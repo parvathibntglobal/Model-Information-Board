@@ -305,6 +305,10 @@ function FilterWords({ info, isWatch }) {
             <span className="tnum">{run.long_post_words ?? '–'}</span> words whose only AI word is{' '}
             {(run.weak_ai_terms || []).map((t) => `“${t}”`).join(' or ') || '–'}: in a long thread that is often a
             passing mention.</dd></div>
+          <div><dt>{FLAG_LABEL.support_chatter}</dt><dd>A Reddit post that opens on an AI tool&apos;s account rather
+            than its use: usage or rate limits, quota resets, billing and refunds, a ban, an error message, an
+            outage. Not flagged when the post also says what someone did with the tool (a workflow, a saving, a
+            how-to). Still a post about AI tools, so it is counted, not dropped.</dd></div>
         </dl>
       </Collapse>
     </section>
@@ -583,6 +587,12 @@ export default function IndustryAIInfo({ agent = 'industry' }) {
             <span className="dim">({f.platforms ? f.platforms.map(plat).join(', ') : 'every platform'})</span>{' '}
             <span className="tnum">({f.patterns.length})</span></>}>
             <Chips items={f.patterns} mono />
+            {f.unless?.length > 0 && (
+              <>
+                <p className="dim iai-def">Not flagged when the post also matches one of these:</p>
+                <Chips items={f.unless} mono />
+              </>
+            )}
           </Collapse>
         ))}
         {Object.entries(info.type_patterns).map(([t, list]) => (

@@ -124,6 +124,26 @@ def test_a_sources_yield_counts_what_it_found_and_names_a_gone_source(page):
     assert simonw["found"] == 0 and simonw["newest"] is None
 
 
+def test_a_sources_flagged_posts_are_counted_flag_by_flag(page):
+    # 2026-11-27, the AI Watch review, item 8: kept posts carrying a review flag, per
+    # source and per X account. Other flags (general_ai, person:...) are not review flags.
+    from judge.industry_ai.view import ai_watch_view
+
+    _label(page, "reddit:t3_g1", flags=["general_ai", "support_chatter"])
+    _label(page, "reddit:t3_m1", domains=["marketing"],
+           flags=["domain_from_terms:marketing", "support_chatter", "heavy_poster"])
+    _label(page, "x:1", flags=["general_ai", "reply_fragment"])
+    page.commit()
+    src = ai_watch_view(page)["sources"]
+    claude = next(s for s in src if s.get("key") == REDDIT_KEY)
+    assert (claude["kept"], claude["flagged"]) == (3, 2)
+    assert claude["flags"] == {"heavy_poster": 1, "support_chatter": 2}
+    karpathy = next(s for s in src if s.get("account") == "karpathy")
+    assert (karpathy["flagged"], karpathy["flags"]) == (1, {"reply_fragment": 1})
+    simonw = next(s for s in src if s.get("account") == "simonw")
+    assert (simonw["flagged"], simonw["flags"]) == (0, {})
+
+
 def test_the_post_lists_never_overlap_and_filters_narrow_them(page):
     from judge.industry_ai.view import WATCH_SCOPES, ai_watch_posts
 

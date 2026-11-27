@@ -7,7 +7,7 @@ import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import { fmtDayUtc } from '../dates'
 import { Bars, KIND_LABEL, PLATFORM_LABEL, REASON_LABEL, TYPE_LABEL, countedAt, jumpTo, n } from '../industry-ai/parts'
-import { Item, SORT_LABEL, shorten } from '../industry-ai/posts'
+import { FLAG_LABEL, Item, SORT_LABEL, shorten } from '../industry-ai/posts'
 import '../styles/industry-ai.css'
 
 /**
@@ -168,6 +168,10 @@ function Posts({ scope, params, update, note }) {
   )
 }
 
+/** A source's flagged posts, flag by flag, as words (`flags` from GET /ai-watch). */
+const flagWords = (flags) => Object.entries(flags || {}).sort((a, b) => b[1] - a[1])
+  .map(([f, c]) => `${FLAG_LABEL[f] || f}: ${n(c)}`).join(' · ') || undefined
+
 /** Every watched source on one platform, as a table folded under its heading. */
 function SourceTable({ platform, rows, onOpen }) {
   // Saved, not yet labelled (#663): shown only when some are, so Found = Kept +
@@ -201,6 +205,7 @@ function SourceTable({ platform, rows, onOpen }) {
               <th scope="col" className="tnum">Filtered out</th>
               {waits && <th scope="col" className="tnum" title="Saved, not yet labelled: the next run or a relabel labels them">Waiting</th>}
               {unreads && <th scope="col" className="tnum" title="A picture or video with too few words to judge: not read, so not filtered out">Not readable</th>}
+              <th scope="col" className="tnum" title="Kept posts carrying a flag for review (product support, short reply, heavy poster...): a busy source that is mostly flagged is the one to read first">Flagged</th>
               <th scope="col" className="tnum" title="Also found by an industry's keyword search, so counted by the Industry AI agent, not here">Also by keyword</th>
               <th scope="col">Newest post</th>
             </tr>
@@ -219,6 +224,9 @@ function SourceTable({ platform, rows, onOpen }) {
                 <td className="tnum">{n(r.filtered)}</td>
                 {waits && <td className="tnum">{n(r.waiting)}</td>}
                 {unreads && <td className="tnum">{n(r.unread)}</td>}
+                <td className="tnum" title={flagWords(r.flags)}>
+                  {r.kept > 0 ? `${n(r.flagged)} (${Math.round((100 * r.flagged) / r.kept)}%)` : n(r.flagged)}
+                </td>
                 <td className="tnum">{n(r.also_keyword)}</td>
                 <td>{r.newest ? fmtDayUtc(r.newest) : '–'}</td>
               </tr>
@@ -389,8 +397,9 @@ export default function AIWatch() {
                 Every community, account and list the observer watches, from the contract, with what it found. Open a
                 platform; click a source to read its posts. &quot;Found&quot; counts every post the source brought in,
                 kept or not, including posts an industry&apos;s keyword search also found (&quot;Also by
-                keyword&quot;, counted by the Industry AI agent, not here). A source that found nothing is greyed: quiet, or worth
-                checking.
+                keyword&quot;, counted by the Industry AI agent, not here). &quot;Flagged&quot; is how many of its kept posts
+                carry a flag for review, and their share of its kept posts; point at it to see which flags. A source that found
+                nothing is greyed: quiet, or worth checking.
               </p>
               <div className="stack stack-2">
                 {platforms.map((p) => <SourceTable key={p} platform={p} rows={byPlatform[p]} onOpen={openSource} />)}
