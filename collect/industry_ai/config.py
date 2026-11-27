@@ -126,10 +126,11 @@ MATCH_STRIP = ("links", "handles", "hashtags")
 #: here, not open in the contract, because each needs its words on the pages
 #: (web/src/industry-ai/posts.jsx FLAG_LABEL) and in the Info view first; a name the
 #: pages cannot say would reach a reader as a raw key (rule 9).
-#:   by pattern (`flag_patterns`):  github_tracking, market_chatter, for_sale
+#:   by pattern (`flag_patterns`):  github_tracking, market_chatter, for_sale,
+#:                                  support_chatter (iai-8)
 #:   by a `run:` setting:           ai_far_from_industry, reply_fragment, heavy_poster,
 #:                                  weak_ai_long_post
-PATTERN_FLAGS = ("github_tracking", "market_chatter", "for_sale")
+PATTERN_FLAGS = ("github_tracking", "market_chatter", "for_sale", "support_chatter")
 FLAG_NAMES = (*PATTERN_FLAGS, "ai_far_from_industry", "reply_fragment", "heavy_poster",
               "weak_ai_long_post")
 #: The two rotation groups (`run.rotation.groups`), and how a scheduled run picks one.
@@ -214,8 +215,10 @@ class Config:
     teach: tuple[re.Pattern, ...]
     hiring: tuple[re.Pattern, ...]
     promo: tuple[re.Pattern, ...]
-    #: flag -> (platforms it applies on, or None for all; its patterns). `PATTERN_FLAGS`.
-    flag_patterns: dict[str, tuple[tuple[str, ...] | None, tuple[re.Pattern, ...]]]
+    #: flag -> (platforms it applies on, or None for all; its patterns; its `unless`
+    #: patterns, empty when it has none). `PATTERN_FLAGS`.
+    flag_patterns: dict[str, tuple[tuple[str, ...] | None, tuple[re.Pattern, ...],
+                                   tuple[re.Pattern, ...]]]
     type_order: tuple[str, ...]
     type_patterns: dict[str, tuple[re.Pattern, ...]]
     stage_patterns: dict[str, tuple[re.Pattern, ...]]
@@ -655,10 +658,17 @@ def parse(raw: dict) -> Config:
     )
 
 
-def _flag_patterns(raw: Any) -> dict[str, tuple[tuple[str, ...] | None, tuple[re.Pattern, ...]]]:
+def _flag_patterns(
+    raw: Any,
+) -> dict[str, tuple[tuple[str, ...] | None, tuple[re.Pattern, ...], tuple[re.Pattern, ...]]]:
     """`flag_patterns` (iai-7): EXACTLY the `PATTERN_FLAGS`, each with `platforms` (a list
     of `PLATFORMS`, or `all`) and `patterns`. A missing flag is refused rather than read
-    as "never flags" (rule 12), and an unknown one rather than ignored."""
+    as "never flags" (rule 12), and an unknown one rather than ignored.
+
+    `unless` (iai-8, optional): patterns that keep the flag OFF a post matching one of
+    them - support_chatter's "the post also says what someone did with the tool". A
+    flag without the key has no exception; an empty list is refused, since it says
+    nothing and reads like an exception was meant."""
     where = "flag_patterns"
     if not isinstance(raw, dict) or set(raw) != set(PATTERN_FLAGS):
         raise IndustryAIConfigError(f"{where} must name exactly {list(PATTERN_FLAGS)}")
@@ -666,7 +676,7 @@ def _flag_patterns(raw: Any) -> dict[str, tuple[tuple[str, ...] | None, tuple[re
     for name in PATTERN_FLAGS:
         block = raw[name]
         fwhere = f"{where}.{name}"
-        _known(block, {"platforms", "patterns"}, fwhere)
+        _known(block, {"platforms", "patterns", "unless"}, fwhere)
         plats = _need(block, "platforms", fwhere)
         if plats == "all":
             plats = None
@@ -677,7 +687,12 @@ def _flag_patterns(raw: Any) -> dict[str, tuple[tuple[str, ...] | None, tuple[re
         pats = _patterns(_need(block, "patterns", fwhere), f"{fwhere}.patterns")
         if not pats:
             raise IndustryAIConfigError(f"{fwhere}.patterns must not be empty")
-        out[name] = (plats, pats)
+        unless: tuple[re.Pattern, ...] = ()
+        if "unless" in block:
+            unless = _patterns(block["unless"], f"{fwhere}.unless")
+            if not unless:
+                raise IndustryAIConfigError(f"{fwhere}.unless must not be empty; leave it out")
+        out[name] = (plats, pats, unless)
     return out
 
 

@@ -166,6 +166,18 @@ def print_counts(counts: dict, cfg) -> None:
             )
             say(f"    groups: {groups}")
         say(f"    platforms: {plats or '-'}")
+    ws = counts.get("watch_sources") or {}
+    if ws:
+        # EACH WATCH SOURCE'S KEPT POSTS AND FLAGGED SHARE (2026-11-27, AI Watch review,
+        # item 8), busiest first: a busy source that is mostly flagged is the one to cut
+        # pages from. Every source is printed; none is hidden for being small.
+        say("  watch sources, kept and flagged for review (busiest first):")
+        for k, c in ws.items():
+            flags = ", ".join(
+                f"{f} {n}" for f, n in sorted(c["flags"].items(), key=lambda x: -x[1]))
+            share = f"{c['flagged'] / c['kept']:.0%}" if c["kept"] else "-"
+            say(f"    {c['kept']:>4} kept  {c['flagged']:>4} flagged ({share:>4})  {k}"
+                + (f"  [{flags}]" if flags else ""))
 
 
 def _summary(run_id: str, mode: str, requests: dict, counts: dict, queries: list, cfg) -> str:

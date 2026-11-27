@@ -51,6 +51,23 @@ WATCH_ARM = (f"({_GENERAL_FLAG} OR (cardinality(query_keys) > 0 AND NOT {_KEYWOR
 #: checks the two copies stay identical, so the buckets cannot disagree.
 
 
+#: The review flags not set by a contract pattern (collect/industry_ai/config.py
+#: FLAG_NAMES holds all of them; judge never imports collect). With the contract's
+#: `flag_patterns` keys they are every review flag; a test pins the two lists together.
+RUN_FLAGS = ("ai_far_from_industry", "reply_fragment", "heavy_poster", "weak_ai_long_post")
+_FLAG_NAME = re.compile(r"^[a-z_]+$")
+
+
+def review_flags_sql(c: dict) -> str:
+    """Every review flag as a SQL text array, for `flags && ...`. The names come from
+    the contract and RUN_FLAGS; one that is not a plain snake_case name is refused, not
+    quoted, since it is written into the SQL."""
+    names = sorted({*(c.get("flag_patterns") or {}), *RUN_FLAGS})
+    if bad := [n for n in names if not _FLAG_NAME.match(n)]:
+        raise ValueError(f"review flag names must be snake_case: {bad}")
+    return "ARRAY[" + ", ".join(f"'{n}'" for n in names) + "]::text[]"
+
+
 def _contract() -> dict:
     raw = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
     if not isinstance(raw, dict) or "domains" not in raw or "type_order" not in raw:
@@ -306,11 +323,13 @@ def industry_ai_info() -> dict[str, Any]:
             "weak_ai_terms": list(run.get("weak_ai_terms") or []),
         },
         # The flags set by a pattern (iai-7), each with the platforms it applies on
-        # (None: all), for the Info view's patterns list.
+        # (None: all), for the Info view's patterns list; `unless` (iai-8): the
+        # patterns that keep it off a post, empty when it has none.
         "flag_patterns": {
             k: {"platforms": None if (b or {}).get("platforms") == "all"
                 else list((b or {}).get("platforms") or []),
-                "patterns": list((b or {}).get("patterns") or [])}
+                "patterns": list((b or {}).get("patterns") or []),
+                "unless": list((b or {}).get("unless") or [])}
             for k, b in (c.get("flag_patterns") or {}).items()
         },
         # TEXT RETENTION (contract `retention:`), shown on the Info view
@@ -1009,6 +1028,7 @@ def ai_watch_view(conn) -> dict[str, Any]:
     # `waiting` (saved, not yet labelled, #663) so found = kept + filtered + waiting
     # (#673 review, point 5); `kept_keyword`: kept posts a keyword query also found,
     # which the Feed does not list (they are the keyword agent's; point 4).
+    review = review_flags_sql(c)
     tally = (
         "count(*), count(*) FILTER (WHERE verdict = 'kept'), "
         "count(*) FILTER (WHERE verdict = 'dropped' AND drop_stage NOT IN ('pending', 'unread')), "
@@ -1016,7 +1036,11 @@ def ai_watch_view(conn) -> dict[str, Any]:
         "count(*) FILTER (WHERE drop_stage = 'pending'), "
         f"count(*) FILTER (WHERE verdict = 'kept' AND NOT ({WATCH_ARM})), "
         # Not readable (iai-5), so found = kept + filtered + waiting + unread.
-        "count(*) FILTER (WHERE drop_stage = 'unread')"
+        "count(*) FILTER (WHERE drop_stage = 'unread'), "
+        # KEPT POSTS CARRYING A REVIEW FLAG (2026-11-27, AI Watch review, item 8): which
+        # busy sources are also noisy. Each flag's count is in `flag_by_key` /
+        # `flag_by_account` below.
+        f"count(*) FILTER (WHERE verdict = 'kept' AND flags && {review})"
     )
     by_key = {
         r[0]: r[1:]
@@ -1034,19 +1058,42 @@ def ai_watch_view(conn) -> dict[str, Any]:
         ).fetchall()
     }
 
-    def yield_of(row) -> dict[str, Any]:
+    # EACH REVIEW FLAG'S COUNT among a source's kept posts, by key and by X account
+    # (the Sources tab's "Flagged" cell says which flags make up its number).
+    flag_by_key: dict[str, dict[str, int]] = {}
+    for k, f, n in conn.execute(
+        "SELECT qk_w, f, count(*) FROM iai_item, unnest(query_keys) AS qk_w, unnest(flags) AS f "
+        f"WHERE verdict = 'kept' AND f = ANY({review}) "
+        "AND left(qk_w, 6) = 'watch:' AND left(qk_w, 8) <> 'watch:x:' GROUP BY 1, 2"
+    ).fetchall():
+        flag_by_key.setdefault(k, {})[f] = int(n)
+    flag_by_account: dict[str, dict[str, int]] = {}
+    for h, f, n in conn.execute(
+        f"SELECT {_X_HANDLE_SQL}, f, count(*) FROM iai_item, unnest(flags) AS f "
+        f"WHERE platform = 'x' AND verdict = 'kept' AND f = ANY({review}) "
+        "AND EXISTS (SELECT 1 FROM unnest(query_keys) AS k WHERE left(k, 8) = 'watch:x:') "
+        "GROUP BY 1, 2"
+    ).fetchall():
+        flag_by_account.setdefault(h, {})[f] = int(n)
+
+    def yield_of(row, flags: dict[str, int] | None) -> dict[str, Any]:
         if row is None:
             return {"found": 0, "kept": 0, "filtered": 0, "waiting": 0, "unread": 0,
-                    "also_keyword": 0, "kept_keyword": 0, "newest": None}
-        f, k, d, a, newest, p, kk, u = row
+                    "also_keyword": 0, "kept_keyword": 0, "newest": None,
+                    "flagged": 0, "flags": {}}
+        f, k, d, a, newest, p, kk, u, fl = row
         return {"found": int(f), "kept": int(k), "filtered": int(d), "waiting": int(p),
                 "unread": int(u), "also_keyword": int(a), "kept_keyword": int(kk),
-                "newest": newest.isoformat() if newest else None}
+                "newest": newest.isoformat() if newest else None,
+                "flagged": int(fl), "flags": dict(sorted((flags or {}).items()))}
 
     sources = []
     for s in _watched_sources(watch):
-        row = by_account.pop(s["account"], None) if "account" in s else by_key.pop(s["key"], None)
-        sources.append({**s, "listed": True, **yield_of(row)})
+        if "account" in s:
+            row, fl = by_account.pop(s["account"], None), flag_by_account.get(s["account"])
+        else:
+            row, fl = by_key.pop(s["key"], None), flag_by_key.get(s["key"])
+        sources.append({**s, "listed": True, **yield_of(row, fl)})
     # Posts from a source the contract no longer lists: still counted, and named (rule 4).
     for k, row in sorted(by_key.items()):
         _, platform, q = k.split(":", 2)
@@ -1054,10 +1101,10 @@ def ai_watch_view(conn) -> dict[str, Any]:
         source = (q.removeprefix("from:").removeprefix("hn:list:")
                   .replace("hn:author:", "by ", 1).replace("ig:", "@", 1))
         sources.append({"platform": platform, "source": source, "key": k, "listed": False,
-                        **yield_of(row)})
+                        **yield_of(row, flag_by_key.get(k))})
     for h, row in sorted(by_account.items(), key=lambda x: x[0] or ""):
         sources.append({"platform": "x", "source": f"@{h}" if h else "no account in the link",
-                        "account": h, "listed": False, **yield_of(row)})
+                        "account": h, "listed": False, **yield_of(row, flag_by_account.get(h))})
 
     # ONE PERSON, SEVERAL HANDLES (`watch.people`): their kept posts here, by platform.
     person_rows: dict[str, dict[str, int]] = {}

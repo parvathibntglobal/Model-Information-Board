@@ -365,13 +365,15 @@ In order. The first that matches drops the item:
 marks a kept post that may not belong. **None drops** (rule 8): each is counted and its
 hits hand-checked before it could become a drop. The names are fixed in
 `config.FLAG_NAMES`, so each has its words on the pages (`posts.jsx FLAG_LABEL`) and in
-the Info view ("Flags for review").
+the Info view ("Flags for review"). A flag pattern may carry `unless` patterns (iai-8)
+that keep the flag off a post matching any of them.
 
 | Flag | Set by | What it marks |
 |---|---|---|
 | `github_tracking` | `flag_patterns.github_tracking`, GitHub only | a project's to-do list: checklists, [Bug], [Feature], EPIC, P0–P3, acceptance criteria, backlog (~600 of 756 kept GitHub posts read as such on 2026-11-26). The markers, not "industry word in the title", which would also drop a real report |
 | `market_chatter` | `flag_patterns.market_chatter` | two or more $TICKERs, or share-price and market-cap phrases. AI start-up funding news is not matched |
 | `for_sale` | `flag_patterns.for_sale` | domains, brands or datasets offered for sale |
+| `support_chatter` (iai-8) | `flag_patterns.support_chatter`, Reddit only | a post that OPENS (first ~160 characters: the title and first line) on an AI tool's account rather than its use: usage or rate limits, quota resets, billing and refunds, bans, error messages, outages. Not set when one of its `unless` patterns matches anywhere: the post also says what someone did with the tool (a workflow, a saving, a how-to). On 2026-11-27 it flagged 27 of the 1,009 kept AI Watch Reddit posts, about 26 of them support chatter by one reading; next, 100 hand-labelled hits decide between a drop and a "Product support" content type AI Watch hides by default |
 | `reply_fragment` | `run.reply_min_own_words`, X only | a reply (text starts with an @handle) with too few words of its own; its context is the post it answers |
 | `ai_far_from_industry` | `run.ai_near_industry_words`, in `rules.label` | no filed industry word has an AI term that close |
 | `heavy_poster` | `run.heavy_poster_min_posts`, in `pipeline.evaluate` | every kept post of an account with that many kept posts; watched posts are never counted or flagged |
@@ -507,6 +509,13 @@ can become a drop for long posts once its hits are hand-checked (rule 8).
   found ("Also by keyword"), so it is the source's own figure and is never added to the
   page's totals. X watch queries club accounts, so an X account's yield is read from the
   handle in each post's link.
+- **A source's flagged posts** (2026-11-27, the AI Watch review, item 8): the Sources
+  tab's *Flagged* column counts its kept posts carrying any review flag, with their share
+  of its kept posts and, on hover, each flag's count; the run log prints the same per
+  watch query key, busiest first. Counts only: no post is dropped or reordered for its
+  source. They are the input for the agreed next steps, a fair feed order (sources in
+  turn) and fewer pages per run for sources that come out mostly flagged, per source in
+  the contract.
 
 ---
 

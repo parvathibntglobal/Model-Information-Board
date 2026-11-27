@@ -720,14 +720,17 @@ def review_flags(item: Item, cfg: Config) -> list[str]:
     """THE iai-7 FLAGS A POST CAN CARRY ON ITS OWN (the 2026-11-26 kept-post review,
     agreed with the team). Flags, never drops (rule 8): each is counted and its hits
     hand-checked before it could become one.
-      * `flag_patterns`: github_tracking, market_chatter, for_sale, each on its platforms;
+      * `flag_patterns`: github_tracking, market_chatter, for_sale and (iai-8)
+        support_chatter, each on its platforms, and not on a post one of its `unless`
+        patterns matches;
       * reply_fragment: an X reply (its text starts with an @handle) with fewer than
         `run.reply_min_own_words` words once @handles and links are out.
     `ai_far_from_industry` needs the filed industries (`label`) and `heavy_poster` the
     whole collection (pipeline.evaluate)."""
     text = item.text
-    out = [name for name, (plats, pats) in cfg.flag_patterns.items()
-           if (plats is None or item.platform in plats) and _any(pats, text)]
+    out = [name for name, (plats, pats, unless) in cfg.flag_patterns.items()
+           if (plats is None or item.platform in plats) and _any(pats, text)
+           and not _any(unless, text)]
     if item.platform == "x" and text.lstrip().startswith("@"):
         own = remove(text, [_URL, _HANDLE]).split()
         if len(own) < int(cfg.run["reply_min_own_words"]):

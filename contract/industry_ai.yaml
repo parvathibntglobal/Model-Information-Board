@@ -46,7 +46,10 @@ version: 1
 #        out before matching; seven flags (never drops); use-case patterns must name AI;
 #        supply chain's software senses out; copies from other accounts and every
 #        cross-post folded.
-pipeline_version: iai-7
+# iai-8: the AI Watch review (2026-11-27, agreed with the team): a flag for product
+#        support chatter on Reddit (limits, billing, bans, errors, outages), never a
+#        drop; and a flag pattern may carry `unless` patterns that keep it off.
+pipeline_version: iai-8
 # WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
 # read by the AI in industries Info view so "Rules version iai-4" means something
 # on the page. Add a line whenever `pipeline_version` is bumped.
@@ -58,6 +61,7 @@ versions:
   iai-5: "2026-11-25: a picture or video post with too few words to judge is counted as not readable, not filtered out"
   iai-6: "2026-11-26: the text that comes with a post's media (alt text, a quoted post, a Reddit crosspost's original) is matched for AI and industry words too; a post it let through or filed elsewhere is flagged"
   iai-7: "2026-11-26: words inside links and @handles no longer count; seven new flags (GitHub to-do list, AI far from the industry word, market chatter, short X reply, heavy poster, for sale, long post on a weak AI word); \"put away\" in everyday English no longer files a post under Supply chain; a use case must name AI in the same sentence; software senses of supply chain left out; the same text from another account, or cross-posted by anyone, counted once"
+  iai-8: "2026-11-27: a new flag on Reddit posts about an AI tool's account rather than its use (usage limits, billing and refunds, bans, error messages, outages), unless the post also says what someone did with the tool"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
@@ -666,6 +670,66 @@ flag_patterns:
     - '\bdomain( name)?s? (is |are )?(for sale|available)\b'
     - '\b(domain|brand(ing)?|name)\b.{0,80}\b(is|are) (now )?for sale\b'
     - '\bdatasets?\b.{0,80}\b(available at scale|for sale|for purchase|licen[cs]e (them|it|our))\b'
+  # PRODUCT SUPPORT CHATTER (iai-8, the 2026-11-26 AI Watch review, agreed with the
+  # team): a post ABOUT an AI tool's account rather than its use - hitting usage or rate
+  # limits, quota resets, billing and refunds, bans, error messages, "is it down".
+  # Reddit only to start. A flag, never a drop (rule 8): the team will hand-label 100
+  # hits, then decide in a separate PR between a drop and a "Product support" content
+  # type that AI Watch hides by default but still counts.
+  #
+  # ONLY IN A POST'S OPENING: every pattern starts `\A(?s:.{0,160}?)`, so it must match
+  # within the first ~160 characters (a Reddit post's title and first line). Read on
+  # the kept AI Watch Reddit posts, 2026-11-27 (1,009 of 1,627 kept; read-only, stored
+  # iai-7 labels, so posts iai-7's filters had already kept): matched anywhere in the
+  # text, the draft flagged 48, and about half
+  # only mentioned a limit or refund in passing deep in a benchmark or project post;
+  # matched in the opening, it flags 27, and about 26 of the 27 read as support chatter.
+  # The audit's earlier "up to 163" was a much wider pattern's upper bound.
+  #
+  # `unless`: a post that also says what someone did with the tool (a workflow, a
+  # saving, a result, a how-to) is left unflagged, so cost-saving write-ups and tools
+  # built around a limit stay out (2 of the 29 opening matches on 2026-11-27). It reads
+  # the WHOLE post, so each pattern needs a doing verb: "limits are killing my workflow"
+  # or "I wrote to support" must not unflag a complaint (#689 review, point 2). The
+  # posts it spares are hand-checked with the flagged ones.
+  support_chatter:
+    platforms: [reddit]
+    patterns:
+    # Usage and rate limits, quotas, caps.
+    - '\A(?s:.{0,160}?)\b(hit|hitting|hits|reached|reaching|ran into|running into|run out of|ran out of|out of|burning through|draining)\b[^.!?\n]{0,40}\b(limits?|quota|cap)\b'
+    - '\A(?s:.{0,160}?)\b(usage|rate|weekly|daily|monthly|session|plan|message|credits?|5[- ]?h(ou)?r?|five[- ]hour) ?(limit+s?|caps?|quotas?)\b'
+    - '\A(?s:.{0,160}?)\brate[- ]limit(ed|ing)\b'
+    - '\A(?s:.{0,160}?)\b(limits?|quota|usage) (reset|resets|resetting)\b'
+    - '\A(?s:.{0,160}?)\bthrottl(e|ed|es|ing)\b'
+    # Billing, refunds, plan changes.
+    - '\A(?s:.{0,160}?)\b(refunds?|refunded|charged (me )?twice|double[- ]charged|billing|chargeback)\b'
+    - '\A(?s:.{0,160}?)\b(cancel(l?ed|l?ing)?|downgrad(e|ed|ing)|upgrad(e|ed|ing))\b[^.!?\n]{0,40}\b(subscription|plan)\b'
+    # Bans: an ACCOUNT banned ("I got banned", "was banned", "banned with zero notice").
+    # Not "shadow-banned" (a post about results), and not "suspended" or "banned" alone:
+    # a person suspended, or a country or agency banning a tool, is policy news, not
+    # account support (#689 review, point 3).
+    - '\A(?s:.{0,160}?)\b(got|been|was|were|i''?m|am|is|are|get|getting) (suddenly |just |permanently )?(banned|deactivated)\b'
+    - '\A(?s:.{0,160}?)(?<![-\w])banned with(out)? (zero |no |any )?(notice|warning|reason|explanation)\b'
+    - '\A(?s:.{0,160}?)\baccounts? (is |was |were |got |has been |have been |been )?(suspended|locked)\b'
+    # Error messages and support tickets.
+    - '\A(?s:.{0,160}?)\b(error|status) (code )?[45]\d\d\b'
+    - '\A(?s:.{0,160}?)\b(internal server error|overloaded[_ ]error|api error|network error|something went wrong|unexpected error|error occurred)\b'
+    - '\A(?s:.{0,160}?)\b(customer support|support ticket|contacted support)\b'
+    # Is it down: "down" ending the question, not "is breaking down" (#689 review, point 4).
+    - '\A(?s:.{0,160}?)\bis (it|\w+) down( for\b| right now\b| again\b|\s*\?|\s*$)'
+    - '\A(?s:.{0,160}?)\b(outage|down for (anyone|everyone)|anyone else (having|getting|seeing|experiencing))\b'
+    unless:
+    # A workflow someone runs or built, not one a limit is "killing".
+    - '\b(built|set up|automated|use|used|using|run|running)\b[^.!?\n]{0,30}\b(my|our) (workflow|setup|pipeline|stack)\b'
+    - '\b(saved?|saving|cut|reduced?|lowered|halved)\b[^.!?\n]{0,50}(\$\d|\d+ ?%|\btokens?\b|\bcosts?\b|\bmoney\b|\bhours\b)'
+    - '\bhere''?s (how|what) (i|we)\b'
+    # `(?!-)`: "built-in" is not "built". Not "made" or "wrote": "we made the switch",
+    # "I wrote to support twice" (#689 review, point 2).
+    - '\b(i|we)\b[^.!?\n]{0,40}\b(built|shipped|created|automated)\b(?!-)'
+    # ...but "made" or "wrote" A THING still counts: "I made a tool to resume tasks
+    # after usage limits" was one of the 2 posts spared on 2026-11-27.
+    - '\b(i|we)\b[^.!?\n]{0,40}\b(made|wrote)\b (a|an|my|our|this)\b[^.!?\n]{0,30}\b(tool|app|bot|script|extension|plugin|site|dashboard|cli|wrapper)s?\b'
+    - '\bhow to (avoid|stop|reduce|save|get around|work around)\b'
 
 # CONTENT TYPE: the first type in `type_order` with a matching pattern wins.
 # An item that matches none is `discussion`.
