@@ -42,6 +42,7 @@ from collect.adapters.basis import observe_use_basis
 from collect.adapters.documents import DocumentDraft, SweepCounts, WriteReport
 from collect.adapters.queries.sieve import matches, normalize
 from collect.config import settings
+from collect.http import ANSWERED_STATUSES
 from collect.ids import stable_id
 from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
@@ -124,6 +125,12 @@ class BlueskyRun:
     #: fetch line can tell throttling from timeouts from refusals (#602), as
     #: the arXiv arm already does. `http_errors` stays the count.
     failures: list = field(default_factory=list)
+    #: Failed requests the provider ANSWERED about what was asked
+    #: (`collect.http.ANSWERED_STATUSES`): the account or query is wrong or gone,
+    #: the provider is up. Read by collect/industry_ai/harvest.py
+    #: `provider_failed` (#688 review), so a run of gone accounts does not stop
+    #: the watch list.
+    answered_errors: int = 0
     #: `hitsTotal` as the platform reported it; None when it did not answer.
     total_count: int | None = None
     hits: list[BlueskyHit] = field(default_factory=list)
@@ -211,6 +218,8 @@ class BlueskyHarvester:
         if response.status_code != 200:
             run.http_errors += 1
             run.failures.append(f"HTTP {response.status_code}")
+            if response.status_code in ANSWERED_STATUSES:
+                run.answered_errors += 1
             log.error("bluesky: HTTP %s for %r - NOT an empty result set",
                       response.status_code, run.query)
             return None

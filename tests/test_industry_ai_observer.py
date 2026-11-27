@@ -255,7 +255,7 @@ def test_watch_sources_run_under_their_own_caps_with_no_domain_hint(cfg, monkeyp
             it = watched(f"post for {query}", key="placeholder",
                          platform="hackernews", iid=f"hackernews:{len(calls)}")
             it.query_keys = set()
-            return [it], 1, "", None
+            return [it], 1, "", None, False
 
     monkeypatch.setitem(h._RUNNERS, "hackernews", Fake)
     w = {**cfg.watch, "max_requests": {**cfg.watch["max_requests"], "hackernews": 3}}

@@ -194,9 +194,9 @@ def runner(nodes, since=NOW - timedelta(days=7)):
 def test_the_runner_keeps_captioned_posts_in_the_window():
     old = node("OLD", ts=NOW - timedelta(days=30))
     nodes = [node("N1"), node("N2", caption=None), old]
-    items, used, detail, failure = runner(nodes).run("ig:someone")
+    items, used, detail, failure, provider = runner(nodes).run("ig:someone")
     assert [i.external_id for i in items] == ["N1"]
-    assert used == 1 and failure is None
+    assert used == 1 and failure is None and provider is False
     assert "1 of 3 post(s) came back with no caption" in detail
     it = items[0]
     assert it.id == "instagram:N1" and it.platform == "instagram"
@@ -206,14 +206,15 @@ def test_the_runner_keeps_captioned_posts_in_the_window():
 
 def test_a_page_with_no_caption_at_all_is_a_failure_not_a_quiet_account():
     nodes = [node("C1", caption=None), node("C2", caption="")]
-    items, _, _, failure = runner(nodes).run("ig:someone")
+    items, _, _, failure, provider = runner(nodes).run("ig:someone")
     assert items == [] and "no post carried a caption" in failure
+    assert provider is True, "the provider's fault (9-17 Nov), so it counts toward the breaker"
 
 
 def test_a_full_page_inside_the_window_says_older_posts_were_not_read():
     """#667 review, note 4: twelve posts, all this week, is not "all this week"."""
     full = [node(f"F{i}", ts=NOW - timedelta(hours=i)) for i in range(instagram.PER_PAGE)]
-    _, _, detail, _ = runner(full).run("ig:someone")
+    _, _, detail, _, _ = runner(full).run("ig:someone")
     assert "truncated: page-full (12 posts" in detail
     # One post older than the window means the page reached past it: nothing missed.
     reaching = full[:-1] + [node("OLD", ts=NOW - timedelta(days=30))]

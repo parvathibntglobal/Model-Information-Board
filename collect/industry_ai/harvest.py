@@ -365,7 +365,7 @@ def harvest(
                     out.add(it, domain=d.split("/", 1)[0], key=stat.key)
                 stat.items, stat.detail = len(seen_feed[q]), "same feed as another domain"
                 continue
-            items = _run_query(
+            items, _ = _run_query(
                 runner, q, stat, budget, out, platform,
                 cap_note=f"{platform} request cap reached ({cfg.run['max_requests'][platform]})",
             )
@@ -390,36 +390,45 @@ def harvest(
     return out
 
 
-def _run_query(runner, q, stat, budget, out, platform, *, cap_note) -> list[Item] | None:
+def _run_query(runner, q, stat, budget, out, platform, *,
+               cap_note) -> tuple[list[Item] | None, bool | None]:
     """One query, under its budget: the steps BOTH the keyword loop and the watch loop
-    take, in one place so they cannot drift apart (#650 review, point 2). Returns the
-    items, or None when the query was not run (capped) or raised.
+    take, in one place so they cannot drift apart (#650 review, point 2). Returns
+    (items, provider_failed): items, or None when the query was not run (capped) or
+    raised; provider_failed as the runner said (`provider_failed`), False when nothing
+    failed, None when the query was not run or its runner does not tell.
 
-    The runner returns (items, used, detail, failure), unpacked strictly, so a runner
-    that leaves `failure` out raises and its query is marked `error`, never read as
-    "nothing failed" (rule 12; #648). A FAILED SEARCH MUST NOT READ AS "FOUND
-    NOTHING" (rule 4; the first dry run, #646: GitHub's 401s and dev.to's 429s showed
-    as ok, 0 items): its query is `error`, and items from the pages that did answer
-    are still kept."""
+    The runner returns (items, used, detail, failure, provider_failed), unpacked
+    strictly, so a runner that leaves a value out raises and its query is marked
+    `error`, never read as "nothing failed" (rule 12; #648). A FAILED SEARCH MUST NOT
+    READ AS "FOUND NOTHING" (rule 4; the first dry run, #646: GitHub's 401s and
+    dev.to's 429s showed as ok, 0 items): its query is `error`, and items from the
+    pages that did answer are still kept. A runner that RAISED is counted as the
+    provider failing (True): a timeout raised out of an adapter looks exactly so, and
+    nothing in an exception says the provider answered."""
     cost = runner.cost(q)
     if not budget.allows(platform, cost):
         stat.status = "capped"
         stat.detail = f"not run: {cap_note}"
-        return None
+        return None, None
     try:
-        items, used, detail, failure = runner.run(q)
+        items, used, detail, failure, provider = runner.run(q)
     except Exception as e:  # noqa: BLE001 - one failed query must not stop the platform
         stat.status, stat.detail = "error", f"{type(e).__name__}: {str(e)[:160]}"
         budget.spend(platform, cost)
         out.requests[platform] += cost
-        return None
+        return None, True
     budget.spend(platform, used)
     out.requests[platform] += used
     stat.requests, stat.items, stat.detail = used, len(items), detail
-    if failure:
-        stat.status = "error"
-        stat.detail = "; ".join(x for x in (failure, detail) if x)
-    return items
+    if not failure:
+        return items, False
+    stat.status = "error"
+    if provider is False:
+        detail = "; ".join(x for x in (detail, "the provider answered (not counted as "
+                                       "the provider failing)") if x)
+    stat.detail = "; ".join(x for x in (failure, detail) if x)
+    return items, provider
 
 
 def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, since, log) -> None:
@@ -451,6 +460,10 @@ def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, s
         # of its list is not asked this run: each is `skipped`, with why, so the run
         # log and the summary say "not asked", never "found nothing" (rule 4). One
         # answered query resets the count, so a few scattered failures stop nothing.
+        # ONLY THE PROVIDER FAILING COUNTS (#688 review, point 1): a query the provider
+        # answered with "that account or subreddit is wrong or gone"
+        # (`collect.http.ANSWERED_STATUSES`) is an answer and resets the count, so five
+        # gone accounts side by side cannot stop a platform whose provider is fine.
         stop_after = int(cfg.watch["stop_after_failures"])
         failed_in_a_row = 0
         for i, q in enumerate(wanted):
@@ -458,17 +471,19 @@ def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, s
             out.queries.append(stat)
             if failed_in_a_row >= stop_after:
                 stat.status = "skipped"
-                stat.detail = (f"not asked: the {stop_after} {platform} queries before it "
-                               "failed in a row (provider failing)")
+                stat.detail = (f"not asked: the provider failed the {stop_after} "
+                               f"{platform} queries before it in a row")
                 continue
-            items = _run_query(
+            items, provider = _run_query(
                 runner, q, stat, budget, out, platform,
                 cap_note=f"watch {platform} request cap reached ({caps[platform]})",
             )
-            failed_in_a_row = failed_in_a_row + 1 if stat.status == "error" else 0
+            provider_down = stat.status == "error" and provider is not False
+            failed_in_a_row = failed_in_a_row + 1 if provider_down else 0
             if failed_in_a_row == stop_after and i + 1 < len(wanted):
                 out.notes.append(
-                    f"watch {platform}: stopped after {stop_after} failed queries in a row; "
+                    f"watch {platform}: stopped after the provider failed {stop_after} "
+                    "queries in a row; "
                     f"{len(wanted) - i - 1} not asked this run (watch.stop_after_failures)")
             for it in items or []:
                 out.add(it, domain=None, key=stat.key)
@@ -560,9 +575,11 @@ class _Runner:
     def cost(self, query: str) -> int:
         return 1
 
-    def run(self, query: str) -> tuple[list[Item], int, str, str | None]:
-        """(items, requests used, detail, failure). `failure` is None unless the
-        adapter recorded a failed request - see `failure_of`."""
+    def run(self, query: str) -> tuple[list[Item], int, str, str | None, bool | None]:
+        """(items, requests used, detail, failure, provider_failed). `failure` is None
+        unless the adapter recorded a failed request - see `failure_of`.
+        `provider_failed` says whether the PROVIDER failed (see `provider_failed`); a
+        runner for a platform with no watch list returns None: not classified."""
         raise NotImplementedError
 
 
@@ -594,6 +611,22 @@ def failure_of(run) -> str | None:
     if empty:
         parts.append(f"{empty} page(s) came back empty after retries")
     return "; ".join(parts) or None
+
+
+def provider_failed(run) -> bool:
+    """Whether the PROVIDER failed at least one of this run's requests, as opposed to
+    answering that what was asked is wrong or gone (#688 review, point 1).
+
+    A failed request counts unless the adapter recorded it in `answered_errors`
+    (`collect.http.ANSWERED_STATUSES`, as each provider means them): no answer in
+    time, a refused connection, a 5xx, a 429, a 401/403, a page that could not be
+    read. Read by the observer's stop-after-failures (`_harvest_watch`).
+    `answered_errors` is read directly: a watch adapter's run record without it
+    raises rather than reading as "the provider answered" (rule 12)."""
+    stood = int(run.http_errors or 0) - int(getattr(run, "recovered", 0) or 0)
+    return (stood > int(run.answered_errors)
+            or bool(getattr(run, "rate_limited", False))
+            or int(getattr(run, "empty_response", 0) or 0) > 0)
 
 
 def _gated(rows, contract, platform_id: str, factory, **kwargs):
@@ -637,6 +670,7 @@ class _Reddit(_Runner):
             max(run.pages_fetched, 1),
             (f"truncated: {run.truncated_by}" if run.truncated_by else ""),
             failure_of(run),
+            provider_failed(run),
         )
 
     def close(self):
@@ -690,7 +724,8 @@ class _X(_Runner):
         if run.quota_limit is not None:
             self.quota = {"quota_limit": run.quota_limit, "quota_remaining": run.quota_remaining}
         detail = f"{pages} page(s)" + ("; quota exhausted" if run.quota_exhausted else "")
-        return [_x_item(p) for p in run.posts], max(run.search_calls, 1), detail, failure_of(run)
+        return ([_x_item(p) for p in run.posts], max(run.search_calls, 1), detail,
+                failure_of(run), provider_failed(run))
 
     def close(self):
         self.client.close()
@@ -748,7 +783,9 @@ class _GitHub(_Runner):
         run = QueryRun(request=req)
         hits = self.h.search(req, run)
         detail = f"truncated: {run.truncated_by}" if run.truncated_by else ""
-        return ([_github_item(h) for h in hits], max(run.search_calls, 1), detail, failure_of(run))
+        # No watch list on GitHub, so its failures are not classified (None).
+        return ([_github_item(h) for h in hits], max(run.search_calls, 1), detail,
+                failure_of(run), None)
 
     def close(self):
         self.client.close()
@@ -787,7 +824,7 @@ class _HackerNews(_Runner):
             hits = self.h.search_stories(query, since_ts=self.since, per_page=30, run=run)
         items = [_hn_item(h) for h in hits
                  if h.get("objectID") and (h.get("title") or h.get("comment_text"))]
-        return items, 1, "", failure_of(run)
+        return items, 1, "", failure_of(run), provider_failed(run)
 
     def close(self):
         self.client.close()
@@ -812,7 +849,9 @@ class _Devto(_Runner):
     def run(self, query):
         # dev.to answers HTTP 500 to a hyphenated query (harvest_topics.py, 2026-10-18).
         run = self.h.search(query.replace("-", " "))
-        return [_devto_item(h) for h in run.hits if h.url and h.title], 1, "", failure_of(run)
+        # No watch list on dev.to, so its failures are not classified (None).
+        return ([_devto_item(h) for h in run.hits if h.url and h.title], 1, "",
+                failure_of(run), None)
 
     def close(self):
         self.client.close()
@@ -835,7 +874,8 @@ class _Bluesky(_Runner):
         if payload is not None:
             hits = [h for h in (self.mod._hit_of(p) for p in payload.get("posts") or []) if h]
         failure = failure_of(run) or (None if payload is not None else "no answer")
-        return [_bluesky_item(h) for h in hits], max(run.search_calls, 1), "", failure
+        return ([_bluesky_item(h) for h in hits], max(run.search_calls, 1), "", failure,
+                provider_failed(run))
 
     def close(self):
         self.client.close()
@@ -869,7 +909,8 @@ class _Feeds(_Runner):
         failure = None
         if got.outcome in ("error", "robots-blocked"):
             failure = f"feed {got.outcome}" + (f": {got.detail}" if got.detail else "")
-        return items, 1, str(got.outcome), failure
+        # Each feed is its own host and feeds have no watch list: not classified.
+        return items, 1, str(got.outcome), failure, None
 
     def close(self):
         self.client.close()
@@ -925,10 +966,12 @@ class _Instagram(_Runner):
             notes.append(f"truncated: page-full ({len(run.posts)} posts, all inside the "
                          "watch window; older ones in it not read)")
         failure = failure_of(run)
+        provider = provider_failed(run)
         if run.posts and not captioned:
             failure = "; ".join(x for x in (failure, "no post carried a caption (provider "
                                             "fault, seen 9-17 Nov 2026)") if x)
-        return items, max(run.calls, 1), "; ".join(notes), failure
+            provider = True
+        return items, max(run.calls, 1), "; ".join(notes), failure, provider
 
     def close(self):
         self.client.close()

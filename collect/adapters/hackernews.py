@@ -152,6 +152,7 @@ from collect.adapters.documents import (
     WriteReport,
 )
 from collect.config import settings
+from collect.http import ANSWERED_STATUSES
 from collect.ids import stable_id
 from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
@@ -347,6 +348,12 @@ class HnRun:
     #: fetch line can tell throttling from timeouts from refusals (#602), as
     #: the arXiv arm already does. `http_errors` stays the count.
     failures: list = field(default_factory=list)
+    #: Failed requests the provider ANSWERED about what was asked
+    #: (`collect.http.ANSWERED_STATUSES`): the account or query is wrong or gone,
+    #: the provider is up. Read by collect/industry_ai/harvest.py
+    #: `provider_failed` (#688 review), so a run of gone accounts does not stop
+    #: the watch list.
+    answered_errors: int = 0
 
     discovery_refs: list[str] = field(default_factory=list)
     comments: list[HnComment] = field(default_factory=list)
@@ -444,6 +451,8 @@ class HackerNewsHarvester:
         if response.status_code != 200:
             run.http_errors += 1
             run.failures.append(f"HTTP {response.status_code}")
+            if response.status_code in ANSWERED_STATUSES:
+                run.answered_errors += 1
             log.warning("hackernews: HTTP %s on %s %r", response.status_code, path, params)
             return None
         return response

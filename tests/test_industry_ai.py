@@ -421,7 +421,7 @@ def test_a_query_past_the_cap_is_not_run_and_says_so(cfg, monkeypatch):
 
         def run(self, query):
             calls.append(query)
-            return [], 1, "", None
+            return [], 1, "", None, False
 
     monkeypatch.setitem(h._RUNNERS, "hackernews", Fake)
     import dataclasses
@@ -746,7 +746,7 @@ def test_a_failed_search_is_logged_as_error_and_keeps_partial_items(cfg, monkeyp
             pass
 
         def run(self, query):
-            return [partial], 1, "", "1 request(s) failed (HTTP 401)"
+            return [partial], 1, "", "1 request(s) failed (HTTP 401)", True
 
     monkeypatch.setitem(h._RUNNERS, "hackernews", Failing)
     run = {**cfg.run, "max_requests": {**cfg.run["max_requests"], "hackernews": 1}}
