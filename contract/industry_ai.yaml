@@ -46,7 +46,10 @@ version: 1
 #        out before matching; seven flags (never drops); use-case patterns must name AI;
 #        supply chain's software senses out; copies from other accounts and every
 #        cross-post folded.
-pipeline_version: iai-7
+# iai-8: 483 more AI terms (289 -> 772) from public glossaries, each checked by hand
+#        (2026-11-27; docs/measurements/ai-terms-2026-11-27.md). #689 also claims iai-8:
+#        whichever of the two merges second takes iai-9.
+pipeline_version: iai-8
 # WHAT EACH RULES VERSION CHANGED, one line each (#668, agreed by anooj 2026-11-25),
 # read by the AI in industries Info view so "Rules version iai-4" means something
 # on the page. Add a line whenever `pipeline_version` is bumped.
@@ -58,6 +61,7 @@ versions:
   iai-5: "2026-11-25: a picture or video post with too few words to judge is counted as not readable, not filtered out"
   iai-6: "2026-11-26: the text that comes with a post's media (alt text, a quoted post, a Reddit crosspost's original) is matched for AI and industry words too; a post it let through or filed elsewhere is flagged"
   iai-7: "2026-11-26: words inside links and @handles no longer count; seven new flags (GitHub to-do list, AI far from the industry word, market chatter, short X reply, heavy poster, for sale, long post on a weak AI word); \"put away\" in everyday English no longer files a post under Supply chain; a use case must name AI in the same sentence; software senses of supply chain left out; the same text from another account, or cross-posted by anyone, counted once"
+  iai-8: "2026-11-27: 483 more AI terms (289 to 772): AI techniques, tools, libraries, model families, benchmarks and datasets from public glossaries, each checked by hand; words with an everyday meaning (Cursor, transformer, inference) left out"
 
 run:
   # false refuses a harvest (scripts/run_industry_ai.py exits before any
