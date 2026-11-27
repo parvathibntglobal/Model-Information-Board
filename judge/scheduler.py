@@ -242,13 +242,26 @@ def count_by_provider(threads) -> dict[str, dict[str, int]]:
     `_call_with_one_retry`). The retry's answer is the one whose quotes were
     checked, so a thread that went to DeepInfra and was retried on Wafer is
     Wafer's.
+
+    AND EVERY EARLIER CALL COUNTS AS `retried_from` UNDER ITS OWN PROVIDER (#677
+    review, Parvathi, 2026-11-26): a provider whose first answers start failing the
+    schema would otherwise show only as fewer threads, never as failures. A
+    provider that only failed first answers has a row with 0 threads. A thread
+    that failed BOTH calls is not read, so it is in none of these counts.
     """
     out: dict[str, dict[str, int]] = {}
+
+    def row(name):
+        return out.setdefault(name or PROVIDER_NOT_REPORTED,
+                              {"threads": 0, "verified": 0, "retried_from": 0})
+
     for upstreams, verified in threads:
-        name = (list(upstreams or []) or [None])[-1] or PROVIDER_NOT_REPORTED
-        row = out.setdefault(name, {"threads": 0, "verified": 0})
-        row["threads"] += 1
-        row["verified"] += int(verified or 0)
+        calls = list(upstreams or []) or [None]
+        final = row(calls[-1])
+        final["threads"] += 1
+        final["verified"] += int(verified or 0)
+        for earlier in calls[:-1]:
+            row(earlier)["retried_from"] += 1
     return out
 
 
@@ -267,13 +280,21 @@ def _provider_line(records: list[dict]) -> str | None:
     no run reported it, no line (rule 6).
     """
     totals: dict[str, dict[str, int]] = {}
-    unreported = 0
+    retried: dict[str, int] = {}
+    unreported = retries_unreported = 0
     for r in records:
         by = r.get("threads_by_provider")
         if not isinstance(by, dict):
             if (r.get("threads_read") or 0) and not r.get("extract_skipped"):
                 unreported += 1
             continue
+        # RETRIES ARE COUNTED ONLY WHERE A RUN REPORTED THEM. A run from before
+        # 2026-11-26 carries no `retried_from`; its absence is said, never read as 0.
+        if all("retried_from" in row for row in by.values()):
+            for name, row in by.items():
+                retried[name] = retried.get(name, 0) + row["retried_from"]
+        else:
+            retries_unreported += 1
         for name, row in by.items():
             t = totals.setdefault(name, {"threads": 0, "verified": 0})
             t["threads"] += row["threads"]
@@ -281,12 +302,28 @@ def _provider_line(records: list[dict]) -> str | None:
     if not totals:
         return None
     parts = [f"{name} {row['threads']:,} / {row['verified']:,}"
-             for name, row in sorted(totals.items(), key=lambda kv: (-kv[1]["threads"], kv[0]))]
+             for name, row in sorted(totals.items(), key=lambda kv: (-kv[1]["threads"], kv[0]))
+             if row["threads"]]
     line = f"{PROVIDER_LINE} {' · '.join(parts)} (threads / quotes)."
+    failed_first = {n: c for n, c in retried.items() if c}
+    if failed_first:
+        line += (f" {RETRIED_LINE} " + " · ".join(
+            f"{n} {c:,}" for n, c in sorted(failed_first.items(), key=lambda kv: (-kv[1], kv[0])))
+            + ".")
+    elif retried:
+        line += " No thread needed a retry."
+    if retries_unreported:
+        line += (f" {retries_unreported} run(s) did not report retries, so they are not in"
+                 " the retry counts.")
     if unreported:
         line += (f" {unreported} run(s) read threads and did not report their providers,"
                  " so they are not in these counts.")
     return line
+
+
+#: The second sentence of the provider line (#677 review).
+RETRIED_LINE = ("Threads retried after a first answer that failed the schema, by the "
+                "provider of that first answer:")
 
 
 #: The summary's one line for `threads_unreadable_here`; Admin -> Scheduler
@@ -457,15 +494,24 @@ def _safe_by_provider(by) -> dict[str, dict[str, int]] | None:
     fails is merged under `PROVIDER_UNRECOGNISED`, its counts kept. A value that
     is not `{name: {"threads": int, "verified": int}}` is dropped whole, and the
     summary then counts that run as one that did not report it.
+
+    `retried_from` (since 2026-11-26) is kept when present and checked the same
+    way; a row without it is an older run's and stays without it (rule 6).
     """
     if not isinstance(by, dict):
         return None
+
+    def count(n):
+        return isinstance(n, int) and not isinstance(n, bool) and n >= 0
+
     out: dict[str, dict[str, int]] = {}
     for name, row in by.items():
         if not isinstance(row, dict):
             return None
         counts = (row.get("threads"), row.get("verified"))
-        if not all(isinstance(n, int) and not isinstance(n, bool) and n >= 0 for n in counts):
+        if not all(count(n) for n in counts):
+            return None
+        if "retried_from" in row and not count(row["retried_from"]):
             return None
         ok = isinstance(name, str) and (name == PROVIDER_NOT_REPORTED
                                         or _PROVIDER_NAME.fullmatch(name))
@@ -473,4 +519,6 @@ def _safe_by_provider(by) -> dict[str, dict[str, int]] | None:
         t = out.setdefault(key, {"threads": 0, "verified": 0})
         t["threads"] += counts[0]
         t["verified"] += counts[1]
+        if "retried_from" in row:
+            t["retried_from"] = t.get("retried_from", 0) + row["retried_from"]
     return out

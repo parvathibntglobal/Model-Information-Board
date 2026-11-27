@@ -103,3 +103,37 @@ reddit_comments_max_post_age_days: 30
 #:
 #: Required, a positive integer; a missing or bad value refuses (rule 12).
 extract_concurrency: 4
+
+#: WHICH OPENROUTER HOSTS MAY SERVE deepseek-v4-flash - never which model
+#: (judge/extract/client.py `extractor_provider`). Read by the extractor (E5) and
+#: by the evidence feed's paraphrases and summaries (judge/feed/llm.py), which
+#: call the same model.
+#:
+#: THE ONLY SOURCE, since 2026-11-26 (#677 review, Parvathi: "contract only").
+#: Until then the three nightly workflows, Railway and .env each carried
+#: EXTRACTOR_PROVIDER_SORT / _IGNORE, so one decision lived in five places. A
+#: process that still sets either variable gets a loud warning and the variable
+#: is IGNORED. A replay that must pin one host passes `provider=` to
+#: `OpenRouterClient` explicitly; nothing reads the environment for it.
+#:
+#:   sort    throughput | price | latency. A PREFERENCE, not a ban: measured
+#:           2026-10-01, with no preference deepseek-v4-flash went to
+#:           OpenInference at ~9 min/thread and truncated with no claims;
+#:           `throughput` took 9-36 s/thread. A failed call can still fall back
+#:           to any host, which is why `ignore` exists.
+#:   ignore  hosts never used. OpenInference since 2026-10-01 (a fallback there
+#:           took 9.5 min, truncated, no claims, $0.0216 billed). DeepInfra since
+#:           2026-11-25: from 14 Nov its deepseek-v4-flash answered "no claim" to
+#:           nearly every thread (14-24 Nov: 1,518 threads read by DeepInfra
+#:           alone, 125 verified quotes; the other hosts, 2,351 threads, 5,453;
+#:           fetch_log `upstreams`). Replayed 2026-11-25, the same 14 threads
+#:           pinned to each host: DeepInfra 0 quotes on all 14, Wafer 9 on 4; and
+#:           2 of 4 feed batches got no paraphrase from DeepInfra. Before 14 Nov it
+#:           did as well as the others (13 Nov: 368 threads, 631 quotes), so it
+#:           may come back off this list on a new replay. An empty list is
+#:           allowed and means "rule none out".
+#:
+#: Both keys required; a missing or unknown value refuses (rule 12).
+extractor_provider:
+  sort: throughput
+  ignore: [DeepInfra, OpenInference]

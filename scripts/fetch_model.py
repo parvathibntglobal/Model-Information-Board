@@ -4014,7 +4014,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         # BY OPENROUTER PROVIDER (#671): the same threads and quotes, split by who
         # served each thread's final call, so a provider that stops returning
         # quotes shows in the nightly summary the night it starts. Its threads sum
-        # to `threads_read`. Read by judge/scheduler.py `_provider_line`.
+        # to `threads_read`. `retried_from` counts each provider's first answers
+        # that failed the schema and were retried (#677 review). Read by
+        # judge/scheduler.py `_provider_line`.
         threads_by_provider=count_by_provider(
             (r.extraction.upstreams, len(r.extraction.verified)) for r in results
         ) or None,
