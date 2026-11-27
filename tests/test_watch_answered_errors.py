@@ -115,12 +115,23 @@ def reddit_host(monkeypatch):
     config.settings.cache_clear()
 
 
-@pytest.mark.parametrize("status, answered", [(404, 1), (502, 0)])
-def test_reddit(tmp_path, reddit_host, status, answered):
+@pytest.mark.parametrize("status, body, answered", [
+    (404, {}, 1),
+    (502, {}, 0),
+    # #691 review: a PRIVATE or QUARANTINED subreddit is Reddit answering (403 with a
+    # reason), as Reddit sends it or wrapped by the provider; a 403 without one is the
+    # gateway refusing the key, which fails every query alike.
+    (403, {"reason": "private", "message": "Forbidden", "error": 403}, 1),
+    (403, {"success": False, "data": {"reason": "quarantined"}}, 1),
+    (403, {"message": "You are not subscribed to this API."}, 0),
+    (403, ["not", "an", "object"], 0),
+])
+def test_reddit(tmp_path, reddit_host, status, body, answered):
     from collect.limiter import HostLimiter
 
     h = reddit.RedditHarvester(
-        client=httpx.Client(transport=_transport(status)),
+        client=httpx.Client(transport=httpx.MockTransport(
+            lambda request: httpx.Response(status, json=body))),
         store=RawStore(tmp_path / "raw_store"),
         limiter=HostLimiter(min_interval=0.0, clock=lambda: 0.0, sleeper=lambda _s: None),
         clock=lambda: NOW, sleeper=lambda _s: None,

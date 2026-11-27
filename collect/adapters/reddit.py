@@ -758,7 +758,7 @@ class RedditHarvester:
 
         if response.status_code != 200:
             run.http_errors += 1
-            if response.status_code in ANSWERED_STATUSES:
+            if response.status_code in ANSWERED_STATUSES or _closed_subreddit(response):
                 run.answered_errors += 1
             log.warning("reddit: HTTP %s on %r", response.status_code, params)
             return None
@@ -1084,6 +1084,31 @@ class RedditHarvester:
             lexicon=lexicon,
         )
 
+
+#: Reddit answers a PRIVATE or QUARANTINED subreddit with 403 and this `reason` (#691
+#: review, Parvathi): the community is closed and the provider is up. Thousands went
+#: private at once in June 2023. A 403 WITHOUT one of these reasons is the RapidAPI
+#: gateway refusing our key or route, which fails every query alike, so it still
+#: counts as the provider failing. Unmeasured on our provider (2026-11-27: no stored
+#: watch query has failed yet): if reddit34 never passes Reddit's reason through,
+#: nothing here changes and a closed subreddit counts as before.
+_CLOSED_REASONS = frozenset({"private", "quarantined"})
+
+
+def _closed_subreddit(response: httpx.Response) -> bool:
+    """A 403 whose JSON body gives a `_CLOSED_REASONS` reason, at the top level as
+    Reddit sends it or under `data` where a provider wraps the reply."""
+    if response.status_code != 403:
+        return False
+    try:
+        body = response.json()
+    except ValueError:
+        return False
+    if not isinstance(body, dict):
+        return False
+    inner = body.get("data")
+    reasons = {body.get("reason"), inner.get("reason") if isinstance(inner, dict) else None}
+    return bool(reasons & _CLOSED_REASONS)
 
 
 def _quota_sink(fetch: ThreadFetch):
