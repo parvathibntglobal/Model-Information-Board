@@ -1,7 +1,8 @@
 """A watch-list provider that is down stops costing the run (2026-11-27).
 
-On 26 Nov Instagram's provider timed out on 49 of 200 requests, ~95 s each, and the
-observer was cancelled at the job's 180-minute limit before labelling. These pin:
+On 26 Nov Instagram's provider failed for 64 accounts (the last 62 one after
+another), ~95 s each, and the observer was cancelled at the job's 180-minute limit
+before labelling. These pin:
   * after `watch.stop_after_failures` queries IN A ROW fail on one platform, the rest
     of its list is not asked: each is `skipped` with why ("not asked"), never "ok, 0";
   * the run says so in a note, and the skipped queries spend no request;

@@ -439,9 +439,10 @@ def _harvest_watch(cfg, out, platforms, rows, contract, store, client_factory, s
             continue
         before = out.requests[platform]
         # A PROVIDER THAT IS DOWN STOPS COSTING THE RUN (2026-11-27): on 26 Nov
-        # Instagram's provider timed out on 49 of 200 requests, ~95 s each (two
-        # attempts at 45 s), and the observer spent 2 h 7 min on it and was cancelled
-        # at the job's 180-minute limit before labelling. After
+        # Instagram's provider failed for 64 accounts (49 timeouts, 15 HTTP 500s),
+        # ~95 s each (two attempts), the last 62 one after another. The observer
+        # spent 2 h 7 min on it and was cancelled at the job's 180-minute limit
+        # before labelling. After
         # `watch.stop_after_failures` queries IN A ROW fail on one platform, the rest
         # of its list is not asked this run: each is `skipped`, with why, so the run
         # log and the summary say "not asked", never "found nothing" (rule 4). One

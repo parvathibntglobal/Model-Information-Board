@@ -1207,9 +1207,10 @@ watch:
   # queries IN A ROW fail on one platform, the rest of that platform's list is not
   # asked this run: each is recorded `skipped` ("not asked: provider failing"), never
   # read as an account that posted nothing (rule 4). An answered query resets the
-  # count. Why: on 26 Nov Instagram's provider timed out on 49 of 200 requests, about
-  # 95 s each (two attempts at the 45 s client timeout), so the observer spent 2 h 7 min
-  # on Instagram and the job was cancelled at its 180-minute limit before labelling.
+  # count. Why: on 26 Nov Instagram's provider failed for 64 accounts (49 timeouts,
+  # 15 HTTP 500s; the last 62 one after another), about 95 s each (two attempts at
+  # the 45 s client timeout), so the observer spent 2 h 7 min on Instagram and the
+  # job was cancelled at its 180-minute limit before labelling.
   # At 5, a provider that is down costs at most about 8 minutes (5 x 95 s).
   stop_after_failures: 5
 
