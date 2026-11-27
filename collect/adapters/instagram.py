@@ -46,6 +46,7 @@ import httpx
 
 from collect.adapters.basis import observe_use_basis
 from collect.config import settings
+from collect.http import ANSWERED_STATUSES
 from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
 from collect.usage import record_rapidapi_quota
@@ -115,6 +116,12 @@ class InstagramRun:
     retries: int = 0
     #: Failed attempts a retry recovered from; `failure_of` subtracts them.
     recovered: int = 0
+    #: Failed requests the provider ANSWERED about what was asked
+    #: (`collect.http.ANSWERED_STATUSES`): the account or query is wrong or gone,
+    #: the provider is up. Read by collect/industry_ai/harvest.py
+    #: `provider_failed` (#688 review), so a run of gone accounts does not stop
+    #: the watch list.
+    answered_errors: int = 0
     #: Pages that answered 200 with no feed in them (rule 4: not "no posts").
     empty_response: int = 0
     #: Posts that came back with no caption: the provider's 9-17 Nov fault.
@@ -199,6 +206,8 @@ class InstagramHarvester:
                     transient = False  # waiting does not refill a spent quota
             run.http_errors += 1
             run.failures.append(cause)
+            if response is not None and response.status_code in ANSWERED_STATUSES:
+                run.answered_errors += 1
             if not transient or attempt == TRANSIENT_RETRIES:
                 log.error("instagram: %s on %s - NOT an empty result", cause, path)
                 return None

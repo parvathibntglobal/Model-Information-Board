@@ -151,6 +151,7 @@ import httpx
 from collect.adapters.basis import observe_use_basis
 from collect.adapters.documents import DocumentDraft, SweepCounts, WriteReport
 from collect.config import settings
+from collect.http import ANSWERED_STATUSES
 from collect.ids import stable_id
 from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
@@ -498,6 +499,12 @@ class XRun:
     #: declared, its reader is the same stage line once a fetch needs it.
     retries: int = 0
     recovered: int = 0
+    #: Failed requests the provider ANSWERED about what was asked
+    #: (`collect.http.ANSWERED_STATUSES`): the account or query is wrong or gone,
+    #: the provider is up. Never a 404: on X that is a wrong endpoint (`_attempt`).
+    #: Read by collect/industry_ai/harvest.py `provider_failed` (#688 review), so a
+    #: run of gone accounts does not stop the watch list.
+    answered_errors: int = 0
 
     @property
     def items_fetched(self) -> int:
@@ -793,6 +800,8 @@ class XHarvester:
             return None, f"HTTP {response.status_code}", False
         if response.status_code != 200:
             run.http_errors += 1
+            if response.status_code in ANSWERED_STATUSES:
+                run.answered_errors += 1
             log.warning("x: HTTP %s on %s", response.status_code, path)
             return (None, f"HTTP {response.status_code}",
                     response.status_code in _TRANSIENT_STATUSES)

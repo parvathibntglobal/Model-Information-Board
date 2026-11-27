@@ -1244,6 +1244,11 @@ watch:
   # the 45 s client timeout), so the observer spent 2 h 7 min on Instagram and the
   # job was cancelled at its 180-minute limit before labelling.
   # At 5, a provider that is down costs at most about 8 minutes (5 x 95 s).
+  # ONLY THE PROVIDER FAILING COUNTS (#688 review, point 1): a query the provider
+  # answered with "that account or subreddit is wrong or gone" (HTTP 400, 404, 410 or
+  # 422 where that is what the provider means; X's 404 is a wrong endpoint, so it
+  # counts) is an answer and resets the count. A timeout, a refused connection, a
+  # 5xx, a 429, a 401/403 or an unreadable page counts.
   stop_after_failures: 5
 
 # ── THE DOMAINS: our 20 persona umbrellas (anooj, 2026-11-20) ─────────────────

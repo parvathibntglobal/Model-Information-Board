@@ -232,6 +232,7 @@ from collect.adapters.basis import (
 from collect.adapters.basis import observe_use_basis
 from collect.adapters.queries.sieve import SieveVerdict, SieveYield, tally
 from collect.config import settings
+from collect.http import ANSWERED_STATUSES
 from collect.ids import stable_id
 from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
@@ -464,6 +465,12 @@ class RedditRun:
 
     search_calls: int = 0
     http_errors: int = 0
+    #: Failed requests the provider ANSWERED about what was asked
+    #: (`collect.http.ANSWERED_STATUSES`): the account or query is wrong or gone,
+    #: the provider is up. Read by collect/industry_ai/harvest.py
+    #: `provider_failed` (#688 review), so a run of gone accounts does not stop
+    #: the watch list.
+    answered_errors: int = 0
     rate_limited: int = 0
     backoff_seconds: float = 0.0
 
@@ -751,6 +758,8 @@ class RedditHarvester:
 
         if response.status_code != 200:
             run.http_errors += 1
+            if response.status_code in ANSWERED_STATUSES:
+                run.answered_errors += 1
             log.warning("reddit: HTTP %s on %r", response.status_code, params)
             return None
         return response
@@ -1096,6 +1105,8 @@ def _quota_sink(fetch: ThreadFetch):
     class _Sink:
         search_calls = 0
         truncated_by = None
+        # Read only by the observer's watch lists; a thread fetch has no use for it.
+        answered_errors = 0
 
         @property
         def quota_remaining(self):

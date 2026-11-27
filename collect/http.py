@@ -37,6 +37,16 @@ from collect.config import settings
 #: reason this is safe to make the default for every adapter.
 DEFAULT_CONNECT_RETRIES = 2
 
+#: A REFUSAL THAT IS AN ANSWER ABOUT WHAT WAS ASKED (2026-11-27, #688 review): the
+#: provider is up and says the account, subreddit or query is wrong or gone (bad
+#: request, not found, gone, unprocessable). An adapter counts these in its run
+#: record's `answered_errors` where the status means that ON ITS PROVIDER - X's 404
+#: is a wrong endpoint, so X leaves 404 out. Read by
+#: collect/industry_ai/harvest.py `provider_failed`, so the observer's
+#: stop-after-failures counts a provider that is down, not a list of gone accounts.
+#: Everything else (no answer, 5xx, 429, 401/403) is the provider failing.
+ANSWERED_STATUSES = frozenset({400, 404, 410, 422})
+
 #: Substrings that mean somebody shipped the template rather than a value.
 #: A contact URL that does not resolve is worse than none at all, because it
 #: looks like diligence.
